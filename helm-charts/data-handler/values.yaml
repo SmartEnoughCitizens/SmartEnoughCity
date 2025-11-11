@@ -1,0 +1,21 @@
+image:
+  repository: data-handler
+  tag: dev
+  pullPolicy: Never
+
+schedule: "* * * * *"
+timeZone: "Europe/Dublin"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+labels:
+  app.kubernetes.io/name: data-handler
+  app.kubernetes.io/instance: dev
+  app.kubernetes.io/component: batch
+  app.kubernetes.io/part-of: smart-enough-city
