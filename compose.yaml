@@ -1,0 +1,110 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: app_owner
+      POSTGRES_PASSWORD: dev_app_owner_password
+      POSTGRES_DB: smart_enough_city
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - postgres-internal
+      - data-handler
+
+  postgres-init:
+    image: postgres:18-alpine
+    depends_on:
+      - postgres
+    restart: "no"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: smart_enough_city
+      POSTGRES_PASSWORD: dev_postgres_password
+      APP_OWNER_USER: app_owner
+      APP_OWNER_PASSWORD: dev_app_owner_password
+      DATA_HANDLER_USER: data_handler
+      DATA_HANDLER_PASSWORD: dev_data_handler_password
+      DATA_HANDLER_SCHEMA: external_data
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Waiting for PostgreSQL to be ready..."
+        until PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d postgres -c '\q' 2>/dev/null; do
+          echo "PostgreSQL is unavailable - sleeping"
+          sleep 2
+        done
+        echo "PostgreSQL is ready!"
+        
+        echo "Creating postgres user with password..."
+        PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d postgres <<EOF
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = 'postgres') THEN
+            CREATE USER postgres WITH PASSWORD '$$POSTGRES_PASSWORD' SUPERUSER;
+          ELSE
+            ALTER USER postgres WITH PASSWORD '$$POSTGRES_PASSWORD';
+          END IF;
+        END
+        \$\$;
+        EOF
+        
+        echo "Creating $${DATA_HANDLER_USER} user and $${DATA_HANDLER_SCHEMA} schema..."
+        PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d "$$DB_NAME" <<EOF
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$$DATA_HANDLER_USER') THEN
+            CREATE USER "$$DATA_HANDLER_USER" WITH PASSWORD '$$DATA_HANDLER_PASSWORD';
+          ELSE
+            ALTER USER "$$DATA_HANDLER_USER" WITH PASSWORD '$$DATA_HANDLER_PASSWORD';
+          END IF;
+        END
+        \$\$;
+        
+        CREATE SCHEMA IF NOT EXISTS "$$DATA_HANDLER_SCHEMA" AUTHORIZATION "$$DATA_HANDLER_USER";
+        
+        GRANT ALL PRIVILEGES ON SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$DATA_HANDLER_USER";
+        
+        ALTER DEFAULT PRIVILEGES IN SCHEMA "$$DATA_HANDLER_SCHEMA" GRANT ALL ON TABLES TO "$$DATA_HANDLER_USER";
+        
+        ALTER DEFAULT PRIVILEGES IN SCHEMA "$$DATA_HANDLER_SCHEMA" GRANT ALL ON SEQUENCES TO "$$DATA_HANDLER_USER";
+        
+        ALTER SCHEMA "$$DATA_HANDLER_SCHEMA" OWNER TO "$$DATA_HANDLER_USER";
+        
+        GRANT USAGE ON SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$DATA_HANDLER_USER";
+        
+        SELECT 'Database initialization completed successfully!' as status;
+        EOF
+        echo "Database initialization completed!"
+    networks:
+      - postgres-internal
+
+  data_handler:
+    build:
+      context: ./backend/data_handler
+      dockerfile: Dockerfile
+    command: ["data-handler"]
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+    env_file:
+      - ./backend/data_handler/.env.development
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+    networks:
+      - data-handler
+
+volumes:
+  postgres_data:
+
+networks:
+  data-handler:
+    driver: bridge
+  postgres-internal:
+    driver: bridge
