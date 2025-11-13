@@ -1,0 +1,9 @@
+dependencies:
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 18.1.8
+- name: data-handler
+  repository: file://./charts/data-handler
+  version: 0.1.0
+digest: sha256:3cd0ac3bd87c0b9c46f6a933bb537cfd51bc1a879c8079a7b6498581c23dd79b
+generated: "2025-11-13T15:56:24.304325Z"

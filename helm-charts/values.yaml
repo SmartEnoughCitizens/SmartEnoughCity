@@ -1,0 +1,31 @@
+global:
+  db:
+    name: smart_enough_city
+    port: 5432
+    schemas:
+      dataHandlerSchema: "external_data"
+
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+  auth:
+    username: app_owner
+    database: smart_enough_city
+    existingSecret: sec-db-root
+
+db:
+  # Passwords auto-generated if empty
+  root:
+    postgresPassword: ""
+    appOwnerPassword: ""
+  users:
+    dataHandlerPassword: ""
+
+data-handler:
+  enabled: true
+  secrets:
+    appUsers:
+      name: sec-db-app-users
