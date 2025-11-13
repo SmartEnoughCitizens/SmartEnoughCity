@@ -21,7 +21,7 @@ RUN useradd -u 10001 -m appuser
 WORKDIR /app
 
 COPY --from=builder /wheels /wheels
-RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels data-handler
+RUN python -m pip install --no-cache-dir --find-links=/wheels data-handler
 
 USER 10001:10001
 
