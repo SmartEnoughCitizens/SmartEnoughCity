@@ -16,6 +16,5 @@ resources:
 
 labels:
   app.kubernetes.io/name: data-handler
-  app.kubernetes.io/instance: dev
-  app.kubernetes.io/component: batch
+  app.kubernetes.io/component: batch-run
   app.kubernetes.io/part-of: smart-enough-city
