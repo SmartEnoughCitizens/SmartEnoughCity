@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: hermes
+#  main:
+#    lazy-initialization: true
+#  jmx:
+#    enabled: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hermes_local
+    username: hermes
+    password: hermes
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+loki:
+  url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+  timeoutMs: 5000
