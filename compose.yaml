@@ -29,6 +29,10 @@ services:
       DATA_HANDLER_USER: data_handler
       DATA_HANDLER_PASSWORD: dev_data_handler_password
       DATA_HANDLER_SCHEMA: external_data
+    
+    volumes:
+      - ./backend/migrations:/migrations:ro
+
     command:
       - /bin/sh
       - -c
@@ -80,6 +84,17 @@ services:
         
         SELECT 'Database initialization completed successfully!' as status;
         EOF
+
+        # ADD THIS NEW SECTION - Run migrations
+        echo "Running database migrations..."
+        for migration in /migrations/*.sql; do
+          if [ -f "$$migration" ]; then
+            echo "Running migration: $$(basename $$migration)"
+            PGPASSWORD="$$DATA_HANDLER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$DATA_HANDLER_USER" -d "$$DB_NAME" -f "$$migration"
+          fi
+        done
+        echo "Migrations completed!"
+
         echo "Database initialization completed!"
     networks:
       - postgres-internal
