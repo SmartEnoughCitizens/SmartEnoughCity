@@ -14,3 +14,8 @@ dependencies:
     repository: file://./charts/data-handler
     version: 0.1.1
     condition: data-handler.enabled
+
+  - name: frontend
+    repository: file://./charts/frontend
+    version: 0.1.0
+    condition: frontend.enabled
