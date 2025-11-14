@@ -78,6 +78,20 @@ services:
         
         GRANT USAGE ON SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$DATA_HANDLER_USER";
         
+        CREATE TABLE IF NOT EXISTS "$$DATA_HANDLER_SCHEMA".train_stations (
+            id SERIAL PRIMARY KEY,
+            station_code TEXT,
+            station_desc TEXT,
+            lat DOUBLE PRECISION,
+            lon DOUBLE PRECISION,
+            station_types TEXT,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+        );
+
+        ALTER TABLE "$$DATA_HANDLER_SCHEMA".train_stations OWNER TO "$$DATA_HANDLER_USER";
+        GRANT ALL PRIVILEGES ON TABLE "$$DATA_HANDLER_SCHEMA".train_stations TO "$$DATA_HANDLER_USER";
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_train_stations_code ON "$$DATA_HANDLER_SCHEMA".train_stations (station_code);
+
         SELECT 'Database initialization completed successfully!' as status;
         EOF
         echo "Database initialization completed!"
