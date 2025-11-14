@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:18-alpine
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: app_owner
       POSTGRES_PASSWORD: dev_app_owner_password
@@ -12,7 +12,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - postgres-internal
-      - data-handler
 
   postgres-init:
     image: postgres:18-alpine
@@ -32,10 +31,8 @@ services:
       BACKEND_USER: backend_user
       BACKEND_USER_PASSWORD: dev_backend_user_password
       BACKEND_SCHEMA: backend
-    
     volumes:
       - ./backend/migrations:/migrations:ro
-
     command:
       - /bin/sh
       - -c
@@ -123,7 +120,6 @@ services:
         SELECT 'Backend user initialization completed successfully!' as status;
         EOF
 
-        # ADD THIS NEW SECTION - Run migrations
         echo "Running database migrations..."
         for migration in /migrations/*.sql; do
           if [ -f "$$migration" ]; then
@@ -137,27 +133,9 @@ services:
     networks:
       - postgres-internal
 
-  data_handler:
-    build:
-      context: ./backend/data_handler
-      dockerfile: Dockerfile
-    command: ["data-handler"]
-    depends_on:
-      postgres-init:
-        condition: service_completed_successfully
-    env_file:
-      - ./backend/data_handler/.env.development
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-    networks:
-      - data-handler
-
 volumes:
   postgres_data:
 
 networks:
-  data-handler:
-    driver: bridge
   postgres-internal:
     driver: bridge
