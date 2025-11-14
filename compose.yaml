@@ -29,6 +29,9 @@ services:
       DATA_HANDLER_USER: data_handler
       DATA_HANDLER_PASSWORD: dev_data_handler_password
       DATA_HANDLER_SCHEMA: external_data
+      BACKEND_USER: backend_user
+      BACKEND_USER_PASSWORD: dev_backend_user_password
+      BACKEND_SCHEMA: backend
     
     volumes:
       - ./backend/migrations:/migrations:ro
@@ -82,7 +85,42 @@ services:
         
         GRANT USAGE ON SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$DATA_HANDLER_USER";
         
-        SELECT 'Database initialization completed successfully!' as status;
+        SELECT 'Data handler user initialization completed successfully!' as status;
+        EOF
+        
+        echo "Creating $${BACKEND_USER} user and $${BACKEND_SCHEMA} schema..."
+        PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d "$$DB_NAME" <<EOF
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$$BACKEND_USER') THEN
+            CREATE USER "$$BACKEND_USER" WITH PASSWORD '$$BACKEND_USER_PASSWORD';
+          ELSE
+            ALTER USER "$$BACKEND_USER" WITH PASSWORD '$$BACKEND_USER_PASSWORD';
+          END IF;
+        END
+        \$\$;
+        
+        CREATE SCHEMA IF NOT EXISTS "$$BACKEND_SCHEMA" AUTHORIZATION "$$BACKEND_USER";
+        
+        GRANT ALL PRIVILEGES ON SCHEMA "$$BACKEND_SCHEMA" TO "$$BACKEND_USER";
+        
+        ALTER DEFAULT PRIVILEGES IN SCHEMA "$$BACKEND_SCHEMA" GRANT ALL ON TABLES TO "$$BACKEND_USER";
+        
+        ALTER DEFAULT PRIVILEGES IN SCHEMA "$$BACKEND_SCHEMA" GRANT ALL ON SEQUENCES TO "$$BACKEND_USER";
+        
+        ALTER SCHEMA "$$BACKEND_SCHEMA" OWNER TO "$$BACKEND_USER";
+        
+        GRANT USAGE ON SCHEMA "$$BACKEND_SCHEMA" TO "$$BACKEND_USER";
+        
+        GRANT USAGE ON SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$BACKEND_USER";
+        
+        ALTER DEFAULT PRIVILEGES IN SCHEMA "$$DATA_HANDLER_SCHEMA" GRANT SELECT ON TABLES TO "$$BACKEND_USER";
+        
+        GRANT SELECT ON ALL TABLES IN SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$BACKEND_USER";
+        
+        GRANT SELECT ON ALL SEQUENCES IN SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$BACKEND_USER";
+        
+        SELECT 'Backend user initialization completed successfully!' as status;
         EOF
 
         # ADD THIS NEW SECTION - Run migrations
