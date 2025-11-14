@@ -42,12 +42,12 @@ spec:
                 - name: DB_DATA_HANDLER_USER
                   valueFrom:
                     secretKeyRef:
-                      name: {{ .Values.secrets.appUsers.name | quote }}
+                      name: {{ .Values.secrets.dbUser.name | quote }}
                       key: DB_DATA_HANDLER_USER
                 - name: DB_DATA_HANDLER_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: {{ .Values.secrets.appUsers.name | quote }}
+                      name: {{ .Values.secrets.dbUser.name | quote }}
                       key: DB_DATA_HANDLER_PASSWORD
                 - name: DB_DATA_HANDLER_SCHEMA
                   value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}

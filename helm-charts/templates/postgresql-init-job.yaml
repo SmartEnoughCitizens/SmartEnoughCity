@@ -85,12 +85,12 @@ spec:
             - name: DATA_HANDLER_USER
               valueFrom:
                 secretKeyRef:
-                  name: sec-db-app-users
+                  name: sec-db-data-handler-user
                   key: DB_DATA_HANDLER_USER
             - name: DATA_HANDLER_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: sec-db-app-users
+                  name: sec-db-data-handler-user
                   key: DB_DATA_HANDLER_PASSWORD
             - name: DATA_HANDLER_SCHEMA
               value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
