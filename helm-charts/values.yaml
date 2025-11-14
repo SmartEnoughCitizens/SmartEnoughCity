@@ -27,5 +27,5 @@ db:
 data-handler:
   enabled: true
   secrets:
-    appUsers:
-      name: sec-db-app-users
+    dbUser:
+      name: sec-db-data-handler-user
