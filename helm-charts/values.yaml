@@ -4,6 +4,7 @@ global:
     port: 5432
     schemas:
       dataHandlerSchema: "external_data"
+      backendSchema: "backend"
 
 postgresql:
   enabled: true
@@ -23,9 +24,10 @@ db:
     appOwnerPassword: ""
   users:
     dataHandlerPassword: ""
+    backendUserPassword: ""
 
 data-handler:
   enabled: true
   secrets:
-    appUsers:
-      name: sec-db-app-users
+    dbUser:
+      name: sec-db-data-handler-user
