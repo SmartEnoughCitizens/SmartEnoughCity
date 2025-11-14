@@ -1,6 +1,8 @@
-def main():
-    print("Hello from inference-engine!")
+from fastapi import FastAPI
+
+app = FastAPI()
 
 
-if __name__ == "__main__":
-    main()
+@app.get("/")
+def hello_world():
+    return {"Hello": "World"}
