@@ -32,6 +32,10 @@ services:
       BACKEND_USER: backend_user
       BACKEND_USER_PASSWORD: dev_backend_user_password
       BACKEND_SCHEMA: backend
+    
+    volumes:
+      - ./backend/migrations:/migrations:ro
+
     command:
       - /bin/sh
       - -c
@@ -118,6 +122,17 @@ services:
         
         SELECT 'Backend user initialization completed successfully!' as status;
         EOF
+
+        # ADD THIS NEW SECTION - Run migrations
+        echo "Running database migrations..."
+        for migration in /migrations/*.sql; do
+          if [ -f "$$migration" ]; then
+            echo "Running migration: $$(basename $$migration)"
+            PGPASSWORD="$$DATA_HANDLER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$DATA_HANDLER_USER" -d "$$DB_NAME" -f "$$migration"
+          fi
+        done
+        echo "Migrations completed!"
+
         echo "Database initialization completed!"
     networks:
       - postgres-internal
