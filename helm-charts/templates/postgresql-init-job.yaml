@@ -60,7 +60,42 @@ spec:
               
               GRANT USAGE ON SCHEMA "$DATA_HANDLER_SCHEMA" TO "$DATA_HANDLER_USER";
               
-              SELECT 'Database initialization completed successfully!' as status;
+              SELECT 'Data handler user initialization completed successfully!' as status;
+              EOF
+              
+              echo "Creating ${BACKEND_USER} user and ${BACKEND_SCHEMA} schema..."
+              PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
+              DO \$\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$BACKEND_USER') THEN
+                  CREATE USER "$BACKEND_USER" WITH PASSWORD '$BACKEND_USER_PASSWORD';
+                ELSE
+                  ALTER USER "$BACKEND_USER" WITH PASSWORD '$BACKEND_USER_PASSWORD';
+                END IF;
+              END
+              \$\$;
+              
+              CREATE SCHEMA IF NOT EXISTS "$BACKEND_SCHEMA" AUTHORIZATION "$BACKEND_USER";
+              
+              GRANT ALL PRIVILEGES ON SCHEMA "$BACKEND_SCHEMA" TO "$BACKEND_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$BACKEND_SCHEMA" GRANT ALL ON TABLES TO "$BACKEND_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$BACKEND_SCHEMA" GRANT ALL ON SEQUENCES TO "$BACKEND_USER";
+              
+              ALTER SCHEMA "$BACKEND_SCHEMA" OWNER TO "$BACKEND_USER";
+              
+              GRANT USAGE ON SCHEMA "$BACKEND_SCHEMA" TO "$BACKEND_USER";
+              
+              GRANT USAGE ON SCHEMA "$DATA_HANDLER_SCHEMA" TO "$BACKEND_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$DATA_HANDLER_SCHEMA" GRANT SELECT ON TABLES TO "$BACKEND_USER";
+              
+              GRANT SELECT ON ALL TABLES IN SCHEMA "$DATA_HANDLER_SCHEMA" TO "$BACKEND_USER";
+              
+              GRANT SELECT ON ALL SEQUENCES IN SCHEMA "$DATA_HANDLER_SCHEMA" TO "$BACKEND_USER";
+              
+              SELECT 'Backend user initialization completed successfully!' as status;
               EOF
               echo "Database initialization completed!"
           env:
@@ -85,15 +120,27 @@ spec:
             - name: DATA_HANDLER_USER
               valueFrom:
                 secretKeyRef:
-                  name: sec-db-app-users
+                  name: sec-db-data-handler-user
                   key: DB_DATA_HANDLER_USER
             - name: DATA_HANDLER_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: sec-db-app-users
+                  name: sec-db-data-handler-user
                   key: DB_DATA_HANDLER_PASSWORD
             - name: DATA_HANDLER_SCHEMA
               value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
+            - name: BACKEND_USER
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-backend-user
+                  key: DB_BACKEND_USER
+            - name: BACKEND_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-backend-user
+                  key: DB_BACKEND_USER_PASSWORD
+            - name: BACKEND_SCHEMA
+              value: {{ .Values.global.db.schemas.backendSchema | quote }}
           resources:
             requests:
               cpu: "50m"
