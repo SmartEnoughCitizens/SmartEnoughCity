@@ -6,7 +6,7 @@ from sqlalchemy.exc import ProgrammingError, DBAPIError
 from data_handler.db import SessionLocal
 from data_handler.settings.database_settings import get_db_settings
 
-BASE = "https://api.irishrail.ie/realtime/realtime.asmx"
+BASE = "http://api.irishrail.ie/realtime/realtime.asmx"
 
 def parse_xml(url):
     response = requests.get(url)
@@ -71,7 +71,7 @@ def train_stations_to_db():
 
     # 4) Batch-Insert (executemany)
     s = get_db_settings()
-    schema = s.schema
+    schema = s.postgres_schema
     insert_sql = f"""
     INSERT INTO {schema}.train_stations
         (station_code, station_desc, lat, lon, station_types)

@@ -133,9 +133,51 @@ services:
     networks:
       - postgres-internal
 
+      
+  data_handler:
+    build:
+      context: ./backend/data_handler
+
+
+      dockerfile: Dockerfile
+
+
+    command: ["data-handler"]
+
+
+    depends_on:
+
+
+      postgres-init:
+
+
+        condition: service_completed_successfully
+
+
+    env_file:
+
+
+      - ./backend/data_handler/.env.development
+
+
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: smart_enough_city
+      DATA_HANDLER_USER: data_handler
+      DATA_HANDLER_PASSWORD: dev_data_handler_password
+      DATA_HANDLER_SCHEMA: external_data
+
+
+    networks:
+      - data-handler
+
+
 volumes:
   postgres_data:
 
 networks:
+  data-handler:
+    driver: bridge
   postgres-internal:
     driver: bridge
