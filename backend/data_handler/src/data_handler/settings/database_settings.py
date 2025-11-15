@@ -19,7 +19,7 @@ class DatabaseSettings(BaseSettings):
         name: Database name (from DB_NAME environment variable)
         user: Database user for data handler (from DB_DATA_HANDLER_USER environment variable)
         password: Database password for data handler (from DB_DATA_HANDLER_PASSWORD environment variable)
-        schema: Database schema for data handler (from DB_DATA_HANDLER_SCHEMA environment variable)
+        postgres_schema: Database schema for data handler (from DB_DATA_HANDLER_SCHEMA environment variable)
     """
 
     host: str = Field(..., alias="DB_HOST")
@@ -27,7 +27,7 @@ class DatabaseSettings(BaseSettings):
     name: str = Field(..., alias="DB_NAME")
     user: str = Field(..., alias="DB_DATA_HANDLER_USER")
     password: str = Field(..., alias="DB_DATA_HANDLER_PASSWORD")
-    schema: str = Field(..., alias="DB_DATA_HANDLER_SCHEMA")
+    postgres_schema: str = Field(..., alias="DB_DATA_HANDLER_SCHEMA")
 
     model_config = SettingsConfigDict(
         extra="ignore",

@@ -1,0 +1,12 @@
+[project]
+name = "inference-engine"
+version = "0.1.0"
+description = "SmartEnoughCity Inference Engine"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.121.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.8,<0.10.0"]
+build-backend = "uv_build"

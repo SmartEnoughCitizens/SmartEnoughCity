@@ -4,6 +4,9 @@ dependencies:
   version: 18.1.8
 - name: data-handler
   repository: file://./charts/data-handler
+  version: 0.1.1
+- name: frontend
+  repository: file://./charts/frontend
   version: 0.1.0
-digest: sha256:3cd0ac3bd87c0b9c46f6a933bb537cfd51bc1a879c8079a7b6498581c23dd79b
-generated: "2025-11-13T15:56:24.304325Z"
+digest: sha256:82d24fce2682d8422f7974509bc04846f7c9c8efa380e724dc4de0fd1cdc6bfc
+generated: "2025-11-14T11:25:37.8684715Z"
