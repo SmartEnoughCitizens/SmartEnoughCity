@@ -1,4 +1,4 @@
-from backend.data_handler.src.data_handler.traincontinuousdata import continuous_data_to_csv
+from data_handler.traincontinuousdata import continuous_data_to_csv
 from data_handler.trainstationdata import train_stations_to_csv
 from data_handler.trainstationdata import train_stations_to_db
 
