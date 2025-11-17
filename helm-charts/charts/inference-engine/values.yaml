@@ -1,0 +1,23 @@
+image:
+  repository: inference-engine
+  tag: dev
+  pullPolicy: Never
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+labels:
+  app.kubernetes.io/name: inference-engine
+  app.kubernetes.io/component: api-server
+  app.kubernetes.io/part-of: smart-enough-city

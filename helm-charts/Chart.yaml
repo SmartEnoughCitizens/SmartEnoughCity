@@ -15,6 +15,11 @@ dependencies:
     version: 0.1.1
     condition: data-handler.enabled
 
+  - name: inference-engine
+    repository: file://./charts/inference-engine
+    version: 0.1.0
+    condition: inference-engine.enabled
+
   - name: frontend
     repository: file://./charts/frontend
     version: 0.1.0
