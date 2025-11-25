@@ -5,30 +5,15 @@ from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError, DBAPIError
 from data_handler.db import SessionLocal
 from data_handler.settings.database_settings import get_db_settings
+from data_handler.settings.api_settings import get_api_settings
 
 
 GTFS_URL = "https://api.nationaltransport.ie/gtfsr/v2/TripUpdates?format=json"
-API_KEY = "...."
 
-INT32_MIN = -2147483648
-INT32_MAX = 2147483647
+# Load API key from environment or .env.development via pydantic settings
+_api_settings = get_api_settings()
+API_KEY = _api_settings.gtfs_api_key
 
-
-def safe_int(value):
-    """Konvertiert GTFS delay zu int oder None. NaN wird zu None (NULL in DB)."""
-    if value is None:
-        return None
-    # NaN zu None konvertieren
-    if isinstance(value, float):
-        if math.isnan(value):
-            return None
-    try:
-        iv = int(value)
-    except (ValueError, TypeError):
-        return None
-    if iv < INT32_MIN or iv > INT32_MAX:
-        return None
-    return iv
 
 
 def fetch_gtfs_trip_updates():
@@ -78,8 +63,8 @@ def fetch_gtfs_trip_updates():
                     else None
                 ),
                 "stop_id": st.get("stop_id"),
-                "arrival_delay": safe_int(st.get("arrival", {}).get("delay")),
-                "departure_delay": safe_int(st.get("departure", {}).get("delay")),
+                "arrival_delay": st.get("arrival", {}).get("delay"),
+                "departure_delay": st.get("departure", {}).get("delay"),
                 "schedule_relationship": st.get("schedule_relationship")
             })
 
