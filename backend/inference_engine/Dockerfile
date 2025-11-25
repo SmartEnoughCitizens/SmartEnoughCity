@@ -6,9 +6,8 @@ COPY pyproject.toml ./
 COPY src/ ./src/
 
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir fastapi[standard] httpx pydantic uvicorn
+    pip install --no-cache-dir .
 
 EXPOSE 8000
 
-#CMD ["fastapi", "run", "src/inference_engine/main.py", "--port", "8000"]
-CMD ["uvicorn", "src.inference_engine.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["fastapi", "run", "src/inference_engine/main.py", "--port", "8000"]
