@@ -4,14 +4,21 @@ server:
 spring:
   application:
     name: hermes
-#  main:
-#    lazy-initialization: true
-#  jmx:
-#    enabled: false
+  #  main:
+  #    lazy-initialization: true
+  #  jmx:
+  #    enabled: false
   datasource:
-    url: jdbc:postgresql://localhost:5432/hermes_local
-    username: hermes
-    password: hermes
+    url: jdbc:postgresql://localhost:5432/rakesh_db
+    username: rakesh_user
+    password: rakesh
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
 
 management:
   endpoints:
