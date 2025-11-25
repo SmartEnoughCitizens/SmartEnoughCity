@@ -10,8 +10,8 @@ spring:
   #    enabled: false
   datasource:
     url: jdbc:postgresql://localhost:5432/rakesh_db
-    username: rakesh_user
-    password: rakesh
+    username: postgres
+    password:
   jpa:
     properties:
       hibernate:
