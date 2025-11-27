@@ -1,0 +1,150 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-postgresql-init
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: postgresql-init
+    app.kubernetes.io/part-of: smart-enough-city
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: postgresql-init
+        app.kubernetes.io/part-of: smart-enough-city
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: postgresql-init
+          image: postgres:18-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Waiting for PostgreSQL to be ready..."
+              until PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d postgres -c '\q' 2>/dev/null; do
+                echo "PostgreSQL is unavailable - sleeping"
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+              
+              echo "Creating ${DATA_HANDLER_USER} user and ${DATA_HANDLER_SCHEMA} schema..."
+              PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
+              DO \$\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$DATA_HANDLER_USER') THEN
+                  CREATE USER "$DATA_HANDLER_USER" WITH PASSWORD '$DATA_HANDLER_PASSWORD';
+                ELSE
+                  ALTER USER "$DATA_HANDLER_USER" WITH PASSWORD '$DATA_HANDLER_PASSWORD';
+                END IF;
+              END
+              \$\$;
+              
+              CREATE SCHEMA IF NOT EXISTS "$DATA_HANDLER_SCHEMA" AUTHORIZATION "$DATA_HANDLER_USER";
+              
+              GRANT ALL PRIVILEGES ON SCHEMA "$DATA_HANDLER_SCHEMA" TO "$DATA_HANDLER_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$DATA_HANDLER_SCHEMA" GRANT ALL ON TABLES TO "$DATA_HANDLER_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$DATA_HANDLER_SCHEMA" GRANT ALL ON SEQUENCES TO "$DATA_HANDLER_USER";
+              
+              ALTER SCHEMA "$DATA_HANDLER_SCHEMA" OWNER TO "$DATA_HANDLER_USER";
+              
+              GRANT USAGE ON SCHEMA "$DATA_HANDLER_SCHEMA" TO "$DATA_HANDLER_USER";
+              
+              SELECT 'Data handler user initialization completed successfully!' as status;
+              EOF
+              
+              echo "Creating ${BACKEND_USER} user and ${BACKEND_SCHEMA} schema..."
+              PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
+              DO \$\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$BACKEND_USER') THEN
+                  CREATE USER "$BACKEND_USER" WITH PASSWORD '$BACKEND_USER_PASSWORD';
+                ELSE
+                  ALTER USER "$BACKEND_USER" WITH PASSWORD '$BACKEND_USER_PASSWORD';
+                END IF;
+              END
+              \$\$;
+              
+              CREATE SCHEMA IF NOT EXISTS "$BACKEND_SCHEMA" AUTHORIZATION "$BACKEND_USER";
+              
+              GRANT ALL PRIVILEGES ON SCHEMA "$BACKEND_SCHEMA" TO "$BACKEND_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$BACKEND_SCHEMA" GRANT ALL ON TABLES TO "$BACKEND_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$BACKEND_SCHEMA" GRANT ALL ON SEQUENCES TO "$BACKEND_USER";
+              
+              ALTER SCHEMA "$BACKEND_SCHEMA" OWNER TO "$BACKEND_USER";
+              
+              GRANT USAGE ON SCHEMA "$BACKEND_SCHEMA" TO "$BACKEND_USER";
+              
+              GRANT USAGE ON SCHEMA "$DATA_HANDLER_SCHEMA" TO "$BACKEND_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$DATA_HANDLER_SCHEMA" GRANT SELECT ON TABLES TO "$BACKEND_USER";
+              
+              GRANT SELECT ON ALL TABLES IN SCHEMA "$DATA_HANDLER_SCHEMA" TO "$BACKEND_USER";
+              
+              GRANT SELECT ON ALL SEQUENCES IN SCHEMA "$DATA_HANDLER_SCHEMA" TO "$BACKEND_USER";
+              
+              SELECT 'Backend user initialization completed successfully!' as status;
+              EOF
+              echo "Database initialization completed!"
+          env:
+            - name: DB_HOST
+              value: "{{ .Release.Name }}-postgresql"
+            - name: DB_PORT
+              value: {{ .Values.global.db.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.global.db.name | quote }}
+            - name: APP_OWNER_USER
+              value: {{ .Values.postgresql.auth.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-root
+                  key: postgres-password
+            - name: APP_OWNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-root
+                  key: password
+            - name: DATA_HANDLER_USER
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-data-handler-user
+                  key: DB_DATA_HANDLER_USER
+            - name: DATA_HANDLER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-data-handler-user
+                  key: DB_DATA_HANDLER_PASSWORD
+            - name: DATA_HANDLER_SCHEMA
+              value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
+            - name: BACKEND_USER
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-backend-user
+                  key: DB_BACKEND_USER
+            - name: BACKEND_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-backend-user
+                  key: DB_BACKEND_USER_PASSWORD
+            - name: BACKEND_SCHEMA
+              value: {{ .Values.global.db.schemas.backendSchema | quote }}
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

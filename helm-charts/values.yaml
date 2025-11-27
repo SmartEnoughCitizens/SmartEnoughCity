@@ -1,0 +1,50 @@
+global:
+  db:
+    name: smart_enough_city
+    port: 5432
+    schemas:
+      dataHandlerSchema: "external_data"
+      backendSchema: "backend"
+
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+  auth:
+    username: app_owner
+    database: smart_enough_city
+    existingSecret: sec-db-root
+
+db:
+  # Passwords auto-generated if empty
+  root:
+    postgresPassword: ""
+    appOwnerPassword: ""
+  users:
+    dataHandlerPassword: ""
+    backendUserPassword: ""
+
+data-handler:
+  enabled: true
+  secrets:
+    dbUser:
+      name: sec-db-data-handler-user
+
+inference-engine:
+  enabled: true
+
+frontend:
+  enabled: true
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  hosts:
+    - host: frontend.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

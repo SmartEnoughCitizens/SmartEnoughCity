@@ -1,0 +1,26 @@
+apiVersion: v2
+name: smart-enough-city
+description: Full Smart Enough City application stack
+type: application
+version: 0.1.2
+
+dependencies:
+  - name: postgresql
+    repository: https://charts.bitnami.com/bitnami
+    version: 18.1.8
+    condition: postgresql.enabled
+
+  - name: data-handler
+    repository: file://./charts/data-handler
+    version: 0.1.1
+    condition: data-handler.enabled
+
+  - name: inference-engine
+    repository: file://./charts/inference-engine
+    version: 0.1.0
+    condition: inference-engine.enabled
+
+  - name: frontend
+    repository: file://./charts/frontend
+    version: 0.1.0
+    condition: frontend.enabled

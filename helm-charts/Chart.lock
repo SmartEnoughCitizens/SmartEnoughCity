@@ -1,0 +1,15 @@
+dependencies:
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 18.1.8
+- name: data-handler
+  repository: file://./charts/data-handler
+  version: 0.1.1
+- name: inference-engine
+  repository: file://./charts/inference-engine
+  version: 0.1.0
+- name: frontend
+  repository: file://./charts/frontend
+  version: 0.1.0
+digest: sha256:4a1472b0c0b6d8777c6be18ee51b986a6afe51c3a4ed27bd1d0a981709806a9c
+generated: "2025-11-17T15:00:48.4416688Z"
