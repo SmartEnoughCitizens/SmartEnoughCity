@@ -1,5 +1,8 @@
-from data_handler.train.traincontinuousdata import continuous_data_to_csv
-from data_handler.train.trainstationdata import train_stations_to_csv, train_stations_to_db
+from data_handler.cycle_handler import cycle_stations_to_db
+from data_handler.bus_handler import trip_updates_to_db
+from data_handler.luas_handler import luas_stops_to_db  
+from data_handler.luas_handler import luas_forecasts_to_db
+from data_handler.train.trainstationdata import train_stations_to_db
 from data_handler.settings.database_settings import get_db_settings
 from data_handler.settings.data_sources_settings import get_data_sources_settings
 
@@ -10,6 +13,7 @@ def main():
     sources_settings = get_data_sources_settings()
     
     print("Hello from data-handler!")
+
     print(f"Connected to database: {db_settings.name} at {db_settings.host}:{db_settings.port}")
     print("\nData sources enabled:")
     print(f"  - Cycle data: {sources_settings.enable_cycle_data}")
@@ -28,6 +32,7 @@ def main():
     
     if sources_settings.enable_cycle_data:
         print("Processing cycle data...")
+        cycle_stations_to_db()
         # Add cycle data processing here
     
     if sources_settings.enable_car_data:
@@ -36,11 +41,14 @@ def main():
     
     if sources_settings.enable_bus_data:
         print("Processing bus data...")
+        trip_updates_to_db()
+
         # Add bus data processing here
     
     if sources_settings.enable_tram_data:
         print("Processing tram data...")
-        # Add tram data processing here
+        luas_stops_to_db()
+        luas_forecasts_to_db()# Add tram data processing here
     
     if sources_settings.enable_construction_data:
         print("Processing construction data...")
