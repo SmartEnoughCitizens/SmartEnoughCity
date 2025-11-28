@@ -32,6 +32,9 @@ data-handler:
     dbUser:
       name: sec-db-data-handler-user
 
+inference-engine:
+  enabled: true
+
 frontend:
   enabled: true
 
