@@ -27,9 +27,8 @@ CREATE TABLE IF NOT EXISTS external_data.cycle_stations (
     lon DOUBLE PRECISION
 );
 
-DROP TABLE external_data.gtfs_trip_updates;
 
-CREATE TABLE external_data.bus_trip_updates (
+CREATE TABLE IF NOT EXISTS external_data.bus_trip_updates (
     id BIGSERIAL PRIMARY KEY,
     entity_id TEXT,
     trip_id TEXT,
@@ -43,5 +42,32 @@ CREATE TABLE external_data.bus_trip_updates (
     schedule_relationship TEXT,
     UNIQUE (entity_id, stop_sequence, stop_id)
 );
+
+CREATE TABLE IF NOT EXISTS external_data.luas_stops (
+    stop_id TEXT PRIMARY KEY,
+    line TEXT,
+    name TEXT,
+    pronunciation TEXT,
+    park_ride BOOLEAN,
+    cycle_ride BOOLEAN,
+    lat DOUBLE PRECISION,
+    lon DOUBLE PRECISION,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+
+CREATE TABLE IF NOT EXISTS external_data.luas_forecasts (
+    id SERIAL PRIMARY KEY,
+    stop_id TEXT NOT NULL,
+    line TEXT,
+    direction TEXT,
+    destination TEXT,
+    due_mins INTEGER,
+    message TEXT,
+    fetched_at TIMESTAMPTZ DEFAULT now()
+);
+
+
+
 
 
