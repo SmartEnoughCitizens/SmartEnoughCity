@@ -75,6 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open }) => {
 
   const hasAccess = (item: MenuItem): boolean => {
     if (!item.roles || item.roles.length === 0) return true;
+    if (!userRole) return false;
     return item.roles.includes(userRole);
   };
 
