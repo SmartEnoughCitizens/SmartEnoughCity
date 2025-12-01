@@ -118,7 +118,7 @@ const Navbar: React.FC = () => {
                 {user?.email}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {getRoleDisplayName(user?.role)}
+                {getRoleDisplayName(user?.role || '')}
               </Typography>
             </Box>
             <Divider />

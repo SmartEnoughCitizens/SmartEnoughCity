@@ -73,6 +73,7 @@ const UserManagement: React.FC = () => {
       department: 'City Government',
       isActive: true,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
       id: '2',
@@ -84,6 +85,7 @@ const UserManagement: React.FC = () => {
       department: 'City Transport Dept',
       isActive: true,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
       id: '3',
@@ -95,6 +97,7 @@ const UserManagement: React.FC = () => {
       department: 'City Transport Co.',
       isActive: true,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
       id: '4',
@@ -106,6 +109,7 @@ const UserManagement: React.FC = () => {
       department: 'City Transport Co.',
       isActive: true,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
   ];
 
