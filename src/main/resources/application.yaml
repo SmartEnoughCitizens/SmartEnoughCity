@@ -1,12 +1,12 @@
 server:
-  port: 8081
+  port: 8080
 
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/user-management-realm
+          issuer-uri: http://localhost:8081/realms/user-management-realm
 
   application:
     name: hermes
@@ -36,7 +36,7 @@ loki:
   timeoutMs: 5000
 
 keycloak:
-  server-url: http://localhost:8080
+  server-url: http://localhost:8081
   realm: user-management-realm
   client-id: user-service
   client-secret: VWzd9CEnXpYvqXhyIdIMpf18HEuFlP1g
