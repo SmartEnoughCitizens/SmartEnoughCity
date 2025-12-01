@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class RecommendationEngineRequest {
 
-    private String indicatorType; // bus, car, energy, water, etc.
+    private String indicatorType;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
-    private Integer limit; // Number of records to return
-    private String aggregationType; // raw, hourly, daily, weekly
+    private Integer limit;
+    private String aggregationType;
 }
