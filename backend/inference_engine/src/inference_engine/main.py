@@ -5,8 +5,20 @@ import httpx
 import logging
 from datetime import datetime
 import asyncio
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 # app = FastAPI()
+
+FETCH_INTERVAL_HOURS = 1  # Fetch data every 1 hour (change to 24 for daily)
+DATA_INDICATORS = ["bus", "car", "train"]  # Transport types to process
+
+# Initialize scheduler
+scheduler = AsyncIOScheduler()
+recommendations_store = {}  # In-memory storage
+
+
 app = FastAPI(title="Recommendation Engine API")
 
 # Configure logging
@@ -21,7 +33,6 @@ NOTIFICATION_API_URL = "http://localhost:8081/api/send_notification"
 
 # Request/Response Models
 class RecommendationRequest(BaseModel):
-    user_id: str
     context: Optional[Dict[str, Any]] = None
     
 class RecommendationResponse(BaseModel):
@@ -31,22 +42,22 @@ class RecommendationResponse(BaseModel):
     timestamp: str
 
 class NotificationPayload(BaseModel):
-    user_id: str
+    data_indicator: str
     recommendation: Dict[str, Any]
     priority: str = "normal"
 
 ## Integration Layer
-async def fetch_data_from_engine(user_id: str) -> Dict[str, Any]:
+async def fetch_data_from_engine(data_indicator: str) -> Dict[str, Any]:
     """Fetch data from Data Analysis Engine"""
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 DATA_ENGINE_URL,
-                params={"user_id": user_id}
+                params={"data_indicator": data_indicator}
             )
             response.raise_for_status()
             data = response.json()
-            logger.info(f"Fetched data from Data Engine for user {user_id}")
+            logger.info(f"Fetched data from Data Engine for data indicator {data_indicator}")
             return data
     except httpx.HTTPError as e:
         logger.error(f"Error fetching data from Data Engine: {str(e)}")
@@ -66,7 +77,7 @@ async def send_notification(payload: NotificationPayload) -> bool:
                 json=payload.dict()
             )
             response.raise_for_status()
-            logger.info(f"Notification sent for user {payload.user_id}")
+            logger.info(f"Notification sent for data indicator {payload.data_indicator}")
             return True
     except httpx.HTTPError as e:
         logger.error(f"Error sending notification: {str(e)}")
@@ -117,29 +128,29 @@ class RecommendationService:
     def __init__(self):
         self.model = RecommendationModel()
     
-    async def process_recommendation(self, user_id: str, context: Optional[Dict] = None) -> str:
+    async def process_recommendation(self, data_indicator: str, context: Optional[Dict] = None) -> str:
         """
         Main workflow:
         1. Fetch data from Data Engine
         2. Generate recommendation using model
         3. Send notification
         """
-        recommendation_id = f"rec_{user_id}_{int(datetime.utcnow().timestamp())}"
+        recommendation_id = f"rec_{data_indicator}_{int(datetime.utcnow().timestamp())}"
         
         try:
             # Update status
-            recommendations_store[recommendation_id] = {
+            recommendations_store[data_indicator] = {
                 "status": "processing",
-                "user_id": user_id,
+                "data_indicator": data_indicator,
                 "created_at": datetime.utcnow().isoformat()
             }
             
             # Step 1: Fetch data
-            logger.info(f"Fetching data for user {user_id}")
-            data = await fetch_data_from_engine(user_id)
+            logger.info(f"Fetching data for indicator {data_indicator}")
+            data = await fetch_data_from_engine(data_indicator)
             
             # Step 2: Generate recommendation
-            logger.info(f"Generating recommendation for user {user_id}")
+            logger.info(f"Generating recommendation for indicator {data_indicator}")
             recommendation = self.model.generate_recommendations(data)
             
             # Add context if provided
@@ -147,9 +158,9 @@ class RecommendationService:
                 recommendation["context"] = context
             
             # Step 3: Send notification
-            logger.info(f"Sending notification for user {user_id}")
+            logger.info(f"Sending notification for service indicator {data_indicator}")
             notification_payload = NotificationPayload(
-                user_id=user_id,
+                data_indicator=data_indicator,
                 recommendation=recommendation,
                 priority="normal"
             )
@@ -159,7 +170,7 @@ class RecommendationService:
             # Update final status
             recommendations_store[recommendation_id] = {
                 "status": "completed" if notification_sent else "notification_failed",
-                "user_id": user_id,
+                "data_indicator": data_indicator,
                 "recommendation": recommendation,
                 "notification_sent": notification_sent,
                 "created_at": recommendations_store[recommendation_id]["created_at"],
@@ -173,18 +184,131 @@ class RecommendationService:
             logger.error(f"Error processing recommendation: {str(e)}")
             recommendations_store[recommendation_id] = {
                 "status": "failed",
-                "user_id": user_id,
+                "data_indicator": data_indicator,
                 "error": str(e),
                 "created_at": recommendations_store[recommendation_id]["created_at"],
                 "failed_at": datetime.utcnow().isoformat()
             }
             raise
+    async def process_batch_recommendations(self):
+        logger.info("=" * 80)
+        logger.info("⏰ SCHEDULED TASK TRIGGERED")
+        logger.info(f"📅 Time: {datetime.utcnow().isoformat()}")
+        logger.info(f"🚗 Data indicators: {DATA_INDICATORS}")
+        logger.info("=" * 80)
+        
+        results = {
+            "total_processed": 0,
+            "successful": 0,
+            "failed": 0,
+            "details": []
+        }
+        
+        # Process each data indicator
+        for data_indicator in DATA_INDICATORS:
+            try:
+                logger.info(f"🔄 Processing: {data_indicator}")
+                rec_id = await self.process_recommendation(
+                    data_indicator=data_indicator,
+                    context={
+                        "source": "scheduled_task",
+                        "scheduled_at": datetime.utcnow().isoformat()
+                    }
+                )
+                results["successful"] += 1
+                results["details"].append({
+                    "data_indicator": data_indicator,
+                    "status": "success",
+                    "recommendation_id": rec_id
+                })
+            except Exception as e:
+                logger.error(f"❌ Failed for {data_indicator}: {str(e)}")
+                results["failed"] += 1
+                results["details"].append({
+                    "data_indicator": data_indicator,
+                    "status": "failed",
+                    "error": str(e)
+                })
+            
+            results["total_processed"] += 1
+            
+            # Small delay between requests
+            await asyncio.sleep(0.5)
+        
+        logger.info("=" * 80)
+        logger.info(f"✅ SCHEDULED TASK COMPLETED")
+        logger.info(f"📊 Total: {results['total_processed']} | "
+                   f"✅ Success: {results['successful']} | "
+                   f"❌ Failed: {results['failed']}")
+        logger.info("=" * 80)
+        
+        return results
+
+
 
 # Initialize service
 recommendation_service = RecommendationService()
 
-## API Endpoints
 
+## Scheduler Functions 
+async def scheduled_recommendation_task():
+    """
+    This function is called by the scheduler
+    """
+    try:
+        await recommendation_service.process_batch_recommendations()
+    except Exception as e:
+        logger.error(f"❌ Scheduled task failed: {str(e)}")
+
+def start_scheduler():
+    """
+    Initialize and start the scheduler
+    """
+    logger.info("🕐 Initializing scheduler...")
+    
+    # Add the scheduled job
+    scheduler.add_job(
+        scheduled_recommendation_task,
+        ##trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
+        trigger=IntervalTrigger(minutes=1),
+        id="fetch_recommendations",
+        name="Fetch and generate recommendations",
+        replace_existing=True
+    )
+    
+    # Start the scheduler
+    scheduler.start()
+    logger.info(f"✅ Scheduler started! Task will run every {FETCH_INTERVAL_HOURS} hour(s)")
+    logger.info(f"🚗 Data indicators: {DATA_INDICATORS}")
+
+def shutdown_scheduler():
+    """
+    Gracefully shutdown the scheduler
+    """
+    logger.info("🛑 Shutting down scheduler...")
+    scheduler.shutdown()
+    logger.info("✅ Scheduler stopped")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handle startup and shutdown events
+    """
+    # Startup
+    logger.info("🚀 Application starting up...")
+    start_scheduler()
+    logger.info("✅ Application ready!")
+    
+    yield
+    
+    # Shutdown
+    logger.info("🛑 Application shutting down...")
+    shutdown_scheduler()
+    logger.info("✅ Application stopped!")
+
+
+## API Endpoints
 @app.post("/recommendations/generate", response_model=RecommendationResponse)
 async def generate_recommendation(
     request: RecommendationRequest,
@@ -195,6 +319,11 @@ async def generate_recommendation(
     This endpoint triggers the full workflow asynchronously
     """
     try:
+        # Get data_indicator from context, default to 'bus'
+        data_indicator = "bus"
+        if request.context and "data_indicator" in request.context:
+            data_indicator = request.context["data_indicator"]
+
         # Process in background
         recommendation_id = await recommendation_service.process_recommendation(
             request.user_id,
@@ -211,6 +340,45 @@ async def generate_recommendation(
         logger.error(f"Error in generate_recommendation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     
+
+@app.post("/scheduler/trigger-now")
+async def trigger_scheduler_manually():
+    """
+    Manually trigger the scheduled task (for testing)
+    """
+    logger.info("🔧 Manual trigger of scheduled task requested")
+    try:
+        results = await recommendation_service.process_batch_recommendations()
+        return {
+            "message": "Batch processing completed",
+            "results": results,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Manual trigger failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/scheduler/status")
+async def get_scheduler_status():
+    """
+    Get scheduler status and configuration
+    """
+    jobs = scheduler.get_jobs()
+    return {
+        "scheduler_running": scheduler.running,
+        "fetch_interval_hours": FETCH_INTERVAL_HOURS,
+        "data_indicators": DATA_INDICATORS,
+        "scheduled_jobs": [
+            {
+                "id": job.id,
+                "name": job.name,
+                "next_run_time": str(job.next_run_time)
+            }
+            for job in jobs
+        ]
+    }
+
+
 ## Testing Endpoint
 @app.post("/test/trigger")
 async def test_trigger(user_id: str = "test_user_123"):
@@ -297,7 +465,7 @@ async def mock_notification_handler(payload: dict):
     return {
         "status": "success",
         "message": "Notification sent successfully",
-        "notification_id": f"notif_{payload.get('user_id')}_{int(datetime.utcnow().timestamp())}"
+        "notification_id": f"notif_{payload.get('data_indicator')}_{int(datetime.utcnow().timestamp())}"
     }
 # @app.get("/")
 # def hello_world():
@@ -308,10 +476,17 @@ async def root():
     """Root endpoint with API information"""
     return {
         "service": "Recommendation Engine API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "running",
+        "scheduler": {
+            "enabled": True,
+            "interval_hours": FETCH_INTERVAL_HOURS,
+            "data_indicators": DATA_INDICATORS
+        },
         "endpoints": {
             "generate_recommendation": "POST /recommendations/generate",
+            "trigger_scheduler": "POST /scheduler/trigger-now",
+            "scheduler_status": "GET /scheduler/status",
             "mock_data_engine": "GET /mock/data-engine?data_indicator=bus|car|train",
             "mock_notification": "POST /mock/notification"
         },
