@@ -133,9 +133,49 @@ services:
     networks:
       - postgres-internal
 
+# volumes:
+#   postgres_data:
+
+# networks:
+#   postgres-internal:
+
+
+
+## Inference Engine - Recommendation Engine
+  inference-engine:
+    build:
+      context: ./backend/inference_engine
+      dockerfile: Dockerfile
+    container_name: inference-engine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Mock endpoints (since external APIs don't exist yet)
+      - DATA_ENGINE_URL=http://inference-engine:8000/mock/data-engine
+      - NOTIFICATION_API_URL=http://inference-engine:8000/mock/notification
+    volumes:
+      # Mount source for hot reload during development
+      - ./backend/inference_engine/src:/app/src
+    networks:
+      - backend-network
+      - postgres-internal
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# --- Top Level Definitions Moved to Bottom ---
+
 volumes:
   postgres_data:
 
 networks:
   postgres-internal:
+    driver: bridge
+  backend-network:
     driver: bridge
