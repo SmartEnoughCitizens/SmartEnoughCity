@@ -6,7 +6,8 @@ COPY pyproject.toml ./
 COPY src/ ./src/
 
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir fastapi[standard] httpx pydantic uvicorn
+    pip install --no-cache-dir fastapi[standard] httpx pydantic uvicorn && \
+    pip install apscheduler
 
 EXPOSE 8000
 
