@@ -2,7 +2,7 @@ apiVersion: v2
 name: smart-enough-city
 description: Full Smart Enough City application stack
 type: application
-version: 0.1.1
+version: 0.1.2
 
 dependencies:
   - name: postgresql
@@ -14,6 +14,11 @@ dependencies:
     repository: file://./charts/data-handler
     version: 0.1.1
     condition: data-handler.enabled
+
+  - name: inference-engine
+    repository: file://./charts/inference-engine
+    version: 0.1.0
+    condition: inference-engine.enabled
 
   - name: frontend
     repository: file://./charts/frontend
