@@ -1,0 +1,60 @@
+name: Backend CI - Linting
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+    
+    - name: Install pylint
+      run: |
+        uv pip install --system pylint
+    
+    - name: Lint Data Handler
+      run: |
+        echo "::group::Linting Data Handler"
+        pylint backend/data_handler/**/*.py --exit-zero || true
+        pylint backend/data_handler/**/*.py
+        echo "::endgroup::"
+      continue-on-error: false
+    
+    - name: Lint Inference Engine
+      run: |
+        echo "::group::Linting Inference Engine"
+        pylint backend/inference_engine/**/*.py --exit-zero || true
+        pylint backend/inference_engine/**/*.py
+        echo "::endgroup::"
+      continue-on-error: false
+    
+    - name: Lint Migrations
+      run: |
+        echo "::group::Linting Migrations"
+        pylint backend/migrations/**/*.py --exit-zero || true
+        pylint backend/migrations/**/*.py
+        echo "::endgroup::"
+      continue-on-error: false
+    
+    - name: Summary
+      if: always()
+      run: |
+        echo "### Linting Results" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Linting checks completed" >> $GITHUB_STEP_SUMMARY
+        echo "Check the logs above for any issues found" >> $GITHUB_STEP_SUMMARY
