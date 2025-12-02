@@ -1,15 +1,16 @@
 package com.trinity.hermes.UserManagement.Controller;
 
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-
 
 @RestController
 @RequestMapping("/api")
@@ -19,72 +20,49 @@ public class UserManagementController {
     // Public endpoint - no authentication needed
     @GetMapping("/public/health")
     public ResponseEntity<Map<String, String>> health() {
+        log.info("Accessing Public API");
         Map<String, String> response = new HashMap<>();
         response.put("status", "UP");
         response.put("message", "Hermes Service is running!");
         return ResponseEntity.ok(response);
     }
 
-    // Trains - Only city_manager can access
+    // Trains - Only City_Manager can access
     @GetMapping("/trains")
-    public ResponseEntity<Map<String, Object>> resource1() {
+    @PreAuthorize("hasRole('City_Manager')")
+    public ResponseEntity<Map<String, Object>> getTrains() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        log.info("User {} accessing Trains", auth.getName());
+        log.info("User {} (roles: {}) accessing Trains API",
+                auth.getName(),
+                auth.getAuthorities());
 
         Map<String, Object> response = new HashMap<>();
         response.put("resource", "Trains");
-        response.put("message", "This is accessible ONLY by city_manager");
-        response.put("user", auth.getName());
-        response.put("roles", auth.getAuthorities().toString());
-        response.put("timestamp", System.currentTimeMillis());
+        response.put("message", "Successfully accessed Trains API");
+        response.put("description", "This resource is accessible ONLY by City_Manager role");
 
         return ResponseEntity.ok(response);
     }
 
-    // Bus - Both city_manager and bus_provider can access
+    // Buses - Both City_Manager and Bus_Provider can access
     @GetMapping("/buses")
-    public ResponseEntity<Map<String, Object>> resource2() {
+    @PreAuthorize("hasAnyRole('City_Manager', 'Bus_Provider')")
+    public ResponseEntity<Map<String, Object>> getBuses() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        log.info("User {} accessing buses", auth.getName());
+        log.info("User {} (roles: {}) accessing Buses API",
+                auth.getName(),
+                auth.getAuthorities());
 
         Map<String, Object> response = new HashMap<>();
-        response.put("resource", "buses");
-        response.put("message", "This is accessible by BOTH city_manager and bus_provider");
-        response.put("user", auth.getName());
-        response.put("roles", auth.getAuthorities().toString());
-        response.put("timestamp", System.currentTimeMillis());
+        response.put("resource", "Buses");
+        response.put("message", "Successfully accessed Buses API");
+        response.put("description", "This resource is accessible by both City_Manager and Bus_Provider roles");
 
         return ResponseEntity.ok(response);
     }
+
+
 }
 
 
 
-//package com.trinity.hermes.UserManagement.Controller;
-//
-//import com.trinity.hermes.UserManagement.Entity.User;
-//import com.trinity.hermes.UserManagement.Service.UserManagementService;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.web.bind.annotation.GetMapping;
-//import org.springframework.web.bind.annotation.PostMapping;
-//import org.springframework.web.bind.annotation.RequestBody;
-//import org.springframework.web.bind.annotation.RestController;
-//
-//@RestController
-//public class UserManagementController {
-//
-//    @Autowired
-//    UserManagementService userManagementService;
-//
-//   @GetMapping("/greet")
-//    public String greet(){
-//       return "Welcome to Smart City !";
-//   }
-//
-//   @PostMapping("/login")
-//    public ResponseEntity<String> login(@RequestBody User user){
-//       return userManagementService.login(user);
-//   }
-//
-//}

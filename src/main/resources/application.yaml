@@ -31,9 +31,9 @@ management:
     web:
       exposure:
         include: health,info,prometheus
-loki:
-  url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
-  timeoutMs: 5000
+#loki:
+#  url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+#  timeoutMs: 5000
 
 keycloak:
   server-url: http://localhost:8081
