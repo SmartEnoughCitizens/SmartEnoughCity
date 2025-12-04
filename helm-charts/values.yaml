@@ -1,0 +1,76 @@
+image:
+  repository: backend
+  tag: dev
+  pullPolicy: Never
+
+replicaCount: 3
+
+service:
+  type: ClusterIP
+  port: 8081
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+labels:
+  app.kubernetes.io/name: backend
+  app.kubernetes.io/component: api-server
+  app.kubernetes.io/part-of: smart-enough-city
+
+# Spring Boot / Java Configuration
+java:
+  opts: "-Xms512m -Xmx1536m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+
+## Database Configuration
+#database:
+#  host: postgresql
+#  port: 5432
+#  name: smartcity_db
+#  username: postgres
+#  # Password should be provided via secret
+#  secretName: postgresql-secret
+#  secretKey: password
+#
+# Application Configuration
+application:
+  profile: production
+  port: 8081
+
+## Services enabled
+#services:
+#  indicatorData:
+#    enabled: true
+#    path: /api/v1/dashboard
+#  userManagement:
+#    enabled: true
+#    path: /api/v1/users
+#  notification:
+#    enabled: true
+#    path: /api/v1/notifications
+#  disruption:
+#    enabled: true
+#    path: /api/v1/disruptions
+#
+## Health Check Configuration
+#healthCheck:
+#  liveness:
+#    path: /actuator/health/liveness
+#    initialDelaySeconds: 90
+#    periodSeconds: 10
+#  readiness:
+#    path: /actuator/health/readiness
+#    initialDelaySeconds: 30
+#    periodSeconds: 10
+#
+## HPA Configuration
+#autoscaling:
+#  enabled: true
+#  minReplicas: 2
+#  maxReplicas: 10
+#  targetCPUUtilizationPercentage: 75
+#  targetMemoryUtilizationPercentage: 80
