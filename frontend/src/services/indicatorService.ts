@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../constants';
-import { TransportIndicatorData, EventIndicator, ConstructionIndicator, IndicatorFilters } from '../types';
+import type { TransportIndicatorData, EventIndicator, ConstructionIndicator, IndicatorFilters } from '../types';
 
 export const indicatorService = {
   // Get Car indicators

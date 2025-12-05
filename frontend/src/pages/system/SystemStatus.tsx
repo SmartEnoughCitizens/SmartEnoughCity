@@ -150,16 +150,19 @@ const SystemStatus: React.FC = () => {
           Refresh
         </Button>
       </Box>
-
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           Error loading system status: {error.message}
         </Alert>
       )}
-
       {/* System Overview */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Card sx={{ height: '100%', bgcolor: `${overallStatus.color}.light`, color: 'white' }}>
             <CardContent>
               <Typography variant="body2" gutterBottom>
@@ -172,7 +175,12 @@ const SystemStatus: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="CPU Usage"
             value={cpuUsage}
@@ -180,7 +188,12 @@ const SystemStatus: React.FC = () => {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Memory Usage"
             value={memoryUsage}
@@ -188,7 +201,12 @@ const SystemStatus: React.FC = () => {
             color="warning"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Active Connections"
             value={activeConnections}
@@ -196,10 +214,9 @@ const SystemStatus: React.FC = () => {
           />
         </Grid>
       </Grid>
-
       {/* Performance Charts */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <ChartCard title="System Performance" subtitle="Last 24 hours">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={performanceData}>
@@ -217,10 +234,9 @@ const SystemStatus: React.FC = () => {
           </ChartCard>
         </Grid>
       </Grid>
-
       {/* Resource Usage */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -265,7 +281,6 @@ const SystemStatus: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
-
       {/* Services Table */}
       <Card>
         <CardContent>

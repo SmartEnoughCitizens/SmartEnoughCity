@@ -84,23 +84,41 @@ const NotificationCenter: React.FC = () => {
           Mark All as Read
         </Button>
       </Box>
-
       {/* Metrics */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Total Notifications" value={notifications.length} color="primary" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Unread" value={unreadCount} color="warning" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Warnings" value={notificationsByType.warning} color="error" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Info" value={notificationsByType.info} color="info" />
         </Grid>
       </Grid>
-
       {/* Filter and Notifications List */}
       <Card>
         <CardContent>

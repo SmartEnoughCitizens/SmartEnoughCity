@@ -1,6 +1,6 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { dashboardService } from '../services/dashboardService';
-import { DashboardStats, DashboardOverview } from '../types';
+import type { DashboardStats, DashboardOverview } from '../types';
 
 // Query keys
 export const dashboardKeys = {

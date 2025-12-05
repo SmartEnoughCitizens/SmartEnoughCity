@@ -28,6 +28,7 @@ interface TransportModeData {
   name: string;
   value: number;
   color: string;
+  [key: string]: string | number;
 }
 
 interface WeeklyTrendData {
@@ -100,17 +101,20 @@ const Dashboard: React.FC = () => {
           Unable to load live data. Showing mock data for demonstration.
         </Alert>
       )}
-
       <Typography variant="h4" gutterBottom>
         Dashboard Overview
       </Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
         Real-time insights into city transportation and sustainability metrics
       </Typography>
-
       {/* Metrics Row */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Total Vehicles"
             value={displayStats.totalVehicles}
@@ -119,7 +123,12 @@ const Dashboard: React.FC = () => {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Active Routes"
             value={displayStats.activeRoutes}
@@ -128,7 +137,12 @@ const Dashboard: React.FC = () => {
             color="secondary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Avg Speed"
             value={displayStats.avgSpeed}
@@ -138,7 +152,12 @@ const Dashboard: React.FC = () => {
             color="success"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Congestion Level"
             value={congestionValue}
@@ -149,10 +168,13 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
       </Grid>
-
       {/* Charts Row */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={8}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 8
+          }}>
           <ChartCard title="Traffic Trends" subtitle="Vehicles by time of day">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trafficData}>
@@ -168,7 +190,11 @@ const Dashboard: React.FC = () => {
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <ChartCard title="Transport Mode Split" subtitle="Usage distribution">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -192,10 +218,13 @@ const Dashboard: React.FC = () => {
           </ChartCard>
         </Grid>
       </Grid>
-
       {/* Weekly Trend & Map */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <ChartCard title="Weekly Traffic Volume" subtitle="Last 7 days">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={weeklyTrend}>
@@ -209,14 +238,21 @@ const Dashboard: React.FC = () => {
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <CityMap title="City Traffic Hotspots" markers={mapMarkers} height={350} />
         </Grid>
       </Grid>
-
       {/* Recommendations */}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <RecommendationCard
             title="Peak Hour Optimization"
             description="Consider implementing dynamic traffic signals during peak hours (6-9 AM and 5-8 PM) to reduce congestion by an estimated 15%."
@@ -224,7 +260,11 @@ const Dashboard: React.FC = () => {
             type="warning"
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <RecommendationCard
             title="Promote Cycling"
             description="Expand bike lane network in downtown area. Current usage shows 15% adoption with room for growth."
@@ -232,7 +272,11 @@ const Dashboard: React.FC = () => {
             type="info"
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <RecommendationCard
             title="Public Transport Schedule"
             description="Weekend bus frequency could be increased based on demand patterns showing 23% capacity utilization."

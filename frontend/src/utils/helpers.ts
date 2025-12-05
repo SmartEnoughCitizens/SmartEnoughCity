@@ -1,4 +1,4 @@
-import { User, UserRole } from '../types';
+import type { User, UserRole } from '../types';
 
 // Format date to readable string
 export const formatDate = (date: string | Date | null | undefined): string => {
@@ -75,7 +75,7 @@ export const debounce = <T extends (...args: unknown[]) => void>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
-  let timeout: NodeJS.Timeout | null = null;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   return function executedFunction(...args: Parameters<T>) {
     const later = () => {
       timeout = null;
