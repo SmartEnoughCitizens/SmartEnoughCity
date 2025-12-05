@@ -26,15 +26,15 @@ labels:
 java:
   opts: "-Xms512m -Xmx1536m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
-## Database Configuration
-#database:
-#  host: postgresql
-#  port: 5432
-#  name: smartcity_db
-#  username: postgres
-#  # Password should be provided via secret
-#  secretName: postgresql-secret
-#  secretKey: password
+# Database Configuration
+database:
+  host: postgresql
+  port: 5432
+  name: smart_enough_city
+  username: backend_user
+  # Password should be provided via secret
+  secretName: postgresql-secret
+  secretKey: password
 #
 # Application Configuration
 application:
