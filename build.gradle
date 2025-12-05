@@ -39,6 +39,12 @@ dependencies {
 //    lombok
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    implementation 'org.postgresql:postgresql:42.7.8'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
 }
 
 tasks.named('test') {
@@ -51,5 +57,5 @@ springBoot {
 }
 
 test {
-    enabled = false
+    enabled = true
 }
