@@ -1,6 +1,6 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { indicatorService } from '../services/indicatorService';
-import {
+import type {
   TransportIndicatorData,
   EventIndicator,
   ConstructionIndicator,

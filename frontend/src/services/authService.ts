@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../constants';
-import { LoginCredentials, RegisterData, AuthResponse } from '../types';
+import type { LoginCredentials, RegisterData, AuthResponse } from '../types';
 
 export const authService = {
   // Login

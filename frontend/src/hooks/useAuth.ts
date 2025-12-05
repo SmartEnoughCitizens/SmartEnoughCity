@@ -1,6 +1,6 @@
-import { useMutation, UseMutationResult } from '@tanstack/react-query';
+import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import { authService } from '../services/authService';
-import { LoginCredentials, RegisterData, AuthResponse } from '../types';
+import type { LoginCredentials, RegisterData, AuthResponse } from '../types';
 
 // Hook for login
 export const useLogin = (): UseMutationResult<AuthResponse, Error, LoginCredentials> => {

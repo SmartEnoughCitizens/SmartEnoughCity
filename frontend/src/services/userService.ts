@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../constants';
-import { UserProfile, CreateUserRequest, UpdateUserRequest } from '../types';
+import type { UserProfile, CreateUserRequest, UpdateUserRequest } from '../types';
 
 export const userService = {
   // Get all users

@@ -1,8 +1,8 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import { Card, CardContent, Typography, Box } from '@mui/material';
 // import { LatLngExpression, PathOptions } from 'leaflet';
-import { LatLngExpression } from 'leaflet';
+import type { LatLngExpression } from 'leaflet';
 import { MAP_CONFIG } from '../../constants';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';

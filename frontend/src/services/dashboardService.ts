@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../constants';
-import { DashboardStats, DashboardOverview } from '../types';
+import type { DashboardStats, DashboardOverview } from '../types';
 
 export const dashboardService = {
   // Get dashboard statistics

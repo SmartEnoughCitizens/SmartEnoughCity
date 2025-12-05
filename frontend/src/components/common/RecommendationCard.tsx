@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { Card, CardContent, Typography, Box, Chip } from '@mui/material';
 import { Lightbulb, Warning, CheckCircle } from '@mui/icons-material';
 
