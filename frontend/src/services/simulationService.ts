@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../constants';
-import { Simulation, CreateSimulationRequest } from '../types';
+import type { Simulation, CreateSimulationRequest } from '../types';
 
 export const simulationService = {
   // Get all simulations

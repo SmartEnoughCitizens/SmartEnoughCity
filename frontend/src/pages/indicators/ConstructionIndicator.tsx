@@ -21,7 +21,7 @@ import MetricCard from '../../components/common/MetricCard';
 import CityMap from '../../components/common/CityMap';
 import { useConstructionIndicators } from '@/hooks';
 import { formatDate } from '../../utils/helpers';
-import { ConstructionIndicator as ConstructionIndicatorType } from '@/types';
+import type { ConstructionIndicator as ConstructionIndicatorType } from '@/types';
 
 const ConstructionIndicator: React.FC = () => {
   const { data: projects = [], error, refetch } = useConstructionIndicators();

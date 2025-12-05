@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
 import { simulationService } from '../services/simulationService';
-import { Simulation, CreateSimulationRequest } from '../types';
+import type { Simulation, CreateSimulationRequest } from '../types';
 
 // Query keys
 export const simulationKeys = {

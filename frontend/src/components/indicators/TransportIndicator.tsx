@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Grid, Typography, Box, Button, ButtonGroup } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
-import { SvgIconComponent } from '@mui/icons-material';
-import { UseQueryResult } from '@tanstack/react-query';
+import type { SvgIconComponent } from '@mui/icons-material';
+import type { UseQueryResult } from '@tanstack/react-query';
 import MetricCard from '../common/MetricCard';
 import ChartCard from '../common/ChartCard';
 import CityMap from '../common/CityMap';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TransportIndicatorData, TimeRange } from '@/types';
+import type { TransportIndicatorData, TimeRange } from '@/types';
 
 interface TransportIndicatorProps {
   mode: string;

@@ -846,7 +846,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  SelectChangeEvent,
+  type SelectChangeEvent,
 } from "@mui/material";
 import { Science, Add, PlayArrow, Delete } from "@mui/icons-material";
 import MetricCard from "../../components/common/MetricCard";
@@ -867,7 +867,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import {
+import type {
   CreateSimulationRequest,
   SimulationScenario,
   SimulationStatus,

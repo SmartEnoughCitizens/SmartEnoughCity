@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../constants';
-import { Notification } from '../types';
+import type { Notification } from '../types';
 
 export const notificationService = {
   // Get all notifications

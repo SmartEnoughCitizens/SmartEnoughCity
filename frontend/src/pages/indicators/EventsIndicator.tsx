@@ -20,7 +20,7 @@ import MetricCard from '../../components/common/MetricCard';
 import CityMap from '../../components/common/CityMap';
 import { useEventsIndicators } from '@/hooks';
 import { formatDate } from '../../utils/helpers';
-import { EventIndicator } from '@/types';
+import type { EventIndicator } from '@/types';
 
 const EventsIndicator: React.FC = () => {
   const { data: events = [], error, refetch } = useEventsIndicators();
