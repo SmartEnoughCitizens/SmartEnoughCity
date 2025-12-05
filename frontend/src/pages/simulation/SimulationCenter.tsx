@@ -1012,14 +1012,23 @@ const SimulationCenter: React.FC = () => {
           New Simulation
         </Button>
       </Box>
-
       {/* Metrics */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Total Simulations" value={simulations.length} color="primary" />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Running"
             value={simulations.filter((s) => s.status === "running").length}
@@ -1027,7 +1036,12 @@ const SimulationCenter: React.FC = () => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Completed"
             value={simulations.filter((s) => s.status === "completed").length}
@@ -1035,7 +1049,12 @@ const SimulationCenter: React.FC = () => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Avg Efficiency"
             value={calculateAverageEfficiency()}
@@ -1044,10 +1063,9 @@ const SimulationCenter: React.FC = () => {
           />
         </Grid>
       </Grid>
-
       {/* Chart */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <ChartCard title="Latest Simulation Results" subtitle="Efficiency vs Congestion Over Time">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={simulationTrendData}>
@@ -1063,7 +1081,6 @@ const SimulationCenter: React.FC = () => {
           </ChartCard>
         </Grid>
       </Grid>
-
       {/* Table */}
       <Card>
         <CardContent>
@@ -1157,7 +1174,6 @@ const SimulationCenter: React.FC = () => {
           </TableContainer>
         </CardContent>
       </Card>
-
       {/* New Simulation Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Run New Simulation</DialogTitle>
