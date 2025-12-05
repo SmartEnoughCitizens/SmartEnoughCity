@@ -29,7 +29,7 @@ java:
 # Database Configuration
 database:
   host: postgresql
-  port: 5432
+  port: 55432
   name: smart_enough_city
   username: backend_user
   # Password should be provided via secret
