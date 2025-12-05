@@ -31,7 +31,7 @@ import MetricCard from '../../components/common/MetricCard';
 import { getRoleDisplayName } from '../../utils/helpers';
 import { ROLES } from '../../constants';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../../hooks/useUsers';
-import { type UserProfile, type CreateUserRequest, type UpdateUserRequest, UserRole } from '../../types';
+import type { UserProfile, CreateUserRequest, UpdateUserRequest, UserRole } from '../../types';
 
 interface UserFormData {
   username: string;
