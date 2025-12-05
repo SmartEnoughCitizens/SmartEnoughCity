@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../constants';
-import { SystemStatus, SystemHealth } from '../types';
+import type { SystemStatus, SystemHealth } from '../types';
 
 export const systemService = {
   // Get system status

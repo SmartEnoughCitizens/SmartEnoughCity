@@ -9,12 +9,14 @@ export interface User {
   updatedAt?: string;
 }
 
-export enum UserRole {
-  GOVERNMENT_ADMIN = 'GOVERNMENT_ADMIN',
-  CITY_MANAGER = 'CITY_MANAGER',
-  SERVICE_PROVIDER_ADMIN = 'SERVICE_PROVIDER_ADMIN',
-  SERVICE_PROVIDER_USER = 'SERVICE_PROVIDER_USER',
-}
+export const UserRole = {
+  GOVERNMENT_ADMIN: 'GOVERNMENT_ADMIN',
+  CITY_MANAGER: 'CITY_MANAGER',
+  SERVICE_PROVIDER_ADMIN: 'SERVICE_PROVIDER_ADMIN',
+  SERVICE_PROVIDER_USER: 'SERVICE_PROVIDER_USER',
+} as const;
+
+export type UserRole = typeof UserRole[keyof typeof UserRole];
 
 export interface LoginCredentials {
   username: string;
