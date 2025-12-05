@@ -155,27 +155,46 @@ const EventsIndicator: React.FC = () => {
           </Button>
         </Box>
       </Box>
-
       {/* Metrics */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Total Events" value={displayEvents.length} color="primary" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Upcoming Events"
             value={displayEvents.filter((e) => e.status === 'planned').length}
             color="warning"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="High Impact"
             value={displayEvents.filter((e) => e.expectedImpact === 'high').length}
             color="error"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Avg Attendees"
             value={Math.round(
@@ -185,10 +204,13 @@ const EventsIndicator: React.FC = () => {
           />
         </Grid>
       </Grid>
-
       {/* Events Table */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={7}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 7
+          }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -231,7 +253,11 @@ const EventsIndicator: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={5}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 5
+          }}>
           <CityMap title="Event Locations" markers={mapMarkers} height={400} />
         </Grid>
       </Grid>

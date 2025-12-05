@@ -254,19 +254,38 @@ const UserManagement: React.FC = () => {
           Add User
         </Button>
       </Box>
-
       {/* Metrics */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Total Users" value={displayUsers.length} color="primary" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Admins" value={usersByRole[ROLES.GOVERNMENT_ADMIN]} color="error" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="City Managers" value={usersByRole[ROLES.CITY_MANAGER]} color="warning" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Service Providers"
             value={usersByRole[ROLES.SERVICE_PROVIDER_ADMIN] + usersByRole[ROLES.SERVICE_PROVIDER_USER]}
@@ -274,7 +293,6 @@ const UserManagement: React.FC = () => {
           />
         </Grid>
       </Grid>
-
       {/* Users Table */}
       <Card>
         <CardContent>
@@ -329,7 +347,6 @@ const UserManagement: React.FC = () => {
           </TableContainer>
         </CardContent>
       </Card>
-
       {/* Add/Edit User Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{editMode ? 'Edit User' : 'Add New User'}</DialogTitle>

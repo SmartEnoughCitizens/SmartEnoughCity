@@ -97,10 +97,14 @@ const TransportIndicator: React.FC<TransportIndicatorProps> = ({
           </Button>
         </Box>
       </Box>
-
       {/* Metrics */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title={`Total ${mode}s`}
             value={stats.totalCount?.toLocaleString() || '0'}
@@ -108,7 +112,12 @@ const TransportIndicator: React.FC<TransportIndicatorProps> = ({
             color={color}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Average Speed"
             value={stats.avgSpeed || 0}
@@ -117,7 +126,12 @@ const TransportIndicator: React.FC<TransportIndicatorProps> = ({
             color="info"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Efficiency"
             value={stats.efficiency || 0}
@@ -126,7 +140,12 @@ const TransportIndicator: React.FC<TransportIndicatorProps> = ({
             color="success"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="CO₂ Emissions"
             value={stats.emissions || 0}
@@ -136,10 +155,13 @@ const TransportIndicator: React.FC<TransportIndicatorProps> = ({
           />
         </Grid>
       </Grid>
-
       {/* Charts */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <ChartCard title="Hourly Distribution" subtitle="Last 24 hours">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={hourlyData}>
@@ -155,7 +177,11 @@ const TransportIndicator: React.FC<TransportIndicatorProps> = ({
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <ChartCard title="Weekly Overview" subtitle="Last 7 days">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dailyData}>
@@ -170,10 +196,9 @@ const TransportIndicator: React.FC<TransportIndicatorProps> = ({
           </ChartCard>
         </Grid>
       </Grid>
-
       {/* Map */}
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <CityMap title={`${mode} Activity Heatmap`} markers={mapMarkers} height={400} />
         </Grid>
       </Grid>
