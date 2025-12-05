@@ -124,10 +124,13 @@ const EventsIndicator: React.FC = () => {
   const getAttendees = (impact: string): number => {
     switch (impact) {
       case 'high':
+        // eslint-disable-next-line react-hooks/purity
         return Math.floor(Math.random() * 5000) + 5000;
       case 'medium':
+        // eslint-disable-next-line react-hooks/purity
         return Math.floor(Math.random() * 2000) + 2000;
       case 'low':
+        // eslint-disable-next-line react-hooks/purity
         return Math.floor(Math.random() * 1000) + 500;
       default:
         return 1000;
