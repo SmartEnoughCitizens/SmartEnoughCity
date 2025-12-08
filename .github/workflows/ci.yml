@@ -109,6 +109,10 @@ jobs:
       - name: Install dependencies
         working-directory: ./backend/inference_engine
         run: uv sync
+
+      - name: Install pytest-cov
+        working-directory: ./backend/inference_engine
+        run: uv pip install pytest-cov
       
       - name: Run pytest
         working-directory: ./backend/inference_engine
