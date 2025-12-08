@@ -1,0 +1,39 @@
+{
+    "realm": "user-management-realm",
+    "enabled": true,
+  
+    "users": [
+        {
+            "username": "testuser",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "testuser@example.com",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "testpassword",
+                    "temporary": false
+                }
+            ]
+        }
+    ],
+  
+    "clients": [
+        {
+            "clientId": "user-service",
+            "name": "User Service",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "dev-keycloak-user-service-secret",
+    
+            "standardFlowEnabled": false,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": false,
+    
+            "redirectUris": [],
+            "webOrigins": []
+        }
+    ]
+}
+  
