@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8084
 
 spring:
   security:
@@ -10,33 +10,52 @@ spring:
 
   application:
     name: hermes
-  #  main:
-  #    lazy-initialization: true
-  #  jmx:
-  #    enabled: false
+  main:
+    lazy-initialization: true
+  jmx:
+    enabled: false
+  
+  # H2 In-Memory Database Configuration for Development
   datasource:
-    url: jdbc:postgresql://localhost:55432/smart_enough_city
-    username: backend_user
-    password: dev_backend_user_password
+    url: jdbc:h2:mem:hermesdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
   jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
-
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
-#loki:
-#  url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
-#  timeoutMs: 5000
 
-keycloak:
-  server-url: http://localhost:8081
-  realm: user-management-realm
-  client-id: user-service
-  client-secret: VWzd9CEnXpYvqXhyIdIMpf18HEuFlP1g
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger
+    display-request-duration: true
+    operationsSorter: method
+
+# Enable only to test if loki works fine locally ,
+#logging:
+#  file:
+#    name: logs/hermes.log
+#loki:
+#  url: http://localhost:3100/loki/api/v1/push
+#  timeoutMs: 5000

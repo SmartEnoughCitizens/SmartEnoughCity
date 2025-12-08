@@ -28,7 +28,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.postgresql:postgresql:42.7.8'
+    runtimeOnly 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
@@ -38,28 +38,8 @@ dependencies {
 //  Logback + Loki for logging
     implementation 'com.github.loki4j:loki-logback-appender:1.5.2'
 //    lombok
-    implementation 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok:1.18.34'
-
-    implementation 'org.postgresql:postgresql:42.7.8'
-
-    testImplementation('org.springframework.boot:spring-boot-starter-test') {
-        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-    }
-
-    // Spring Security + OAuth2
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-
-    // Keycloak Admin Client
-    implementation 'org.keycloak:keycloak-admin-client:22.0.3'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-
-    // Required by Keycloak Admin Client
-    implementation 'org.jboss.resteasy:resteasy-client:6.2.4.Final'
-    implementation 'org.jboss.resteasy:resteasy-jackson2-provider:6.2.4.Final'
-
-
+    implementation 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 }
 
 tasks.named('test') {
