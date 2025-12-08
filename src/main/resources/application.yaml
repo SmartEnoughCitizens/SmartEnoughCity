@@ -10,21 +10,21 @@ spring:
 
   application:
     name: hermes
-#  main:
-#    lazy-initialization: true
-#  jmx:
-#    enabled: false
+  #  main:
+  #    lazy-initialization: true
+  #  jmx:
+  #    enabled: false
   datasource:
-    url: jdbc:postgresql://localhost:5432/thinSlice
-    username: postgres
-    password: mypassword123
-
+    url: jdbc:postgresql://localhost:55432/smart_enough_city
+    username: backend_user
+    password: dev_backend_user_password
   jpa:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto:update
+      ddl-auto: update
+
 
 management:
   endpoints:
