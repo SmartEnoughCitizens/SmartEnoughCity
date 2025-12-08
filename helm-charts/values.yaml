@@ -5,6 +5,7 @@ global:
     schemas:
       dataHandlerSchema: "external_data"
       backendSchema: "backend"
+      keycloakSchema: "keycloak"
 
 postgresql:
   enabled: true
@@ -25,6 +26,7 @@ db:
   users:
     dataHandlerPassword: ""
     backendUserPassword: ""
+    keycloakPassword: ""
 
 data-handler:
   enabled: true
