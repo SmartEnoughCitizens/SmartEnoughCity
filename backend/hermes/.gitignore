@@ -1,5 +1,3 @@
-wha
-HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -17,6 +15,11 @@ build/
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
+
+### Logs ###
+logs/
+*.log
+*.log.*
 
 ### IntelliJ IDEA ###
 .idea
