@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     SERVICE_PORT: int = 8000
     
     # External API URLs
-    DATA_ENGINE_URL: str = "http://localhost:8080/api/bus_data_recommendation"
-    NOTIFICATION_API_URL: str = "http://localhost:8081/api/send_notification"
+    DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
+    NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
     
     # Timeout settings
     HTTP_TIMEOUT: int = 30
