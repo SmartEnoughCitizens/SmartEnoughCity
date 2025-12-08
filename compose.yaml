@@ -12,6 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - postgres-internal
+      - keycloak-postgres
 
   postgres-init:
     image: postgres:18-alpine
@@ -163,43 +164,28 @@ services:
     networks:
       - postgres-internal
 
-# volumes:
-#   postgres_data:
-
-# networks:
-#   postgres-internal:
-
-
-
-## Inference Engine - Recommendation Engine
-  inference-engine:
-    build:
-      context: ./backend/inference_engine
-      dockerfile: Dockerfile
-    container_name: inference-engine
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.7
+    container_name: keycloak
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    command:
+      - start-dev
+      - --import-realm
     environment:
-      # Mock endpoints (since external APIs don't exist yet)
-      - DATA_ENGINE_URL=http://inference-engine:8000/mock/data-engine
-      - NOTIFICATION_API_URL=http://inference-engine:8000/mock/notification
-    volumes:
-      # Mount source for hot reload during development
-      - ./backend/inference_engine/src:/app/src
-    networks:
-      - backend-network
-      - postgres-internal
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/smart_enough_city
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: dev_keycloak_password
+    ports:
+      - "8081:8080"
     depends_on:
       - postgres
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-# --- Top Level Definitions Moved to Bottom ---
+    volumes:
+      - ./config/keycloak/dev-realm-export.json:/opt/keycloak/data/import/realm-export.json
+    networks:
+      - keycloak-postgres
 
 volumes:
   postgres_data:
@@ -207,5 +193,5 @@ volumes:
 networks:
   postgres-internal:
     driver: bridge
-  backend-network:
+  keycloak-postgres:
     driver: bridge
