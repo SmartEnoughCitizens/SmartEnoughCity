@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
 import { notificationService } from '../services/notificationService';
-import { Notification } from '../types';
+import type { Notification } from '../types';
 
 // Query keys
 export const notificationKeys = {

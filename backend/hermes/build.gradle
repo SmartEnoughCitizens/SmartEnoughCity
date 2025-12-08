@@ -1,0 +1,76 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.7'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.trinity'
+version = '0.0.1-SNAPSHOT'
+description = 'hermes'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+//    prometheues registry
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.postgresql:postgresql:42.7.8'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+//    OpenAPI + Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+//  Logback + Loki for logging
+    implementation 'com.github.loki4j:loki-logback-appender:1.5.2'
+//    lombok
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    implementation 'org.postgresql:postgresql:42.7.8'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+
+    // Spring Security + OAuth2
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+    // Keycloak Admin Client
+    implementation 'org.keycloak:keycloak-admin-client:22.0.3'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Required by Keycloak Admin Client
+    implementation 'org.jboss.resteasy:resteasy-client:6.2.4.Final'
+    implementation 'org.jboss.resteasy:resteasy-jackson2-provider:6.2.4.Final'
+
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+
+springBoot {
+    mainClass = 'com.trinity.hermes.HermesApplication'
+}
+
+test {
+    enabled = true
+}
