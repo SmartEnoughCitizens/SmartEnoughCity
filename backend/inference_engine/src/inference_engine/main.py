@@ -17,8 +17,6 @@ DATA_INDICATORS = ["bus", "car", "train"]  # Transport types to process
 # Initialize scheduler
 scheduler = AsyncIOScheduler()
 recommendations_store = {}  # In-memory storage
-
-
 app = FastAPI(title="Recommendation Engine API")
 
 # Configure logging
@@ -26,10 +24,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# Configuration
-DATA_ENGINE_URL = "http://localhost:8080/api/bus_data_recommendation"
-NOTIFICATION_API_URL = "http://localhost:8081/api/send_notification"
+# # Configuration
+# DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
+# NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
 
+
+# Change these lines in your code:
+DATA_ENGINE_URL: str = "http://localhost:8000/mock/data-engine"  # Point to your own mock
+NOTIFICATION_API_URL: str = "http://localhost:8000/mock/notification"  # Point to your own mock
 
 # Request/Response Models
 class RecommendationRequest(BaseModel):
@@ -53,7 +55,7 @@ async def fetch_data_from_engine(data_indicator: str) -> Dict[str, Any]:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 DATA_ENGINE_URL,
-                params={"data_indicator": data_indicator}
+                params={"indicatorType": data_indicator}
             )
             response.raise_for_status()
             data = response.json()
@@ -136,13 +138,14 @@ class RecommendationService:
         3. Send notification
         """
         recommendation_id = f"rec_{data_indicator}_{int(datetime.utcnow().timestamp())}"
-        
+        created_at = datetime.utcnow().isoformat()  # Store timestamp once
+
         try:
-            # Update status
+            # Update status - FIXED: Use data_indicator as temporary key
             recommendations_store[data_indicator] = {
                 "status": "processing",
                 "data_indicator": data_indicator,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": created_at
             }
             
             # Step 1: Fetch data
@@ -167,15 +170,19 @@ class RecommendationService:
             
             notification_sent = await send_notification(notification_payload)
             
-            # Update final status
+            # Update final status - FIXED: Now we can safely use created_at
             recommendations_store[recommendation_id] = {
                 "status": "completed" if notification_sent else "notification_failed",
                 "data_indicator": data_indicator,
                 "recommendation": recommendation,
                 "notification_sent": notification_sent,
-                "created_at": recommendations_store[recommendation_id]["created_at"],
+                "created_at": created_at,  # Use the stored timestamp
                 "completed_at": datetime.utcnow().isoformat()
             }
+            
+            # Clean up temporary key
+            if data_indicator in recommendations_store:
+                del recommendations_store[data_indicator]
             
             logger.info(f"Recommendation {recommendation_id} completed")
             return recommendation_id
@@ -186,7 +193,7 @@ class RecommendationService:
                 "status": "failed",
                 "data_indicator": data_indicator,
                 "error": str(e),
-                "created_at": recommendations_store[recommendation_id]["created_at"],
+                "created_at": created_at,  # Use the stored timestamp
                 "failed_at": datetime.utcnow().isoformat()
             }
             raise

@@ -21,7 +21,7 @@ import MetricCard from '../../components/common/MetricCard';
 import CityMap from '../../components/common/CityMap';
 import { useConstructionIndicators } from '@/hooks';
 import { formatDate } from '../../utils/helpers';
-import { ConstructionIndicator as ConstructionIndicatorType } from '@/types';
+import type { ConstructionIndicator as ConstructionIndicatorType } from '@/types';
 
 const ConstructionIndicator: React.FC = () => {
   const { data: projects = [], error, refetch } = useConstructionIndicators();
@@ -142,27 +142,46 @@ const ConstructionIndicator: React.FC = () => {
           </Button>
         </Box>
       </Box>
-
       {/* Metrics */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard title="Total Projects" value={displayProjects.length} color="primary" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="In Progress"
             value={displayProjects.filter((p) => p.status === 'in-progress').length}
             color="warning"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="High Impact"
             value={displayProjects.filter((p) => p.impact === 'high').length}
             color="error"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <MetricCard
             title="Areas Affected"
             value={displayProjects.reduce((sum, p) => sum + p.affectedAreas.length, 0)}
@@ -170,10 +189,13 @@ const ConstructionIndicator: React.FC = () => {
           />
         </Grid>
       </Grid>
-
       {/* Projects Table */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={7}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 7
+          }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -223,7 +245,11 @@ const ConstructionIndicator: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={5}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 5
+          }}>
           <CityMap title="Construction Sites" markers={mapMarkers} height={400} />
         </Grid>
       </Grid>

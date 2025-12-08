@@ -1,0 +1,45 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: hermes
+  main:
+    lazy-initialization: true
+  jmx:
+    enabled: false
+#  uncomment when connecting with your local DB
+#  datasource:
+#    url: jdbc:postgresql://localhost:5432/hermes_local
+#    username: hermes
+#    password: hermes
+
+  autoconfigure:
+    # Disabling Hibernate when testing locally
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger
+    display-request-duration: true
+    operationsSorter: method
+
+# Enable only to test if loki works fine locally ,
+#logging:
+#  file:
+#    name: logs/hermes.log
+#loki:
+#  url: http://localhost:3100/loki/api/v1/push
+#  timeoutMs: 5000

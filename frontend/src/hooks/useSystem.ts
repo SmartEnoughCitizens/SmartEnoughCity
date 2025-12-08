@@ -1,6 +1,6 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { systemService } from '../services/systemService';
-import { SystemStatus, SystemHealth } from '../types';
+import type { SystemStatus, SystemHealth } from '../types';
 
 // Query keys
 export const systemKeys = {

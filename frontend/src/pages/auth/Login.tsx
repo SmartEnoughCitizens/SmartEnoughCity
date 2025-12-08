@@ -17,7 +17,7 @@ import {
 import { Visibility, VisibilityOff, Login as LoginIcon } from '@mui/icons-material';
 import { loginStart, loginSuccess, loginFailure } from '../../redux/slices/authSlice';
 import { useLogin } from '@/hooks';
-import { RootState } from '../../redux/store';
+import { type RootState } from '../../redux/store';
 
 interface LoginFormData {
   username: string;
