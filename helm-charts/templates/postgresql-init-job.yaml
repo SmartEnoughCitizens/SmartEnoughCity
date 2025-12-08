@@ -62,6 +62,33 @@ spec:
               
               SELECT 'Data handler user initialization completed successfully!' as status;
               EOF
+
+              echo "Creating ${KEYCLOAK_USER} user and ${KEYCLOAK_SCHEMA} schema..."
+              PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
+              DO \$\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$KEYCLOAK_USER') THEN
+                  CREATE USER "$KEYCLOAK_USER" WITH PASSWORD '$KEYCLOAK_PASSWORD';
+                ELSE
+                  ALTER USER "$KEYCLOAK_USER" WITH PASSWORD '$KEYCLOAK_PASSWORD';
+                END IF;
+              END
+              \$\$;
+              
+              CREATE SCHEMA IF NOT EXISTS "$KEYCLOAK_SCHEMA" AUTHORIZATION "$KEYCLOAK_USER";
+              
+              GRANT ALL PRIVILEGES ON SCHEMA "$KEYCLOAK_SCHEMA" TO "$KEYCLOAK_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$KEYCLOAK_SCHEMA" GRANT ALL ON TABLES TO "$KEYCLOAK_USER";
+              
+              ALTER DEFAULT PRIVILEGES IN SCHEMA "$KEYCLOAK_SCHEMA" GRANT ALL ON SEQUENCES TO "$KEYCLOAK_USER";
+              
+              ALTER SCHEMA "$KEYCLOAK_SCHEMA" OWNER TO "$KEYCLOAK_USER";
+              
+              GRANT USAGE ON SCHEMA "$KEYCLOAK_SCHEMA" TO "$KEYCLOAK_USER";
+              
+              SELECT 'Keycloak user initialization completed successfully!' as status;
+              EOF
               
               echo "Creating ${BACKEND_USER} user and ${BACKEND_SCHEMA} schema..."
               PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
@@ -141,6 +168,18 @@ spec:
                   key: DB_BACKEND_USER_PASSWORD
             - name: BACKEND_SCHEMA
               value: {{ .Values.global.db.schemas.backendSchema | quote }}
+            - name: KEYCLOAK_USER
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-keycloak-user
+                  key: DB_KEYCLOAK_USER
+            - name: KEYCLOAK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sec-db-keycloak-user
+                  key: DB_KEYCLOAK_PASSWORD
+            - name: KEYCLOAK_SCHEMA
+              value: {{ .Values.global.db.schemas.keycloakSchema | quote }}
           resources:
             requests:
               cpu: "50m"
