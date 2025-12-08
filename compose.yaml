@@ -31,6 +31,9 @@ services:
       BACKEND_USER: backend_user
       BACKEND_USER_PASSWORD: dev_backend_user_password
       BACKEND_SCHEMA: backend
+      KEYCLOAK_USER: keycloak
+      KEYCLOAK_PASSWORD: dev_keycloak_password
+      KEYCLOAK_SCHEMA: keycloak
     volumes:
       - ./backend/migrations:/migrations:ro
     command:
@@ -83,6 +86,33 @@ services:
         GRANT USAGE ON SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$DATA_HANDLER_USER";
         
         SELECT 'Data handler user initialization completed successfully!' as status;
+        EOF
+        
+        echo "Creating $${KEYCLOAK_USER} user and $${KEYCLOAK_SCHEMA} schema..."
+        PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d "$$DB_NAME" <<EOF
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$$KEYCLOAK_USER') THEN
+            CREATE USER "$$KEYCLOAK_USER" WITH PASSWORD '$$KEYCLOAK_PASSWORD';
+          ELSE
+            ALTER USER "$$KEYCLOAK_USER" WITH PASSWORD '$$KEYCLOAK_PASSWORD';
+          END IF;
+        END
+        \$\$;
+        
+        CREATE SCHEMA IF NOT EXISTS "$$KEYCLOAK_SCHEMA" AUTHORIZATION "$$KEYCLOAK_USER";
+        
+        GRANT ALL PRIVILEGES ON SCHEMA "$$KEYCLOAK_SCHEMA" TO "$$KEYCLOAK_USER";
+        
+        ALTER DEFAULT PRIVILEGES IN SCHEMA "$$KEYCLOAK_SCHEMA" GRANT ALL ON TABLES TO "$$KEYCLOAK_USER";
+        
+        ALTER DEFAULT PRIVILEGES IN SCHEMA "$$KEYCLOAK_SCHEMA" GRANT ALL ON SEQUENCES TO "$$KEYCLOAK_USER";
+        
+        ALTER SCHEMA "$$KEYCLOAK_SCHEMA" OWNER TO "$$KEYCLOAK_USER";
+        
+        GRANT USAGE ON SCHEMA "$$KEYCLOAK_SCHEMA" TO "$$KEYCLOAK_USER";
+        
+        SELECT 'Keycloak user initialization completed successfully!' as status;
         EOF
         
         echo "Creating $${BACKEND_USER} user and $${BACKEND_SCHEMA} schema..."
