@@ -46,6 +46,20 @@ dependencies {
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
+
+    // Spring Security + OAuth2
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+    // Keycloak Admin Client
+    implementation 'org.keycloak:keycloak-admin-client:22.0.3'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Required by Keycloak Admin Client
+    implementation 'org.jboss.resteasy:resteasy-client:6.2.4.Final'
+    implementation 'org.jboss.resteasy:resteasy-jackson2-provider:6.2.4.Final'
+
+
 }
 
 tasks.named('test') {
