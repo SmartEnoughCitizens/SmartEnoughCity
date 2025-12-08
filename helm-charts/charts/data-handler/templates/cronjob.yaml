@@ -34,7 +34,7 @@ spec:
 {{- toYaml .Values.resources | nindent 16 }}
               env:
                 - name: DB_HOST
-                  value: "{{ .Release.Name }}-postgresql"
+                  value: {{ .Values.global.db.host | default (printf "%s-postgresql" .Release.Name) | quote }}
                 - name: DB_PORT
                   value: {{ .Values.global.db.port | quote }}
                 - name: DB_NAME

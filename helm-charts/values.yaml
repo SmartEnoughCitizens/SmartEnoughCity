@@ -1,5 +1,6 @@
 global:
   db:
+    host: &dbhost sec-postgresql
     name: smart_enough_city
     port: 5432
     schemas:
@@ -9,6 +10,7 @@ global:
 
 postgresql:
   enabled: true
+  fullnameOverride: *dbhost
   primary:
     persistence:
       enabled: true
