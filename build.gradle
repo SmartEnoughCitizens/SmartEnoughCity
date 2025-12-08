@@ -41,17 +41,11 @@ dependencies {
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-    // Spring Security + OAuth2
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.postgresql:postgresql:42.7.8'
 
-    // Keycloak Admin Client
-    implementation 'org.keycloak:keycloak-admin-client:22.0.3'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-
-    // Required by Keycloak Admin Client
-    implementation 'org.jboss.resteasy:resteasy-client:6.2.4.Final'
-    implementation 'org.jboss.resteasy:resteasy-jackson2-provider:6.2.4.Final'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
 }
 
 tasks.named('test') {
@@ -64,5 +58,5 @@ springBoot {
 }
 
 test {
-    enabled = false
+    enabled = true
 }
