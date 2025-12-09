@@ -2,13 +2,18 @@ apiVersion: v2
 name: smart-enough-city
 description: Full Smart Enough City application stack
 type: application
-version: 0.1.2
+version: 0.1.3
 
 dependencies:
   - name: postgresql
     repository: https://charts.bitnami.com/bitnami
     version: 18.1.8
     condition: postgresql.enabled
+
+  - name: keycloak
+    repository: https://charts.bitnami.com/bitnami
+    version: 25.2.0
+    condition: keycloak.enabled
 
   - name: data-handler
     repository: file://./charts/data-handler
