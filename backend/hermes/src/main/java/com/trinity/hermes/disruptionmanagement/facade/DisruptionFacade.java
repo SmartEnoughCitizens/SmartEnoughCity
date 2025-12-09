@@ -26,7 +26,7 @@ public class DisruptionFacade {
     private final DisruptionService disruptionService;
     private final ThresholdDetectionService thresholdDetectionService;
 
-    private final NotificationCoordinationService notificationCoordinationService;
+    private final com.trinity.hermes.notification.services.NotificationFacade notificationFacade;
     private final IncidentLoggingService incidentLoggingService;
 
     // Repository
@@ -86,7 +86,8 @@ public class DisruptionFacade {
 
             // Step 4: Send to notification handler
             disruption.setStatus("NOTIFYING");
-            boolean notificationSent = notificationCoordinationService.sendDisruptionNotifications(solution);
+            notificationFacade.sendDisruptionNotification(solution);
+            boolean notificationSent = true;
             disruption.setNotificationSent(notificationSent);
 
             // Step 5: Update status
@@ -119,7 +120,31 @@ public class DisruptionFacade {
     public DisruptionSolution processDisruption(Disruption disruption) {
         log.info("Processing disruption ID: {}", disruption.getId());
 
-        return new DisruptionSolution();
+        // Create dummy solution object populated for notification
+        DisruptionSolution solution = new DisruptionSolution();
+        solution.setDisruptionId(disruption.getId());
+        solution.setDisruptionType(disruption.getDisruptionType());
+        solution.setSeverity(disruption.getSeverity());
+        solution.setDescription(disruption.getDescription());
+        solution.setAffectedArea(disruption.getAffectedArea());
+        solution.setActionSummary("Immediate action required: " + disruption.getDisruptionType() + " detected in "
+                + disruption.getAffectedArea());
+        solution.setCalculatedAt(LocalDateTime.now());
+
+        // Good dummy data for notification testing
+        solution.setPrimaryRecommendation("Take Luas Green Line from Stephen's Green to Sandyford (15 mins)");
+        solution.setAlternativeRoutes(List.of(
+                "Option A: Dublin Bus Route 46A - Departs in 5 mins from Stop 792",
+                "Option B: Dublin Bikes - Station 12 (Earlsfort Terrace) has 5 bikes available",
+                "Option C: Walk - 25 mins via Ranelagh Road"));
+        solution.setSecondaryRecommendations(List.of("Check Uber availability (approx €15)"));
+        solution.setStepByStepInstructions(List.of(
+                "1. Leave the disrupted stop immediately.",
+                "2. Walk 200m to Luas Stop (Stephen's Green).",
+                "3. Board Green Line (Southbound).",
+                "4. Alight at destination."));
+
+        return solution;
     }
 
     /**
@@ -162,7 +187,13 @@ public class DisruptionFacade {
         disruption.setResolvedAt(LocalDateTime.now());
         disruptionRepository.save(disruption);
 
-        notificationCoordinationService.sendResolutionNotification(disruptionId);
+        // notificationCoordinationService.sendResolutionNotification(disruptionId); //
+        // Removed as using NotificationFacade now
+        // NotificationFacade might not have resolution method yet, keeping commented
+        // out or use generic notification
+        // For now, logging resolution only
+        // notificationFacade.sendDisruptionNotification(resolvedSolution); // Optional:
+        // if we want to notify resolution
         incidentLoggingService.logDisruptionResolved(disruptionId, "Normal service resumed");
 
         return true;

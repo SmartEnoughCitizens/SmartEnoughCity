@@ -23,40 +23,73 @@ public class NotificationFacade {
     private final NotificationDispatcher notificationDispatcher;
 
     public void handleBackendNotification(BackendNotificationRequestDTO backendNotificationRequestDTO) {
-        //TODO:  Add code for schema validations that need to be performed via networkNT
-        //TODO: Add code for user retreival
-        //TODO:  fix code to have facade work better
+        // TODO: Add code for schema validations that need to be performed via networkNT
+        // TODO: Add code for user retreival
+        // TODO: fix code to have facade work better
         User user = User.builder().build();
         Set<Notification> notificationSet = notificationService.createNotification(user, backendNotificationRequestDTO);
         for (Notification notification : notificationSet) {
-            if (Objects.nonNull(notification) && notification.getChannel() == Channel.EMAIL || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION) {
+            if (Objects.nonNull(notification) && (notification.getChannel() == Channel.EMAIL
+                    || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
                 notificationDispatcher.dispatchMail(notification);
             }
-            if (Objects.nonNull(notification) && notification.getChannel() == Channel.NOTIFICATION || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION) {
+            if (Objects.nonNull(notification) && (notification.getChannel() == Channel.NOTIFICATION
+                    || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
                 notificationDispatcher.dispatchSse(notification);
             }
 
             recommendationService.createRecommendation(new CreateRecommendationRequest());
-
-
-
-
         }
-
-
-//        Notification notification = notificationService.createNotification(
-//                user.getId(),
-//                serviceType,
-//                title,
-//                req.getMessage(),
-//                priority
-//        );
-
-
-
-
-
     }
 
+    public void sendDisruptionNotification(com.trinity.hermes.disruptionmanagement.dto.DisruptionSolution solution) {
+        log.info("Sending disruption notification for ID: {}", solution.getDisruptionId());
+
+        // Prepare payload for notification service
+        // Needs QR_ID (mapped to "qrid") for QR code generation
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("qrid", solution.getDisruptionId());
+        payload.put("subject", "Disruption Alert: " + solution.getAffectedArea());
+        // Construct comprehensive body with recommendations
+        StringBuilder bodyBuilder = new StringBuilder();
+        bodyBuilder
+                .append(solution.getActionSummary() != null ? solution.getActionSummary() : solution.getDescription());
+
+        if (solution.getPrimaryRecommendation() != null) {
+            bodyBuilder.append("\n\nRecommendation: ").append(solution.getPrimaryRecommendation());
+        }
+        if (solution.getAlternativeRoutes() != null && !solution.getAlternativeRoutes().isEmpty()) {
+            bodyBuilder.append("\n\nAlternatives:\n").append(String.join("\n", solution.getAlternativeRoutes()));
+        }
+
+        payload.put("body", bodyBuilder.toString());
+
+        // Also keep structured data if needed
+        if (solution.getPrimaryRecommendation() != null)
+            payload.put("primaryRecommendation", solution.getPrimaryRecommendation());
+        if (solution.getAlternativeRoutes() != null && !solution.getAlternativeRoutes().isEmpty()) {
+            payload.put("alternativeRoutes", String.join("\n", solution.getAlternativeRoutes()));
+        }
+
+        // Add other metadata if needed
+        payload.put("severity", solution.getSeverity());
+        payload.put("disruptionType", solution.getDisruptionType());
+
+        // Use a dummy user or appropriate recipient logic
+        User user = User.builder().build();
+
+        Set<Notification> notifications = notificationService.createNotification(user, payload);
+
+        for (Notification notification : notifications) {
+            if (Objects.nonNull(notification) && (notification.getChannel() == Channel.EMAIL
+                    || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
+                notificationDispatcher.dispatchMail(notification);
+            }
+            if (Objects.nonNull(notification) && (notification.getChannel() == Channel.NOTIFICATION
+                    || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
+                notificationDispatcher.dispatchSse(notification);
+            }
+        }
+    }
 
 }
