@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
 
 @Entity
-@Table(name = "cycle_stations")
+@Table(name = "cycle_stations", schema = "external_data")
+@Immutable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
