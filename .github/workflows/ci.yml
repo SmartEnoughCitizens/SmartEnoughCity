@@ -3,7 +3,7 @@ name: CI Pipeline
 on:
   pull_request:
   push:
-    branches: [ci]
+    branches: [main]
 
 env:
   REGISTRY: ghcr.io
@@ -242,7 +242,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,format=short
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
       
@@ -290,7 +290,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,format=short
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
       
@@ -338,7 +338,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,format=short
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
       
@@ -386,7 +386,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,format=short
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
       
