@@ -42,7 +42,7 @@ spec:
           env:
             - name: SERVER_PORT
               value: {{ .Values.server.port | quote }}
-            {{- $keycloakServerUrl := .Values.keycloak.serverUrl | default (printf "http://%s-keycloak:8080" .Release.Name) }}
+            {{- $keycloakServerUrl := .Values.keycloak.serverUrl | default (printf "http://%s-keycloak" .Release.Name) }}
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
               value: "{{ $keycloakServerUrl }}/realms/{{ .Values.keycloak.realm }}"
             {{- $dbHost := .Values.global.db.host | default (printf "%s-postgresql" .Release.Name) }}
