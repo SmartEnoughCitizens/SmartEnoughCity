@@ -1,0 +1,37 @@
+{{- if .Values.keycloak.realm.enabled }}
+{{- $realmSecret := lookup "v1" "Secret" .Release.Namespace "sec-keycloak-realm" -}}
+{{- $userServiceClientSecret := "" -}}
+{{- if and $realmSecret $realmSecret.data (index $realmSecret.data "USER_SERVICE_CLIENT_SECRET") -}}
+  {{- $userServiceClientSecret = index $realmSecret.data "USER_SERVICE_CLIENT_SECRET" | b64dec -}}
+{{- end -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.keycloak.realm.configMapName }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: realm-config
+data:
+  realm-export.json: |
+    {
+      "realm": {{ .Values.keycloak.realm.name | quote }},
+      "enabled": true,
+      "clients": [
+        {
+          "clientId": {{ .Values.keycloak.realm.clientId | quote }},
+          "name": "User Service",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "secret": {{ $userServiceClientSecret | quote }},
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": true,
+          "serviceAccountsEnabled": false,
+          "redirectUris": [],
+          "webOrigins": []
+        }
+      ]
+    }
+{{- end }}

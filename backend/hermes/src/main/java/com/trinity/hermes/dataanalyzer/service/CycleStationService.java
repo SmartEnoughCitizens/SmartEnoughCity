@@ -120,7 +120,6 @@ public class CycleStationService {
      */
     private CycleStationDTO convertToDTO(CycleStation entity) {
         CycleStationDTO dto = new CycleStationDTO();
-        dto.setId(entity.getId());
         dto.setStationId(entity.getStationId());
         dto.setName(entity.getName());
         dto.setAddress(entity.getAddress());
