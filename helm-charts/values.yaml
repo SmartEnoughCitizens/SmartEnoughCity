@@ -62,6 +62,8 @@ keycloak:
   realm:
     enabled: true
     configMapName: keycloak-realm-import
+    name: &keycloakRealmName "user-management-realm"
+    clientId: &keycloakClientId "user-service"
     userServiceClientSecret: ""  # Auto-generated if empty
   extraVolumes: |
     - name: realm-import
@@ -71,6 +73,15 @@ keycloak:
     - name: realm-import
       mountPath: /opt/bitnami/keycloak/data/import
       readOnly: true
+
+hermes:
+  enabled: true
+  keycloak:
+    realm: *keycloakRealmName
+    clientId: *keycloakClientId
+    secret:
+      name: sec-keycloak-realm
+      key: USER_SERVICE_CLIENT_SECRET
 
 data-handler:
   enabled: true
@@ -86,11 +97,13 @@ frontend:
 
 ingress:
   enabled: true
-  className: ""
+  className: "nginx"
   annotations: {}
   hosts:
-    - host: frontend.local
-      paths:
+    - hermesPaths:
+        - path: /api
+          pathType: Prefix
+      frontendPaths:
         - path: /
           pathType: Prefix
   tls: []

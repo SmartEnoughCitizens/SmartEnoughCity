@@ -4,11 +4,13 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
 
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "train_stations")
+@Table(name = "train_stations", schema = "external_data")
+@Immutable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
