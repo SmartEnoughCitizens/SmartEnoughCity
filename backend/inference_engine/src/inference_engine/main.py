@@ -296,6 +296,27 @@ def shutdown_scheduler():
     scheduler.shutdown()
     logger.info("✅ Scheduler stopped")
 
+# Matches Java's SimulationParameters
+class SimulationParams(BaseModel):
+    transportMode: Optional[str] = "BUS"
+    modificationFactor: Optional[float] = 1.0
+    trafficIncrease: Optional[float] = 0.0
+    weatherConditions: Optional[str] = "clear"
+    duration: Optional[int] = 60
+    # Add other fields to be safe against extra fields
+    affectedRoutes: Optional[List[str]] = None
+    customParams: Optional[Dict[str, Any]] = None
+
+class SimulationSummary(BaseModel):
+    avgSpeed: float
+    congestionLevel: float
+    totalDelay: float
+    affectedVehicles: int
+
+class SimulationResultResponse(BaseModel):
+    summary: SimulationSummary
+    recommendations: List[str]
+    
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -501,4 +522,42 @@ async def root():
             "swagger_ui": "/docs",
             "redoc": "/redoc"
         }
+    }
+
+
+@app.post("/predict-impact", response_model=SimulationResultResponse)
+async def predict_impact(params: SimulationParams):
+    """
+    Thin Slice: Calculates impact based on inputs.
+    Called by Java Spring Boot Service.
+    """
+    logger.info(f"Received simulation request: {params}")
+
+    # 1. Basic Logic for Demo
+    base_congestion = 40.0
+    factor = params.modificationFactor if params.modificationFactor is not None else 1.0
+
+    # Logic: If traffic increases, congestion goes up
+    if params.trafficIncrease:
+        factor += (params.trafficIncrease / 100.0)
+        
+    # Logic: Weather impact
+    if params.weatherConditions == 'rain':
+        factor *= 1.2
+
+    calculated_congestion = min(100.0, base_congestion * factor)
+    avg_speed = max(5.0, 50.0 / factor)  # Speed drops as factor increases
+
+    # 2. Return result
+    return {
+        "summary": {
+            "avgSpeed": round(avg_speed, 1),
+            "congestionLevel": round(calculated_congestion, 1),
+            "totalDelay": round(10 * factor, 1),
+            "affectedVehicles": int(100 * factor)
+        },
+        "recommendations": [
+            f"Optimize traffic lights for {params.transportMode}",
+            "Deploy 2 additional units to Sector 4"
+        ]
     }
