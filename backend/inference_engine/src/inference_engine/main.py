@@ -169,6 +169,8 @@ class RecommendationService:
             if context:
                 recommendation["context"] = context
             
+            # Save the generated recommendation to database...
+
             # Step 3: Send notification
             logger.info(f"Sending notification for service indicator {data_indicator}")
             notification_payload = NotificationPayload(
@@ -304,7 +306,6 @@ def shutdown_scheduler():
     logger.info("🛑 Shutting down scheduler...")
     scheduler.shutdown()
     logger.info("✅ Scheduler stopped")
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
