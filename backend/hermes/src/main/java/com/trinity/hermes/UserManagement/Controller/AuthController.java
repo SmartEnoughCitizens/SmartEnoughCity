@@ -53,22 +53,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * Get all users from Keycloak
-     */
-    @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers() {
-        try {
-            log.info("Request to get all users");
-            List<Map<String, Object>> users = authService.getAllUsers();
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            log.error("Error getting all users", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Failed to get users"));
-        }
-    }
-
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         Map<String, String> response = new HashMap<>();
