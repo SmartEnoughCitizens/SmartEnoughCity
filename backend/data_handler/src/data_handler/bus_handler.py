@@ -142,6 +142,15 @@ def trip_updates_to_db():
             db.execute(text(insert_sql), records)
             db.commit()
         print(f"Inserted/updated {len(records)} GTFS rows into {schema}.bus_trip_updates")
+        
+        # --- Disruption Detection Integration ---
+        try:
+            from data_handler.disruption_detector import detect_bus_disruptions
+            print("Running disruption detection on bus data...")
+            detect_bus_disruptions(records)
+        except Exception as e:
+            print(f"Error during disruption detection: {e}")
+        # ----------------------------------------
 
     except ProgrammingError as e:
         msg = str(e).lower()
