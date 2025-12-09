@@ -181,7 +181,8 @@ jobs:
   build-verification:
     name: Build Verification
     runs-on: ubuntu-latest
-    needs: [lint-python, lint-java, lint-frontend, test-inference-engine, test-hermes, test-frontend]
+    needs: [lint-frontend, test-inference-engine, test-frontend]
+    ## needs: [lint-python, lint-java, lint-frontend, test-inference-engine, test-hermes, test-frontend]
     steps:
       - uses: actions/checkout@v4
       
