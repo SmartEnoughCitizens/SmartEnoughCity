@@ -1,14 +1,16 @@
 package com.trinity.hermes.dataanalyzer.model;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.OffsetDateTime;
+import lombok.AllArgsConstructor;
 
 @Entity
-@Table(name = "train_stations")
+@Table(name = "train_stations", schema = "external_data")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,23 +18,11 @@ public class TrainStation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    @Column(name = "station_code", nullable = false)
     private String stationCode;
-
-    @Column(name = "station_desc")
     private String stationDesc;
-
-    @Column(name = "lat")
     private Double lat;
-
-    @Column(name = "lon")
     private Double lon;
-
-    @Column(name = "station_types")
     private String stationTypes;
-
-    @Column(name = "updated_at")
-    private OffsetDateTime updatedAt;
 }
