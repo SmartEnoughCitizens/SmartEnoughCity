@@ -25,8 +25,7 @@ public class DisruptionFacade {
     // Core Services
     private final DisruptionService disruptionService;
     private final ThresholdDetectionService thresholdDetectionService;
-    private final AlternativeRoutingService alternativeRoutingService;
-    private final SolutionCompilationService solutionCompilationService;
+
     private final NotificationCoordinationService notificationCoordinationService;
     private final IncidentLoggingService incidentLoggingService;
 
@@ -120,58 +119,7 @@ public class DisruptionFacade {
     public DisruptionSolution processDisruption(Disruption disruption) {
         log.info("Processing disruption ID: {}", disruption.getId());
 
-        long routingStart = System.currentTimeMillis();
-
-        // Step 1: Calculate alternative routes
-        List<AlternativeRoute> alternativeRoutes = alternativeRoutingService.calculateAlternativeRoutes(disruption);
-
-        long routingEnd = System.currentTimeMillis();
-        incidentLoggingService.logRouteCalculation(
-                disruption.getId(),
-                alternativeRoutes.size(),
-                routingEnd - routingStart);
-
-        // Step 2: Evaluate and score each route
-        alternativeRoutes = alternativeRoutes.stream()
-                .map(route -> alternativeRoutingService.evaluateRoute(route, disruption))
-                .toList();
-
-        // Step 3: Compile and prioritize solutions
-        DisruptionSolution solution = solutionCompilationService.compileSolution(disruption, alternativeRoutes);
-
-        // Step 4: Select recommendations
-        List<AlternativeRoute> prioritized = solutionCompilationService.prioritizeRoutes(alternativeRoutes);
-
-        AlternativeRoute primary = solutionCompilationService.selectPrimaryRecommendation(prioritized);
-
-        List<AlternativeRoute> secondary = solutionCompilationService.selectSecondaryRecommendations(prioritized,
-                primary, 2);
-
-        solution.setPrimaryRecommendation(primary);
-        solution.setSecondaryRecommendations(secondary);
-
-        // Step 5: Generate user guidance
-        String summary = solutionCompilationService.generateActionSummary(solution);
-        solution.setActionSummary(summary);
-
-        if (primary != null) {
-            List<String> instructions = solutionCompilationService.generateInstructions(primary);
-            solution.setStepByStepInstructions(instructions);
-        }
-
-        String impact = solutionCompilationService.estimateImpact(disruption, solution);
-        solution.setEstimatedImpact(impact);
-
-        // Step 6: Identify affected user groups
-        List<String> affectedGroups = solutionCompilationService.identifyAffectedUserGroups(disruption);
-        solution.setAffectedUserGroups(affectedGroups);
-        solution.setReadyForNotification(true);
-
-        incidentLoggingService.logSolutionCompilation(
-                disruption.getId(),
-                "Primary: " + (primary != null ? primary.getRouteId() : "None"));
-
-        return solution;
+        return new DisruptionSolution();
     }
 
     /**
