@@ -1,6 +1,6 @@
 package com.trinity.hermes.dto;
 
-import com.trinity.hermes.model.SimulationParameters;
+import com.trinity.hermes.dataanalyzer.model.SimulationParameters;
 
 public class CreateSimulationRequest {
     private String name;

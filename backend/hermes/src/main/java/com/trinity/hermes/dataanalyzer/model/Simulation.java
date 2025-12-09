@@ -1,4 +1,4 @@
-package com.trinity.hermes.model;
+package com.trinity.hermes.dataanalyzer.model; // Adjust package if needed
 
 public class Simulation {
     private String id;

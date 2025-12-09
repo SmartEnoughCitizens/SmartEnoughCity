@@ -1,4 +1,4 @@
-package com.trinity.hermes.model;
+package com.trinity.hermes.dataanalyzer.model;
 
 import java.util.List;
 import java.util.Map;

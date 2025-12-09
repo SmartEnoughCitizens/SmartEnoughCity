@@ -1,8 +1,8 @@
 package com.trinity.hermes.service;
 
 import com.trinity.hermes.dto.CreateSimulationRequest;
-import com.trinity.hermes.model.Simulation;
-import com.trinity.hermes.model.SimulationResults;
+import com.trinity.hermes.dataanalyzer.model.Simulation;
+import com.trinity.hermes.dataanalyzer.model.SimulationResults;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
