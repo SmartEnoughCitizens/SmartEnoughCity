@@ -1,0 +1,56 @@
+server:
+  port: 8080
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/realms/user-management-realm
+
+  application:
+    name: hermes
+
+  datasource:
+   url: jdbc:postgresql://localhost:55432/smart_enough_city
+   username: backend_user
+   password: dev_backend_user_password
+
+  jpa:
+    properties:
+      hibernate:
+        default_schema: backend
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+keycloak:
+  server-url: http://localhost:8081
+  realm: user-management-realm
+  client-id: user-service
+  client-secret: dev-keycloak-user-service-secret
+  admin-username: admin
+  admin-password: admin
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger
+    display-request-duration: true
+    operationsSorter: method
+
+#logging:
+#  file:
+#    name: logs/hermes.log
+#loki:
+#  url: http://localhost:3100/loki/api/v1/push
+#  timeoutMs: 5000
