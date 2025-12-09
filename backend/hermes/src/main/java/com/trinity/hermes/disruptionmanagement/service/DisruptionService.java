@@ -1,5 +1,10 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
+import com.trinity.hermes.disruptionmanagement.dto.CreateDisruptionRequest;
+import com.trinity.hermes.disruptionmanagement.dto.DisruptionResponse;
+import com.trinity.hermes.disruptionmanagement.dto.UpdateDisruptionRequest;
+import com.trinity.hermes.disruptionmanagement.entity.Disruption;
+import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

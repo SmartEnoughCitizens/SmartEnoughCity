@@ -1,10 +1,11 @@
-package com.trinity.hermes.Recommendation.service;
+package com.trinity.hermes.recommendation.service;
 
-import com.trinity.hermes.Recommendation.dto.CreateRecommendationRequest;
-import com.trinity.hermes.Recommendation.dto.RecommendationResponse;
-import com.trinity.hermes.Recommendation.dto.UpdateRecommendationRequest;
-import com.trinity.hermes.Recommendation.entity.Recommendation;
-import com.trinity.hermes.Recommendation.repository.RecommendationRepository;
+import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
+import com.trinity.hermes.recommendation.dto.RecommendationDetailsDTO;
+import com.trinity.hermes.recommendation.dto.RecommendationResponse;
+import com.trinity.hermes.recommendation.dto.UpdateRecommendationRequest;
+import com.trinity.hermes.recommendation.entity.Recommendation;
+import com.trinity.hermes.recommendation.repository.RecommendationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -60,23 +61,32 @@ public class RecommendationService {
     }
 
     public RecommendationResponse createRecommendation(CreateRecommendationRequest request) {
-        Recommendation recommendation = new Recommendation();
-        recommendation.setName(request.getName());
-        recommendation.setDescription(request.getDescription());
-        recommendation.setStatus("PENDING");
+        Recommendation recommendation = Recommendation.builder().id(3L)
+                .dataIndicator("bus")
+                .notificationSent("notificationSent")
+                .status("status")
+                .createdAt("createdAt")
+                .completedAt("completedAt")
+                .transportMode("transportMode")
+                .routes("routes")
+                .estimatedTime("estimatedTime")
+                .alternatives("alternatives")
+                .confidenceScore("confidenceScore")
+                .generatedAt("generatedAt")
+                .build();
         Recommendation saved = recommendationRepository.save(recommendation);
         return mapToResponse(saved);
     }
 
-    public Optional<RecommendationResponse> updateRecommendation(Long id, UpdateRecommendationRequest request) {
-        return recommendationRepository.findById(id)
-                .map(recommendation -> {
-                    recommendation.setName(request.getName());
-                    recommendation.setDescription(request.getDescription());
-                    recommendation.setStatus(request.getStatus());
-                    return mapToResponse(recommendationRepository.save(recommendation));
-                });
-    }
+//    public Optional<RecommendationResponse> updateRecommendation(Long id, UpdateRecommendationRequest request) {
+//        return recommendationRepository.findById(id)
+//                .map(recommendation -> {
+//                    recommendation.setName(request.getName());
+//                    recommendation.setDescription(request.getDescription());
+//                    recommendation.setStatus(request.getStatus());
+//                    return mapToResponse(recommendationRepository.save(recommendation));
+//                });
+//    }
 
     public boolean deleteRecommendation(Long id) {
         if (recommendationRepository.existsById(id)) {
@@ -87,13 +97,29 @@ public class RecommendationService {
     }
 
     private RecommendationResponse mapToResponse(Recommendation recommendation) {
-        return new RecommendationResponse(
-                recommendation.getId(),
-                recommendation.getName(),
-                recommendation.getDescription(),
-                recommendation.getStatus(),
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+
+
+        return RecommendationResponse.builder().id(recommendation.getId())
+                .dataIndicator(recommendation.getDataIndicator())
+                .notificationSent(recommendation.getNotificationSent())
+                .status(recommendation.getStatus())
+                .createdAt(recommendation.getCreatedAt())
+                .completedAt(recommendation.getCompletedAt())
+                .transportMode(recommendation.getTransportMode())
+                .routes(recommendation.getRoutes())
+                .estimatedTime(recommendation.getEstimatedTime())
+                .alternatives(recommendation.getAlternatives())
+                .confidenceScore(recommendation.getConfidenceScore())
+                .generatedAt(recommendation.getGeneratedAt())
+                .build();
+
+//        return new RecommendationResponse(
+//                recommendation.getId(),
+//                recommendation.getName(),
+//                recommendation.getDescription(),
+//                recommendation.getStatus(),
+//                LocalDateTime.now(),
+//                LocalDateTime.now()
+//        );
     }
 }

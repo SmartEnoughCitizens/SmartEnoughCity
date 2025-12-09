@@ -1,6 +1,8 @@
 package com.trinity.hermes.disruptionmanagement.facade;
 
 import com.trinity.hermes.disruptionmanagement.dto.*;
+import com.trinity.hermes.disruptionmanagement.entity.Disruption;
+import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.disruptionmanagement.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
