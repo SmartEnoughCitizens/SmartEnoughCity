@@ -1,7 +1,6 @@
 package com.trinity.hermes.disruptionmanagement.controller;
 
 import com.trinity.hermes.disruptionmanagement.dto.*;
-import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,7 @@ import java.util.Optional;
 @Slf4j
 public class DisruptionController {
 
-    private final DisruptionFacade disruptionFacade;
+    private final BusFacade disruptionFacade;
 
     // =============================================================================
     // DISRUPTION DETECTION ENDPOINT (Called by Python Data Handler Service)

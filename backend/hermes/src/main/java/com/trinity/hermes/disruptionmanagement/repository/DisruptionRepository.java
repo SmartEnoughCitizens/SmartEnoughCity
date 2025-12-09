@@ -1,6 +1,5 @@
 package com.trinity.hermes.disruptionmanagement.repository;
 
-import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

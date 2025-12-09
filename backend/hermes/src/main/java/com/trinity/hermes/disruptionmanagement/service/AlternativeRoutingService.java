@@ -1,7 +1,10 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
-import com.trinity.hermes.disruptionmanagement.dto.AlternativeRoute;
-import com.trinity.hermes.disruptionmanagement.entity.Disruption;
+import com.trinity.hermes.indicators.cycle.entity.CycleStation;
+import com.trinity.hermes.indicators.cycle.repository.CycleStationRepository;
+import com.trinity.hermes.indicators.train.repository.TrainStationRepository;
+import com.trinity.hermes.indicators.tram.entity.LuasStop;
+import com.trinity.hermes.indicators.tram.repository.LuasStopRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,9 +28,9 @@ import java.util.Random;
 @Slf4j
 public class AlternativeRoutingService {
 
-    private final com.trinity.hermes.dataanalyzer.repository.LuasStopRepository luasStopRepository;
-    private final com.trinity.hermes.dataanalyzer.repository.CycleStationRepository cycleStationRepository;
-    private final com.trinity.hermes.dataanalyzer.repository.TrainStationRepository trainStationRepository;
+    private final LuasStopRepository luasStopRepository;
+    private final CycleStationRepository cycleStationRepository;
+    private final TrainStationRepository trainStationRepository;
 
     private final Random random = new Random();
 
@@ -197,7 +200,7 @@ public class AlternativeRoutingService {
         alt2.setTransportMode("Tram");
 
         // Fetch a real Luas line/stop if available
-        List<com.trinity.hermes.dataanalyzer.model.LuasStop> luasStops = luasStopRepository.findAll();
+        List<LuasStop> luasStops = luasStopRepository.findAll();
         String stopName = luasStops.isEmpty() ? "Lines" : luasStops.get(0).getName();
         String lineName = luasStops.isEmpty() ? "Luas Green Line" : luasStops.get(0).getLine();
 
@@ -312,7 +315,7 @@ public class AlternativeRoutingService {
         alt1.setTransportMode("Metro + Cycle");
 
         // Check for bike stations
-        List<com.trinity.hermes.dataanalyzer.model.CycleStation> bikeStations = cycleStationRepository.findAll();
+        List<CycleStation> bikeStations = cycleStationRepository.findAll();
         String bikeStation = bikeStations.isEmpty() ? "City Bike Station" : bikeStations.get(0).getName();
 
         alt1.setRouteName("Metro Line 1 -> Bike at " + bikeStation);
