@@ -62,8 +62,8 @@ keycloak:
   realm:
     enabled: true
     configMapName: keycloak-realm-import
-    name: "user-management-realm"
-    clientId: "user-service"
+    name: &keycloakRealmName "user-management-realm"
+    clientId: &keycloakClientId "user-service"
     userServiceClientSecret: ""  # Auto-generated if empty
   extraVolumes: |
     - name: realm-import
@@ -73,6 +73,15 @@ keycloak:
     - name: realm-import
       mountPath: /opt/bitnami/keycloak/data/import
       readOnly: true
+
+hermes:
+  enabled: true
+  keycloak:
+    realm: *keycloakRealmName
+    clientId: *keycloakClientId
+    secret:
+      name: sec-keycloak-realm
+      key: USER_SERVICE_CLIENT_SECRET
 
 data-handler:
   enabled: true
