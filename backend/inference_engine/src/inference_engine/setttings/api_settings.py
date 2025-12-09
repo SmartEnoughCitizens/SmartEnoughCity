@@ -7,8 +7,7 @@ from inference_engine.settings.app_settings import is_dev
 class APISettings(BaseSettings):
     """Settings for external API endpoints."""
     
-    data_engine_url: str = Field(..., alias="DATA_ENGINE_URL")
-    notification_api_url: str = Field(..., alias="NOTIFICATION_API_URL")
+    hermes_url: str = Field(..., alias="HERMES_URL")
     http_timeout: int = Field(default=30, alias="HTTP_TIMEOUT")
     
     model_config = SettingsConfigDict(
