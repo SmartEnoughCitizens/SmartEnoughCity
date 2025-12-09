@@ -22,12 +22,12 @@ public class DisruptionSolution {
     private String description;
     private String affectedArea;
 
-    // Alternative Routes
-    private List<AlternativeRoute> alternativeRoutes;
+    // Alternative Routes (Simplified for notification)
+    private List<String> alternativeRoutes;
 
-    // Recommendations
-    private AlternativeRoute primaryRecommendation;
-    private List<AlternativeRoute> secondaryRecommendations;
+    // Recommendations (Simplified for notification)
+    private String primaryRecommendation;
+    private List<String> secondaryRecommendations;
 
     // User Guidance
     private String actionSummary; // "Take Metro Line 2 instead of Bus 15"
