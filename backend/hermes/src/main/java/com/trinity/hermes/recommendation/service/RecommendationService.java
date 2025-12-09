@@ -19,6 +19,34 @@ public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
 
+    // private void createDummyRecommendations() {
+    //     Recommendation rec1 = new Recommendation();
+    //     rec1.setId(idCounter.getAndIncrement());
+    //     rec1.setName("Optimize Bus Route 42");
+    //     rec1.setDescription("Reroute bus line 42 to avoid congested areas during peak hours");
+    //     rec1.setStatus("PENDING");
+    //     rec1.setCreatedAt(LocalDateTime.now().minusDays(2).toString());
+    //     recommendations.put(rec1.getId(), rec1);
+
+    //     Recommendation rec2 = new Recommendation();
+    //     rec2.setId(idCounter.getAndIncrement());
+    //     rec2.setName("Increase Train Frequency");
+    //     rec2.setDescription("Add extra train services during morning rush hour on the Green Line");
+    //     rec2.setStatus("APPROVED");
+    //     rec2.setCreatedAt(LocalDateTime.now().minusDays(1).toString());
+    //     recommendations.put(rec2.getId(), rec2);
+
+    //     Recommendation rec3 = new Recommendation();
+    //     rec3.setId(idCounter.getAndIncrement());
+    //     rec3.setName("Traffic Signal Timing Adjustment");
+    //     rec3.setDescription("Adjust traffic signal timing at Main St intersection to reduce congestion");
+    //     rec3.setStatus("PENDING");
+    //     rec3.setCreatedAt(LocalDateTime.now().toString());
+    //     recommendations.put(rec3.getId(), rec3);
+
+    //     log.info("Initialized {} dummy recommendations", recommendations.size());
+    // }
+
     public List<RecommendationResponse> getAllRecommendations() {
         return recommendationRepository.findAll()
                 .stream()

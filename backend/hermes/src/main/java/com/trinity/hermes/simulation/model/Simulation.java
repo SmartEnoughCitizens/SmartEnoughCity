@@ -1,4 +1,4 @@
-package com.trinity.hermes.recommendation.dto;
+package com.trinity.hermes.simulation.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,11 +9,15 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RecommendationResponse {
-    private Long id;
+public class Simulation {
+    private String id;
+    private Long recommendationId;
     private String name;
     private String description;
+    private String scenario;
     private String status;
+    private String createdBy;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime completedAt;
+    private SimulationResults results;
 }

@@ -1,9 +1,9 @@
-package com.trinity.hermes.Recommendation.facade;
+package com.trinity.hermes.recommendation.facade;
 
-import com.trinity.hermes.Recommendation.dto.CreateRecommendationRequest;
-import com.trinity.hermes.Recommendation.dto.RecommendationResponse;
-import com.trinity.hermes.Recommendation.dto.UpdateRecommendationRequest;
-import com.trinity.hermes.Recommendation.service.RecommendationService;
+import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
+import com.trinity.hermes.recommendation.dto.RecommendationResponse;
+import com.trinity.hermes.recommendation.dto.UpdateRecommendationRequest;
+import com.trinity.hermes.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
