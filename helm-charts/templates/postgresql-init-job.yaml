@@ -123,7 +123,8 @@ spec:
               GRANT SELECT ON ALL SEQUENCES IN SCHEMA "$DATA_HANDLER_SCHEMA" TO "$BACKEND_USER";
               
               SELECT 'Backend user initialization completed successfully!' as status;
-              EOF          
+              EOF
+              
               echo "Running database migrations..."
               PGPASSWORD="$DATA_HANDLER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DATA_HANDLER_USER" -d "$DB_NAME" <<EOF
               
