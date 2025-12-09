@@ -37,7 +37,7 @@ spec:
               echo "PostgreSQL is ready!"
               
               echo "Creating ${DATA_HANDLER_USER} user and ${DATA_HANDLER_SCHEMA} schema..."
-              PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
+              PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" <<EOF
               DO \$\$
               BEGIN
                 IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$DATA_HANDLER_USER') THEN
@@ -64,7 +64,7 @@ spec:
               EOF
 
               echo "Creating ${KEYCLOAK_USER} user and ${KEYCLOAK_SCHEMA} schema..."
-              PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
+              PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" <<EOF
               DO \$\$
               BEGIN
                 IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$KEYCLOAK_USER') THEN
@@ -91,7 +91,7 @@ spec:
               EOF
               
               echo "Creating ${BACKEND_USER} user and ${BACKEND_SCHEMA} schema..."
-              PGPASSWORD="$APP_OWNER_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$APP_OWNER_USER" -d "$DB_NAME" <<EOF
+              PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" <<EOF
               DO \$\$
               BEGIN
                 IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$BACKEND_USER') THEN
