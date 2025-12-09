@@ -97,11 +97,13 @@ frontend:
 
 ingress:
   enabled: true
-  className: ""
+  className: "nginx"
   annotations: {}
   hosts:
-    - host: frontend.local
-      paths:
+    - hermesPaths:
+        - path: /api
+          pathType: Prefix
+      frontendPaths:
         - path: /
           pathType: Prefix
   tls: []
