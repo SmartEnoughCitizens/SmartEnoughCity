@@ -5,7 +5,7 @@ import com.trinity.hermes.notification.model.Notification;
 
 import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.notification.services.mail.MailServiceFactory;
-import com.trinity.hermes.util.SseManager;
+import com.trinity.hermes.notification.util.SseManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

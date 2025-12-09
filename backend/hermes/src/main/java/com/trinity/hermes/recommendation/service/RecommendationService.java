@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,7 +62,8 @@ public class RecommendationService {
     }
 
     public RecommendationResponse createRecommendation(CreateRecommendationRequest request) {
-        Recommendation recommendation = Recommendation.builder().id(3L)
+
+        Recommendation recommendation = Recommendation.builder().id(UUID.randomUUID().toString())
                 .dataIndicator("bus")
                 .notificationSent("notificationSent")
                 .status("status")

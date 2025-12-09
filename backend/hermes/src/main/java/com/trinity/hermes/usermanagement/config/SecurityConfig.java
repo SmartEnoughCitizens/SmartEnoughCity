@@ -44,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/v1/dashboard/**").permitAll()
+                        .requestMatchers("api/v1/recommendation-engine/**").permitAll()
 
                         .requestMatchers("/notification/v1", "/notification/v1/**").permitAll()
                         .requestMatchers("/api/trains").hasRole("City_Manager")

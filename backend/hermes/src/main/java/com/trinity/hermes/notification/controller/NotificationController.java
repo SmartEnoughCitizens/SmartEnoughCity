@@ -3,7 +3,7 @@ package com.trinity.hermes.notification.controller;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
 import com.trinity.hermes.notification.services.NotificationFacade;
-import com.trinity.hermes.util.SseManager;
+import com.trinity.hermes.notification.util.SseManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

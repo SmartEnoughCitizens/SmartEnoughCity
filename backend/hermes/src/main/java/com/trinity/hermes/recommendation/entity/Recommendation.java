@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Recommendation {
     @Id
-    private Long id;
+    private String id;
 
     private String dataIndicator;
     private String notificationSent;
