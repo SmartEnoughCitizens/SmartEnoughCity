@@ -28,9 +28,9 @@ public class RecommendationFacade {
         return recommendationService.createRecommendation(request);
     }
 
-    public Optional<RecommendationResponse> updateRecommendation(Long id, UpdateRecommendationRequest request) {
-        return recommendationService.updateRecommendation(id, request);
-    }
+//    public Optional<RecommendationResponse> updateRecommendation(Long id, UpdateRecommendationRequest request) {
+//        return recommendationService.updateRecommendation(id, request);
+//    }
 
     public boolean deleteRecommendation(Long id) {
         return recommendationService.deleteRecommendation(id);

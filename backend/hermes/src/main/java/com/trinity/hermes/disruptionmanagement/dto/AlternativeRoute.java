@@ -32,5 +32,7 @@ public class AlternativeRoute {
     // Recommendations
     private Boolean recommended; // Is this a recommended option?
     private Integer priority; // Lower number = higher priority
-    private String notes; // Additional information
+    private String notes;
+   // Additional information
+
 }

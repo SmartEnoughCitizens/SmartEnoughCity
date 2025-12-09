@@ -45,13 +45,13 @@ public class RecommendationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<RecommendationResponse> updateRecommendation(@PathVariable Long id,
-            @RequestBody UpdateRecommendationRequest request) {
-        Optional<RecommendationResponse> updated = recommendationFacade.updateRecommendation(id, request);
-        return updated.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+//    @PutMapping("/{id}")
+//    public ResponseEntity<RecommendationResponse> updateRecommendation(@PathVariable Long id,
+//            @RequestBody UpdateRecommendationRequest request) {
+//        Optional<RecommendationResponse> updated = recommendationFacade.updateRecommendation(id, request);
+//        return updated.map(ResponseEntity::ok)
+//                .orElseGet(() -> ResponseEntity.notFound().build());
+//    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRecommendation(@PathVariable Long id) {

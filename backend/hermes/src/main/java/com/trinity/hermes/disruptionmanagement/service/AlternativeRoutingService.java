@@ -1,5 +1,7 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
+import com.trinity.hermes.disruptionmanagement.dto.AlternativeRoute;
+import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.indicators.cycle.entity.CycleStation;
 import com.trinity.hermes.indicators.cycle.repository.CycleStationRepository;
 import com.trinity.hermes.indicators.train.repository.TrainStationRepository;
@@ -100,7 +102,7 @@ public class AlternativeRoutingService {
 
         // Factor 1: Time efficiency (30 points max)
         // Lower time = higher score
-        int estimatedTime = route.getEstimatedTimeMinutes();
+        int estimatedTime = route.getEstimatedDurationMinutes();
         if (estimatedTime <= 20) {
             score += 30;
         } else if (estimatedTime <= 35) {

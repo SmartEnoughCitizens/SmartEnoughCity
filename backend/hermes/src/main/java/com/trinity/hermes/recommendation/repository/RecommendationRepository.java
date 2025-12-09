@@ -1,6 +1,6 @@
-package com.trinity.hermes.Recommendation.repository;
+package com.trinity.hermes.recommendation.repository;
 
-import com.trinity.hermes.Recommendation.entity.Recommendation;
+import com.trinity.hermes.recommendation.entity.Recommendation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
