@@ -16,11 +16,11 @@ metadata:
 data:
   realm-export.json: |
     {
-      "realm": "user-management-realm",
+      "realm": {{ .Values.keycloak.realm.name | quote }},
       "enabled": true,
       "clients": [
         {
-          "clientId": "user-service",
+          "clientId": {{ .Values.keycloak.realm.clientId | quote }},
           "name": "User Service",
           "enabled": true,
           "protocol": "openid-connect",
