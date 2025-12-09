@@ -25,13 +25,13 @@ logger = logging.getLogger(__name__)
 
 
 # # Configuration
-# DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
-# NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
+DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
+NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
 
 
 # Change these lines in your code:
-DATA_ENGINE_URL: str = "http://localhost:8000/mock/data-engine"  # Point to your own mock
-NOTIFICATION_API_URL: str = "http://localhost:8000/mock/notification"  # Point to your own mock
+# DATA_ENGINE_URL: str = "http://localhost:8000/mock/data-engine"  # Point to your own mock
+# NOTIFICATION_API_URL: str = "http://localhost:8000/mock/notification"  # Point to your own mock
 
 # Request/Response Models
 class RecommendationRequest(BaseModel):
@@ -155,7 +155,9 @@ class RecommendationService:
             # Step 2: Generate recommendation
             logger.info(f"Generating recommendation for indicator {data_indicator}")
             recommendation = self.model.generate_recommendations(data)
-            
+
+            ## Add Code to Store recommendation in the Database      
+
             # Add context if provided
             if context:
                 recommendation["context"] = context
