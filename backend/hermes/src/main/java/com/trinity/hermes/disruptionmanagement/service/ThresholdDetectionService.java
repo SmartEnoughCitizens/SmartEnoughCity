@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * Service responsible for monitoring data streams and detecting disruption
  * thresholds.
@@ -16,8 +18,17 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ThresholdDetectionService {
 
-    // TODO: Inject configuration for thresholds
-    // private final DisruptionThresholdConfig thresholdConfig;
+    // Threshold Constants
+    private static final int CRITICAL_DELAY_THRESHOLD = 30; // minutes
+    private static final int HIGH_DELAY_THRESHOLD = 20; // minutes
+    private static final int MEDIUM_DELAY_THRESHOLD = 10; // minutes
+
+    private static final int CRITICAL_ROUTE_COUNT = 5;
+    private static final int HIGH_ROUTE_COUNT = 3;
+    private static final int MEDIUM_ROUTE_COUNT = 1;
+
+    private static final List<String> MAJOR_TRANSPORT_HUBS = List.of(
+            "Central Station", "Airport", "Main Terminal", "City Center");
 
     /**
      * Validate if the detected disruption meets threshold criteria
@@ -29,14 +40,48 @@ public class ThresholdDetectionService {
         log.info("Checking threshold for disruption type: {}, severity: {}",
                 request.getDisruptionType(), request.getSeverity());
 
-        // TODO: Implement threshold logic
-        // 1. Check if severity meets minimum threshold
-        // 2. Check if delay duration exceeds threshold
-        // 3. Check if number of affected routes exceeds threshold
-        // 4. Check if affected area exceeds threshold
-        // 5. Apply custom rules based on disruption type
+        // Check 1: Minimum delay threshold
+        Integer delayMinutes = request.getDelayMinutes();
+        if (delayMinutes != null && delayMinutes >= MEDIUM_DELAY_THRESHOLD) {
+            log.info("✓ Threshold met: Delay {} minutes exceeds minimum {}",
+                    delayMinutes, MEDIUM_DELAY_THRESHOLD);
+            return true;
+        }
 
-        return true; // Placeholder - implement actual logic
+        // Check 2: Number of affected routes
+        List<String> affectedRoutes = request.getAffectedRoutes();
+        if (affectedRoutes != null && affectedRoutes.size() >= MEDIUM_ROUTE_COUNT) {
+            log.info("✓ Threshold met: {} routes affected", affectedRoutes.size());
+            return true;
+        }
+
+        // Check 3: Severity level (minimum MEDIUM)
+        String severity = request.getSeverity();
+        if (severity != null && !severity.equalsIgnoreCase("LOW")) {
+            log.info("✓ Threshold met: Severity {} is actionable", severity);
+            return true;
+        }
+
+        // Check 4: Major transport hub affected
+        String affectedArea = request.getAffectedArea();
+        List<String> affectedStops = request.getAffectedStops();
+        if (affectedArea != null && isMajorHub(affectedArea)) {
+            log.info("✓ Threshold met: Major hub affected: {}", affectedArea);
+            return true;
+        }
+        if (affectedStops != null && affectedStops.stream().anyMatch(this::isMajorHub)) {
+            log.info("✓ Threshold met: Major hub in affected stops");
+            return true;
+        }
+
+        // Check 5: Service cancellation (always actionable)
+        if ("CANCELLATION".equalsIgnoreCase(request.getDisruptionType())) {
+            log.info("✓ Threshold met: Service cancellation detected");
+            return true;
+        }
+
+        log.info("✗ Threshold not met - disruption will be ignored");
+        return false;
     }
 
     /**
@@ -48,14 +93,63 @@ public class ThresholdDetectionService {
     public String calculateSeverity(Disruption disruption) {
         log.debug("Calculating severity for disruption ID: {}", disruption.getId());
 
-        // TODO: Implement severity calculation
-        // 1. Consider number of affected routes
-        // 2. Consider delay duration
-        // 3. Consider affected area size
-        // 4. Consider time of day (rush hour vs off-peak)
-        // 5. Consider number of affected passengers (if available)
+        int severityScore = 0;
 
-        return "MEDIUM"; // Placeholder
+        // Factor 1: Delay duration (0-40 points)
+        Integer delayMinutes = disruption.getDelayMinutes();
+        if (delayMinutes != null) {
+            if (delayMinutes >= CRITICAL_DELAY_THRESHOLD) {
+                severityScore += 40;
+            } else if (delayMinutes >= HIGH_DELAY_THRESHOLD) {
+                severityScore += 30;
+            } else if (delayMinutes >= MEDIUM_DELAY_THRESHOLD) {
+                severityScore += 20;
+            } else {
+                severityScore += 10;
+            }
+        }
+
+        // Factor 2: Number of affected routes (0-30 points)
+        List<String> affectedRoutes = disruption.getAffectedRoutes();
+        if (affectedRoutes != null) {
+            int routeCount = affectedRoutes.size();
+            if (routeCount >= CRITICAL_ROUTE_COUNT) {
+                severityScore += 30;
+            } else if (routeCount >= HIGH_ROUTE_COUNT) {
+                severityScore += 20;
+            } else if (routeCount >= MEDIUM_ROUTE_COUNT) {
+                severityScore += 10;
+            }
+        }
+
+        // Factor 3: Major hub affected (0-20 points)
+        if (disruption.getAffectedArea() != null && isMajorHub(disruption.getAffectedArea())) {
+            severityScore += 20;
+        }
+        if (disruption.getAffectedStops() != null &&
+                disruption.getAffectedStops().stream().anyMatch(this::isMajorHub)) {
+            severityScore += 10;
+        }
+
+        // Factor 4: Disruption type (0-10 points)
+        if ("CANCELLATION".equalsIgnoreCase(disruption.getDisruptionType())) {
+            severityScore += 10;
+        }
+
+        // Calculate final severity level
+        String calculatedSeverity;
+        if (severityScore >= 70) {
+            calculatedSeverity = "CRITICAL";
+        } else if (severityScore >= 50) {
+            calculatedSeverity = "HIGH";
+        } else if (severityScore >= 30) {
+            calculatedSeverity = "MEDIUM";
+        } else {
+            calculatedSeverity = "LOW";
+        }
+
+        log.info("Calculated severity: {} (score: {})", calculatedSeverity, severityScore);
+        return calculatedSeverity;
     }
 
     /**
@@ -67,13 +161,32 @@ public class ThresholdDetectionService {
     public boolean requiresImmediateAction(Disruption disruption) {
         log.debug("Checking if disruption {} requires immediate action", disruption.getId());
 
-        // TODO: Implement urgency logic
-        // 1. Check severity level
-        // 2. Check if disruption is ongoing or imminent
-        // 3. Check if critical routes are affected
-        // 4. Check if safety-related
+        // Immediate action if CRITICAL severity
+        if ("CRITICAL".equalsIgnoreCase(disruption.getSeverity())) {
+            log.info("✓ Immediate action required: CRITICAL severity");
+            return true;
+        }
 
-        return false; // Placeholder
+        // Immediate action if service cancellation
+        if ("CANCELLATION".equalsIgnoreCase(disruption.getDisruptionType())) {
+            log.info("✓ Immediate action required: Service cancellation");
+            return true;
+        }
+
+        // Immediate action if major hub affected
+        if (disruption.getAffectedArea() != null && isMajorHub(disruption.getAffectedArea())) {
+            log.info("✓ Immediate action required: Major hub affected");
+            return true;
+        }
+
+        // Immediate action if severe delay (>30 minutes)
+        Integer delayMinutes = disruption.getDelayMinutes();
+        if (delayMinutes != null && delayMinutes >= CRITICAL_DELAY_THRESHOLD) {
+            log.info("✓ Immediate action required: Severe delay ({} minutes)", delayMinutes);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -85,12 +198,42 @@ public class ThresholdDetectionService {
     public Integer estimateAffectedTravelers(Disruption disruption) {
         log.debug("Estimating affected travelers for disruption ID: {}", disruption.getId());
 
-        // TODO: Implement impact estimation
-        // 1. Get passenger statistics for affected routes
-        // 2. Consider time of day and day of week
-        // 3. Consider duration of disruption
-        // 4. Calculate estimated affected travelers
+        // Base estimate per route (mock data - would come from real statistics)
+        int basePassengersPerRoute = 200;
 
-        return 0; // Placeholder
+        // Calculate based on affected routes
+        int affectedRouteCount = 0;
+        if (disruption.getAffectedRoutes() != null) {
+            affectedRouteCount = disruption.getAffectedRoutes().size();
+        }
+
+        int estimate = basePassengersPerRoute * Math.max(1, affectedRouteCount);
+
+        // Multiply by severity factor
+        String severity = disruption.getSeverity();
+        if ("CRITICAL".equalsIgnoreCase(severity)) {
+            estimate = (int) (estimate * 2.0); // Double for critical
+        } else if ("HIGH".equalsIgnoreCase(severity)) {
+            estimate = (int) (estimate * 1.5); // 50% increase for high
+        }
+
+        // Increase if major hub affected
+        if (disruption.getAffectedArea() != null && isMajorHub(disruption.getAffectedArea())) {
+            estimate = (int) (estimate * 1.5);
+        }
+
+        log.info("Estimated {} affected travelers", estimate);
+        return estimate;
+    }
+
+    /**
+     * Helper method to check if a location is a major transport hub
+     */
+    private boolean isMajorHub(String location) {
+        if (location == null) {
+            return false;
+        }
+        return MAJOR_TRANSPORT_HUBS.stream()
+                .anyMatch(hub -> location.toLowerCase().contains(hub.toLowerCase()));
     }
 }

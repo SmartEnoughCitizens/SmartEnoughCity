@@ -6,19 +6,30 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Service responsible for logging all disruption-related incidents and actions.
  * Maintains audit trail for optimization and system improvement.
+ * 
+ * NOTE: This implementation uses in-memory storage for the thin slice.
+ * In production, logs would be persisted to a database or log aggregation
+ * system.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class IncidentLoggingService {
 
-    // TODO: Inject logging repository or external logging service
-    // private final IncidentLogRepository incidentLogRepository;
+    // In-memory storage for incident logs (Map: DisruptionId -> List of log
+    // entries)
+    private final Map<Long, List<String>> incidentLogs = new ConcurrentHashMap<>();
+
+    private static final DateTimeFormatter LOG_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * Log a newly detected disruption
@@ -29,11 +40,17 @@ public class IncidentLoggingService {
         log.info("Logging disruption detection - ID: {}, Type: {}, Severity: {}",
                 disruption.getId(), disruption.getDisruptionType(), disruption.getSeverity());
 
-        // TODO: Implement logging to database/file
-        // 1. Create incident log entry
-        // 2. Record detection timestamp
-        // 3. Record source information
-        // 4. Store all disruption details
+        String logEntry = String.format(
+                "[%s] [DETECTED] %s disruption in %s - Severity: %s | Delay: %d min | Routes: %s",
+                getCurrentTimestamp(),
+                disruption.getDisruptionType(),
+                disruption.getAffectedArea(),
+                disruption.getSeverity(),
+                disruption.getDelayMinutes() != null ? disruption.getDelayMinutes() : 0,
+                disruption.getAffectedRoutes() != null ? String.join(", ", disruption.getAffectedRoutes()) : "N/A");
+
+        addLogEntry(disruption.getId(), logEntry);
+        log.info("✓ Detection logged for disruption {}", disruption.getId());
     }
 
     /**
@@ -47,10 +64,13 @@ public class IncidentLoggingService {
         log.info("Logging route calculation - Disruption ID: {}, Routes: {}, Time: {}ms",
                 disruptionId, numberOfRoutes, calculationTimeMs);
 
-        // TODO: Implement performance logging
-        // 1. Record calculation metrics
-        // 2. Store for optimization analysis
-        // 3. Track algorithm performance
+        String logEntry = String.format("[%s] [ROUTING] Calculated %d alternative routes in %dms",
+                getCurrentTimestamp(),
+                numberOfRoutes,
+                calculationTimeMs);
+
+        addLogEntry(disruptionId, logEntry);
+        log.debug("✓ Route calculation logged");
     }
 
     /**
@@ -62,10 +82,12 @@ public class IncidentLoggingService {
     public void logSolutionCompilation(Long disruptionId, String solutionDetails) {
         log.info("Logging solution compilation - Disruption ID: {}", disruptionId);
 
-        // TODO: Implement solution logging
-        // 1. Record which solution was selected
-        // 2. Record alternative options
-        // 3. Record decision-making criteria
+        String logEntry = String.format("[%s] [COMPILED] Solution compiled - %s",
+                getCurrentTimestamp(),
+                solutionDetails);
+
+        addLogEntry(disruptionId, logEntry);
+        log.debug("✓ Solution compilation logged");
     }
 
     /**
@@ -79,10 +101,29 @@ public class IncidentLoggingService {
         log.info("Logging notification sent - Disruption ID: {}, Users: {}, Channels: {}",
                 disruptionId, numberOfUsers, notificationChannels);
 
-        // TODO: Implement notification logging
-        // 1. Record notification timestamp
-        // 2. Record recipient information
-        // 3. Record delivery status
+        String channels = notificationChannels != null ? String.join(", ", notificationChannels) : "N/A";
+        String logEntry = String.format("[%s] [NOTIFIED] Notifications sent to %d users via channels: %s",
+                getCurrentTimestamp(),
+                numberOfUsers != null ? numberOfUsers : 0,
+                channels);
+
+        addLogEntry(disruptionId, logEntry);
+        log.debug("✓ Notification logged");
+    }
+
+    /**
+     * Overloaded method to log notification success/failure
+     * 
+     * @param disruptionId ID of the disruption
+     * @param success      Whether notification was successful
+     */
+    public void logNotificationSent(Long disruptionId, boolean success) {
+        String logEntry = String.format("[%s] [NOTIFIED] Notification status: %s",
+                getCurrentTimestamp(),
+                success ? "SUCCESS" : "FAILED");
+
+        addLogEntry(disruptionId, logEntry);
+        log.info("✓ Notification status logged: {}", success ? "SUCCESS" : "FAILED");
     }
 
     /**
@@ -94,11 +135,12 @@ public class IncidentLoggingService {
     public void logDisruptionResolved(Long disruptionId, String resolutionNotes) {
         log.info("Logging disruption resolution - ID: {}", disruptionId);
 
-        // TODO: Implement resolution logging
-        // 1. Record resolution timestamp
-        // 2. Record duration of disruption
-        // 3. Record outcome metrics
-        // 4. Analyze response effectiveness
+        String logEntry = String.format("[%s] [RESOLVED] Disruption resolved - %s",
+                getCurrentTimestamp(),
+                resolutionNotes);
+
+        addLogEntry(disruptionId, logEntry);
+        log.info("✓ Resolution logged for disruption {}", disruptionId);
     }
 
     /**
@@ -112,27 +154,34 @@ public class IncidentLoggingService {
         log.info("Logging performance metrics - Disruption ID: {}, Detection: {}ms, Response: {}ms",
                 disruptionId, detectionLatencyMs, responseLatencyMs);
 
-        // TODO: Implement performance tracking
-        // 1. Store latency metrics
-        // 2. Track against SLA targets
-        // 3. Generate performance reports
+        String logEntry = String.format(
+                "[%s] [METRICS] Performance - Detection latency: %dms, Response latency: %dms, Total: %dms",
+                getCurrentTimestamp(),
+                detectionLatencyMs,
+                responseLatencyMs,
+                detectionLatencyMs + responseLatencyMs);
+
+        addLogEntry(disruptionId, logEntry);
+        log.debug("✓ Performance metrics logged");
     }
 
     /**
      * Retrieve incident logs for a specific disruption
      * 
      * @param disruptionId ID of the disruption
-     * @return List of log entries
+     * @return List of log entries in chronological order
      */
     public List<String> getIncidentLogs(Long disruptionId) {
         log.debug("Retrieving incident logs for disruption ID: {}", disruptionId);
 
-        // TODO: Implement log retrieval
-        // 1. Query log repository
-        // 2. Format log entries
-        // 3. Return chronological list
+        List<String> logs = incidentLogs.get(disruptionId);
+        if (logs == null || logs.isEmpty()) {
+            log.debug("No logs found for disruption ID: {}", disruptionId);
+            return new ArrayList<>();
+        }
 
-        return List.of(); // Placeholder
+        log.debug("Retrieved {} log entries for disruption {}", logs.size(), disruptionId);
+        return new ArrayList<>(logs); // Return copy to prevent external modification
     }
 
     /**
@@ -145,12 +194,64 @@ public class IncidentLoggingService {
     public String generateAnalyticsReport(LocalDateTime startDate, LocalDateTime endDate) {
         log.info("Generating analytics report from {} to {}", startDate, endDate);
 
-        // TODO: Implement analytics
-        // 1. Aggregate disruption data
-        // 2. Identify patterns and trends
-        // 3. Calculate response effectiveness
-        // 4. Generate insights for optimization
+        // For thin slice, return basic summary
+        int totalDisruptions = incidentLogs.size();
+        int totalLogEntries = incidentLogs.values().stream()
+                .mapToInt(List::size)
+                .sum();
 
-        return ""; // Placeholder
+        String report = String.format("""
+                ===== DISRUPTION ANALYTICS REPORT =====
+                Period: %s to %s
+                Total Disruptions Tracked: %d
+                Total Log Entries: %d
+                Average Entries per Disruption: %.2f
+
+                NOTE: This is a basic summary for the thin slice.
+                Full analytics would include:
+                - Disruption patterns and trends
+                - Response time analysis
+                - Effectiveness metrics
+                - Peak disruption times
+                ========================================
+                """,
+                startDate != null ? startDate.format(LOG_TIMESTAMP_FORMAT) : "N/A",
+                endDate != null ? endDate.format(LOG_TIMESTAMP_FORMAT) : "N/A",
+                totalDisruptions,
+                totalLogEntries,
+                totalDisruptions > 0 ? (double) totalLogEntries / totalDisruptions : 0.0);
+
+        log.info("Analytics report generated");
+        return report;
+    }
+
+    /**
+     * Get total number of disruptions logged
+     * 
+     * @return Count of disruptions
+     */
+    public int getDisruptionCount() {
+        return incidentLogs.size();
+    }
+
+    /**
+     * Clear all logs (for testing purposes)
+     */
+    public void clearAllLogs() {
+        log.warn("Clearing all incident logs");
+        incidentLogs.clear();
+    }
+
+    // ===== PRIVATE HELPER METHODS =====
+
+    private void addLogEntry(Long disruptionId, String logEntry) {
+        incidentLogs.computeIfAbsent(disruptionId, k -> new ArrayList<>()).add(logEntry);
+
+        // Also log to SLF4J for console/file logging
+        log.info(logEntry);
+    }
+
+    private String getCurrentTimestamp() {
+        return LocalDateTime.now().format(LOG_TIMESTAMP_FORMAT);
     }
 }

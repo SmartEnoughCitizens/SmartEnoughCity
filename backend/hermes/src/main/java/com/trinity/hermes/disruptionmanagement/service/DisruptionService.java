@@ -58,14 +58,13 @@ public class DisruptionService {
         return false;
     }
 
-    private DisruptionResponse mapToResponse(Disruption disruption) {
+    public DisruptionResponse mapToResponse(Disruption disruption) {
         return new DisruptionResponse(
                 disruption.getId(),
                 disruption.getName(),
                 disruption.getDescription(),
                 disruption.getStatus(),
                 LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+                LocalDateTime.now());
     }
 }
