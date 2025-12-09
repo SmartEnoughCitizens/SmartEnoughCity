@@ -25,6 +25,11 @@ export type SimulationScenario =
 export interface SimulationParameters {
   duration?: number; // in minutes
   trafficIncrease?: number; // percentage
+
+  // Specific fields for the Thin Slice Demo
+  transportMode?: 'BUS' | 'TRAIN' | 'TRAM' | 'CAR';
+  modificationFactor?: number;
+
   affectedRoutes?: string[];
   weatherConditions?: 'clear' | 'rain' | 'snow' | 'fog';
   timeOfDay?: 'morning' | 'midday' | 'evening' | 'night';

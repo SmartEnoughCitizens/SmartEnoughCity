@@ -1,4 +1,4 @@
-package com.trinity.hermes.Recommendation.dto;
+package com.trinity.hermes.recommendation.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

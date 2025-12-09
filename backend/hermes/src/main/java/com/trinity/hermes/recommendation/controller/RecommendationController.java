@@ -1,9 +1,9 @@
-package com.trinity.hermes.Recommendation.controller;
+package com.trinity.hermes.recommendation.controller;
 
-import com.trinity.hermes.Recommendation.dto.CreateRecommendationRequest;
-import com.trinity.hermes.Recommendation.dto.RecommendationResponse;
-import com.trinity.hermes.Recommendation.dto.UpdateRecommendationRequest;
-import com.trinity.hermes.Recommendation.facade.RecommendationFacade;
+import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
+import com.trinity.hermes.recommendation.dto.RecommendationResponse;
+import com.trinity.hermes.recommendation.dto.UpdateRecommendationRequest;
+import com.trinity.hermes.recommendation.facade.RecommendationFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,13 +32,15 @@ public class RecommendationController {
     }
 
     @PostMapping
-    public ResponseEntity<RecommendationResponse> createRecommendation(@RequestBody CreateRecommendationRequest request) {
+    public ResponseEntity<RecommendationResponse> createRecommendation(
+            @RequestBody CreateRecommendationRequest request) {
         RecommendationResponse created = recommendationFacade.createRecommendation(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RecommendationResponse> updateRecommendation(@PathVariable Long id, @RequestBody UpdateRecommendationRequest request) {
+    public ResponseEntity<RecommendationResponse> updateRecommendation(@PathVariable Long id,
+            @RequestBody UpdateRecommendationRequest request) {
         Optional<RecommendationResponse> updated = recommendationFacade.updateRecommendation(id, request);
         return updated.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -50,4 +52,3 @@ public class RecommendationController {
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 }
-
