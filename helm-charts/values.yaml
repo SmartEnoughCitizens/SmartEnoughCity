@@ -88,6 +88,8 @@ data-handler:
   secrets:
     dbUser:
       name: sec-db-data-handler-user
+    gtfsApiKey:
+      name: sec-gtfs-api-key
 
 inference-engine:
   enabled: true
