@@ -17,20 +17,20 @@ dependencies:
 
   - name: hermes
     repository: file://./charts/hermes
-    version: 0.1.0
+    version: 0.1.1
     condition: hermes.enabled
 
   - name: data-handler
     repository: file://./charts/data-handler
-    version: 0.1.1
+    version: 0.1.2
     condition: data-handler.enabled
 
   - name: inference-engine
     repository: file://./charts/inference-engine
-    version: 0.1.0
+    version: 0.1.2
     condition: inference-engine.enabled
 
   - name: frontend
     repository: file://./charts/frontend
-    version: 0.1.0
+    version: 0.1.1
     condition: frontend.enabled

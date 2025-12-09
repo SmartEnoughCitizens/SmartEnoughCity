@@ -18,3 +18,9 @@ labels:
   app.kubernetes.io/name: data-handler
   app.kubernetes.io/component: batch-run
   app.kubernetes.io/part-of: smart-enough-city
+
+imagePullSecrets: []
+
+securityContext: {}
+
+containerSecurityContext: {}

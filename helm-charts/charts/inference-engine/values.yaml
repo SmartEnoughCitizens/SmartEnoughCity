@@ -21,3 +21,9 @@ labels:
   app.kubernetes.io/name: inference-engine
   app.kubernetes.io/component: api-server
   app.kubernetes.io/part-of: smart-enough-city
+
+imagePullSecrets: []
+
+securityContext: {}
+
+containerSecurityContext: {}

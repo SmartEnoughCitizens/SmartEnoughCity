@@ -1,25 +1,33 @@
-export type NotificationType = 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS';
+/**
+ * Notification types matching backend DTOs
+ */
+
+export enum NotificationType {
+  ROUTE_RECOMMENDATION = 'ROUTE_RECOMMENDATION',
+  ALERT = 'ALERT',
+  UPDATE = 'UPDATE',
+  SYSTEM = 'SYSTEM',
+}
+
+export enum Priority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  URGENT = 'URGENT',
+}
 
 export interface Notification {
   id: string;
   type: NotificationType;
-  title: string;
   message: string;
+  priority: Priority;
   timestamp: string;
+  metadata?: Record<string, any>;
   read: boolean;
-  userId?: string;
-  metadata?: Record<string, unknown>;
 }
 
-export interface NotificationFilters {
-  type?: NotificationType;
-  read?: boolean;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface NotificationStats {
-  total: number;
-  unread: number;
-  byType: Record<NotificationType, number>;
+export interface NotificationResponse {
+  userId: string;
+  notifications: Notification[];
+  totalCount: number;
 }
