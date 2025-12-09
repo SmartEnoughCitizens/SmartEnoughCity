@@ -1,13 +1,16 @@
 global:
   db:
+    host: &dbhost sec-postgresql
     name: smart_enough_city
     port: 5432
     schemas:
       dataHandlerSchema: "external_data"
       backendSchema: "backend"
+      keycloakSchema: &keycloakSchema "keycloak"
 
 postgresql:
   enabled: true
+  fullnameOverride: *dbhost
   primary:
     persistence:
       enabled: true
@@ -25,6 +28,60 @@ db:
   users:
     dataHandlerPassword: ""
     backendUserPassword: ""
+    keycloakPassword: ""
+
+keycloak:
+  enabled: true
+  # Using legacy images from bitnamilegacy repository
+  # This is a temporary workaround due to licensing changes with bitnami
+  # See https://github.com/bitnami/charts/issues/35164 for details
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/keycloak
+  keycloakConfigCli:
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/keycloak-config-cli
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: *dbhost
+    port: 5432
+    database: smart_enough_city
+    schema: *keycloakSchema
+    user: keycloak
+    existingSecret: sec-db-keycloak-user
+    existingSecretPasswordKey: DB_KEYCLOAK_PASSWORD
+  auth:
+    adminUser: "admin"
+    existingSecret: sec-keycloak-admin
+    passwordSecretKey: KEYCLOAK_ADMIN_PASSWORD
+    adminUserPassword: "" # Auto-generated if empty
+  production: false
+  extraStartupArgs: "--import-realm"
+  realm:
+    enabled: true
+    configMapName: keycloak-realm-import
+    name: &keycloakRealmName "user-management-realm"
+    clientId: &keycloakClientId "user-service"
+    userServiceClientSecret: ""  # Auto-generated if empty
+  extraVolumes: |
+    - name: realm-import
+      configMap:
+        name: keycloak-realm-import
+  extraVolumeMounts: |
+    - name: realm-import
+      mountPath: /opt/bitnami/keycloak/data/import
+      readOnly: true
+
+hermes:
+  enabled: true
+  keycloak:
+    realm: *keycloakRealmName
+    clientId: *keycloakClientId
+    secret:
+      name: sec-keycloak-realm
+      key: USER_SERVICE_CLIENT_SECRET
 
 data-handler:
   enabled: true
@@ -40,11 +97,13 @@ frontend:
 
 ingress:
   enabled: true
-  className: ""
+  className: "nginx"
   annotations: {}
   hosts:
-    - host: frontend.local
-      paths:
+    - hermesPaths:
+        - path: /api
+          pathType: Prefix
+      frontendPaths:
         - path: /
           pathType: Prefix
   tls: []
