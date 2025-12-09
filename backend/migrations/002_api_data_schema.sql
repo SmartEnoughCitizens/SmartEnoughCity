@@ -1,6 +1,3 @@
-        
-
-
 CREATE TABLE IF NOT EXISTS external_data.train_stations (
     id SERIAL PRIMARY KEY,
     station_code TEXT,
@@ -66,8 +63,3 @@ CREATE TABLE IF NOT EXISTS external_data.luas_forecasts (
     message TEXT,
     fetched_at TIMESTAMPTZ DEFAULT now()
 );
-
-
-
-
-
