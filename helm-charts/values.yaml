@@ -64,7 +64,7 @@ keycloak:
     configMapName: keycloak-realm-import
     name: &keycloakRealmName "user-management-realm"
     clientId: &keycloakClientId "user-service"
-    userServiceClientSecret: ""  # Auto-generated if empty
+    userServiceClientSecret: "dev-keycloak-user-service-secret"  # TODO handle it properly
   extraVolumes: |
     - name: realm-import
       configMap:
