@@ -38,7 +38,8 @@ public class DisruptionController {
      * @return Compiled solution ready for notification
      */
     @PostMapping("/detect")
-    public ResponseEntity<DisruptionSolution> detectDisruption(@RequestBody DisruptionDetectionRequest request) {
+    public ResponseEntity<DisruptionDetectionResponse> detectDisruption(
+            @RequestBody DisruptionDetectionRequest request) {
         log.info("Received disruption detection request from Python service: {}", request.getDisruptionType());
 
         try {
@@ -46,14 +47,18 @@ public class DisruptionController {
 
             if (solution == null) {
                 // Disruption did not meet threshold criteria
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+                return ResponseEntity
+                        .ok(new DisruptionDetectionResponse(false, null, "Disruption ignored: Threshold not met"));
             }
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(solution);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new DisruptionDetectionResponse(true, solution.getDisruptionId(),
+                            "Disruption detected and processed successfully"));
 
         } catch (Exception e) {
             log.error("Error processing disruption detection", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new DisruptionDetectionResponse(false, null, "Error: " + e.getMessage()));
         }
     }
 

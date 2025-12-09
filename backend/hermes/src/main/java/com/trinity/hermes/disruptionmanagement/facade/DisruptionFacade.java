@@ -28,6 +28,9 @@ public class DisruptionFacade {
     private final NotificationCoordinationService notificationCoordinationService;
     private final IncidentLoggingService incidentLoggingService;
 
+    // Repository
+    private final DisruptionRepository disruptionRepository;
+
     // TODO: Inject Recommendation Facade when needed
     // private final RecommendationFacade recommendationFacade;
 
@@ -70,9 +73,9 @@ public class DisruptionFacade {
             disruption.setStatus("DETECTED");
             disruption.setDetectedAt(LocalDateTime.now());
 
-            // Save to repository (would typically return saved entity with ID)
-            // For now, we'll simulate this
-            disruption.setId(System.currentTimeMillis()); // Temporary ID
+            // Save to repository to get actual ID
+            Disruption saved = disruptionRepository.save(disruption);
+            disruption = saved; // Use the saved entity with real ID
 
             incidentLoggingService.logDisruptionDetected(disruption);
 
@@ -197,16 +200,22 @@ public class DisruptionFacade {
     public boolean resolveDisruption(Long disruptionId) {
         log.info("Resolving disruption ID: {}", disruptionId);
 
-        // TODO: Implement resolution logic
-        // 1. Update status to RESOLVED
-        // 2. Record resolution time
-        // 3. Send resolution notification
-        // 4. Log resolution
+        Optional<Disruption> optionalDisruption = disruptionRepository.findById(disruptionId);
+
+        if (optionalDisruption.isEmpty()) {
+            log.warn("Disruption {} not found", disruptionId);
+            return false;
+        }
+
+        Disruption disruption = optionalDisruption.get();
+        disruption.setStatus("RESOLVED");
+        disruption.setResolvedAt(LocalDateTime.now());
+        disruptionRepository.save(disruption);
 
         notificationCoordinationService.sendResolutionNotification(disruptionId);
         incidentLoggingService.logDisruptionResolved(disruptionId, "Normal service resumed");
 
-        return true; // Placeholder
+        return true;
     }
 
     // =============================================================================
@@ -245,10 +254,10 @@ public class DisruptionFacade {
     public List<DisruptionResponse> getActiveDisruptions() {
         log.debug("Retrieving active disruptions");
 
-        // TODO: Implement query
-        // Filter disruptions by status = ACTIVE
-
-        return List.of(); // Placeholder
+        return disruptionRepository.findByStatusOrderByDetectedAtDesc("ACTIVE")
+                .stream()
+                .map(disruptionService::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -260,9 +269,10 @@ public class DisruptionFacade {
     public List<DisruptionResponse> getDisruptionsBySeverity(String severity) {
         log.debug("Retrieving disruptions with severity: {}", severity);
 
-        // TODO: Implement query
-
-        return List.of(); // Placeholder
+        return disruptionRepository.findBySeverity(severity)
+                .stream()
+                .map(disruptionService::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -274,9 +284,10 @@ public class DisruptionFacade {
     public List<DisruptionResponse> getDisruptionsByArea(String area) {
         log.debug("Retrieving disruptions in area: {}", area);
 
-        // TODO: Implement query
-
-        return List.of(); // Placeholder
+        return disruptionRepository.findByAffectedArea(area)
+                .stream()
+                .map(disruptionService::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
