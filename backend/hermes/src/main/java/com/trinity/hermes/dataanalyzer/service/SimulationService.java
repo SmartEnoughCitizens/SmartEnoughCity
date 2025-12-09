@@ -13,8 +13,6 @@ import java.util.UUID;
 @Service
 public class SimulationService {
 
-    @Value("${inference.engine.url:http://localhost:8000}")
-    private String inferenceEngineUrl;
 
     private final RestTemplate restTemplate;
 
@@ -23,11 +21,42 @@ public class SimulationService {
     }
 
     public Simulation runSimulation(CreateSimulationRequest request) {
-        // 1. Prepare the endpoint
-        String pythonEndpoint = inferenceEngineUrl + "/predict-impact";
+        // 1. Prepare the endpoint - Skipped, will load from database instead
+        // String pythonEndpoint = inferenceEngineUrl + "/predict-impact";
 
-        // 2. Call Python Engine (sending the parameters part of the request)
-        // We assume Python returns a SimulationResults object
+        // 2. Load SimulationResults object data
+
+        // logger.info(f"Received simulation request: {params}")
+
+        // # 1. Basic Logic for Demo
+        // base_congestion = 40.0
+        // factor = params.modificationFactor if params.modificationFactor is not None else 1.0
+
+        // # Logic: If traffic increases, congestion goes up
+        // if params.trafficIncrease:
+        //     factor += (params.trafficIncrease / 100.0)
+            
+        // # Logic: Weather impact
+        // if params.weatherConditions == 'rain':
+        //     factor *= 1.2
+
+        // calculated_congestion = min(100.0, base_congestion * factor)
+        // avg_speed = max(5.0, 50.0 / factor)  # Speed drops as factor increases
+
+        // # 2. Return result
+        // return {
+        //     "summary": {
+        //         "avgSpeed": round(avg_speed, 1),
+        //         "congestionLevel": round(calculated_congestion, 1),
+        //         "totalDelay": round(10 * factor, 1),
+        //         "affectedVehicles": int(100 * factor)
+        //     },
+        //     "recommendations": [
+        //         f"Optimize traffic lights for {params.transportMode}",
+        //         "Deploy 2 additional units to Sector 4"
+        //     ]
+        // }
+        
         SimulationResults results = restTemplate.postForObject(
                 pythonEndpoint,
                 request.getParameters(), 
