@@ -2,7 +2,7 @@ name: CD - Deploy to Production
 
 on:
   push:
-    branches: [main]
+    branches: [ci]
   workflow_dispatch:  # Allows manual trigger from GitHub UI
 
 env:
@@ -98,7 +98,7 @@ jobs:
           helm upgrade --install ${{ env.HELM_RELEASE_NAME }} . \
             --namespace ${{ env.HELM_NAMESPACE }} \
             --create-namespace \
-            --set data-handler.image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hermes \
+            --set data-handler.image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/data-handler \
             --set data-handler.image.tag=sha-${{ github.sha }} \
             --set inference-engine.image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/inference-engine \
             --set inference-engine.image.tag=sha-${{ github.sha }} \
@@ -171,6 +171,7 @@ jobs:
           echo "- Hermes: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hermes:sha-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- Inference Engine: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/inference-engine:sha-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:sha-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Data Handler: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/data-handler:sha-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Quick Commands" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
