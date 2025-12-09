@@ -14,6 +14,7 @@ import org.hibernate.annotations.Immutable;
 @AllArgsConstructor
 public class CycleStation {
 
+    @Id
     @Column(name = "station_id", nullable = false)
     private String stationId;
 
@@ -53,7 +54,7 @@ public class CycleStation {
     @Column(name = "lon")
     private Double lon;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+//    @Id
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    private Long id;
 }
