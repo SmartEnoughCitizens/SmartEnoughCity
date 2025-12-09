@@ -1,4 +1,4 @@
-package com.trinity.hermes.notification.services.mail;
+package com.trinity.hermes.notification.service.mail;
 
 public interface MailService {
     public void sendEmail(String to,

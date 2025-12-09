@@ -1,4 +1,4 @@
-package com.trinity.hermes.notification.services;
+package com.trinity.hermes.notification.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

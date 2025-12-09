@@ -1,4 +1,4 @@
-package com.trinity.hermes.notification.services;
+package com.trinity.hermes.notification.service;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
 import com.trinity.hermes.notification.model.Notification;

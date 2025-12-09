@@ -1,4 +1,4 @@
-package com.trinity.hermes.notification.services.mail;
+package com.trinity.hermes.notification.service.mail;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

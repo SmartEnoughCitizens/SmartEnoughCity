@@ -1,9 +1,9 @@
-package com.trinity.hermes.notification.services;
+package com.trinity.hermes.notification.service;
 
 
 import com.trinity.hermes.notification.model.Notification;
-import com.trinity.hermes.notification.services.mail.MailService;
-import com.trinity.hermes.notification.services.mail.MailServiceFactory;
+import com.trinity.hermes.notification.service.mail.MailService;
+import com.trinity.hermes.notification.service.mail.MailServiceFactory;
 import com.trinity.hermes.util.SseManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
