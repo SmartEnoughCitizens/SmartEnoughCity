@@ -55,9 +55,9 @@ public class SimulationService {
         Simulation simulation = new Simulation();
         simulation.setId(UUID.randomUUID().toString());
         simulation.setRecommendationId(recommendationId);
-        simulation.setName("Simulation for: " + recommendation.getName());
+        simulation.setName("Simulation for: " + recommendation.getId());
         simulation
-                .setDescription("Impact analysis if recommendation '" + recommendation.getName() + "' is implemented");
+                .setDescription("Impact analysis if recommendation '" + recommendation.getDataIndicator() + "' is implemented");
         simulation.setScenario("recommendation-impact");
         simulation.setStatus("completed");
         simulation.setCreatedBy("demo-user");

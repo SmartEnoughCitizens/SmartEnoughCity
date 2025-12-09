@@ -40,9 +40,10 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api-docs/**", "/swagger/**", "/swagger-ui/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger/**", "/swagger-ui/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/v1/dashboard/**").permitAll()
 
                         .requestMatchers("/api/trains").hasRole("City_Manager")
                         .requestMatchers("/api/buses").hasAnyRole("City_Manager", "Bus_Provider")
