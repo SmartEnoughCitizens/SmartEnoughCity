@@ -1,0 +1,23 @@
+data-handler:
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
+    tag: latest
+    pullPolicy: IfNotPresent
+
+frontend:
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+hermes:
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
+    tag: latest
+    pullPolicy: IfNotPresent
+
+inference-engine:
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
+    tag: latest
+    pullPolicy: IfNotPresent
