@@ -24,12 +24,26 @@ spec:
             app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 12 }}
         spec:
+          {{- if .Values.imagePullSecrets }}
+          imagePullSecrets:
+          {{- range .Values.imagePullSecrets }}
+            - name: {{ . }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.securityContext }}
+          securityContext:
+{{- toYaml .Values.securityContext | nindent 12 }}
+          {{- end }}
           restartPolicy: Never
           terminationGracePeriodSeconds: 10
           containers:
             - name: data-handler
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- if .Values.containerSecurityContext }}
+              securityContext:
+{{- toYaml .Values.containerSecurityContext | nindent 16 }}
+              {{- end }}
               resources:
 {{- toYaml .Values.resources | nindent 16 }}
               env:

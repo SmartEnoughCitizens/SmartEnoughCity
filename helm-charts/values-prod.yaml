@@ -1,23 +1,83 @@
+global:
+  imagePullSecrets:
+    - ghcr-secret
+
 data-handler:
+  imagePullSecrets:
+    - ghcr-secret
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
     pullPolicy: IfNotPresent
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
 
 frontend:
+  imagePullSecrets:
+    - ghcr-secret
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/frontend
     tag: latest
     pullPolicy: IfNotPresent
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
 
 hermes:
+  imagePullSecrets:
+    - ghcr-secret
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
     tag: latest
     pullPolicy: IfNotPresent
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
 
 inference-engine:
+  imagePullSecrets:
+    - ghcr-secret
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
     tag: latest
     pullPolicy: IfNotPresent
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
