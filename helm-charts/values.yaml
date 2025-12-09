@@ -58,7 +58,7 @@ keycloak:
     passwordSecretKey: KEYCLOAK_ADMIN_PASSWORD
     adminUserPassword: "" # Auto-generated if empty
   production: false
-  commandArgs: "--import-realm"
+  extraStartupArgs: "--import-realm"
   realm:
     enabled: true
     configMapName: keycloak-realm-import
@@ -69,7 +69,7 @@ keycloak:
         name: keycloak-realm-import
   extraVolumeMounts: |
     - name: realm-import
-      mountPath: /opt/keycloak/data/import
+      mountPath: /opt/bitnami/keycloak/data/import
       readOnly: true
 
 data-handler:
