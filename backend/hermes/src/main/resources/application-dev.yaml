@@ -29,6 +29,8 @@ keycloak:
   realm: user-management-realm
   client-id: user-service
   client-secret: dev-keycloak-user-service-secret
+  admin-username: admin
+  admin-password: admin
 
 management:
   endpoints:
