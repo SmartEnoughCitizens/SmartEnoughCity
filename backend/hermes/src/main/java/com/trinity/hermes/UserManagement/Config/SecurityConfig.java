@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/api-docs/**", "/swagger/**", "/swagger-ui/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-
+                        .requestMatchers("/notification/v1", "/notification/v1/**").permitAll()
                         .requestMatchers("/api/trains").hasRole("City_Manager")
                         .requestMatchers("/api/buses").hasAnyRole("City_Manager", "Bus_Provider")
 
