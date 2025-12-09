@@ -7,15 +7,15 @@ dependencies:
   version: 25.2.0
 - name: hermes
   repository: file://./charts/hermes
-  version: 0.1.0
+  version: 0.1.1
 - name: data-handler
   repository: file://./charts/data-handler
-  version: 0.1.1
+  version: 0.1.2
 - name: inference-engine
   repository: file://./charts/inference-engine
-  version: 0.1.0
+  version: 0.1.2
 - name: frontend
   repository: file://./charts/frontend
-  version: 0.1.0
-digest: sha256:5f23361167ec634b2d1345f72b4d86bbbb316dcdf4103c71a56cd57f8d015e2e
-generated: "2025-12-09T14:01:14.8244676Z"
+  version: 0.1.1
+digest: sha256:3ca42f6d1a7d4c2cd67d4ec6b3f9a11dbd63b7a9a87c632ce78452a7dcc6116b
+generated: "2025-12-09T19:26:38.0676863Z"

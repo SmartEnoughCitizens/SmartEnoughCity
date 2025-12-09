@@ -1,43 +1,23 @@
-import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
-import { notificationService } from '../services/notificationService';
-import type { Notification } from '../types';
+/**
+ * React Query hooks for notifications
+ */
 
-// Query keys
-export const notificationKeys = {
-  all: ['notifications'] as const,
-  lists: () => [...notificationKeys.all, 'list'] as const,
+import { useQuery } from '@tanstack/react-query';
+import { notificationApi } from '@/api';
+
+export const NOTIFICATION_KEYS = {
+  user: (userId: string) => ['notifications', userId] as const,
 };
 
-// Hook for fetching notifications
-export const useNotifications = (): UseQueryResult<Notification[], Error> => {
+/**
+ * Get user notifications
+ */
+export const useUserNotifications = (userId: string, enabled: boolean = true) => {
   return useQuery({
-    queryKey: notificationKeys.lists(),
-    queryFn: () => notificationService.getNotifications(),
-    staleTime: 30000,
-    refetchInterval: 60000, // Poll every minute
-  });
-};
-
-// Hook for marking notification as read
-export const useMarkNotificationRead = (): UseMutationResult<Notification, Error, string> => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => notificationService.markAsRead(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
-    },
-  });
-};
-
-// Hook for marking all notifications as read
-export const useMarkAllNotificationsRead = (): UseMutationResult<void, Error, void> => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => notificationService.markAllAsRead(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
-    },
+    queryKey: NOTIFICATION_KEYS.user(userId),
+    queryFn: () => notificationApi.getUserNotifications(userId),
+    enabled: !!userId && enabled,
+    staleTime: 60000, // 1 minute
+    refetchInterval: 60000, // Auto-refresh every minute
   });
 };
