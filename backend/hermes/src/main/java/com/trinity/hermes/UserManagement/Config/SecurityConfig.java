@@ -1,4 +1,4 @@
-package com.trinity.hermes.UserManagement.Config;
+package com.trinity.hermes.usermanagement.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

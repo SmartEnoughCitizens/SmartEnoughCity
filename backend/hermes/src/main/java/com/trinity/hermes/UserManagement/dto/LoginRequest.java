@@ -1,4 +1,4 @@
-package com.trinity.hermes.UserManagement.dto;
+package com.trinity.hermes.usermanagement.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

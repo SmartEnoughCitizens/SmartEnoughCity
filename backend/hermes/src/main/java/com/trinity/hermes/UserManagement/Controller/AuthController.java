@@ -1,8 +1,8 @@
-package com.trinity.hermes.UserManagement.Controller;
+package com.trinity.hermes.usermanagement.controller;
 
-import com.trinity.hermes.UserManagement.dto.LoginRequest;
-import com.trinity.hermes.UserManagement.dto.LoginResponse;
-import com.trinity.hermes.UserManagement.Service.AuthService;
+import com.trinity.hermes.usermanagement.dto.LoginRequest;
+import com.trinity.hermes.usermanagement.dto.LoginResponse;
+import com.trinity.hermes.usermanagement.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
