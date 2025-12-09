@@ -4,14 +4,17 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
 
 @Entity
-@Table(name = "cycle_stations")
+@Table(name = "cycle_stations", schema = "external_data")
+@Immutable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CycleStation {
 
+    @Id
     @Column(name = "station_id", nullable = false)
     private String stationId;
 
@@ -51,7 +54,7 @@ public class CycleStation {
     @Column(name = "lon")
     private Double lon;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+//    @Id
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    private Long id;
 }
