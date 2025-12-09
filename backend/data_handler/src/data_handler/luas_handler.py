@@ -179,15 +179,6 @@ def luas_forecasts_to_db():
             db.commit()
 
         print(f"Inserted {len(forecast_rows)} LUAS forecast rows.")
-        
-        # --- Disruption Detection Integration ---
-        try:
-            from data_handler.disruption_detector import detect_luas_disruptions
-            print("Running disruption detection on Luas data...")
-            detect_luas_disruptions(forecast_rows)
-        except Exception as e:
-            print(f"Error during Luas disruption detection: {e}")
-        # ----------------------------------------
 
     except Exception as e:
         print("Error inserting forecasts:", e)
