@@ -4,6 +4,8 @@ import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
 import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
 import com.trinity.hermes.notification.model.enums.Channel;
+import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
+import com.trinity.hermes.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,7 @@ import java.util.Set;
 public class NotificationFacade {
 
     private final NotificationService notificationService;
+    private final RecommendationService recommendationService;
     private final NotificationDispatcher notificationDispatcher;
 
     public void handleBackendNotification(BackendNotificationRequestDTO backendNotificationRequestDTO) {
@@ -32,6 +35,11 @@ public class NotificationFacade {
             if (Objects.nonNull(notification) && notification.getChannel() == Channel.NOTIFICATION || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION) {
                 notificationDispatcher.dispatchSse(notification);
             }
+
+            recommendationService.createRecommendation(new CreateRecommendationRequest());
+
+
+
 
         }
 
