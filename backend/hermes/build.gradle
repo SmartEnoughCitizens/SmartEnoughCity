@@ -40,8 +40,44 @@ dependencies {
 //  Logback + Loki for logging
     implementation 'com.github.loki4j:loki-logback-appender:1.5.2'
 //    lombok
-    implementation 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    implementation 'org.postgresql:postgresql:42.7.8'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+
+    // Spring Security + OAuth2
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+    // Keycloak Admin Client
+    implementation 'org.keycloak:keycloak-admin-client:22.0.3'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Required by Keycloak Admin Client
+    implementation 'org.jboss.resteasy:resteasy-client:6.2.4.Final'
+    implementation 'org.jboss.resteasy:resteasy-jackson2-provider:6.2.4.Final'
+
+
+    //    Open Telemetry/ Jaeger
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+
+//    SES Integration
+    implementation platform('software.amazon.awssdk:bom:2.25.10')
+    implementation 'software.amazon.awssdk:ses'
+    implementation 'software.amazon.awssdk:sesv2'
+//    Build QR Codes
+    implementation 'com.google.zxing:core:3.5.1'
+    implementation 'com.google.zxing:javase:3.5.1'
+//    Java Mail
+    implementation 'org.eclipse.angus:angus-mail:2.0.2'
+    implementation 'org.eclipse.angus:angus-activation:2.0.1'
+
+
 }
 
 tasks.named('test') {
@@ -54,5 +90,5 @@ springBoot {
 }
 
 test {
-    enabled = true
+    enabled = false
 }

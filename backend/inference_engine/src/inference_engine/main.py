@@ -8,6 +8,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from inference_engine.settings.api_settings import get_api_settings
 
 # app = FastAPI()
 
@@ -24,9 +25,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# # Configuration
-DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
-NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
+# Load Settings
+# Load settings
+settings = get_api_settings()
+DATA_ENGINE_URL: str = settings.hermes_url + "/api/v1/recommendation-engine/indicators/query"
+NOTIFICATION_API_URL: str = settings.hermes_url + "/api/v1/notification"
+
+# # # Configuration
+# DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
+# NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
 
 
 # Change these lines in your code:

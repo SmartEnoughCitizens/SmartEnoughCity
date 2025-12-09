@@ -1,24 +1,60 @@
-import { useMutation, type UseMutationResult } from '@tanstack/react-query';
-import { authService } from '../services/authService';
-import type { LoginCredentials, RegisterData, AuthResponse } from '../types';
+/**
+ * React Query hooks for authentication
+ */
 
-// Hook for login
-export const useLogin = (): UseMutationResult<AuthResponse, Error, LoginCredentials> => {
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { authApi } from '@/api';
+import type { LoginRequest } from '@/types';
+
+export const AUTH_KEYS = {
+  health: ['auth', 'health'] as const,
+};
+
+/**
+ * Login mutation
+ */
+export const useLogin = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (credentials: LoginCredentials) => authService.login(credentials),
+    mutationFn: (credentials: LoginRequest) => authApi.login(credentials),
+    onSuccess: (data) => {
+      // Store tokens in localStorage
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('username', data.username);
+
+      // Invalidate all queries on login
+      queryClient.invalidateQueries();
+    },
   });
 };
 
-// Hook for registering city manager
-export const useRegisterCityManager = (): UseMutationResult<AuthResponse, Error, RegisterData> => {
+/**
+ * Logout mutation
+ */
+export const useLogout = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (userData: RegisterData) => authService.registerCityManager(userData),
+    mutationFn: () => {
+      authApi.logout();
+      return Promise.resolve();
+    },
+    onSuccess: () => {
+      // Clear all queries on logout
+      queryClient.clear();
+    },
   });
 };
 
-// Hook for registering service provider admin
-export const useRegisterServiceProviderAdmin = (): UseMutationResult<AuthResponse, Error, RegisterData> => {
-  return useMutation({
-    mutationFn: (userData: RegisterData) => authService.registerServiceProviderAdmin(userData),
+/**
+ * Check auth service health
+ */
+export const useAuthHealth = () => {
+  return useQuery({
+    queryKey: AUTH_KEYS.health,
+    queryFn: () => authApi.checkHealth(),
+    staleTime: 60000, // 1 minute
   });
 };
