@@ -13,9 +13,9 @@ dependencies:
   version: 0.1.1
 - name: inference-engine
   repository: file://./charts/inference-engine
-  version: 0.1.0
+  version: 0.1.1
 - name: frontend
   repository: file://./charts/frontend
   version: 0.1.0
-digest: sha256:5f23361167ec634b2d1345f72b4d86bbbb316dcdf4103c71a56cd57f8d015e2e
-generated: "2025-12-09T14:01:14.8244676Z"
+digest: sha256:09a0b00ad5b1a1b621cf98be156fc9666e220da039f07d899cc300224a696f41
+generated: "2025-12-09T18:22:32.2116119Z"

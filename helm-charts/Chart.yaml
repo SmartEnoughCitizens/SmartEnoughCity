@@ -27,7 +27,7 @@ dependencies:
 
   - name: inference-engine
     repository: file://./charts/inference-engine
-    version: 0.1.0
+    version: 0.1.1
     condition: inference-engine.enabled
 
   - name: frontend
