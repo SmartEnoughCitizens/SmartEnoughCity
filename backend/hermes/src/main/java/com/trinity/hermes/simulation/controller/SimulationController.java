@@ -1,6 +1,8 @@
-package com.trinity.hermes.simulation;
+package com.trinity.hermes.simulation.controller;
 
-import com.trinity.hermes.dto.CreateSimulationRequest;
+import com.trinity.hermes.simulation.SimulationService;
+import com.trinity.hermes.simulation.dto.CreateSimulationRequest;
+import com.trinity.hermes.simulation.model.Simulation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

@@ -1,4 +1,4 @@
-package com.trinity.hermes.dataanalyzer.model; // Adjust package if needed
+package com.trinity.hermes.simulation; // Adjust package if needed
 
 import java.util.List;
 
