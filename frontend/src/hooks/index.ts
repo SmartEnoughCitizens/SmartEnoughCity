@@ -1,8 +1,8 @@
-// Export all hooks from a central location
+/**
+ * Central export for all hooks
+ */
+
 export * from './useAuth';
 export * from './useDashboard';
-export * from './useIndicators';
-export * from './useUsers';
 export * from './useNotifications';
-export * from './useSimulations';
-export * from './useSystem';
+export * from './useRecommendation';

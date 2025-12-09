@@ -1,46 +1,26 @@
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: UserRole;
-  firstName?: string;
-  lastName?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+/**
+ * Authentication types matching backend DTOs
+ */
 
-export const UserRole = {
-  GOVERNMENT_ADMIN: 'GOVERNMENT_ADMIN',
-  CITY_MANAGER: 'CITY_MANAGER',
-  SERVICE_PROVIDER_ADMIN: 'SERVICE_PROVIDER_ADMIN',
-  SERVICE_PROVIDER_USER: 'SERVICE_PROVIDER_USER',
-} as const;
-
-export type UserRole = typeof UserRole[keyof typeof UserRole];
-
-export interface LoginCredentials {
+export interface LoginRequest {
   username: string;
   password: string;
 }
 
-export interface RegisterData {
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  refreshToken: string;
   username: string;
-  email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
-  userType: UserRole;
+  message: string;
 }
 
-export interface AuthResponse {
-  token: string;
-  user: User;
+export interface ErrorResponse {
+  error: string;
 }
 
-export interface AuthState {
-  token: string | null;
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  error: string | null;
+export interface HealthResponse {
+  status: string;
+  message: string;
 }
