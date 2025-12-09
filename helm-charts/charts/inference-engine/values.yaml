@@ -9,11 +9,6 @@ service:
   type: ClusterIP
   port: 8000
 
-env:
-  dataEngineUrl: "http://sec-data-handler:8080/api/v1/recommendation-engine/indicators/query"
-  notificationApiUrl: "http://sec-hermes:8081/api/v1/notification"
-  httpTimeout: "30"
-
 resources:
   requests:
     cpu: "500m"

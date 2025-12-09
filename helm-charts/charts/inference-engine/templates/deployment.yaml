@@ -26,14 +26,8 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
-          - name: APP_ENV
-            value: "prod"
-          - name: DATA_ENGINE_URL
-            value: {{ .Values.env.dataEngineUrl | quote }}
-          - name: NOTIFICATION_API_URL
-            value: {{ .Values.env.notificationApiUrl | quote }}
-          - name: HTTP_TIMEOUT
-            value: {{ .Values.env.httpTimeout | quote }}
+            - name: HERMES_URL
+              value: "http://{{ .Release.Name }}-hermes:8080"
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
           # livenessProbe:
