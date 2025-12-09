@@ -1,5 +1,5 @@
 server:
-  port: 8084
+  port: 8080
 
 spring:
   application:
@@ -8,11 +8,11 @@ spring:
     lazy-initialization: true
   jmx:
     enabled: false
-#  uncomment when connecting with your local DB
-#  datasource:
-#    url: jdbc:postgresql://localhost:5432/hermes_local
-#    username: hermes
-#    password: hermes
+  #  uncomment when connecting with your local DB
+  #  datasource:
+  #    url: jdbc:postgresql://localhost:5432/hermes_local
+  #    username: hermes
+  #    password: hermes
 
   autoconfigure:
     # Disabling Hibernate when testing locally
@@ -20,11 +20,20 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,configprops,beans,env
+  ## Jaeger / OpenTelemetry config
+  tracing:
+    sampling:
+      probability: 1.0         # sample 100% of spans in dev
+
+  otlp:
+    tracing:
+      endpoint: http://localhost:4317   # Jaeger OTLP gRPC port
 
 springdoc:
   api-docs:
@@ -36,10 +45,74 @@ springdoc:
     display-request-duration: true
     operationsSorter: method
 
+
+# ----------------------------------------------------
+# Notification templates (unchanged)
+# ----------------------------------------------------
+notification:
+  templates:
+    capacity-alert:
+      email:
+        subject: "Capacity alert on {corridorName}"
+        body: |
+          Hi {cityManagerName},
+
+          Our analytics detected a persistent overload on {corridorName} ({routeId})
+          during {timeWindow}.
+
+          Key metric:
+            • {supportingMetric}
+
+          Recommendation:
+            • Add {recommendedExtraBuses} additional buses during this time window.
+
+          Please review this suggestion in the dashboard.
+
+      in-app:
+        subject: "Capacity alert: {corridorName}"
+        body: "Add {recommendedExtraBuses} buses on {routeId} during {timeWindow}."
+
+    underutilized-route:
+      email:
+        subject: "Underutilized route: {routeId}"
+        body: |
+          Hi {cityManagerName},
+
+          Route {routeId} appears underutilized during {timeWindow}.
+
+          Key metric:
+            • {supportingMetric}
+
+          Recommendation:
+            • Consider reducing frequency or reallocating buses to higher-demand corridors.
+
+          Explore alternative allocation options in the dashboard.
+
+      in-app:
+        subject: "Underutilized route {routeId}"
+        body: "Route {routeId} underutilized in {timeWindow}. Consider reallocating capacity."
+    default:
+      email:
+        subject: "Notification from Hermes"
+        body: |
+          {recommendation}
+
+      in-app:
+        subject: "New notification"
+        body: "You have a new notification from Hermes."
+
+
 # Enable only to test if loki works fine locally ,
 #logging:
 #  file:
 #    name: logs/hermes.log
-#loki:
-#  url: http://localhost:3100/loki/api/v1/push
-#  timeoutMs: 5000
+loki:
+  url: http://localhost:3100/loki/api/v1/push
+  timeoutMs: 5000
+
+mail:
+  from: no-reply@citycontrol.me
+
+aws:
+  region: eu-west-1
+
