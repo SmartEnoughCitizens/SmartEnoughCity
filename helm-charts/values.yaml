@@ -56,7 +56,8 @@ keycloak:
     adminUser: "admin"
     existingSecret: sec-keycloak-admin
     passwordSecretKey: KEYCLOAK_ADMIN_PASSWORD
-    adminUserPassword: "" # Auto-generated if empty
+    # TODO to be handled properly using secrets
+    adminUserPassword: "admin" # Auto-generated if empty
   production: false
   extraStartupArgs: "--import-realm"
   realm:
