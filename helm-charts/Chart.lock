@@ -10,12 +10,12 @@ dependencies:
   version: 0.1.1
 - name: data-handler
   repository: file://./charts/data-handler
-  version: 0.1.3
+  version: 0.1.4
 - name: inference-engine
   repository: file://./charts/inference-engine
   version: 0.1.2
 - name: frontend
   repository: file://./charts/frontend
   version: 0.1.1
-digest: sha256:3df4c53e96ea2924554f2e37fde5e063f02d186aef340c24d62cd5061541a6bb
-generated: "2025-12-09T23:54:25.8993855Z"
+digest: sha256:dec9467dd58deb6d9288103cb587349cdc0cef26ec1e9f0e6d56f6d3d3a13b6b
+generated: "2025-12-10T09:54:23.7368344Z"
