@@ -11,7 +11,7 @@ public class BackendNotificationRequestDTO {
     private String userName;
     @JsonProperty("data_indicator")
     private String dataIndicator;
-    private String recommendation;
+    private Map<String, Object> recommendation;
     private String subject;
     private String body;
     private Map<String, Object> metadata;

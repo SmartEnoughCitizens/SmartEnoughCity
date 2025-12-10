@@ -41,4 +41,10 @@ public class NotificationController {
         return sseManager.register();
     }
 
+    //TODO: Remove this endpoint after DEMO
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getLatestNotification(@PathVariable String userId) {
+        return ResponseEntity.ok(notificationFacade.getAll());
+    }
+
 }

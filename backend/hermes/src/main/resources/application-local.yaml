@@ -5,7 +5,7 @@ spring:
   application:
     name: hermes
   main:
-    lazy-initialization: true
+    lazy-initialization: false
   jmx:
     enabled: false
   #  uncomment when connecting with your local DB
@@ -17,8 +17,8 @@ spring:
   autoconfigure:
     # Disabling Hibernate when testing locally
     exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+#      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+#      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
 
 management:
@@ -99,7 +99,8 @@ notification:
 
       in-app:
         subject: "New notification"
-        body: "You have a new notification from Hermes."
+        body: |
+          {recommendation}
 
 
 # Enable only to test if loki works fine locally ,
@@ -116,3 +117,10 @@ mail:
 aws:
   region: eu-west-1
 
+keycloak:
+  server-url: http://localhost:8081
+  realm: user-management-realm
+  client-id: user-service
+  client-secret: dev-keycloak-user-service-secret
+  admin-username: admin
+  admin-password: admin
