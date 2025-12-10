@@ -4,13 +4,16 @@ import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
 import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
 import com.trinity.hermes.notification.model.enums.Channel;
+import com.trinity.hermes.notification.util.InMemoryNotificationStore;
 import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
 import com.trinity.hermes.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -21,6 +24,7 @@ public class NotificationFacade {
     private final NotificationService notificationService;
     private final RecommendationService recommendationService;
     private final NotificationDispatcher notificationDispatcher;
+    private final InMemoryNotificationStore notificationStore;
 
     public void handleBackendNotification(BackendNotificationRequestDTO backendNotificationRequestDTO) {
         // TODO: Add code for schema validations that need to be performed via networkNT
@@ -36,6 +40,7 @@ public class NotificationFacade {
             if (Objects.nonNull(notification) && (notification.getChannel() == Channel.NOTIFICATION
                     || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
                 notificationDispatcher.dispatchSse(notification);
+                notificationStore.add(notification);
             }
 
             recommendationService.createRecommendation(new CreateRecommendationRequest());
@@ -90,6 +95,10 @@ public class NotificationFacade {
                 notificationDispatcher.dispatchSse(notification);
             }
         }
+    }
+
+    public List<Notification> getAll() {
+        return notificationStore.getAll();
     }
 
 }
