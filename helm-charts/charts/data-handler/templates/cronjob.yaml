@@ -65,6 +65,8 @@ spec:
                       key: DB_DATA_HANDLER_PASSWORD
                 - name: DB_DATA_HANDLER_SCHEMA
                   value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
+                - name: HERMES_URL
+                  value: "http://{{ .Release.Name }}-hermes:8080"
                 - name: GTFS_API_KEY
                   valueFrom:
                     secretKeyRef:
