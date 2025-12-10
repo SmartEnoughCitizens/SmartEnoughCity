@@ -35,5 +35,5 @@ export const API_ENDPOINTS = {
   RECOMMENDATION_GET: (type: string) => `/api/v1/recommendation-engine/indicators/${type}`,
 
   // Notifications
-  NOTIFICATIONS: (userId: string) => `/api/v1/notifications/${userId}`,
+  NOTIFICATIONS: (userId: string) => `/notification/v1/${userId}`,
 };
