@@ -8,6 +8,8 @@
             "enabled": true,
             "emailVerified": true,
             "email": "testuser@example.com",
+            "firstName": "Test",
+            "lastName": "User",
             "credentials": [
                 {
                     "type": "password",

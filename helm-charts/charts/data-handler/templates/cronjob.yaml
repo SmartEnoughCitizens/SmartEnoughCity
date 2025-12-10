@@ -65,3 +65,8 @@ spec:
                       key: DB_DATA_HANDLER_PASSWORD
                 - name: DB_DATA_HANDLER_SCHEMA
                   value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
+                - name: GTFS_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.gtfsApiKey.name | quote }}
+                      key: GTFS_API_KEY
