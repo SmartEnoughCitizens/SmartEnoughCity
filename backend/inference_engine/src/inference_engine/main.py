@@ -15,10 +15,32 @@ from inference_engine.settings.api_settings import get_api_settings
 FETCH_INTERVAL_HOURS = 1  # Fetch data every 1 hour (change to 24 for daily)
 DATA_INDICATORS = ["bus", "car", "train"]  # Transport types to process
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handle startup and shutdown events
+    """
+    # Startup
+    logger.info("🚀 Application starting up...")
+    start_scheduler()
+    logger.info("✅ Application ready!")
+
+    yield
+
+    # Shutdown
+    logger.info("🛑 Application shutting down...")
+    shutdown_scheduler()
+    logger.info("✅ Application stopped!")
+
+
 # Initialize scheduler
 scheduler = AsyncIOScheduler()
 recommendations_store = {}  # In-memory storage
-app = FastAPI(title="Recommendation Engine API")
+app = FastAPI(
+    title="Recommendation Engine API",
+    lifespan=lifespan
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,8 +51,7 @@ logger = logging.getLogger(__name__)
 # Load settings
 settings = get_api_settings()
 DATA_ENGINE_URL: str = settings.hermes_url + "/api/v1/recommendation-engine/indicators/query"
-NOTIFICATION_API_URL: str = settings.hermes_url + "/api/v1/notification"
-
+NOTIFICATION_API_URL: str = settings.hermes_url + "/notification/v1"
 # # # Configuration
 # DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
 # NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
@@ -70,11 +91,14 @@ async def fetch_data_from_engine(data_indicator: str) -> Dict[str, Any]:
             return data
     except httpx.HTTPError as e:
         logger.error(f"Error fetching data from Data Engine: {str(e)}")
-        raise HTTPException(status_code=503, detail="Data Engine unavailable")
+        ## lets not raise an exception and return empty dictionary for the demo
+        return {}
+#         raise HTTPException(status_code=503, detail="Data Engine unavailable")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        ## look into the raise 
-        raise HTTPException(status_code=500, detail="Internal server error")
+        ## look into the raise
+        return {}
+#         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 async def send_notification(payload: NotificationPayload) -> bool:
@@ -306,23 +330,6 @@ def shutdown_scheduler():
     logger.info("🛑 Shutting down scheduler...")
     scheduler.shutdown()
     logger.info("✅ Scheduler stopped")
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Handle startup and shutdown events
-    """
-    # Startup
-    logger.info("🚀 Application starting up...")
-    start_scheduler()
-    logger.info("✅ Application ready!")
-    
-    yield
-    
-    # Shutdown
-    logger.info("🛑 Application shutting down...")
-    shutdown_scheduler()
-    logger.info("✅ Application stopped!")
 
 
 ## API Endpoints

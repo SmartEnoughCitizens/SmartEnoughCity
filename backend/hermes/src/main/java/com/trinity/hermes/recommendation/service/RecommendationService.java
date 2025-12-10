@@ -7,6 +7,7 @@ import com.trinity.hermes.recommendation.dto.UpdateRecommendationRequest;
 import com.trinity.hermes.recommendation.entity.Recommendation;
 import com.trinity.hermes.recommendation.repository.RecommendationRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
@@ -62,22 +64,26 @@ public class RecommendationService {
     }
 
     public RecommendationResponse createRecommendation(CreateRecommendationRequest request) {
-
-        Recommendation recommendation = Recommendation.builder().id(UUID.randomUUID().toString())
-                .dataIndicator("bus")
-                .notificationSent("notificationSent")
-                .status("status")
-                .createdAt("createdAt")
-                .completedAt("completedAt")
-                .transportMode("transportMode")
-                .routes("routes")
-                .estimatedTime("estimatedTime")
-                .alternatives("alternatives")
-                .confidenceScore("confidenceScore")
-                .generatedAt("generatedAt")
-                .build();
-        Recommendation saved = recommendationRepository.save(recommendation);
-        return mapToResponse(saved);
+        try {
+            Recommendation recommendation = Recommendation.builder().id(UUID.randomUUID().toString())
+                    .dataIndicator("bus")
+                    .notificationSent("notificationSent")
+                    .status("status")
+                    .createdAt("createdAt")
+                    .completedAt("completedAt")
+                    .transportMode("transportMode")
+                    .routes("routes")
+                    .estimatedTime("estimatedTime")
+                    .alternatives("alternatives")
+                    .confidenceScore("confidenceScore")
+                    .generatedAt("generatedAt")
+                    .build();
+            Recommendation saved = recommendationRepository.save(recommendation);
+            return mapToResponse(saved);
+        } catch (Exception e) {
+            log.error("Error while creating recommendation -", e);
+            return null;
+        }
     }
 
 //    public Optional<RecommendationResponse> updateRecommendation(Long id, UpdateRecommendationRequest request) {
