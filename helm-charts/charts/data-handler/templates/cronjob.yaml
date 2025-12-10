@@ -24,17 +24,31 @@ spec:
             app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 12 }}
         spec:
+          {{- if .Values.imagePullSecrets }}
+          imagePullSecrets:
+          {{- range .Values.imagePullSecrets }}
+            - name: {{ . }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.securityContext }}
+          securityContext:
+{{- toYaml .Values.securityContext | nindent 12 }}
+          {{- end }}
           restartPolicy: Never
           terminationGracePeriodSeconds: 10
           containers:
             - name: data-handler
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- if .Values.containerSecurityContext }}
+              securityContext:
+{{- toYaml .Values.containerSecurityContext | nindent 16 }}
+              {{- end }}
               resources:
 {{- toYaml .Values.resources | nindent 16 }}
               env:
                 - name: DB_HOST
-                  value: "{{ .Release.Name }}-postgresql"
+                  value: {{ .Values.global.db.host | default (printf "%s-postgresql" .Release.Name) | quote }}
                 - name: DB_PORT
                   value: {{ .Values.global.db.port | quote }}
                 - name: DB_NAME
@@ -51,3 +65,10 @@ spec:
                       key: DB_DATA_HANDLER_PASSWORD
                 - name: DB_DATA_HANDLER_SCHEMA
                   value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
+                - name: HERMES_URL
+                  value: "http://{{ .Release.Name }}-hermes:8080"
+                - name: GTFS_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.gtfsApiKey.name | quote }}
+                      key: GTFS_API_KEY

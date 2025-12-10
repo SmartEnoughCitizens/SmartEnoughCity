@@ -1,0 +1,47 @@
+image:
+  repository: hermes
+  tag: dev
+  pullPolicy: Never
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8080
+
+server:
+  port: 8080
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+labels:
+  app.kubernetes.io/name: hermes
+  app.kubernetes.io/component: api-server
+  app.kubernetes.io/part-of: smart-enough-city
+
+db:
+  secret:
+    name: sec-db-backend-user
+    usernameKey: DB_BACKEND_USER
+    passwordKey: DB_BACKEND_USER_PASSWORD
+
+keycloak:
+  # Set from parent values
+  serverUrl: ""
+  realm: ""
+  clientId: ""
+  secret:
+    name: ""
+    key: ""
+
+imagePullSecrets: []
+
+securityContext: {}
+
+containerSecurityContext: {}

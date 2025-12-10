@@ -15,18 +15,24 @@
     <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
         <http>
             <url>${LOKI_URL}</url>
-            <!-- correct property name -->
+            <!-- timeouts from Spring properties -->
             <connectTimeoutMs>${LOKI_TO_MS}</connectTimeoutMs>
             <readTimeoutMs>${LOKI_TO_MS}</readTimeoutMs>
         </http>
         <format>
+            <!-- key=value pairs for Loki labels -->
             <label>
-                <!-- key=value pairs -->
                 <pattern>app=${APP},level=%level,logger=%logger{20}</pattern>
             </label>
+            <!-- log line content sent to Loki (safe if traceId/spanId are missing) -->
             <message>
-                <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%ex{full}</pattern>
+                <pattern>
+                    %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread]
+                    [traceId=%X{traceId} spanId=%X{spanId}]
+                    %logger{36} - %msg%ex{full}
+                </pattern>
             </message>
+            <!-- static labels -->
             <staticLabels>service=${APP}</staticLabels>
         </format>
         <batch>
@@ -52,6 +58,7 @@
 
     <!-- Local profile: add rolling file appender -->
     <springProfile name="local">
+
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>logs/hermes.log</file>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -61,7 +68,11 @@
                 <totalSizeCap>200MB</totalSizeCap>
             </rollingPolicy>
             <encoder>
-                <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%ex{full}</pattern>
+                <pattern>
+                    %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread]
+                    [traceId=%X{traceId} spanId=%X{spanId}]
+                    %logger{36} - %msg%ex{full}
+                </pattern>
             </encoder>
         </appender>
 

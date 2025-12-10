@@ -1,24 +1,38 @@
 package com.trinity.hermes.recommendation.entity;
 
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Recommendation entity - simplified for thin slice.
- * Not using JPA @Entity for now to avoid database setup complexity.
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Builder
 public class Recommendation {
-    private Long id;
-    private String name;
-    private String description;
-    private String status;
+    @Id
+    private String id;
+
     private String dataIndicator;
     private String notificationSent;
+    private String status;
     private String createdAt;
     private String completedAt;
-    private RecommendationDetails recommendationData;
+    private String transportMode;
+    private String routes;
+    private String estimatedTime;
+    private String alternatives;
+    private String confidenceScore;
+    private String generatedAt;
 }
+
+@Embeddable
+class RecommendationDetails {
+
+}
+

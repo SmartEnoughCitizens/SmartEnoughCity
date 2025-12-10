@@ -1,0 +1,58 @@
+{{- if .Values.keycloak.realm.enabled }}
+{{- $existingRealmSecret := lookup "v1" "Secret" .Release.Namespace "sec-keycloak-realm" -}}
+{{- $existingUserServiceClientSecret := "" -}}
+{{- if and $existingRealmSecret $existingRealmSecret.data (index $existingRealmSecret.data "USER_SERVICE_CLIENT_SECRET") -}}
+  {{- $existingUserServiceClientSecret = index $existingRealmSecret.data "USER_SERVICE_CLIENT_SECRET" | b64dec -}}
+{{- end -}}
+{{- $userServiceClientSecret := .Values.keycloak.realm.userServiceClientSecret | default $existingUserServiceClientSecret -}}
+{{- if not $userServiceClientSecret -}}
+  {{- fail "keycloak.realm.userServiceClientSecret must be set in values.yaml" -}}
+{{- end -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.keycloak.realm.configMapName }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: realm-config
+data:
+  realm-export.json: |
+    {
+      "realm": {{ .Values.keycloak.realm.name | quote }},
+      "enabled": true,
+      "users": [
+        {
+          "username": "testuser",
+          "enabled": true,
+          "emailVerified": true,
+          "email": "testuser@example.com",
+          "firstName": "Test",
+          "lastName": "User",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "testpassword",
+              "temporary": false
+            }
+          ]
+        }
+      ],
+      "clients": [
+        {
+          "clientId": {{ .Values.keycloak.realm.clientId | quote }},
+          "name": "User Service",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "secret": {{ $userServiceClientSecret | quote }},
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": true,
+          "serviceAccountsEnabled": false,
+          "redirectUris": [],
+          "webOrigins": []
+        }
+      ]
+    }
+{{- end }}

@@ -21,3 +21,9 @@ labels:
   app.kubernetes.io/name: frontend
   app.kubernetes.io/component: static-assets-server
   app.kubernetes.io/part-of: smart-enough-city
+
+imagePullSecrets: []
+
+securityContext: {}
+
+containerSecurityContext: {}

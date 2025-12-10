@@ -25,15 +25,8 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        default_schema: public # Default for new tables like Disruption
-        jdbc:
-          lob:
-            non_contextual_creation: true
+      ddl-auto: none
+
 
 management:
   endpoints:
