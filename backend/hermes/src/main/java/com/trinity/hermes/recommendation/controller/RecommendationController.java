@@ -32,7 +32,7 @@ public class RecommendationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RecommendationResponse> getRecommendationById(@PathVariable Long id) {
+    public ResponseEntity<RecommendationResponse> getRecommendationById(@PathVariable String id) {
         Optional<RecommendationResponse> recommendation = recommendationFacade.getRecommendationById(id);
         return recommendation.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

@@ -20,7 +20,7 @@ public class RecommendationFacade {
         return recommendationService.getAllRecommendations();
     }
 
-    public Optional<RecommendationResponse> getRecommendationById(Long id) {
+    public Optional<RecommendationResponse> getRecommendationById(String id) {
         return recommendationService.getRecommendationById(id);
     }
 

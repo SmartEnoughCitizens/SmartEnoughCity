@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SimulationResponse {
     private String id;
-    private Long recommendationId;
+    private String recommendationId;
     private String name;
     private String description;
     private String scenario;

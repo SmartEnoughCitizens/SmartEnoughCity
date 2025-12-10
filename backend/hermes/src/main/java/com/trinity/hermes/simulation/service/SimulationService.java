@@ -33,7 +33,7 @@ public class SimulationService {
      * @param recommendationId the ID of the recommendation to simulate
      * @return the simulation results, or empty if recommendation not found
      */
-    public Optional<Simulation> runSimulation(Long recommendationId) {
+    public Optional<Simulation> runSimulation(String recommendationId) {
         log.info("Running simulation for recommendation ID: {}", recommendationId);
 
         // Fetch the recommendation

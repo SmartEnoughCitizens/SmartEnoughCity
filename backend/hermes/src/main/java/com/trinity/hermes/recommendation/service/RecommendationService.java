@@ -58,7 +58,7 @@ public class RecommendationService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<RecommendationResponse> getRecommendationById(Long id) {
+    public Optional<RecommendationResponse> getRecommendationById(String id) {
         return recommendationRepository.findById(id)
                 .map(this::mapToResponse);
     }
