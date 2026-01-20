@@ -1,17 +1,16 @@
-from data_handler.cycle_handler import cycle_stations_to_db
 from data_handler.bus_handler import trip_updates_to_db
-from data_handler.luas_handler import luas_stops_to_db  
-from data_handler.luas_handler import luas_forecasts_to_db
-from data_handler.train.trainstationdata import train_stations_to_db
-from data_handler.settings.database_settings import get_db_settings
+from data_handler.cycle_handler import cycle_stations_to_db
+from data_handler.luas_handler import luas_forecasts_to_db, luas_stops_to_db
 from data_handler.settings.data_sources_settings import get_data_sources_settings
+from data_handler.settings.database_settings import get_db_settings
+from data_handler.train.trainstationdata import train_stations_to_db
 
 
-def main():
+def main() -> None:
     # Load settings from environment
     db_settings = get_db_settings()
     sources_settings = get_data_sources_settings()
-    
+
     print("Hello from data-handler!")
 
     print(f"Connected to database: {db_settings.name} at {db_settings.host}:{db_settings.port}")
@@ -22,34 +21,34 @@ def main():
     print(f"  - Train data: {sources_settings.enable_train_data}")
     print(f"  - Tram data: {sources_settings.enable_tram_data}")
     print(f"  - Construction data: {sources_settings.enable_construction_data}\n")
-    
+
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
         print("Processing train data...")
         # train_stations_to_csv(r"irishrail_stations.csv")
         # continious_data_to_csv(r"irishrail_train_history.csv")
         train_stations_to_db()
-    
+
     if sources_settings.enable_cycle_data:
         print("Processing cycle data...")
         cycle_stations_to_db()
         # Add cycle data processing here
-    
+
     if sources_settings.enable_car_data:
         print("Processing car data...")
         # Add car data processing here
-    
+
     if sources_settings.enable_bus_data:
         print("Processing bus data...")
         trip_updates_to_db()
 
         # Add bus data processing here
-    
+
     if sources_settings.enable_tram_data:
         print("Processing tram data...")
         luas_stops_to_db()
         luas_forecasts_to_db()# Add tram data processing here
-    
+
     if sources_settings.enable_construction_data:
         print("Processing construction data...")
         # Add construction data processing here

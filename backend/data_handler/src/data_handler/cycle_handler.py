@@ -1,15 +1,15 @@
-import requests
 import pandas as pd
+import requests
 from sqlalchemy import text
-from sqlalchemy.exc import ProgrammingError, DBAPIError
+from sqlalchemy.exc import DBAPIError, ProgrammingError
+
 from data_handler.db import SessionLocal
 from data_handler.settings.database_settings import get_db_settings
-
 
 URL = "https://data.smartdublin.ie/dublinbikes-api/bikes/dublin_bikes/current/stations.geojson"
 
 
-def fetch_cycle_data():
+def fetch_cycle_data() -> pd.DataFrame:
     """Fetch GeoJSON der Dublin Bikes API und gib DataFrame zurück."""
     resp = requests.get(URL)
     resp.raise_for_status()
@@ -38,11 +38,10 @@ def fetch_cycle_data():
             "lat": coords[1],
         })
 
-    df = pd.DataFrame(rows)
-    return df
+    return pd.DataFrame(rows)
 
 
-def cycle_stations_to_csv(filepath):
+def cycle_stations_to_csv(filepath: str) -> None:
     df = fetch_cycle_data()
     if df.empty:
         print("No cycle data to save.")
@@ -52,7 +51,7 @@ def cycle_stations_to_csv(filepath):
     print(f"Saved {len(df)} cycle rows to {filepath}")
 
 
-def cycle_stations_to_db():
+def cycle_stations_to_db() -> None:
     """Schreibe aktuelle Dublin Bikes Daten in DB (batch)."""
     df = fetch_cycle_data()
 
@@ -117,9 +116,9 @@ def cycle_stations_to_db():
         print(f"Inserted/updated {len(records)} cycle rows into {schema}.cycle_stations")
     except ProgrammingError as e:
         msg = str(e).lower()
-        if 'permission denied' in msg:
+        if "permission denied" in msg:
             print("Permission error: DB user lacks privileges.")
-        elif 'does not exist' in msg:
+        elif "does not exist" in msg:
             print(f"Table {schema}.cycle_stations does not exist. Run postgres-init first.")
         else:
             print("Database programming error:", e)
