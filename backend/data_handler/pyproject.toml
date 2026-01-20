@@ -18,3 +18,73 @@ data-handler = "data_handler.__main__:main"
 [build-system]
 requires = ["uv_build>=0.9.8,<0.10.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.13",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", 
+    "F", 
+    "UP", 
+    "B", 
+    "SIM", 
+    "I",
+    "ANN",
+    "ASYNC",
+    "S",
+    "BLE",
+    "FBT",
+    "A",
+    "COM",
+    "C4",
+    "EM",
+    "FIX",
+    "FA",
+    "INT",
+    "ISC",
+    "ICN",
+    "LOG",
+    "G",
+    "INP",
+    "PIE",
+    "PYI",
+    "PT",
+    "Q",
+    "RSE",
+    "RET",
+    "SLF",
+    "SLOT",
+    "TID",
+    "TD",
+    "TC",
+    "PTH",
+    "FLY",
+    "N",
+    "PERF",
+    "W",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "FURB",
+    "RUF",
+    "TRY",
+]
+
+ignore = [
+    "E501",     # Line too long
+    "PLR2004",  # Magic value used in comparison
+    "FBT003",   # Boolean positional value in function call
+    "COM812",   # Trailing comma missing (disabled to avoid conflicts with the formatter)
+
+    # TODO: Remove the below rules from ignored
+    # They are ignored temporarily, the errors should be resolved properly
+    "BLE001",   # Do not catch blind exception: `Exception`
+    "S113",     # Probable use of `requests` call without timeout
+    "S314",     # Using `xml` to parse untrusted data is known to be vulnerable to XML attacks; use `defusedxml` equivalents
+    "S608",     # Possible SQL injection vector through string-based query construction
+    "PERF401",  # Use `list.extend` to create a transformed list
+]
