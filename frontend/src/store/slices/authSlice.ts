@@ -3,7 +3,7 @@
  * Manages authentication UI state (NOT server state - that's in React Query)
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 interface AuthState {
   isAuthenticated: boolean;

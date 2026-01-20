@@ -2,7 +2,7 @@
  * Login form component
  */
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
   Box,
   Button,
@@ -46,7 +46,7 @@ export const LoginForm = () => {
       );
 
       navigate('/dashboard');
-    } catch (error) {
+    } catch {
       // Error is handled by mutation
     }
   };
