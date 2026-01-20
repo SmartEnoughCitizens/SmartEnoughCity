@@ -94,38 +94,33 @@ jobs:
     name: Test Inference Engine
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            backend/inference_engine
       
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+          working-directory: ./backend/inference_engine
       
-      - name: Set up Python
-        run: uv python install 3.12
+      - name: Install Python
+        working-directory: ./backend/inference_engine
+        run: uv python install
       
       - name: Install dependencies
         working-directory: ./backend/inference_engine
         run: uv sync
-
-      - name: Install pytest-cov
-        working-directory: ./backend/inference_engine
-        run: uv pip install pytest-cov
       
       - name: Run pytest
         working-directory: ./backend/inference_engine
         env:
           HERMES_URL: http://localhost:8080
         run: |
-          uv run pytest src/inference_engine/test_app.py -v --cov=src/inference_engine --cov-report=xml --cov-report=term
-      
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          file: ./backend/inference_engine/coverage.xml
-          flags: inference-engine
-          fail_ci_if_error: false
+          uv run -m pytest
 
   # test-hermes:
   #   name: Test Hermes Backend
