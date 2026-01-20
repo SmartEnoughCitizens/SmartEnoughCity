@@ -26,39 +26,37 @@ def get_train_positions_history() -> pd.DataFrame:
         root, ns = parse_xml(url)
 
         for tr in root.findall(f".//{{{ns}}}objTrainPositions"):
-            rows.append({
-                "train_code": tr.findtext(f"{{{ns}}}TrainCode"),
-                "status": tr.findtext(f"{{{ns}}}TrainStatus"),
-                "lat": float(tr.findtext(f"{{{ns}}}TrainLatitude") or 0),
-                "lon": float(tr.findtext(f"{{{ns}}}TrainLongitude") or 0),
-                "direction": tr.findtext(f"{{{ns}}}Direction"),
-                "train_date": tr.findtext(f"{{{ns}}}TrainDate"),
-                "public_message": tr.findtext(f"{{{ns}}}PublicMessage"),
-                "train_type": t,                     # <-- WICHTIG
-                "fetched_at": fetched_at,
-            })
+            rows.append(
+                {
+                    "train_code": tr.findtext(f"{{{ns}}}TrainCode"),
+                    "status": tr.findtext(f"{{{ns}}}TrainStatus"),
+                    "lat": float(tr.findtext(f"{{{ns}}}TrainLatitude") or 0),
+                    "lon": float(tr.findtext(f"{{{ns}}}TrainLongitude") or 0),
+                    "direction": tr.findtext(f"{{{ns}}}Direction"),
+                    "train_date": tr.findtext(f"{{{ns}}}TrainDate"),
+                    "public_message": tr.findtext(f"{{{ns}}}PublicMessage"),
+                    "train_type": t,  # <-- WICHTIG
+                    "fetched_at": fetched_at,
+                }
+            )
 
     return pd.DataFrame(rows)
 
 
 def continuous_data_to_csv(output_path: str) -> None:
+    try:
+        df = get_train_positions_history()
 
-        try:
-            df = get_train_positions_history()
+        file_exists = Path(output_path).is_file()
 
-            file_exists = Path(output_path).is_file()
+        df.to_csv(
+            output_path,
+            mode="a",
+            header=not file_exists,
+            index=False,
+        )
 
-            df.to_csv(
-                output_path,
-                mode="a",
-                header=not file_exists,
-                index=False,
-            )
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Saved {len(df)} rows.")
 
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Saved {len(df)} rows.")
-
-        except Exception as e:
-            print(f"Error while scraping: {e}")
-
-
-
+    except Exception as e:
+        print(f"Error while scraping: {e}")

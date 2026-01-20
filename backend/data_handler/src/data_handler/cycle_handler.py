@@ -22,21 +22,23 @@ def fetch_cycle_data() -> pd.DataFrame:
         geom = feature.get("geometry", {})
         coords = geom.get("coordinates") or [None, None]
 
-        rows.append({
-            "station_id": props.get("station_id"),
-            "name": props.get("name"),
-            "address": props.get("address"),
-            "capacity": props.get("capacity"),
-            "num_bikes_available": props.get("num_bikes_available"),
-            "num_docks_available": props.get("num_docks_available"),
-            "is_installed": props.get("is_installed"),
-            "is_renting": props.get("is_renting"),
-            "is_returning": props.get("is_returning"),
-            "last_reported": props.get("last_reported"),
-            "last_reported_dt": props.get("last_reported_dt"),
-            "lon": coords[0],
-            "lat": coords[1],
-        })
+        rows.append(
+            {
+                "station_id": props.get("station_id"),
+                "name": props.get("name"),
+                "address": props.get("address"),
+                "capacity": props.get("capacity"),
+                "num_bikes_available": props.get("num_bikes_available"),
+                "num_docks_available": props.get("num_docks_available"),
+                "is_installed": props.get("is_installed"),
+                "is_renting": props.get("is_renting"),
+                "is_returning": props.get("is_returning"),
+                "last_reported": props.get("last_reported"),
+                "last_reported_dt": props.get("last_reported_dt"),
+                "lon": coords[0],
+                "lat": coords[1],
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -62,21 +64,23 @@ def cycle_stations_to_db() -> None:
     # Create dict records for DB insert
     records = []
     for _, row in df.iterrows():
-        records.append({
-            "station_id": row["station_id"],
-            "name": row["name"],
-            "address": row["address"],
-            "capacity": row["capacity"],
-            "num_bikes_available": row["num_bikes_available"],
-            "num_docks_available": row["num_docks_available"],
-            "is_installed": row["is_installed"],
-            "is_renting": row["is_renting"],
-            "is_returning": row["is_returning"],
-            "last_reported": row["last_reported"],
-            "last_reported_dt": row["last_reported_dt"],
-            "lat": row["lat"],
-            "lon": row["lon"],
-        })
+        records.append(
+            {
+                "station_id": row["station_id"],
+                "name": row["name"],
+                "address": row["address"],
+                "capacity": row["capacity"],
+                "num_bikes_available": row["num_bikes_available"],
+                "num_docks_available": row["num_docks_available"],
+                "is_installed": row["is_installed"],
+                "is_renting": row["is_renting"],
+                "is_returning": row["is_returning"],
+                "last_reported": row["last_reported"],
+                "last_reported_dt": row["last_reported_dt"],
+                "lat": row["lat"],
+                "lon": row["lon"],
+            }
+        )
 
     s = get_db_settings()
     schema = s.postgres_schema
@@ -113,13 +117,17 @@ def cycle_stations_to_db() -> None:
         with SessionLocal() as db:
             db.execute(text(insert_sql), records)
             db.commit()
-        print(f"Inserted/updated {len(records)} cycle rows into {schema}.cycle_stations")
+        print(
+            f"Inserted/updated {len(records)} cycle rows into {schema}.cycle_stations"
+        )
     except ProgrammingError as e:
         msg = str(e).lower()
         if "permission denied" in msg:
             print("Permission error: DB user lacks privileges.")
         elif "does not exist" in msg:
-            print(f"Table {schema}.cycle_stations does not exist. Run postgres-init first.")
+            print(
+                f"Table {schema}.cycle_stations does not exist. Run postgres-init first."
+            )
         else:
             print("Database programming error:", e)
     except DBAPIError as e:

@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 JAVA_API_URL = get_api_settings().hermes_url + "/api/v1/disruptions/detect"
 BUS_DELAY_THRESHOLD_SECONDS = 1200  # 20 minutes
-LUAS_WAIT_THRESHOLD_MINUTES = 20    # 20 minutes
+LUAS_WAIT_THRESHOLD_MINUTES = 20  # 20 minutes
+
 
 def detect_bus_disruptions(records: list[dict[str, Any]]) -> None:
     """
@@ -24,18 +25,19 @@ def detect_bus_disruptions(records: list[dict[str, Any]]) -> None:
         "disruptionType": "DELAY",
         "severity": "HIGH",
         "description": "Significant delay detected on Bus Route 22",
-        "latitude": 53.3498, # Default to Dublin Center for now
+        "latitude": 53.3498,  # Default to Dublin Center for now
         "longitude": -6.2603,
         "affectedArea": "Dublin Bus Network",
         "affectedTransportModes": ["BUS"],
         "affectedRoutes": ["22"],
-        "affectedStops": ["12345", "67890"], # Limit to 5 stops
+        "affectedStops": ["12345", "67890"],  # Limit to 5 stops
         "delayMinutes": 20,
         "dataSource": "REAL_TIME_API",
         "sourceReferenceId": "GTFS-RT-22-1712796200",
     }
 
     send_disruption_alert(payload)
+
 
 def send_disruption_alert(payload: dict[str, Any]) -> None:
     """
@@ -48,7 +50,11 @@ def send_disruption_alert(payload: dict[str, Any]) -> None:
         if response.status_code == 200:
             logger.info("Successfully reported disruption to Hermes backend")
         else:
-            logger.error("Failed to report disruption: %s - %s", response.status_code, response.text)
+            logger.error(
+                "Failed to report disruption: %s - %s",
+                response.status_code,
+                response.text,
+            )
 
     except Exception:
         logger.exception("Error sending disruption alert")

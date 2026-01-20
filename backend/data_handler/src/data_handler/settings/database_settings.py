@@ -57,6 +57,8 @@ def get_db_settings() -> DatabaseSettings:
     """
 
     if is_dev():
-        return DatabaseSettings(_env_file=".env.development", _env_file_encoding="utf-8")
+        return DatabaseSettings(
+            _env_file=".env.development", _env_file_encoding="utf-8"
+        )
 
     return DatabaseSettings()

@@ -20,11 +20,10 @@ engine = create_engine(
 # Session factory
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
+
 # Dependency / Contextmanager
 def get_session() -> Generator[Session, None, None]:
-    """Yield a SQLAlchemy Session for use as a dependency or context manager.
-
-"""
+    """Yield a SQLAlchemy Session for use as a dependency or context manager."""
     db = SessionLocal()
     try:
         yield db
