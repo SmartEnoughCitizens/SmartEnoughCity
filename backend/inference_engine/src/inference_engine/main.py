@@ -53,7 +53,9 @@ logger = logging.getLogger(__name__)
 # Load Settings
 # Load settings
 settings = get_api_settings()
-DATA_ENGINE_URL: str = settings.hermes_url + "/api/v1/recommendation-engine/indicators/query"
+DATA_ENGINE_URL: str = (
+    settings.hermes_url + "/api/v1/recommendation-engine/indicators/query"
+)
 NOTIFICATION_API_URL: str = settings.hermes_url + "/notification/v1"
 # # # Configuration
 # DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
@@ -64,9 +66,11 @@ NOTIFICATION_API_URL: str = settings.hermes_url + "/notification/v1"
 # DATA_ENGINE_URL: str = "http://localhost:8000/mock/data-engine"  # Point to your own mock
 # NOTIFICATION_API_URL: str = "http://localhost:8000/mock/notification"  # Point to your own mock
 
+
 # Request/Response Models
 class RecommendationRequest(BaseModel):
     context: dict[str, Any] | None = None
+
 
 class RecommendationResponse(BaseModel):
     recommendation_id: str
@@ -74,10 +78,12 @@ class RecommendationResponse(BaseModel):
     message: str
     timestamp: str
 
+
 class NotificationPayload(BaseModel):
     data_indicator: str
     recommendation: dict[str, Any]
     priority: str = "normal"
+
 
 ## Integration Layer
 async def fetch_data_from_engine(data_indicator: str) -> dict[str, Any]:
@@ -90,17 +96,21 @@ async def fetch_data_from_engine(data_indicator: str) -> dict[str, Any]:
             )
             response.raise_for_status()
             data = response.json()
-            logger.info("Fetched data from Data Engine for data indicator %s", data_indicator)
+            logger.info(
+                "Fetched data from Data Engine for data indicator %s", data_indicator
+            )
             return data
     except httpx.HTTPError:
         logger.exception("Error fetching data from Data Engine")
         ## lets not raise an exception and return empty dictionary for the demo
         return {}
-#         raise HTTPException(status_code=503, detail="Data Engine unavailable")
+    #         raise HTTPException(status_code=503, detail="Data Engine unavailable")
     except Exception:
         logger.exception("Unexpected error")
         ## look into the raise
         return {}
+
+
 #         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -113,7 +123,9 @@ async def send_notification(payload: NotificationPayload) -> bool:
                 json=payload.dict(),
             )
             response.raise_for_status()
-            logger.info("Notification sent for data indicator %s", payload.data_indicator)
+            logger.info(
+                "Notification sent for data indicator %s", payload.data_indicator
+            )
             return True
     except httpx.HTTPError:
         logger.exception("Error sending notification")
@@ -156,7 +168,9 @@ class RecommendationModel:
 
         return recommendations
 
+
 ## Service Layer
+
 
 class RecommendationService:
     """Business logic for recommendation workflow"""
@@ -164,7 +178,9 @@ class RecommendationService:
     def __init__(self) -> None:
         self.model = RecommendationModel()
 
-    async def process_recommendation(self, data_indicator: str, context: dict | None = None) -> str:
+    async def process_recommendation(
+        self, data_indicator: str, context: dict | None = None
+    ) -> str:
         """
         Main workflow:
         1. Fetch data from Data Engine
@@ -236,7 +252,6 @@ class RecommendationService:
             logger.info("Recommendation %s completed", recommendation_id)
             return recommendation_id
 
-
     async def process_batch_recommendations(self) -> dict:
         logger.info("=" * 80)
         logger.info("⏰ SCHEDULED TASK TRIGGERED")
@@ -263,19 +278,23 @@ class RecommendationService:
                     },
                 )
                 results["successful"] += 1
-                results["details"].append({
-                    "data_indicator": data_indicator,
-                    "status": "success",
-                    "recommendation_id": rec_id,
-                })
+                results["details"].append(
+                    {
+                        "data_indicator": data_indicator,
+                        "status": "success",
+                        "recommendation_id": rec_id,
+                    }
+                )
             except Exception as e:
                 logger.exception("❌ Failed for %s", data_indicator)
                 results["failed"] += 1
-                results["details"].append({
-                    "data_indicator": data_indicator,
-                    "status": "failed",
-                    "error": str(e),
-                })
+                results["details"].append(
+                    {
+                        "data_indicator": data_indicator,
+                        "status": "failed",
+                        "error": str(e),
+                    }
+                )
 
             results["total_processed"] += 1
 
@@ -284,13 +303,15 @@ class RecommendationService:
 
         logger.info("=" * 80)
         logger.info("✅ SCHEDULED TASK COMPLETED")
-        logger.info("📊 Total: %s | "
-                   "✅ Success: %s | "
-                   "❌ Failed: %s", results["total_processed"], results["successful"], results["failed"])
+        logger.info(
+            "📊 Total: %s | ✅ Success: %s | ❌ Failed: %s",
+            results["total_processed"],
+            results["successful"],
+            results["failed"],
+        )
         logger.info("=" * 80)
 
         return results
-
 
 
 # Initialize service
@@ -306,6 +327,7 @@ async def scheduled_recommendation_task() -> None:
         await recommendation_service.process_batch_recommendations()
     except Exception:
         logger.exception("❌ Scheduled task failed")
+
 
 def start_scheduler() -> None:
     """
@@ -325,8 +347,11 @@ def start_scheduler() -> None:
 
     # Start the scheduler
     scheduler.start()
-    logger.info("✅ Scheduler started! Task will run every %s hour(s)", FETCH_INTERVAL_HOURS)
+    logger.info(
+        "✅ Scheduler started! Task will run every %s hour(s)", FETCH_INTERVAL_HOURS
+    )
     logger.info("🚗 Data indicators: %s", DATA_INDICATORS)
+
 
 def shutdown_scheduler() -> None:
     """
@@ -388,6 +413,7 @@ async def trigger_scheduler_manually() -> dict:
         # TODO: Details of the error should not be exposed to the client
         raise HTTPException(status_code=500, detail=str(e)) from None
 
+
 @app.get("/scheduler/status")
 async def get_scheduler_status() -> dict:
     """
@@ -419,7 +445,9 @@ async def test_trigger(user_id: str) -> RecommendationResponse:
     )
     return await generate_recommendation(request, BackgroundTasks())
 
+
 # ==================== MOCK ENDPOINTS (FOR TESTING) ====================
+
 
 @app.get("/mock/data-engine")
 async def mock_data_engine(data_indicator: str) -> dict:
@@ -468,7 +496,9 @@ async def mock_data_engine(data_indicator: str) -> dict:
     # Get data based on indicator, default to bus if not found
     data_indicator_lower = data_indicator.lower()
     if data_indicator_lower not in mock_data_templates:
-        logger.warning("⚠️ Unknown data_indicator: %s, defaulting to 'bus'", data_indicator)
+        logger.warning(
+            "⚠️ Unknown data_indicator: %s, defaulting to 'bus'", data_indicator
+        )
         data_indicator_lower = "bus"
 
     return {
@@ -496,9 +526,12 @@ async def mock_notification_handler(payload: dict) -> dict:
         "message": "Notification sent successfully",
         "notification_id": f"notif_{payload.get('data_indicator')}_{int(datetime.utcnow().timestamp())}",
     }
+
+
 # @app.get("/")
 # def hello_world():
 #     return {"Hello": "World"}
+
 
 @app.get("/")
 async def root() -> dict:

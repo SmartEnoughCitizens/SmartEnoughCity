@@ -7,6 +7,7 @@ from inference_engine.main import (
 
 client = TestClient(app)  # Initialize the FastAPI test client
 
+
 # Test Root Endpoint ("/")
 def test_root() -> None:
     response = client.get("/")
@@ -41,6 +42,7 @@ def test_trigger_scheduler_manually() -> None:
     assert "message" in response.json()
     assert response.json()["message"] == "Batch processing completed"
 
+
 # Test get scheduler status endpoint
 def test_get_scheduler_status() -> None:
     response = client.get("/scheduler/status")
@@ -48,4 +50,3 @@ def test_get_scheduler_status() -> None:
     assert "scheduler_running" in response.json()
     assert "fetch_interval_hours" in response.json()
     assert "data_indicators" in response.json()
-
