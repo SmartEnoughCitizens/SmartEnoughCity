@@ -2,7 +2,7 @@
  * Axios instance with interceptors
  */
 
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { API_CONFIG } from '@/config/api.config';
 
 // Create axios instance

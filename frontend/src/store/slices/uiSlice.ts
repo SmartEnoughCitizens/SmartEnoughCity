@@ -3,7 +3,7 @@
  * Manages global UI state (theme, sidebar, notifications, etc.)
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 interface UIState {
   sidebarOpen: boolean;
