@@ -90,6 +90,36 @@ jobs:
   #         # npm run lint
   #         echo "Add your frontend linting commands here"
 
+  test-data-handler:
+    name: Test Data Handler
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            backend/data_handler
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          working-directory: ./backend/data_handler
+      
+      - name: Install Python
+        working-directory: ./backend/data_handler
+        run: uv python install
+      
+      - name: Install dependencies
+        working-directory: ./backend/data_handler
+        run: uv sync
+      
+      - name: Run pytest
+        working-directory: ./backend/data_handler
+        run: |
+          uv run -m pytest
+
   test-inference-engine:
     name: Test Inference Engine
     runs-on: ubuntu-latest
