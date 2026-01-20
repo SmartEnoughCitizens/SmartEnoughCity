@@ -26,6 +26,7 @@ const NotificationsPage = lazy(() =>
 );
 
 // Loading fallback
+// eslint-disable-next-line react-refresh/only-export-components
 const LoadingFallback = () => (
   <Box
     sx={{
@@ -40,6 +41,7 @@ const LoadingFallback = () => (
 );
 
 // Wrapper for lazy-loaded components
+// eslint-disable-next-line react-refresh/only-export-components
 const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
 );

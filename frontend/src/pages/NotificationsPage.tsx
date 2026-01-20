@@ -20,29 +20,35 @@ import { Priority, NotificationType } from '@/types';
 
 const getPriorityColor = (priority: Priority) => {
   switch (priority) {
-    case Priority.URGENT:
+    case Priority.URGENT: {
       return 'error';
-    case Priority.HIGH:
+    }
+    case Priority.HIGH: {
       return 'warning';
-    case Priority.MEDIUM:
+    }
+    case Priority.MEDIUM: {
       return 'info';
-    case Priority.LOW:
-    default:
+    }
+    case Priority.LOW: {
       return 'default';
+    }
   }
 };
 
 const getTypeColor = (type: NotificationType) => {
   switch (type) {
-    case NotificationType.ALERT:
+    case NotificationType.ALERT: {
       return 'error';
-    case NotificationType.ROUTE_RECOMMENDATION:
+    }
+    case NotificationType.ROUTE_RECOMMENDATION: {
       return 'primary';
-    case NotificationType.UPDATE:
+    }
+    case NotificationType.UPDATE: {
       return 'info';
-    case NotificationType.SYSTEM:
-    default:
+    }
+    case NotificationType.SYSTEM: {
       return 'default';
+    }
   }
 };
 

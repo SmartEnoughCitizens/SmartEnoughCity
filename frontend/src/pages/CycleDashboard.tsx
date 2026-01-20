@@ -123,14 +123,18 @@ export const CycleDashboard = () => {
 
   const getCurrentData = () => {
     switch (tabValue) {
-      case 0:
+      case 0: {
         return allStations?.data || [];
-      case 1:
+      }
+      case 1: {
         return bikesAvailable || [];
-      case 2:
+      }
+      case 2: {
         return docksAvailable || [];
-      default:
+      }
+      default: {
         return [];
+      }
     }
   };
 

@@ -33,6 +33,6 @@ export const useIndicatorData = (
     queryKey: RECOMMENDATION_KEYS.indicator(indicatorType, limit),
     queryFn: () => recommendationApi.getIndicatorData(indicatorType, limit),
     enabled: !!indicatorType && enabled,
-    staleTime: 30000, // 30 seconds
+    staleTime: 30_000, // 30 seconds
   });
 };
