@@ -78,4 +78,5 @@ ignore = [
     "TD002",    # Missing author in TODO
     "TD003",    # Missing issue link for this TODO
     "FIX002",   # Line contains TODO
+    "COM812",   # Trailing comma missing (disabled to avoid conflicts with the formatter)
 ]
