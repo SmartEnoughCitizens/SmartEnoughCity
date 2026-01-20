@@ -23,18 +23,18 @@ interface CycleStationTableProps {
   maxRows?: number;
 }
 
+const StatusIcon = ({ status }: { status: boolean }) =>
+  status ? (
+    <CheckCircleIcon color="success" fontSize="small" />
+  ) : (
+    <CancelIcon color="error" fontSize="small" />
+  );
+
 export const CycleStationTable = ({
   stations,
   maxRows = 10,
 }: CycleStationTableProps) => {
   const displayStations = stations.slice(0, maxRows);
-
-  const StatusIcon = ({ status }: { status: boolean }) =>
-    status ? (
-      <CheckCircleIcon color="success" fontSize="small" />
-    ) : (
-      <CancelIcon color="error" fontSize="small" />
-    );
 
   return (
     <Paper>

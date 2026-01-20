@@ -55,6 +55,6 @@ export const useAuthHealth = () => {
   return useQuery({
     queryKey: AUTH_KEYS.health,
     queryFn: () => authApi.checkHealth(),
-    staleTime: 60000, // 1 minute
+    staleTime: 60_000, // 1 minute
   });
 };

@@ -40,7 +40,7 @@ const FitBounds = ({ stations }: { stations: CycleStation[] }) => {
     }
   }, [stations, map]);
 
-  return null;
+  return <></>;
 };
 
 export const CycleStationMap = ({

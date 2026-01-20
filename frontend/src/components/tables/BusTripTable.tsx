@@ -20,22 +20,22 @@ interface BusTripTableProps {
   maxRows?: number;
 }
 
+const getDelayColor = (delay: number | null) => {
+  if (delay === null) return 'default';
+  if (delay <= 60) return 'success';
+  if (delay <= 180) return 'warning';
+  return 'error';
+};
+
+const formatDelay = (delay: number | null) => {
+  if (delay === null) return 'N/A';
+  const minutes = Math.floor(Math.abs(delay) / 60);
+  const seconds = Math.abs(delay) % 60;
+  return `${delay < 0 ? '-' : ''}${minutes}m ${seconds}s`;
+};
+
 export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
   const displayTrips = trips.slice(0, maxRows);
-
-  const getDelayColor = (delay: number | null) => {
-    if (delay === null) return 'default';
-    if (delay <= 60) return 'success';
-    if (delay <= 180) return 'warning';
-    return 'error';
-  };
-
-  const formatDelay = (delay: number | null) => {
-    if (delay === null) return 'N/A';
-    const minutes = Math.floor(Math.abs(delay) / 60);
-    const seconds = Math.abs(delay) % 60;
-    return `${delay < 0 ? '-' : ''}${minutes}m ${seconds}s`;
-  };
 
   return (
     <Paper>

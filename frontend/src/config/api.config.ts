@@ -4,7 +4,7 @@
 
 export const API_CONFIG = {
   BASE_URL: import.meta.env.DEV ? 'http://localhost:8080' : '',
-  TIMEOUT: 30000,
+  TIMEOUT: 30_000,
   HEADERS: {
     'Content-Type': 'application/json',
   },

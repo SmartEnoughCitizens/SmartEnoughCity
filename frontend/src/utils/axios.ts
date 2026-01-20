@@ -30,7 +30,7 @@ axiosInstance.interceptors.request.use(
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
+  (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Clear auth data on unauthorized
       localStorage.removeItem('accessToken');
@@ -38,11 +38,11 @@ axiosInstance.interceptors.response.use(
       localStorage.removeItem('username');
 
       // Redirect to login if not already there
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (globalThis.location.pathname !== '/login') {
+        globalThis.location.href = '/login';
       }
     }
-    return Promise.reject(error);
+    throw error;
   }
 );
 

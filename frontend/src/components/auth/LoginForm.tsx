@@ -101,7 +101,6 @@ export const LoginForm = () => {
             onChange={(e) => setUsername(e.target.value)}
             disabled={loginMutation.isPending}
             required
-            autoFocus
           />
 
           <TextField
