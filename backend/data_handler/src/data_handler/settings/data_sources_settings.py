@@ -56,6 +56,8 @@ def get_data_sources_settings() -> DataSourcesSettings:
     """
 
     if is_dev():
-        return DataSourcesSettings(_env_file=".env.development", _env_file_encoding="utf-8")
+        return DataSourcesSettings(
+            _env_file=".env.development", _env_file_encoding="utf-8"
+        )
 
     return DataSourcesSettings()

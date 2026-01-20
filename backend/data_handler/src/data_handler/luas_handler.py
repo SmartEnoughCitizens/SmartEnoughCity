@@ -36,16 +36,18 @@ def fetch_luas_stops(line_name: str) -> pd.DataFrame:
                 stops = [stops]
 
             for stop in stops:
-                rows.append({
-                    "stop_id": stop["@abrev"],
-                    "line": line_name,
-                    "name": stop.get("#text", stop.get("@text", "")),
-                    "pronunciation": stop.get("@pronunciation", ""),
-                    "park_ride": stop.get("@isParkRide") == "1",
-                    "cycle_ride": stop.get("@isCycleRide") == "1",
-                    "lat": float(stop["@lat"]),
-                    "lon": float(stop["@long"]),
-                })
+                rows.append(
+                    {
+                        "stop_id": stop["@abrev"],
+                        "line": line_name,
+                        "name": stop.get("#text", stop.get("@text", "")),
+                        "pronunciation": stop.get("@pronunciation", ""),
+                        "park_ride": stop.get("@isParkRide") == "1",
+                        "cycle_ride": stop.get("@isCycleRide") == "1",
+                        "lat": float(stop["@lat"]),
+                        "lon": float(stop["@long"]),
+                    }
+                )
 
     return pd.DataFrame(rows)
 
@@ -123,12 +125,14 @@ def fetch_forecast_for_stop(stop_id: str) -> list[dict]:
 
         for tram in trams:
             due = tram.get("@dueMins")
-            rows.append({
-                "direction": direction_name,
-                "destination": tram.get("@destination", ""),
-                "due_mins": int(due) if due and due.isdigit() else None,
-                "message": message,
-            })
+            rows.append(
+                {
+                    "direction": direction_name,
+                    "destination": tram.get("@destination", ""),
+                    "due_mins": int(due) if due and due.isdigit() else None,
+                    "message": message,
+                }
+            )
 
     return rows
 

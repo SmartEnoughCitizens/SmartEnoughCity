@@ -13,7 +13,9 @@ def main() -> None:
 
     print("Hello from data-handler!")
 
-    print(f"Connected to database: {db_settings.name} at {db_settings.host}:{db_settings.port}")
+    print(
+        f"Connected to database: {db_settings.name} at {db_settings.host}:{db_settings.port}"
+    )
     print("\nData sources enabled:")
     print(f"  - Cycle data: {sources_settings.enable_cycle_data}")
     print(f"  - Car data: {sources_settings.enable_car_data}")
@@ -47,11 +49,12 @@ def main() -> None:
     if sources_settings.enable_tram_data:
         print("Processing tram data...")
         luas_stops_to_db()
-        luas_forecasts_to_db()# Add tram data processing here
+        luas_forecasts_to_db()  # Add tram data processing here
 
     if sources_settings.enable_construction_data:
         print("Processing construction data...")
         # Add construction data processing here
+
 
 if __name__ == "__main__":
     main()

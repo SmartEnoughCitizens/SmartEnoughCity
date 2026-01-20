@@ -10,6 +10,7 @@ from data_handler.settings.database_settings import get_db_settings
 
 BASE = "http://api.irishrail.ie/realtime/realtime.asmx"
 
+
 def parse_xml(url: str) -> tuple[ET.Element, str]:
     response = requests.get(url)
     response.raise_for_status()
@@ -22,21 +23,26 @@ def get_all_stations_with_type() -> pd.DataFrame:
     all_stations = []
 
     for t in ["A", "M", "S", "D"]:  # All, Mainline, Suburban, DART
-        root, ns = parse_xml(f"{BASE}/getAllStationsXML_WithStationType?StationType={t}")
+        root, ns = parse_xml(
+            f"{BASE}/getAllStationsXML_WithStationType?StationType={t}"
+        )
         for st in root.findall(f".//{{{ns}}}objStation"):
-            all_stations.append({
-                "desc": st.findtext(f"{{{ns}}}StationDesc"),
-                "code": st.findtext(f"{{{ns}}}StationCode"),
-                "lat": float(st.findtext(f"{{{ns}}}StationLatitude") or 0),
-                "lon": float(st.findtext(f"{{{ns}}}StationLongitude") or 0),
-                "type": t,
-            })
+            all_stations.append(
+                {
+                    "desc": st.findtext(f"{{{ns}}}StationDesc"),
+                    "code": st.findtext(f"{{{ns}}}StationCode"),
+                    "lat": float(st.findtext(f"{{{ns}}}StationLatitude") or 0),
+                    "lon": float(st.findtext(f"{{{ns}}}StationLongitude") or 0),
+                    "type": t,
+                }
+            )
 
     df = pd.DataFrame(all_stations)
 
-    return (df.groupby(["code", "desc", "lat", "lon"], as_index=False)
-            .agg({"type": lambda x: ";".join(sorted(set(x)))})
-         )
+    return df.groupby(["code", "desc", "lat", "lon"], as_index=False).agg(
+        {"type": lambda x: ";".join(sorted(set(x)))}
+    )
+
 
 # NOTE: Schema/table creation is handled by orchestration (postgres-init).
 # data_handler should only perform inserts/queries at runtime.
@@ -46,6 +52,7 @@ def train_stations_to_csv(filepath: str) -> None:
     stations = get_all_stations_with_type()
     print(f"\nTotal stations: {len(stations)}")
     stations.to_csv(filepath, index=False)
+
 
 def train_stations_to_db() -> None:
     """Hole Stations und schreibe in DB (batch)."""
@@ -62,13 +69,15 @@ def train_stations_to_db() -> None:
     # Spalten: station_code, station_desc, lat, lon, station_types
     records = []
     for _, row in df.iterrows():
-        records.append({
-            "station_code": row["code"],
-            "station_desc": row["desc"],
-            "lat": float(row["lat"]) if not pd.isna(row["lat"]) else None,
-            "lon": float(row["lon"]) if not pd.isna(row["lon"]) else None,
-            "station_types": row["type"],
-        })
+        records.append(
+            {
+                "station_code": row["code"],
+                "station_desc": row["desc"],
+                "lat": float(row["lat"]) if not pd.isna(row["lat"]) else None,
+                "lon": float(row["lon"]) if not pd.isna(row["lon"]) else None,
+                "station_types": row["type"],
+            }
+        )
 
     # 4) Batch-Insert (executemany)
     s = get_db_settings()
@@ -90,11 +99,14 @@ def train_stations_to_db() -> None:
         # Common causes: missing schema/table or insufficient privileges
         msg = str(e).lower()
         if "permission denied" in msg:
-            print("Permission error: the DB user lacks privileges to write to the database. Ensure postgres-init granted necessary rights.")
+            print(
+                "Permission error: the DB user lacks privileges to write to the database. Ensure postgres-init granted necessary rights."
+            )
         elif "does not exist" in msg or "undefined_table" in msg:
-            print(f"Database table {schema}.train_stations does not exist. Ensure the postgres-init job created the schema and table.")
+            print(
+                f"Database table {schema}.train_stations does not exist. Ensure the postgres-init job created the schema and table."
+            )
         else:
             print("Database programming error:", e)
     except DBAPIError as e:
         print("Database error:", e)
-

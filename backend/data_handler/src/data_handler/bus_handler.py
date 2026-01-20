@@ -1,4 +1,3 @@
-
 import pandas as pd
 import requests
 from sqlalchemy import text
@@ -14,7 +13,6 @@ GTFS_URL = "https://api.nationaltransport.ie/gtfsr/v2/TripUpdates?format=json"
 # Load API key from environment or .env.development via pydantic settings
 _api_settings = get_api_settings()
 API_KEY = _api_settings.gtfs_api_key
-
 
 
 def fetch_gtfs_trip_updates() -> pd.DataFrame:
@@ -36,38 +34,42 @@ def fetch_gtfs_trip_updates() -> pd.DataFrame:
 
         # falls keine Stops vorhanden
         if not stops:
-            rows.append({
-                "entity_id": entity.get("id"),
-                "trip_id": trip.get("trip_id"),
-                "route_id": trip.get("route_id"),
-                "start_time": trip.get("start_time"),
-                "start_date": trip.get("start_date"),
-                "stop_sequence": None,
-                "stop_id": None,
-                "arrival_delay": None,
-                "departure_delay": None,
-                "schedule_relationship": None,
-            })
+            rows.append(
+                {
+                    "entity_id": entity.get("id"),
+                    "trip_id": trip.get("trip_id"),
+                    "route_id": trip.get("route_id"),
+                    "start_time": trip.get("start_time"),
+                    "start_date": trip.get("start_date"),
+                    "stop_sequence": None,
+                    "stop_id": None,
+                    "arrival_delay": None,
+                    "departure_delay": None,
+                    "schedule_relationship": None,
+                }
+            )
             continue
 
         for st in stops:
-            rows.append({
-                "entity_id": entity.get("id"),
-                "trip_id": trip.get("trip_id"),
-                "route_id": trip.get("route_id"),
-                "start_time": trip.get("start_time"),
-                "start_date": trip.get("start_date"),
-                # WICHTIG: stop_sequence ist IMMER ein string
-                "stop_sequence": (
-                    str(st.get("stop_sequence"))
-                    if st.get("stop_sequence") is not None
-                    else None
-                ),
-                "stop_id": st.get("stop_id"),
-                "arrival_delay": st.get("arrival", {}).get("delay"),
-                "departure_delay": st.get("departure", {}).get("delay"),
-                "schedule_relationship": st.get("schedule_relationship"),
-            })
+            rows.append(
+                {
+                    "entity_id": entity.get("id"),
+                    "trip_id": trip.get("trip_id"),
+                    "route_id": trip.get("route_id"),
+                    "start_time": trip.get("start_time"),
+                    "start_date": trip.get("start_date"),
+                    # WICHTIG: stop_sequence ist IMMER ein string
+                    "stop_sequence": (
+                        str(st.get("stop_sequence"))
+                        if st.get("stop_sequence") is not None
+                        else None
+                    ),
+                    "stop_id": st.get("stop_id"),
+                    "arrival_delay": st.get("arrival", {}).get("delay"),
+                    "departure_delay": st.get("departure", {}).get("delay"),
+                    "schedule_relationship": st.get("schedule_relationship"),
+                }
+            )
 
     return pd.DataFrame(rows)
 
@@ -142,7 +144,9 @@ def trip_updates_to_db() -> None:
         with SessionLocal() as db:
             db.execute(text(insert_sql), records)
             db.commit()
-        print(f"Inserted/updated {len(records)} GTFS rows into {schema}.bus_trip_updates")
+        print(
+            f"Inserted/updated {len(records)} GTFS rows into {schema}.bus_trip_updates"
+        )
 
         # --- Disruption Detection Integration ---
         try:
