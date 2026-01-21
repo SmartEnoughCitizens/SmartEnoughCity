@@ -16,6 +16,7 @@ class HermesApplicationTests {
   }
 
   @Test
+  @SuppressWarnings("DirectInvocationOnMock")
   void mockTestAlwaysPasses() {
 
     MyService myService = Mockito.mock(MyService.class);
