@@ -2,17 +2,17 @@
  * React Query hooks for dashboard data
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '@/api';
+import { useQuery } from "@tanstack/react-query";
+import { dashboardApi } from "@/api";
 
 export const DASHBOARD_KEYS = {
   bus: (routeId?: string, limit?: number) =>
-    ['dashboard', 'bus', { routeId, limit }] as const,
-  cycle: (limit?: number) => ['dashboard', 'cycle', { limit }] as const,
-  availableBikes: ['dashboard', 'cycle', 'available-bikes'] as const,
-  availableDocks: ['dashboard', 'cycle', 'available-docks'] as const,
-  busRoutes: ['dashboard', 'bus', 'routes'] as const,
-  indicatorTypes: ['dashboard', 'indicator-types'] as const,
+    ["dashboard", "bus", { routeId, limit }] as const,
+  cycle: (limit?: number) => ["dashboard", "cycle", { limit }] as const,
+  availableBikes: ["dashboard", "cycle", "available-bikes"] as const,
+  availableDocks: ["dashboard", "cycle", "available-docks"] as const,
+  busRoutes: ["dashboard", "bus", "routes"] as const,
+  indicatorTypes: ["dashboard", "indicator-types"] as const,
 };
 
 /**
@@ -22,7 +22,7 @@ export const useBusData = (routeId?: string, limit: number = 100) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.bus(routeId, limit),
     queryFn: () => dashboardApi.getBusData({ routeId, limit }),
-    staleTime: 30000, // 30 seconds
+    staleTime: 30_000, // 30 seconds
   });
 };
 
@@ -33,7 +33,7 @@ export const useCycleData = (limit: number = 100) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycle(limit),
     queryFn: () => dashboardApi.getCycleData({ limit }),
-    staleTime: 30000, // 30 seconds
+    staleTime: 30_000, // 30 seconds
   });
 };
 
@@ -44,7 +44,7 @@ export const useAvailableBikes = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.availableBikes,
     queryFn: () => dashboardApi.getAvailableBikes(),
-    staleTime: 30000,
+    staleTime: 30_000,
   });
 };
 
@@ -55,7 +55,7 @@ export const useAvailableDocks = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.availableDocks,
     queryFn: () => dashboardApi.getAvailableDocks(),
-    staleTime: 30000,
+    staleTime: 30_000,
   });
 };
 
@@ -66,7 +66,7 @@ export const useBusRoutes = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.busRoutes,
     queryFn: () => dashboardApi.getBusRoutes(),
-    staleTime: 300000, // 5 minutes - routes don't change often
+    staleTime: 300_000, // 5 minutes - routes don't change often
   });
 };
 
@@ -77,6 +77,6 @@ export const useIndicatorTypes = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.indicatorTypes,
     queryFn: () => dashboardApi.getIndicatorTypes(),
-    staleTime: 300000, // 5 minutes
+    staleTime: 300_000, // 5 minutes
   });
 };

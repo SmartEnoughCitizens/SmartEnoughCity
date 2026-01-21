@@ -1,12 +1,12 @@
-import requests
 import pandas as pd
-import math
+import requests
 from sqlalchemy import text
-from sqlalchemy.exc import ProgrammingError, DBAPIError
-from data_handler.db import SessionLocal
-from data_handler.settings.database_settings import get_db_settings
-from data_handler.settings.api_settings import get_api_settings
+from sqlalchemy.exc import DBAPIError, ProgrammingError
 
+from data_handler.db import SessionLocal
+from data_handler.disruption_detector import detect_bus_disruptions
+from data_handler.settings.api_settings import get_api_settings
+from data_handler.settings.database_settings import get_db_settings
 
 GTFS_URL = "https://api.nationaltransport.ie/gtfsr/v2/TripUpdates?format=json"
 
@@ -15,8 +15,7 @@ _api_settings = get_api_settings()
 API_KEY = _api_settings.gtfs_api_key
 
 
-
-def fetch_gtfs_trip_updates():
+def fetch_gtfs_trip_updates() -> pd.DataFrame:
     """Fetch GTFS TripUpdates und return DataFrame.
     stop_sequence → STRING (für DB Primary Key)
     delays → INT oder None
@@ -35,43 +34,47 @@ def fetch_gtfs_trip_updates():
 
         # falls keine Stops vorhanden
         if not stops:
-            rows.append({
-                "entity_id": entity.get("id"),
-                "trip_id": trip.get("trip_id"),
-                "route_id": trip.get("route_id"),
-                "start_time": trip.get("start_time"),
-                "start_date": trip.get("start_date"),
-                "stop_sequence": None,
-                "stop_id": None,
-                "arrival_delay": None,
-                "departure_delay": None,
-                "schedule_relationship": None
-            })
+            rows.append(
+                {
+                    "entity_id": entity.get("id"),
+                    "trip_id": trip.get("trip_id"),
+                    "route_id": trip.get("route_id"),
+                    "start_time": trip.get("start_time"),
+                    "start_date": trip.get("start_date"),
+                    "stop_sequence": None,
+                    "stop_id": None,
+                    "arrival_delay": None,
+                    "departure_delay": None,
+                    "schedule_relationship": None,
+                }
+            )
             continue
 
         for st in stops:
-            rows.append({
-                "entity_id": entity.get("id"),
-                "trip_id": trip.get("trip_id"),
-                "route_id": trip.get("route_id"),
-                "start_time": trip.get("start_time"),
-                "start_date": trip.get("start_date"),
-                # WICHTIG: stop_sequence ist IMMER ein string
-                "stop_sequence": (
-                    str(st.get("stop_sequence"))
-                    if st.get("stop_sequence") is not None
-                    else None
-                ),
-                "stop_id": st.get("stop_id"),
-                "arrival_delay": st.get("arrival", {}).get("delay"),
-                "departure_delay": st.get("departure", {}).get("delay"),
-                "schedule_relationship": st.get("schedule_relationship")
-            })
+            rows.append(
+                {
+                    "entity_id": entity.get("id"),
+                    "trip_id": trip.get("trip_id"),
+                    "route_id": trip.get("route_id"),
+                    "start_time": trip.get("start_time"),
+                    "start_date": trip.get("start_date"),
+                    # WICHTIG: stop_sequence ist IMMER ein string
+                    "stop_sequence": (
+                        str(st.get("stop_sequence"))
+                        if st.get("stop_sequence") is not None
+                        else None
+                    ),
+                    "stop_id": st.get("stop_id"),
+                    "arrival_delay": st.get("arrival", {}).get("delay"),
+                    "departure_delay": st.get("departure", {}).get("delay"),
+                    "schedule_relationship": st.get("schedule_relationship"),
+                }
+            )
 
     return pd.DataFrame(rows)
 
 
-def trip_updates_to_terminal():
+def trip_updates_to_terminal() -> pd.DataFrame:
     """Printet TripUpdates ins Terminal."""
     df = fetch_gtfs_trip_updates()
 
@@ -96,7 +99,7 @@ def trip_updates_to_terminal():
     return df
 
 
-def trip_updates_to_db():
+def trip_updates_to_db() -> None:
     """Schreibt TripUpdates sicher in die PostgreSQL-Datenbank."""
     df = fetch_gtfs_trip_updates()
 
@@ -141,11 +144,12 @@ def trip_updates_to_db():
         with SessionLocal() as db:
             db.execute(text(insert_sql), records)
             db.commit()
-        print(f"Inserted/updated {len(records)} GTFS rows into {schema}.bus_trip_updates")
-        
+        print(
+            f"Inserted/updated {len(records)} GTFS rows into {schema}.bus_trip_updates"
+        )
+
         # --- Disruption Detection Integration ---
         try:
-            from data_handler.disruption_detector import detect_bus_disruptions
             print("Running disruption detection on bus data...")
             detect_bus_disruptions(records)
         except Exception as e:
@@ -154,9 +158,9 @@ def trip_updates_to_db():
 
     except ProgrammingError as e:
         msg = str(e).lower()
-        if 'permission denied' in msg:
+        if "permission denied" in msg:
             print("Permission error: DB user lacks privileges.")
-        elif 'does not exist' in msg:
+        elif "does not exist" in msg:
             print(f"Table {schema}.bus_trip_updates does not exist.")
         else:
             print("Database programming error:", e)

@@ -10,4 +10,4 @@ export interface RecommendationEngineRequest {
   aggregationType?: string;
 }
 
-export type IndicatorType = 'bus' | 'cycle' | 'luas' | 'train';
+export type IndicatorType = "bus" | "cycle" | "luas" | "train";

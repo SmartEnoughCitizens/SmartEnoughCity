@@ -12,27 +12,32 @@ export interface Simulation {
   results?: SimulationResults;
 }
 
-export type SimulationStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type SimulationStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export type SimulationScenario =
-  | 'traffic-increase'
-  | 'event-impact'
-  | 'construction-impact'
-  | 'transit-optimization'
-  | 'emergency-response'
-  | 'custom';
+  | "traffic-increase"
+  | "event-impact"
+  | "construction-impact"
+  | "transit-optimization"
+  | "emergency-response"
+  | "custom";
 
 export interface SimulationParameters {
   duration?: number; // in minutes
   trafficIncrease?: number; // percentage
 
   // Specific fields for the Thin Slice Demo
-  transportMode?: 'BUS' | 'TRAIN' | 'TRAM' | 'CAR';
+  transportMode?: "BUS" | "TRAIN" | "TRAM" | "CAR";
   modificationFactor?: number;
 
   affectedRoutes?: string[];
-  weatherConditions?: 'clear' | 'rain' | 'snow' | 'fog';
-  timeOfDay?: 'morning' | 'midday' | 'evening' | 'night';
+  weatherConditions?: "clear" | "rain" | "snow" | "fog";
+  timeOfDay?: "morning" | "midday" | "evening" | "night";
   customParams?: Record<string, unknown>;
 }
 

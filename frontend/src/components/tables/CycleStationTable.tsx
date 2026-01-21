@@ -13,28 +13,28 @@ import {
   Typography,
   Chip,
   Box,
-} from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import type { CycleStation } from '@/types';
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import type { CycleStation } from "@/types";
 
 interface CycleStationTableProps {
   stations: CycleStation[];
   maxRows?: number;
 }
 
+const StatusIcon = ({ status }: { status: boolean }) =>
+  status ? (
+    <CheckCircleIcon color="success" fontSize="small" />
+  ) : (
+    <CancelIcon color="error" fontSize="small" />
+  );
+
 export const CycleStationTable = ({
   stations,
   maxRows = 10,
 }: CycleStationTableProps) => {
   const displayStations = stations.slice(0, maxRows);
-
-  const StatusIcon = ({ status }: { status: boolean }) =>
-    status ? (
-      <CheckCircleIcon color="success" fontSize="small" />
-    ) : (
-      <CancelIcon color="error" fontSize="small" />
-    );
 
   return (
     <Paper>
@@ -54,7 +54,11 @@ export const CycleStationTable = ({
             {displayStations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ py: 2 }}
+                  >
                     No station data available
                   </Typography>
                 </TableCell>
@@ -92,7 +96,13 @@ export const CycleStationTable = ({
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 0.5,
+                        justifyContent: "center",
+                      }}
+                    >
                       <StatusIcon status={station.isRenting} />
                       <StatusIcon status={station.isReturning} />
                     </Box>
@@ -107,7 +117,7 @@ export const CycleStationTable = ({
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ p: 1, display: 'block', textAlign: 'center' }}
+          sx={{ p: 1, display: "block", textAlign: "center" }}
         >
           Showing {maxRows} of {stations.length} stations
         </Typography>

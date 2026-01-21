@@ -17,24 +17,24 @@ import org.hibernate.annotations.Immutable;
 @AllArgsConstructor
 public class CycleStation {
 
-    @Id
-    @Column(name = "station_id", nullable = false)
-    private String stationId;
+  @Id
+  @Column(name = "station_id", nullable = false)
+  private String stationId;
 
-    private String name;
-    private String address;
-    private Integer capacity;
-    private Integer numBikesAvailable;
-    private Integer numDocksAvailable;
-    private Boolean isInstalled;
-    private Boolean isRenting;
-    private Boolean isReturning;
-    private Long lastReported;
-    private String lastReportedDt;
-    private Double lat;
-    private Double lon;
+  private String name;
+  private String address;
+  private Integer capacity;
+  private Integer numBikesAvailable;
+  private Integer numDocksAvailable;
+  private Boolean isInstalled;
+  private Boolean isRenting;
+  private Boolean isReturning;
+  private Long lastReported;
+  private String lastReportedDt;
+  private Double lat;
+  private Double lon;
 
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long id;
+  //    @Id
+  //    @GeneratedValue(strategy = GenerationType.IDENTITY)
+  //    private Long id;
 }

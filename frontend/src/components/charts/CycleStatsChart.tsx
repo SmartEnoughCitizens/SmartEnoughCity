@@ -86,20 +86,27 @@
  * Cycle station statistics chart component
  */
 
-import { Box, Paper, Typography, Grid } from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import type { CycleStatistics } from '@/types';
+import { Box, Paper, Typography, Grid } from "@mui/material";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
+import type { CycleStatistics } from "@/types";
 
 interface CycleStatsChartProps {
   statistics: CycleStatistics;
 }
 
-const COLORS = ['#1976d2', '#dc004e', '#2e7d32', '#ed6c02'];
+const COLORS = ["#1976d2", "#dc004e", "#2e7d32", "#ed6c02"];
 
 export const CycleStatsChart = ({ statistics }: CycleStatsChartProps) => {
   const pieData = [
-    { name: 'Available Bikes', value: statistics.totalBikesAvailable || 0 },
-    { name: 'Available Docks', value: statistics.totalDocksAvailable || 0 },
+    { name: "Available Bikes", value: statistics.totalBikesAvailable || 0 },
+    { name: "Available Docks", value: statistics.totalDocksAvailable || 0 },
   ];
 
   return (
@@ -126,7 +133,10 @@ export const CycleStatsChart = ({ statistics }: CycleStatsChartProps) => {
                   dataKey="value"
                 >
                   {pieData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -142,22 +152,24 @@ export const CycleStatsChart = ({ statistics }: CycleStatsChartProps) => {
               <strong>Total Stations:</strong> {statistics.totalStations}
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>Average Bikes Available:</strong>{' '}
+              <strong>Average Bikes Available:</strong>{" "}
               {statistics.averageBikesAvailable?.toFixed(1) || 0}
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>Average Docks Available:</strong>{' '}
+              <strong>Average Docks Available:</strong>{" "}
               {statistics.averageDocksAvailable?.toFixed(1) || 0}
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>Average Occupancy Rate:</strong>{' '}
+              <strong>Average Occupancy Rate:</strong>{" "}
               {statistics.averageOccupancyRate?.toFixed(1) || 0}%
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>Stations Renting:</strong> {statistics.stationsRenting || 0}
+              <strong>Stations Renting:</strong>{" "}
+              {statistics.stationsRenting || 0}
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>Stations Returning:</strong> {statistics.stationsReturning || 0}
+              <strong>Stations Returning:</strong>{" "}
+              {statistics.stationsReturning || 0}
             </Typography>
           </Box>
         </Grid>

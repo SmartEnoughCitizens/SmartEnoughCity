@@ -1,12 +1,10 @@
+import pandas as pd
 import requests
 import xmltodict
-import pandas as pd
-
 from sqlalchemy import text
-from sqlalchemy.exc import ProgrammingError, DBAPIError
+
 from data_handler.db import SessionLocal
 from data_handler.settings.database_settings import get_db_settings
-
 
 LUAS_LINES = {
     "red": "Luas Red Line",
@@ -17,7 +15,7 @@ LUAS_LINES = {
 # ---------------------------------------------------------
 # Fetch LUAS stops
 # ---------------------------------------------------------
-def fetch_luas_stops(line_name):
+def fetch_luas_stops(line_name: str) -> pd.DataFrame:
     url = "https://luasforecasts.rpa.ie/xml/get.ashx?action=stops&encrypt=false"
     res = requests.get(url)
     res.raise_for_status()
@@ -38,21 +36,23 @@ def fetch_luas_stops(line_name):
                 stops = [stops]
 
             for stop in stops:
-                rows.append({
-                    "stop_id": stop["@abrev"],
-                    "line": line_name,
-                    "name": stop.get("#text", stop.get("@text", "")),
-                    "pronunciation": stop.get("@pronunciation", ""),
-                    "park_ride": stop.get("@isParkRide") == "1",
-                    "cycle_ride": stop.get("@isCycleRide") == "1",
-                    "lat": float(stop["@lat"]),
-                    "lon": float(stop["@long"]),
-                })
+                rows.append(
+                    {
+                        "stop_id": stop["@abrev"],
+                        "line": line_name,
+                        "name": stop.get("#text", stop.get("@text", "")),
+                        "pronunciation": stop.get("@pronunciation", ""),
+                        "park_ride": stop.get("@isParkRide") == "1",
+                        "cycle_ride": stop.get("@isCycleRide") == "1",
+                        "lat": float(stop["@lat"]),
+                        "lon": float(stop["@long"]),
+                    }
+                )
 
     return pd.DataFrame(rows)
 
 
-def luas_stops_to_db():
+def luas_stops_to_db() -> None:
     for line in ["red", "green"]:
         print(f"\n### Loading LUAS {line} line stops...")
         df = fetch_luas_stops(line)
@@ -98,7 +98,7 @@ def luas_stops_to_db():
 # ---------------------------------------------------------
 # Forecast handling
 # ---------------------------------------------------------
-def fetch_forecast_for_stop(stop_id):
+def fetch_forecast_for_stop(stop_id: str) -> list[dict]:
     url = f"https://luasforecasts.rpa.ie/xml/get.ashx?action=forecast&stop={stop_id}&encrypt=false"
     res = requests.get(url)
     res.raise_for_status()
@@ -125,17 +125,19 @@ def fetch_forecast_for_stop(stop_id):
 
         for tram in trams:
             due = tram.get("@dueMins")
-            rows.append({
-                "direction": direction_name,
-                "destination": tram.get("@destination", ""),
-                "due_mins": int(due) if due and due.isdigit() else None,
-                "message": message,
-            })
+            rows.append(
+                {
+                    "direction": direction_name,
+                    "destination": tram.get("@destination", ""),
+                    "due_mins": int(due) if due and due.isdigit() else None,
+                    "message": message,
+                }
+            )
 
     return rows
 
 
-def luas_forecasts_to_db():
+def luas_forecasts_to_db() -> None:
     print("\n### Fetching stops from DB...")
 
     s = get_db_settings()
@@ -143,7 +145,7 @@ def luas_forecasts_to_db():
 
     with SessionLocal() as db:
         stops = db.execute(
-            text(f"SELECT stop_id, line FROM {schema}.luas_stops")
+            text(f"SELECT stop_id, line FROM {schema}.luas_stops"),
         ).fetchall()
 
     if not stops:

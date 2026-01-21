@@ -2,15 +2,15 @@
  * Main App component with all providers
  */
 
-import { RouterProvider } from 'react-router-dom';
-import { Provider as ReduxProvider } from 'react-redux';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { store } from '@/store';
-import { useAppSelector } from '@/store/hooks';
-import { getTheme } from '@/theme';
-import { router } from '@/router';
+import { RouterProvider } from "react-router-dom";
+import { Provider as ReduxProvider } from "react-redux";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { store } from "@/store";
+import { useAppSelector } from "@/store/hooks";
+import { getTheme } from "@/theme";
+import { router } from "@/router";
 
 // Create QueryClient
 const queryClient = new QueryClient({
@@ -18,7 +18,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 30000,
+      staleTime: 30_000,
     },
   },
 });

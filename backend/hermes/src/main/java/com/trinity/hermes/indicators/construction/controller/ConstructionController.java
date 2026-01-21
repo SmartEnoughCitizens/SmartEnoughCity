@@ -1,4 +1,3 @@
 package com.trinity.hermes.indicators.construction.controller;
 
-public class ConstructionController {
-}
+public class ConstructionController {}
