@@ -61,8 +61,8 @@ public class SimulationService {
         simulation.setScenario("recommendation-impact");
         simulation.setStatus("completed");
         simulation.setCreatedBy("demo-user");
-        simulation.setCreatedAt(LocalDateTime.now());
-        simulation.setCompletedAt(LocalDateTime.now());
+        simulation.setCreatedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
+        simulation.setCompletedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
         simulation.setResults(results);
 
         log.info("Simulation completed successfully: {}", simulation.getId());

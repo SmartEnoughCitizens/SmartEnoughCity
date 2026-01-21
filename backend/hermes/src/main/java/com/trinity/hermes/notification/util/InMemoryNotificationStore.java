@@ -4,7 +4,7 @@ import com.trinity.hermes.notification.model.Notification;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,7 +15,7 @@ public class InMemoryNotificationStore {
 
     // Thread-safe list wrapper
     private final List<Notification> notifications =
-            Collections.synchronizedList(new LinkedList<>());
+            Collections.synchronizedList(new ArrayList<>());
 
     /** Add new notification, remove oldest if we exceed MAX_SIZE */
     public void add(Notification notification) {

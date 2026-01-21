@@ -83,20 +83,17 @@ public class RecommendationController {
         }
 
         try {
-            String indicatorType = request.getIndicatorType().toLowerCase();
+            String indicatorType = request.getIndicatorType().toLowerCase(java.util.Locale.ROOT);
 
-            switch (indicatorType) {
-                case "bus":
-                    return handleBusRequest(request);
-
-                case "cycle":
-                    return handleCycleRequest(request);
-
-                default:
+            return switch (indicatorType) {
+                case "bus" -> handleBusRequest(request);
+                case "cycle" -> handleCycleRequest(request);
+                default -> {
                     log.warn("Unsupported indicator type: {}", indicatorType);
-                    return ResponseEntity.badRequest()
+                    yield ResponseEntity.badRequest()
                             .body("Unsupported indicator type: " + indicatorType);
-            }
+                }
+            };
 
         } catch (Exception e) {
             log.error("Error fetching indicator data for recommendation engine: {}",

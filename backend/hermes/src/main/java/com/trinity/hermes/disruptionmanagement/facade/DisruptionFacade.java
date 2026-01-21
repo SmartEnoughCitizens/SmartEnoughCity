@@ -72,7 +72,7 @@ public class DisruptionFacade {
             // Step 2: Create disruption entity
             Disruption disruption = createDisruptionFromDetection(request);
             disruption.setStatus("DETECTED");
-            disruption.setDetectedAt(LocalDateTime.now());
+            disruption.setDetectedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
 
             // Save to repository to get actual ID
             Disruption saved = disruptionRepository.save(disruption);
@@ -129,7 +129,7 @@ public class DisruptionFacade {
         solution.setAffectedArea(disruption.getAffectedArea());
         solution.setActionSummary("Immediate action required: " + disruption.getDisruptionType() + " detected in "
                 + disruption.getAffectedArea());
-        solution.setCalculatedAt(LocalDateTime.now());
+        solution.setCalculatedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
 
         // Good dummy data for notification testing
         solution.setPrimaryRecommendation("Take Luas Green Line from Stephen's Green to Sandyford (15 mins)");
@@ -184,7 +184,7 @@ public class DisruptionFacade {
 
         Disruption disruption = optionalDisruption.get();
         disruption.setStatus("RESOLVED");
-        disruption.setResolvedAt(LocalDateTime.now());
+        disruption.setResolvedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
         disruptionRepository.save(disruption);
 
         // notificationCoordinationService.sendResolutionNotification(disruptionId); //

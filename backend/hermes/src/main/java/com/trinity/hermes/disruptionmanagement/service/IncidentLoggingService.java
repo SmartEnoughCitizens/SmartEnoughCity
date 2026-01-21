@@ -252,6 +252,6 @@ public class IncidentLoggingService {
     }
 
     private String getCurrentTimestamp() {
-        return LocalDateTime.now().format(LOG_TIMESTAMP_FORMAT);
+        return LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")).format(LOG_TIMESTAMP_FORMAT);
     }
 }
