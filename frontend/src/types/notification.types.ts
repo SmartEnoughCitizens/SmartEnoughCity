@@ -3,19 +3,20 @@
  */
 
 export const NotificationType = {
-  ROUTE_RECOMMENDATION: 'ROUTE_RECOMMENDATION',
-  ALERT: 'ALERT',
-  UPDATE: 'UPDATE',
-  SYSTEM: 'SYSTEM',
+  ROUTE_RECOMMENDATION: "ROUTE_RECOMMENDATION",
+  ALERT: "ALERT",
+  UPDATE: "UPDATE",
+  SYSTEM: "SYSTEM",
 } as const;
 
-export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
 
 export const Priority = {
-  LOW: 'LOW',
-  MEDIUM: 'MEDIUM',
-  HIGH: 'HIGH',
-  URGENT: 'URGENT',
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+  URGENT: "URGENT",
 } as const;
 
 export type Priority = (typeof Priority)[keyof typeof Priority];

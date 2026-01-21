@@ -3,7 +3,7 @@
  * Manages authentication UI state (NOT server state - that's in React Query)
  */
 
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -12,13 +12,13 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  isAuthenticated: !!localStorage.getItem('accessToken'),
-  username: localStorage.getItem('username'),
-  accessToken: localStorage.getItem('accessToken'),
+  isAuthenticated: !!localStorage.getItem("accessToken"),
+  username: localStorage.getItem("username"),
+  accessToken: localStorage.getItem("accessToken"),
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     setAuthenticated: (
@@ -26,7 +26,7 @@ const authSlice = createSlice({
       action: PayloadAction<{
         accessToken: string;
         username: string;
-      }>
+      }>,
     ) => {
       state.isAuthenticated = true;
       state.accessToken = action.payload.accessToken;

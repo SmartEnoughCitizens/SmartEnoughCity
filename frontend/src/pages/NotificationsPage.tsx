@@ -13,24 +13,24 @@ import {
   CircularProgress,
   Alert,
   Divider,
-} from '@mui/material';
-import { useUserNotifications } from '@/hooks';
-import { useAppSelector } from '@/store/hooks';
-import { Priority, NotificationType } from '@/types';
+} from "@mui/material";
+import { useUserNotifications } from "@/hooks";
+import { useAppSelector } from "@/store/hooks";
+import { Priority, NotificationType } from "@/types";
 
 const getPriorityColor = (priority: Priority) => {
   switch (priority) {
     case Priority.URGENT: {
-      return 'error';
+      return "error";
     }
     case Priority.HIGH: {
-      return 'warning';
+      return "warning";
     }
     case Priority.MEDIUM: {
-      return 'info';
+      return "info";
     }
     case Priority.LOW: {
-      return 'default';
+      return "default";
     }
   }
 };
@@ -38,16 +38,16 @@ const getPriorityColor = (priority: Priority) => {
 const getTypeColor = (type: NotificationType) => {
   switch (type) {
     case NotificationType.ALERT: {
-      return 'error';
+      return "error";
     }
     case NotificationType.ROUTE_RECOMMENDATION: {
-      return 'primary';
+      return "primary";
     }
     case NotificationType.UPDATE: {
-      return 'info';
+      return "info";
     }
     case NotificationType.SYSTEM: {
-      return 'default';
+      return "default";
     }
   }
 };
@@ -55,11 +55,14 @@ const getTypeColor = (type: NotificationType) => {
 export const NotificationsPage = () => {
   const { username } = useAppSelector((state) => state.auth);
 
-  const { data, isLoading, error } = useUserNotifications(username || '', !!username);
+  const { data, isLoading, error } = useUserNotifications(
+    username || "",
+    !!username,
+  );
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
         <CircularProgress />
       </Box>
     );
@@ -84,7 +87,7 @@ export const NotificationsPage = () => {
 
       <Paper sx={{ mt: 2 }}>
         {!data?.notifications || data.notifications.length === 0 ? (
-          <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography variant="body1" color="text.secondary">
               No notifications available
             </Typography>
@@ -95,12 +98,19 @@ export const NotificationsPage = () => {
               <Box key={notification.id}>
                 <ListItem
                   sx={{
-                    bgcolor: notification.read ? 'transparent' : 'action.hover',
+                    bgcolor: notification.read ? "transparent" : "action.hover",
                   }}
                 >
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          mb: 1,
+                          alignItems: "center",
+                        }}
+                      >
                         <Chip
                           label={notification.type}
                           size="small"
@@ -112,13 +122,23 @@ export const NotificationsPage = () => {
                           color={getPriorityColor(notification.priority)}
                         />
                         {!notification.read && (
-                          <Chip label="NEW" size="small" color="primary" variant="outlined" />
+                          <Chip
+                            label="NEW"
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
                         )}
                       </Box>
                     }
                     secondary={
                       <>
-                        <Typography variant="body1" component="span" display="block" sx={{ mb: 1 }}>
+                        <Typography
+                          variant="body1"
+                          component="span"
+                          display="block"
+                          sx={{ mb: 1 }}
+                        >
                           {notification.message}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">

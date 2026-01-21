@@ -106,7 +106,7 @@
  * Bus data dashboard page
  */
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Box,
   Grid,
@@ -118,23 +118,24 @@ import {
   Select,
   MenuItem,
   Alert,
-} from '@mui/material';
-import { useBusData, useBusRoutes } from '@/hooks';
-import { DelayChart } from '@/components/charts/DelayChart';
-import { BusTripTable } from '@/components/tables/BusTripTable';
+} from "@mui/material";
+import { useBusData, useBusRoutes } from "@/hooks";
+import { DelayChart } from "@/components/charts/DelayChart";
+import { BusTripTable } from "@/components/tables/BusTripTable";
 
 export const BusDashboard = () => {
-  const [selectedRoute, setSelectedRoute] = useState<string>('');
+  const [selectedRoute, setSelectedRoute] = useState<string>("");
 
   const { data: routes, isLoading: routesLoading } = useBusRoutes();
-  const { data: busData, isLoading: dataLoading, error } = useBusData(
-    selectedRoute || undefined,
-    100
-  );
+  const {
+    data: busData,
+    isLoading: dataLoading,
+    error,
+  } = useBusData(selectedRoute || undefined, 100);
 
   if (routesLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
         <CircularProgress />
       </Box>
     );
@@ -177,7 +178,7 @@ export const BusDashboard = () => {
 
         {dataLoading ? (
           <Grid size={{ xs: 12 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
               <CircularProgress />
             </Box>
           </Grid>

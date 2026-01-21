@@ -2,24 +2,24 @@
  * Recommendation Engine API client
  */
 
-import { axiosInstance } from '@/utils/axios';
-import { API_ENDPOINTS } from '@/config/api.config';
+import { axiosInstance } from "@/utils/axios";
+import { API_ENDPOINTS } from "@/config/api.config";
 import type {
   RecommendationEngineRequest,
   BusTripUpdate,
   CycleStation,
-} from '@/types';
+} from "@/types";
 
 export const recommendationApi = {
   /**
    * Query indicator data (POST)
    */
   queryIndicators: async (
-    request: RecommendationEngineRequest
+    request: RecommendationEngineRequest,
   ): Promise<BusTripUpdate[] | CycleStation[]> => {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.RECOMMENDATION_QUERY,
-      request
+      request,
     );
     return data;
   },
@@ -29,11 +29,11 @@ export const recommendationApi = {
    */
   getIndicatorData: async (
     indicatorType: string,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<BusTripUpdate[] | CycleStation[]> => {
     const { data } = await axiosInstance.get(
       API_ENDPOINTS.RECOMMENDATION_GET(indicatorType),
-      { params: { limit } }
+      { params: { limit } },
     );
     return data;
   },

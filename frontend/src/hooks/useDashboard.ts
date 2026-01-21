@@ -2,17 +2,17 @@
  * React Query hooks for dashboard data
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '@/api';
+import { useQuery } from "@tanstack/react-query";
+import { dashboardApi } from "@/api";
 
 export const DASHBOARD_KEYS = {
   bus: (routeId?: string, limit?: number) =>
-    ['dashboard', 'bus', { routeId, limit }] as const,
-  cycle: (limit?: number) => ['dashboard', 'cycle', { limit }] as const,
-  availableBikes: ['dashboard', 'cycle', 'available-bikes'] as const,
-  availableDocks: ['dashboard', 'cycle', 'available-docks'] as const,
-  busRoutes: ['dashboard', 'bus', 'routes'] as const,
-  indicatorTypes: ['dashboard', 'indicator-types'] as const,
+    ["dashboard", "bus", { routeId, limit }] as const,
+  cycle: (limit?: number) => ["dashboard", "cycle", { limit }] as const,
+  availableBikes: ["dashboard", "cycle", "available-bikes"] as const,
+  availableDocks: ["dashboard", "cycle", "available-docks"] as const,
+  busRoutes: ["dashboard", "bus", "routes"] as const,
+  indicatorTypes: ["dashboard", "indicator-types"] as const,
 };
 
 /**
