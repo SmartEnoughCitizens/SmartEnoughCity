@@ -189,6 +189,10 @@ jobs:
       - name: Run linter
         working-directory: ./frontend
         run: pnpm run lint
+      
+      - name: Check formatting
+        working-directory: ./frontend
+        run: pnpm run format:check
 
   # test-frontend:
   #   name: Test Frontend
