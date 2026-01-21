@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DisruptionDTO {
-    private Long id;
-    private String name;
-    private String description;
-    private String status;
+  private Long id;
+  private String name;
+  private String description;
+  private String status;
 }

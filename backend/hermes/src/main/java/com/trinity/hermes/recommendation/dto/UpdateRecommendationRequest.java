@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateRecommendationRequest {
-    private String name;
-    private String description;
-    private String status;
+  private String name;
+  private String description;
+  private String status;
 }

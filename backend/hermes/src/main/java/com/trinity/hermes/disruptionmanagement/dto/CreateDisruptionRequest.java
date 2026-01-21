@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateDisruptionRequest {
-    private String name;
-    private String description;
+  private String name;
+  private String description;
 }
