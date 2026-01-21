@@ -2,14 +2,13 @@
  * Dashboard API client
  */
 
-import { axiosInstance } from "@/utils/axios";
-import { API_ENDPOINTS } from "@/config/api.config";
+import { axiosInstance } from '@/utils/axios';
+import { API_ENDPOINTS } from '@/config/api.config';
 import type {
   BusDashboardResponse,
   CycleDashboardResponse,
   CycleStation,
-  IndicatorType,
-} from "@/types";
+} from '@/types';
 
 export const dashboardApi = {
   /**
@@ -21,7 +20,7 @@ export const dashboardApi = {
   }): Promise<BusDashboardResponse> => {
     const { data } = await axiosInstance.get<BusDashboardResponse>(
       API_ENDPOINTS.DASHBOARD_BUS,
-      { params },
+      { params }
     );
     return data;
   },
@@ -34,7 +33,7 @@ export const dashboardApi = {
   }): Promise<CycleDashboardResponse> => {
     const { data } = await axiosInstance.get<CycleDashboardResponse>(
       API_ENDPOINTS.DASHBOARD_CYCLE,
-      { params },
+      { params }
     );
     return data;
   },
@@ -44,7 +43,7 @@ export const dashboardApi = {
    */
   getAvailableBikes: async (): Promise<CycleStation[]> => {
     const { data } = await axiosInstance.get<CycleStation[]>(
-      API_ENDPOINTS.DASHBOARD_CYCLE_AVAILABLE_BIKES,
+      API_ENDPOINTS.DASHBOARD_CYCLE_AVAILABLE_BIKES
     );
     return data;
   },
@@ -54,7 +53,7 @@ export const dashboardApi = {
    */
   getAvailableDocks: async (): Promise<CycleStation[]> => {
     const { data } = await axiosInstance.get<CycleStation[]>(
-      API_ENDPOINTS.DASHBOARD_CYCLE_AVAILABLE_DOCKS,
+      API_ENDPOINTS.DASHBOARD_CYCLE_AVAILABLE_DOCKS
     );
     return data;
   },
@@ -64,7 +63,7 @@ export const dashboardApi = {
    */
   getBusRoutes: async (): Promise<string[]> => {
     const { data } = await axiosInstance.get<string[]>(
-      API_ENDPOINTS.DASHBOARD_BUS_ROUTES,
+      API_ENDPOINTS.DASHBOARD_BUS_ROUTES
     );
     return data;
   },
@@ -72,9 +71,9 @@ export const dashboardApi = {
   /**
    * Get available indicator types
    */
-  getIndicatorTypes: async (): Promise<IndicatorType[]> => {
-    const { data } = await axiosInstance.get<IndicatorType[]>(
-      API_ENDPOINTS.DASHBOARD_INDICATOR_TYPES,
+  getIndicatorTypes: async (): Promise<string[]> => {
+    const { data } = await axiosInstance.get<string[]>(
+      API_ENDPOINTS.DASHBOARD_INDICATOR_TYPES
     );
     return data;
   },

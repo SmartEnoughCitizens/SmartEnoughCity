@@ -6,9 +6,9 @@ WORKDIR /app
 ENV NPM_CONFIG_FUND=false \
     NPM_CONFIG_AUDIT=false
 
-COPY package.json package-lock.json ./
+COPY package*.json ./
 
-RUN npm ci
+RUN npm install
 
 COPY . .
 
