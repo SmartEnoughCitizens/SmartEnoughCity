@@ -28,6 +28,7 @@ public class SesMailService implements MailService {
   @Value("${mail.from}")
   private String fromAddress;
 
+  @Override
   public void sendEmail(String to, String subject, String htmlBody, byte[] qrCodeBytes) {
 
     try {

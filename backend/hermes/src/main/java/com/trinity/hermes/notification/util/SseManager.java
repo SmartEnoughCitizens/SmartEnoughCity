@@ -19,7 +19,8 @@ public class SseManager {
     if (this.emitter != null) {
       try {
         this.emitter.complete();
-      } catch (Exception ignored) {
+      } catch (Exception ex) {
+        log.warn("Exception while completing old SSE emitter", ex);
       }
     }
 
