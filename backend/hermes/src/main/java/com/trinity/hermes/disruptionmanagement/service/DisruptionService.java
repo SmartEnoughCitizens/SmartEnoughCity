@@ -64,7 +64,7 @@ public class DisruptionService {
                 disruption.getName(),
                 disruption.getDescription(),
                 disruption.getStatus(),
-                LocalDateTime.now(),
-                LocalDateTime.now());
+                LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")),
+                LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
     }
 }

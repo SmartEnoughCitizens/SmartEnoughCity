@@ -234,6 +234,6 @@ public class ThresholdDetectionService {
             return false;
         }
         return MAJOR_TRANSPORT_HUBS.stream()
-                .anyMatch(hub -> location.toLowerCase().contains(hub.toLowerCase()));
+                .anyMatch(hub -> location.toLowerCase(java.util.Locale.ROOT).contains(hub.toLowerCase(java.util.Locale.ROOT)));
     }
 }

@@ -25,7 +25,6 @@ import java.util.Map;
 public class BusController {
 
     private final BusTripUpdateService busTripUpdateService;
-    private final CycleStationService cycleStationService;
 
     /**
      * Get bus data for dashboard

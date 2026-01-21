@@ -177,7 +177,6 @@ public class NotificationService {
      *
      * @param template -  key for the template to be used
      * @param datapoints - all the datapoints that need to be populated in the template
-     * @return
      */
     private String render(String template, Map<String, Object> datapoints) {
         if (template == null) {
