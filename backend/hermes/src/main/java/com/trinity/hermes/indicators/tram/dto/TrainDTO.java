@@ -1,4 +1,3 @@
 package com.trinity.hermes.indicators.tram.dto;
 
-public class TrainDTO {
-}
+public class TrainDTO {}

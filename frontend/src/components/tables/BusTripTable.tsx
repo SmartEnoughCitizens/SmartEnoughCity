@@ -12,30 +12,30 @@ import {
   TableRow,
   Typography,
   Chip,
-} from '@mui/material';
-import type { BusTripUpdate } from '@/types';
+} from "@mui/material";
+import type { BusTripUpdate } from "@/types";
 
 interface BusTripTableProps {
   trips: BusTripUpdate[];
   maxRows?: number;
 }
 
+const getDelayColor = (delay: number | null) => {
+  if (delay === null) return "default";
+  if (delay <= 60) return "success";
+  if (delay <= 180) return "warning";
+  return "error";
+};
+
+const formatDelay = (delay: number | null) => {
+  if (delay === null) return "N/A";
+  const minutes = Math.floor(Math.abs(delay) / 60);
+  const seconds = Math.abs(delay) % 60;
+  return `${delay < 0 ? "-" : ""}${minutes}m ${seconds}s`;
+};
+
 export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
   const displayTrips = trips.slice(0, maxRows);
-
-  const getDelayColor = (delay: number | null) => {
-    if (delay === null) return 'default';
-    if (delay <= 60) return 'success';
-    if (delay <= 180) return 'warning';
-    return 'error';
-  };
-
-  const formatDelay = (delay: number | null) => {
-    if (delay === null) return 'N/A';
-    const minutes = Math.floor(Math.abs(delay) / 60);
-    const seconds = Math.abs(delay) % 60;
-    return `${delay < 0 ? '-' : ''}${minutes}m ${seconds}s`;
-  };
 
   return (
     <Paper>
@@ -56,7 +56,11 @@ export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
             {displayTrips.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ py: 2 }}
+                  >
                     No trip data available
                   </Typography>
                 </TableCell>
@@ -85,7 +89,9 @@ export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption">{trip.scheduleRelationship}</Typography>
+                    <Typography variant="caption">
+                      {trip.scheduleRelationship}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ))
@@ -97,7 +103,7 @@ export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ p: 1, display: 'block', textAlign: 'center' }}
+          sx={{ p: 1, display: "block", textAlign: "center" }}
         >
           Showing {maxRows} of {trips.length} trips
         </Typography>

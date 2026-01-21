@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DisruptionDetectionResponse {
-    private boolean success;
-    private Long disruptionId;
-    private String message;
+  private boolean success;
+  private Long disruptionId;
+  private String message;
 }

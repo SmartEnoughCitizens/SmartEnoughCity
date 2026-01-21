@@ -8,14 +8,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MailServiceFactory {
 
-    private final SesMailService sesMailService;
+  private final SesMailService sesMailService;
 
-    /**
-     * Basic function that returns SES implementation of the MailService. Later Can be changed to include other implementations.
-     * @return Mailservice
-     */
-    @Bean
-    public MailService getMailService() {
-        return sesMailService;
-    }
+  /**
+   * Basic function that returns SES implementation of the MailService. Later Can be changed to
+   * include other implementations.
+   *
+   * @return Mailservice
+   */
+  @Bean
+  public MailService getMailService() {
+    return sesMailService;
+  }
 }

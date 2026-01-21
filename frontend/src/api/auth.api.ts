@@ -2,9 +2,9 @@
  * Authentication API client
  */
 
-import { axiosInstance } from '@/utils/axios';
-import { API_ENDPOINTS } from '@/config/api.config';
-import type { LoginRequest, LoginResponse, HealthResponse } from '@/types';
+import { axiosInstance } from "@/utils/axios";
+import { API_ENDPOINTS } from "@/config/api.config";
+import type { LoginRequest, LoginResponse, HealthResponse } from "@/types";
 
 export const authApi = {
   /**
@@ -13,7 +13,7 @@ export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const { data } = await axiosInstance.post<LoginResponse>(
       API_ENDPOINTS.AUTH_LOGIN,
-      credentials
+      credentials,
     );
     return data;
   },
@@ -23,7 +23,7 @@ export const authApi = {
    */
   checkHealth: async (): Promise<HealthResponse> => {
     const { data } = await axiosInstance.get<HealthResponse>(
-      API_ENDPOINTS.AUTH_HEALTH
+      API_ENDPOINTS.AUTH_HEALTH,
     );
     return data;
   },
@@ -32,8 +32,8 @@ export const authApi = {
    * Logout (client-side only)
    */
   logout: (): void => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('username');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("username");
   },
 };

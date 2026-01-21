@@ -2,19 +2,24 @@
  * Notification types matching backend DTOs
  */
 
-export enum NotificationType {
-  ROUTE_RECOMMENDATION = 'ROUTE_RECOMMENDATION',
-  ALERT = 'ALERT',
-  UPDATE = 'UPDATE',
-  SYSTEM = 'SYSTEM',
-}
+export const NotificationType = {
+  ROUTE_RECOMMENDATION: "ROUTE_RECOMMENDATION",
+  ALERT: "ALERT",
+  UPDATE: "UPDATE",
+  SYSTEM: "SYSTEM",
+} as const;
 
-export enum Priority {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  URGENT = 'URGENT',
-}
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
+
+export const Priority = {
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+  URGENT: "URGENT",
+} as const;
+
+export type Priority = (typeof Priority)[keyof typeof Priority];
 
 export interface Notification {
   id: string;
@@ -22,7 +27,7 @@ export interface Notification {
   message: string;
   priority: Priority;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   read: boolean;
 }
 

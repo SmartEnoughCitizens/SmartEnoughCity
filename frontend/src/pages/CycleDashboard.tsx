@@ -107,12 +107,12 @@ import {
   Alert,
   Tabs,
   Tab,
-} from '@mui/material';
-import { useState } from 'react';
-import { useCycleData, useAvailableBikes, useAvailableDocks } from '@/hooks';
-import { CycleStatsChart } from '@/components/charts/CycleStatsChart';
-import { CycleStationTable } from '@/components/tables/CycleStationTable';
-import { CycleStationMap } from '@/components/map/CycleStationMap';
+} from "@mui/material";
+import { useState } from "react";
+import { useCycleData, useAvailableBikes, useAvailableDocks } from "@/hooks";
+import { CycleStatsChart } from "@/components/charts/CycleStatsChart";
+import { CycleStationTable } from "@/components/tables/CycleStationTable";
+import { CycleStationMap } from "@/components/map/CycleStationMap";
 
 export const CycleDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -123,14 +123,18 @@ export const CycleDashboard = () => {
 
   const getCurrentData = () => {
     switch (tabValue) {
-      case 0:
+      case 0: {
         return allStations?.data || [];
-      case 1:
+      }
+      case 1: {
         return bikesAvailable || [];
-      case 2:
+      }
+      case 2: {
         return docksAvailable || [];
-      default:
+      }
+      default: {
         return [];
+      }
     }
   };
 
@@ -138,7 +142,7 @@ export const CycleDashboard = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
         <CircularProgress />
       </Box>
     );

@@ -70,12 +70,12 @@
  * Main dashboard page
  */
 
-import { Box, Grid, Paper, Typography, CircularProgress } from '@mui/material';
-import { useBusData, useCycleData } from '@/hooks';
-import { DelayChart } from '@/components/charts/DelayChart';
-import { CycleStatsChart } from '@/components/charts/CycleStatsChart';
-import { BusTripTable } from '@/components/tables/BusTripTable';
-import { CycleStationTable } from '@/components/tables/CycleStationTable';
+import { Box, Grid, Paper, Typography, CircularProgress } from "@mui/material";
+import { useBusData, useCycleData } from "@/hooks";
+import { DelayChart } from "@/components/charts/DelayChart";
+import { CycleStatsChart } from "@/components/charts/CycleStatsChart";
+import { BusTripTable } from "@/components/tables/BusTripTable";
+import { CycleStationTable } from "@/components/tables/CycleStationTable";
 
 export const Dashboard = () => {
   const { data: busData, isLoading: busLoading } = useBusData(undefined, 50);
@@ -83,7 +83,7 @@ export const Dashboard = () => {
 
   if (busLoading || cycleLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
         <CircularProgress />
       </Box>
     );

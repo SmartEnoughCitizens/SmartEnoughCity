@@ -2,8 +2,8 @@
  * Axios instance with interceptors
  */
 
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { API_CONFIG } from '@/config/api.config';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { API_CONFIG } from "@/config/api.config";
 
 // Create axios instance
 export const axiosInstance = axios.create({
@@ -16,7 +16,7 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Add auth token if available
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem("accessToken");
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,26 +24,26 @@ axiosInstance.interceptors.request.use(
   },
   (error: AxiosError) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
+  (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Clear auth data on unauthorized
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('username');
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("username");
 
       // Redirect to login if not already there
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (globalThis.location.pathname !== "/login") {
+        globalThis.location.href = "/login";
       }
     }
-    return Promise.reject(error);
-  }
+    throw error;
+  },
 );
 
 export default axiosInstance;

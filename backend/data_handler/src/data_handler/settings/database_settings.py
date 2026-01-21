@@ -1,4 +1,5 @@
 from functools import lru_cache
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -54,8 +55,10 @@ def get_db_settings() -> DatabaseSettings:
         This is the preferred way to obtain database settings. Do not instantiate
         `DatabaseSettings` directly.
     """
-    
+
     if is_dev():
-        return DatabaseSettings(_env_file=".env.development", _env_file_encoding="utf-8")
+        return DatabaseSettings(
+            _env_file=".env.development", _env_file_encoding="utf-8"
+        )
 
     return DatabaseSettings()
