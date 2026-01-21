@@ -2,7 +2,7 @@
  * Main dashboard layout component
  */
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Box,
   AppBar,
@@ -20,21 +20,21 @@ import {
   Menu,
   MenuItem,
   Avatar,
-} from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
-import DirectionsBikeIcon from '@mui/icons-material/DirectionsBike';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import LogoutIcon from '@mui/icons-material/Logout';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { toggleSidebar, toggleTheme } from '@/store/slices/uiSlice';
-import { clearAuthentication } from '@/store/slices/authSlice';
-import { useLogout } from '@/hooks';
+} from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
+import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import LogoutIcon from "@mui/icons-material/Logout";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { toggleSidebar, toggleTheme } from "@/store/slices/uiSlice";
+import { clearAuthentication } from "@/store/slices/authSlice";
+import { useLogout } from "@/hooks";
 
 const drawerWidth = 240;
 
@@ -48,7 +48,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const dispatch = useAppDispatch();
   const { username } = useAppSelector((state) => state.auth);
   const { sidebarOpen, theme, notificationBadgeCount } = useAppSelector(
-    (state) => state.ui
+    (state) => state.ui,
   );
   const logoutMutation = useLogout();
 
@@ -66,18 +66,26 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     handleMenuClose();
     await logoutMutation.mutateAsync();
     dispatch(clearAuthentication());
-    navigate('/login');
+    navigate("/login");
   };
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Bus Data', icon: <DirectionsBusIcon />, path: '/dashboard/bus' },
-    { text: 'Cycle Stations', icon: <DirectionsBikeIcon />, path: '/dashboard/cycle' },
-    { text: 'Notifications', icon: <NotificationsIcon />, path: '/dashboard/notifications' },
+    { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
+    { text: "Bus Data", icon: <DirectionsBusIcon />, path: "/dashboard/bus" },
+    {
+      text: "Cycle Stations",
+      icon: <DirectionsBikeIcon />,
+      path: "/dashboard/cycle",
+    },
+    {
+      text: "Notifications",
+      icon: <NotificationsIcon />,
+      path: "/dashboard/notifications",
+    },
   ];
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: "flex" }}>
       <AppBar
         position="fixed"
         sx={{
@@ -99,12 +107,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </Typography>
 
           <IconButton color="inherit" onClick={() => dispatch(toggleTheme())}>
-            {theme === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            {theme === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
 
           <IconButton
             color="inherit"
-            onClick={() => navigate('/dashboard/notifications')}
+            onClick={() => navigate("/dashboard/notifications")}
           >
             <Badge badgeContent={notificationBadgeCount} color="error">
               <NotificationsIcon />
@@ -112,8 +120,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </IconButton>
 
           <IconButton color="inherit" onClick={handleMenuOpen}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-              {username?.charAt(0).toUpperCase() || 'U'}
+            <Avatar sx={{ width: 32, height: 32, bgcolor: "secondary.main" }}>
+              {username?.charAt(0).toUpperCase() || "U"}
             </Avatar>
           </IconButton>
 
@@ -141,14 +149,14 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          '& .MuiDrawer-paper': {
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
-            boxSizing: 'border-box',
+            boxSizing: "border-box",
           },
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
+        <Box sx={{ overflow: "auto" }}>
           <List>
             {menuItems.map((item) => (
               <ListItem key={item.text} disablePadding>
@@ -170,10 +178,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: '100%',
+          width: "100%",
           ml: sidebarOpen ? 0 : `-${drawerWidth}px`,
           transition: (theme) =>
-            theme.transitions.create(['margin'], {
+            theme.transitions.create(["margin"], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.leavingScreen,
             }),

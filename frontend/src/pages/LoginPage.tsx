@@ -2,7 +2,7 @@
  * Login page
  */
 
-import { LoginForm } from '@/components/auth/LoginForm';
+import { LoginForm } from "@/components/auth/LoginForm";
 
 export const LoginPage = () => {
   return <LoginForm />;

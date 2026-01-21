@@ -2,7 +2,7 @@
  * Login form component
  */
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from "react";
 import {
   Box,
   Button,
@@ -11,15 +11,15 @@ import {
   Alert,
   Paper,
   CircularProgress,
-} from '@mui/material';
-import { useLogin } from '@/hooks';
-import { useAppDispatch } from '@/store/hooks';
-import { setAuthenticated } from '@/store/slices/authSlice';
-import { useNavigate } from 'react-router-dom';
+} from "@mui/material";
+import { useLogin } from "@/hooks";
+import { useAppDispatch } from "@/store/hooks";
+import { setAuthenticated } from "@/store/slices/authSlice";
+import { useNavigate } from "react-router-dom";
 
 export const LoginForm = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -42,10 +42,10 @@ export const LoginForm = () => {
         setAuthenticated({
           accessToken: response.accessToken,
           username: response.username,
-        })
+        }),
       );
 
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch {
       // Error is handled by mutation
     }
@@ -54,11 +54,11 @@ export const LoginForm = () => {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: "background.default",
       }}
     >
       <Paper
@@ -66,7 +66,7 @@ export const LoginForm = () => {
         sx={{
           p: 4,
           maxWidth: 400,
-          width: '100%',
+          width: "100%",
           mx: 2,
         }}
       >
@@ -87,7 +87,7 @@ export const LoginForm = () => {
           <Alert severity="error" sx={{ mb: 2 }}>
             {loginMutation.error instanceof Error
               ? loginMutation.error.message
-              : 'Invalid username or password'}
+              : "Invalid username or password"}
           </Alert>
         )}
 
@@ -126,7 +126,7 @@ export const LoginForm = () => {
             {loginMutation.isPending ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              'Login'
+              "Login"
             )}
           </Button>
         </form>

@@ -3,24 +3,24 @@
  * Manages global UI state (theme, sidebar, notifications, etc.)
  */
 
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 interface UIState {
   sidebarOpen: boolean;
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   selectedRouteId: string | null;
   notificationBadgeCount: number;
 }
 
 const initialState: UIState = {
   sidebarOpen: true,
-  theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
+  theme: (localStorage.getItem("theme") as "light" | "dark") || "light",
   selectedRouteId: null,
   notificationBadgeCount: 0,
 };
 
 const uiSlice = createSlice({
-  name: 'ui',
+  name: "ui",
   initialState,
   reducers: {
     toggleSidebar: (state) => {
@@ -30,12 +30,12 @@ const uiSlice = createSlice({
       state.sidebarOpen = action.payload;
     },
     toggleTheme: (state) => {
-      state.theme = state.theme === 'light' ? 'dark' : 'light';
-      localStorage.setItem('theme', state.theme);
+      state.theme = state.theme === "light" ? "dark" : "light";
+      localStorage.setItem("theme", state.theme);
     },
-    setTheme: (state, action: PayloadAction<'light' | 'dark'>) => {
+    setTheme: (state, action: PayloadAction<"light" | "dark">) => {
       state.theme = action.payload;
-      localStorage.setItem('theme', action.payload);
+      localStorage.setItem("theme", action.payload);
     },
     setSelectedRouteId: (state, action: PayloadAction<string | null>) => {
       state.selectedRouteId = action.payload;

@@ -2,12 +2,12 @@
  * React Query hooks for authentication
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authApi } from '@/api';
-import type { LoginRequest } from '@/types';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { authApi } from "@/api";
+import type { LoginRequest } from "@/types";
 
 export const AUTH_KEYS = {
-  health: ['auth', 'health'] as const,
+  health: ["auth", "health"] as const,
 };
 
 /**
@@ -20,9 +20,9 @@ export const useLogin = () => {
     mutationFn: (credentials: LoginRequest) => authApi.login(credentials),
     onSuccess: (data) => {
       // Store tokens in localStorage
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('username', data.username);
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("username", data.username);
 
       // Invalidate all queries on login
       queryClient.invalidateQueries();

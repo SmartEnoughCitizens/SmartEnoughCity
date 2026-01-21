@@ -2,8 +2,8 @@
  * Protected route wrapper component
  */
 
-import { Navigate } from 'react-router-dom';
-import { useAppSelector } from '@/store/hooks';
+import { Navigate } from "react-router-dom";
+import { useAppSelector } from "@/store/hooks";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

@@ -2,80 +2,80 @@
  * MUI theme configuration
  */
 
-import { createTheme, type ThemeOptions } from '@mui/material/styles';
+import { createTheme, type ThemeOptions } from "@mui/material/styles";
 
 const lightThemeOptions: ThemeOptions = {
   palette: {
-    mode: 'light',
+    mode: "light",
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
-      contrastText: '#fff',
+      main: "#1976d2",
+      light: "#42a5f5",
+      dark: "#1565c0",
+      contrastText: "#fff",
     },
     secondary: {
-      main: '#dc004e',
-      light: '#ff5983',
-      dark: '#9a0036',
-      contrastText: '#fff',
+      main: "#dc004e",
+      light: "#ff5983",
+      dark: "#9a0036",
+      contrastText: "#fff",
     },
     success: {
-      main: '#2e7d32',
-      light: '#4caf50',
-      dark: '#1b5e20',
+      main: "#2e7d32",
+      light: "#4caf50",
+      dark: "#1b5e20",
     },
     warning: {
-      main: '#ed6c02',
-      light: '#ff9800',
-      dark: '#e65100',
+      main: "#ed6c02",
+      light: "#ff9800",
+      dark: "#e65100",
     },
     error: {
-      main: '#d32f2f',
-      light: '#ef5350',
-      dark: '#c62828',
+      main: "#d32f2f",
+      light: "#ef5350",
+      dark: "#c62828",
     },
     info: {
-      main: '#0288d1',
-      light: '#03a9f4',
-      dark: '#01579b',
+      main: "#0288d1",
+      light: "#03a9f4",
+      dark: "#01579b",
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: "#f5f5f5",
+      paper: "#ffffff",
     },
   },
   typography: {
     fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
+      "-apple-system",
+      "BlinkMacSystemFont",
       '"Segoe UI"',
-      'Roboto',
+      "Roboto",
       '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
+      "Arial",
+      "sans-serif",
+    ].join(","),
     h1: {
-      fontSize: '2.5rem',
+      fontSize: "2.5rem",
       fontWeight: 600,
     },
     h2: {
-      fontSize: '2rem',
+      fontSize: "2rem",
       fontWeight: 600,
     },
     h3: {
-      fontSize: '1.75rem',
+      fontSize: "1.75rem",
       fontWeight: 600,
     },
     h4: {
-      fontSize: '1.5rem',
+      fontSize: "1.5rem",
       fontWeight: 600,
     },
     h5: {
-      fontSize: '1.25rem',
+      fontSize: "1.25rem",
       fontWeight: 600,
     },
     h6: {
-      fontSize: '1rem',
+      fontSize: "1rem",
       fontWeight: 600,
     },
   },
@@ -86,7 +86,7 @@ const lightThemeOptions: ThemeOptions = {
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
+          textTransform: "none",
           fontWeight: 600,
         },
       },
@@ -94,7 +94,7 @@ const lightThemeOptions: ThemeOptions = {
     MuiCard: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         },
       },
     },
@@ -103,42 +103,42 @@ const lightThemeOptions: ThemeOptions = {
 
 const darkThemeOptions: ThemeOptions = {
   palette: {
-    mode: 'dark',
+    mode: "dark",
     primary: {
-      main: '#90caf9',
-      light: '#e3f2fd',
-      dark: '#42a5f5',
-      contrastText: '#000',
+      main: "#90caf9",
+      light: "#e3f2fd",
+      dark: "#42a5f5",
+      contrastText: "#000",
     },
     secondary: {
-      main: '#f48fb1',
-      light: '#ffc1e3',
-      dark: '#bf5f82',
-      contrastText: '#000',
+      main: "#f48fb1",
+      light: "#ffc1e3",
+      dark: "#bf5f82",
+      contrastText: "#000",
     },
     success: {
-      main: '#66bb6a',
-      light: '#81c784',
-      dark: '#388e3c',
+      main: "#66bb6a",
+      light: "#81c784",
+      dark: "#388e3c",
     },
     warning: {
-      main: '#ffa726',
-      light: '#ffb74d',
-      dark: '#f57c00',
+      main: "#ffa726",
+      light: "#ffb74d",
+      dark: "#f57c00",
     },
     error: {
-      main: '#f44336',
-      light: '#e57373',
-      dark: '#d32f2f',
+      main: "#f44336",
+      light: "#e57373",
+      dark: "#d32f2f",
     },
     info: {
-      main: '#29b6f6',
-      light: '#4fc3f7',
-      dark: '#0288d1',
+      main: "#29b6f6",
+      light: "#4fc3f7",
+      dark: "#0288d1",
     },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: "#121212",
+      paper: "#1e1e1e",
     },
   },
   typography: lightThemeOptions.typography,
@@ -149,6 +149,6 @@ const darkThemeOptions: ThemeOptions = {
 export const lightTheme = createTheme(lightThemeOptions);
 export const darkTheme = createTheme(darkThemeOptions);
 
-export const getTheme = (mode: 'light' | 'dark') => {
-  return mode === 'light' ? lightTheme : darkTheme;
+export const getTheme = (mode: "light" | "dark") => {
+  return mode === "light" ? lightTheme : darkTheme;
 };
