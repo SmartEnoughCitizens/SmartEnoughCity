@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SimulationSummary {
-    private Double avgSpeed;
-    private Double congestionLevel;
-    private Double totalDelay;
-    private Integer affectedVehicles;
+  private Double avgSpeed;
+  private Double congestionLevel;
+  private Double totalDelay;
+  private Integer affectedVehicles;
 }

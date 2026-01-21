@@ -9,15 +9,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BusTripUpdateDTO {
 
-    private Long id;
-    private String entityId;
-    private String tripId;
-    private String routeId;
-    private String startTime;
-    private String startDate;
-    private String stopSequence;
-    private String stopId;
-    private Integer arrivalDelay;
-    private Integer departureDelay;
-    private String scheduleRelationship;
+  private Long id;
+  private String entityId;
+  private String tripId;
+  private String routeId;
+  private String startTime;
+  private String startDate;
+  private String stopSequence;
+  private String stopId;
+  private Integer arrivalDelay;
+  private Integer departureDelay;
+  private String scheduleRelationship;
 }

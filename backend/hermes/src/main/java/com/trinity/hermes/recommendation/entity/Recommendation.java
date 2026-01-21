@@ -8,31 +8,26 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Builder
 public class Recommendation {
-    @Id
-    private String id;
+  @Id private String id;
 
-    private String dataIndicator;
-    private String notificationSent;
-    private String status;
-    private String createdAt;
-    private String completedAt;
-    private String transportMode;
-    private String routes;
-    private String estimatedTime;
-    private String alternatives;
-    private String confidenceScore;
-    private String generatedAt;
+  private String dataIndicator;
+  private String notificationSent;
+  private String status;
+  private String createdAt;
+  private String completedAt;
+  private String transportMode;
+  private String routes;
+  private String estimatedTime;
+  private String alternatives;
+  private String confidenceScore;
+  private String generatedAt;
 }
 
 @Embeddable
-class RecommendationDetails {
-
-}
-
+class RecommendationDetails {}

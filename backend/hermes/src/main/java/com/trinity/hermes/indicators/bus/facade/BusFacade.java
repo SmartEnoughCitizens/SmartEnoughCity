@@ -1,4 +1,3 @@
 package com.trinity.hermes.indicators.bus.facade;
 
-public class BusFacade {
-}
+public class BusFacade {}

@@ -10,14 +10,14 @@ import software.amazon.awssdk.services.sesv2.SesV2Client;
 @Configuration
 public class AwsSesClient {
 
-    @Value("${aws.region}")
-    private String awsRegion;
+  @Value("${aws.region}")
+  private String awsRegion;
 
-    @Bean
-    public SesV2Client sesV2Client() {
-        return SesV2Client.builder()
-                .region(Region.of(awsRegion))
-                .credentialsProvider(DefaultCredentialsProvider.create())
-                .build();
-    }
+  @Bean
+  public SesV2Client sesV2Client() {
+    return SesV2Client.builder()
+        .region(Region.of(awsRegion))
+        .credentialsProvider(DefaultCredentialsProvider.create())
+        .build();
+  }
 }
