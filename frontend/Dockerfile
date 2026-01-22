@@ -1,18 +1,19 @@
 # -------- Builder --------
 FROM node:alpine AS builder
 
+RUN npm install -g pnpm
+
 WORKDIR /app
 
-ENV NPM_CONFIG_FUND=false \
-    NPM_CONFIG_AUDIT=false
+ENV PNPM_CONFIG_UPDATE_CHECK=false
 
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml ./
 
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN npm run build
+RUN pnpm run build
 
 # -------- Runtime --------
 FROM nginx:alpine
