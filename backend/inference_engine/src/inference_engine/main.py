@@ -3,6 +3,7 @@ import logging
 from collections.abc import Generator
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -13,58 +14,52 @@ from pydantic import BaseModel
 
 from inference_engine.settings.api_settings import get_api_settings
 
-# app = FastAPI()
+# ============== ML MODEL IMPORT ==============
+# Import the ML-powered recommendation model
+from ml_model import MLRecommendationModel
+# =============================================
 
-FETCH_INTERVAL_HOURS = 1  # Fetch data every 1 hour (change to 24 for daily)
-DATA_INDICATORS = ["bus", "car", "train"]  # Transport types to process
+FETCH_INTERVAL_HOURS = 1
+DATA_INDICATORS = ["bus", "car", "train"]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
-    """
-    Handle startup and shutdown events
-    """
-    # Startup
+    """Handle startup and shutdown events"""
     logger.info("🚀 Application starting up...")
+    
+    # ============== LOAD ML MODEL ON STARTUP ==============
+    global recommendation_service
+    recommendation_service = RecommendationService()
+    logger.info("🤖 ML Model loaded: %s", 
+                "Yes" if recommendation_service.model.ml_model.is_trained else "No (using fallback)")
+    # ======================================================
+    
     start_scheduler()
     logger.info("✅ Application ready!")
 
     yield
 
-    # Shutdown
     logger.info("🛑 Application shutting down...")
     shutdown_scheduler()
     logger.info("✅ Application stopped!")
 
 
-# Initialize scheduler
 scheduler = AsyncIOScheduler()
-recommendations_store = {}  # In-memory storage
+recommendations_store = {}
 app = FastAPI(
     title="Recommendation Engine API",
     lifespan=lifespan,
 )
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-# Load Settings
-# Load settings
 settings = get_api_settings()
 DATA_ENGINE_URL: str = (
     settings.hermes_url + "/api/v1/recommendation-engine/indicators/query"
 )
 NOTIFICATION_API_URL: str = settings.hermes_url + "/notification/v1"
-# # # Configuration
-# DATA_ENGINE_URL: str = "http://localhost:8080/api/v1/recommendation-engine/indicators/query"
-# NOTIFICATION_API_URL: str = "http://localhost:8081/api/v1/notification"
-
-
-# Change these lines in your code:
-# DATA_ENGINE_URL: str = "http://localhost:8000/mock/data-engine"  # Point to your own mock
-# NOTIFICATION_API_URL: str = "http://localhost:8000/mock/notification"  # Point to your own mock
 
 
 # Request/Response Models
@@ -102,16 +97,10 @@ async def fetch_data_from_engine(data_indicator: str) -> dict[str, Any]:
             return data
     except httpx.HTTPError:
         logger.exception("Error fetching data from Data Engine")
-        ## lets not raise an exception and return empty dictionary for the demo
         return {}
-    #         raise HTTPException(status_code=503, detail="Data Engine unavailable")
     except Exception:
         logger.exception("Unexpected error")
-        ## look into the raise
         return {}
-
-
-#         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 async def send_notification(payload: NotificationPayload) -> bool:
@@ -135,48 +124,34 @@ async def send_notification(payload: NotificationPayload) -> bool:
         return False
 
 
-## Model Layer
-class RecommendationModel:
-    """Simple recommendation model (replace with actual ML model)"""
-
-    @staticmethod
-    def generate_recommendations(data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Process data and generate recommendations
-        Replace this with your actual ML model logic
-        """
-        # Example: Simple rule-based recommendation
-        recommendations = {
-            "transport_mode": "bus",
-            "routes": [],
-            "estimated_time": 0,
-            "alternatives": [],
-        }
-
-        # Simulate model processing
-        if data.get("bus_data"):
-            bus_data = data["bus_data"]
-            recommendations["routes"] = bus_data.get("available_routes", [])
-            recommendations["estimated_time"] = bus_data.get("avg_time", 0)
-
-            # Generate alternatives
-            if bus_data.get("congestion_level", 0) > 0.7:
-                recommendations["alternatives"] = ["bicycle", "walking"]
-
-        recommendations["confidence_score"] = 0.85
-        recommendations["generated_at"] = datetime.utcnow().isoformat()
-
-        return recommendations
-
-
-## Service Layer
-
-
+# ============== ML MODEL LAYER (REPLACES OLD RecommendationModel) ==============
 class RecommendationService:
-    """Business logic for recommendation workflow"""
+    """Business logic for recommendation workflow - NOW WITH ML!"""
 
     def __init__(self) -> None:
-        self.model = RecommendationModel()
+        # ============== KEY CHANGE: Use ML Model ==============
+        # Look for trained model in common locations
+        model_paths = [
+            "models/transport_model.pkl",
+            "/app/models/transport_model.pkl",
+            Path(__file__).parent / "models" / "transport_model.pkl",
+        ]
+        
+        model_path = None
+        for path in model_paths:
+            if Path(path).exists():
+                model_path = str(path)
+                break
+        
+        self.model = MLRecommendationModel(model_path)
+        
+        if self.model.ml_model.is_trained:
+            logger.info("✅ ML Model loaded successfully from %s", model_path)
+            logger.info("📊 Model metrics: %s", self.model.ml_model.training_metrics)
+        else:
+            logger.warning("⚠️ No trained ML model found. Using rule-based fallback.")
+            logger.warning("   Run 'python train_model.py' to train a model.")
+        # ======================================================
 
     async def process_recommendation(
         self, data_indicator: str, context: dict | None = None
@@ -184,14 +159,13 @@ class RecommendationService:
         """
         Main workflow:
         1. Fetch data from Data Engine
-        2. Generate recommendation using model
+        2. Generate recommendation using ML MODEL
         3. Send notification
         """
         recommendation_id = f"rec_{data_indicator}_{int(datetime.utcnow().timestamp())}"
-        created_at = datetime.utcnow().isoformat()  # Store timestamp once
+        created_at = datetime.utcnow().isoformat()
 
         try:
-            # Update status - FIXED: Use data_indicator as temporary key
             recommendations_store[data_indicator] = {
                 "status": "processing",
                 "data_indicator": data_indicator,
@@ -202,39 +176,56 @@ class RecommendationService:
             logger.info("Fetching data for indicator %s", data_indicator)
             data = await fetch_data_from_engine(data_indicator)
 
-            # Step 2: Generate recommendation
-            logger.info("Generating recommendation for indicator %s", data_indicator)
+            # ============== STEP 2: ML PREDICTION ==============
+            # The ML model now generates recommendations
+            logger.info("🤖 Generating ML recommendation for indicator %s", data_indicator)
+            
+            # Add context info that helps the model
+            if context:
+                data["context"] = context
+            
+            # Add distance if available (important for ML model)
+            if context and "distance_km" in context:
+                data["distance_km"] = context["distance_km"]
+            
+            # Add weather if available
+            if context and "weather_score" in context:
+                data["weather_score"] = context["weather_score"]
+            
             recommendation = self.model.generate_recommendations(data)
+            
+            # Log if we used ML or fallback
+            if recommendation.get("ml_powered"):
+                logger.info("✅ ML model prediction: %s (confidence: %.1f%%)", 
+                           recommendation["transport_mode"],
+                           recommendation["confidence_score"] * 100)
+            else:
+                logger.info("⚠️ Used rule-based fallback")
+            # ===================================================
 
-            ## Add Code to Store recommendation in the Database
-
-            # Add context if provided
             if context:
                 recommendation["context"] = context
-
-            # Save the generated recommendation to database...
 
             # Step 3: Send notification
             logger.info("Sending notification for service indicator %s", data_indicator)
             notification_payload = NotificationPayload(
                 data_indicator=data_indicator,
                 recommendation=recommendation,
-                priority="normal",
+                priority="high" if recommendation.get("confidence_score", 0) > 0.9 else "normal",
             )
 
             notification_sent = await send_notification(notification_payload)
 
-            # Update final status - FIXED: Now we can safely use created_at
             recommendations_store[recommendation_id] = {
                 "status": "completed" if notification_sent else "notification_failed",
                 "data_indicator": data_indicator,
                 "recommendation": recommendation,
                 "notification_sent": notification_sent,
-                "created_at": created_at,  # Use the stored timestamp
+                "created_at": created_at,
                 "completed_at": datetime.utcnow().isoformat(),
+                "ml_powered": recommendation.get("ml_powered", False),
             }
 
-            # Clean up temporary key
             recommendations_store.pop(data_indicator, None)
 
         except Exception as e:
@@ -243,7 +234,7 @@ class RecommendationService:
                 "status": "failed",
                 "data_indicator": data_indicator,
                 "error": str(e),
-                "created_at": created_at,  # Use the stored timestamp
+                "created_at": created_at,
                 "failed_at": datetime.utcnow().isoformat(),
             }
             raise
@@ -257,6 +248,7 @@ class RecommendationService:
         logger.info("⏰ SCHEDULED TASK TRIGGERED")
         logger.info("📅 Time: %s", datetime.utcnow().isoformat())
         logger.info("🚗 Data indicators: %s", DATA_INDICATORS)
+        logger.info("🤖 ML Model active: %s", self.model.ml_model.is_trained)
         logger.info("=" * 80)
 
         results = {
@@ -266,7 +258,6 @@ class RecommendationService:
             "details": [],
         }
 
-        # Process each data indicator
         for data_indicator in DATA_INDICATORS:
             try:
                 logger.info("🔄 Processing: %s", data_indicator)
@@ -297,8 +288,6 @@ class RecommendationService:
                 )
 
             results["total_processed"] += 1
-
-            # Small delay between requests
             await asyncio.sleep(0.5)
 
         logger.info("=" * 80)
@@ -314,15 +303,12 @@ class RecommendationService:
         return results
 
 
-# Initialize service
+# Initialize service (will be re-initialized in lifespan)
 recommendation_service = RecommendationService()
 
 
 ## Scheduler Functions
 async def scheduled_recommendation_task() -> None:
-    """
-    This function is called by the scheduler
-    """
     try:
         await recommendation_service.process_batch_recommendations()
     except Exception:
@@ -330,22 +316,14 @@ async def scheduled_recommendation_task() -> None:
 
 
 def start_scheduler() -> None:
-    """
-    Initialize and start the scheduler
-    """
     logger.info("🕐 Initializing scheduler...")
-
-    # Add the scheduled job
     scheduler.add_job(
         scheduled_recommendation_task,
-        ##trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
         trigger=IntervalTrigger(minutes=1),
         id="fetch_recommendations",
         name="Fetch and generate recommendations",
         replace_existing=True,
     )
-
-    # Start the scheduler
     scheduler.start()
     logger.info(
         "✅ Scheduler started! Task will run every %s hour(s)", FETCH_INTERVAL_HOURS
@@ -354,9 +332,6 @@ def start_scheduler() -> None:
 
 
 def shutdown_scheduler() -> None:
-    """
-    Gracefully shutdown the scheduler
-    """
     logger.info("🛑 Shutting down scheduler...")
     scheduler.shutdown()
     logger.info("✅ Scheduler stopped")
@@ -368,18 +343,12 @@ async def generate_recommendation(
     request: RecommendationRequest,
     background_tasks: BackgroundTasks,
 ) -> RecommendationResponse:
-    """
-    Generate recommendation for a user
-    This endpoint triggers the full workflow asynchronously
-    """
     try:
-        # Get data_indicator from context, default to 'bus'
         if request.context and "data_indicator" in request.context:
             request.context["data_indicator"]
 
-        # Process in background
         recommendation_id = await recommendation_service.process_recommendation(
-            request.user_id,
+            request.context.get("data_indicator", "bus") if request.context else "bus",
             request.context,
         )
 
@@ -391,15 +360,11 @@ async def generate_recommendation(
         )
     except Exception as e:
         logger.exception("Error in generate_recommendation")
-        # TODO: Details of the error should not be exposed to the client
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @app.post("/scheduler/trigger-now")
 async def trigger_scheduler_manually() -> dict:
-    """
-    Manually trigger the scheduled task (for testing)
-    """
     logger.info("🔧 Manual trigger of scheduled task requested")
     try:
         results = await recommendation_service.process_batch_recommendations()
@@ -410,20 +375,18 @@ async def trigger_scheduler_manually() -> dict:
         }
     except Exception as e:
         logger.exception("❌ Manual trigger failed")
-        # TODO: Details of the error should not be exposed to the client
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @app.get("/scheduler/status")
 async def get_scheduler_status() -> dict:
-    """
-    Get scheduler status and configuration
-    """
     jobs = scheduler.get_jobs()
     return {
         "scheduler_running": scheduler.running,
         "fetch_interval_hours": FETCH_INTERVAL_HOURS,
         "data_indicators": DATA_INDICATORS,
+        "ml_model_active": recommendation_service.model.ml_model.is_trained,
+        "ml_model_metrics": recommendation_service.model.ml_model.training_metrics,
         "scheduled_jobs": [
             {
                 "id": job.id,
@@ -435,74 +398,95 @@ async def get_scheduler_status() -> dict:
     }
 
 
+# ============== NEW: ML MODEL INFO ENDPOINT ==============
+@app.get("/model/info")
+async def get_model_info() -> dict:
+    """Get information about the ML model"""
+    model = recommendation_service.model.ml_model
+    
+    info = {
+        "ml_powered": model.is_trained,
+        "model_version": model.MODEL_VERSION,
+        "training_metrics": model.training_metrics if model.is_trained else None,
+    }
+    
+    if model.is_trained:
+        importance = model.get_feature_importance()
+        info["top_features"] = {
+            "mode_classification": importance["mode_classifier"][:5],
+            "time_prediction": importance["time_regressor"][:5],
+        }
+    
+    return info
+# =========================================================
+
+
 ## Testing Endpoint
 @app.post("/test/trigger")
-async def test_trigger(user_id: str) -> RecommendationResponse:
+async def test_trigger(data_indicator: str = "bus") -> RecommendationResponse:
     """Test endpoint to trigger the full workflow"""
     request = RecommendationRequest(
-        user_id=user_id,
-        context={"test": True, "timestamp": datetime.utcnow().isoformat()},
+        context={
+            "test": True, 
+            "timestamp": datetime.utcnow().isoformat(),
+            "data_indicator": data_indicator,
+        },
     )
     return await generate_recommendation(request, BackgroundTasks())
 
 
 # ==================== MOCK ENDPOINTS (FOR TESTING) ====================
 
-
 @app.get("/mock/data-engine")
-async def mock_data_engine(data_indicator: str) -> dict:
+async def mock_data_engine(indicatorType: str) -> dict:
     """
     🧪 MOCK: Simulates Data Analysis Engine
-    This endpoint pretends to be the Spring Boot Data Engine
-
-    Parameters:
-    - data_indicator: Type of transport data (bus, car, train)
-
-    Example: GET /mock/data-engine?data_indicator=bus
     """
-    logger.info("🧪 Mock Data Engine called for data_indicator: %s", data_indicator)
+    logger.info("🧪 Mock Data Engine called for indicator: %s", indicatorType)
 
-    # Different mock data based on transport type
     mock_data_templates = {
         "bus": {
             "transport_type": "bus",
-            "available_routes": ["Route 101", "Route 202", "Route 303"],
-            "congestion_level": 0.6,
-            "avg_time": 25,
-            "stops_count": 12,
-            "next_arrival": "5 minutes",
-            "fare": "$2.50",
+            "bus_data": {
+                "available_routes": ["Route 101", "Route 202", "Route 303"],
+                "congestion_level": 0.6,
+                "avg_time": 25,
+                "stops_count": 12,
+                "next_arrival": "5 minutes",
+                "fare": "$2.50",
+            }
         },
         "car": {
             "transport_type": "car",
-            "available_routes": ["Highway A", "Main Street", "Park Avenue"],
-            "congestion_level": 0.8,
-            "avg_time": 18,
-            "parking_availability": "limited",
-            "traffic_status": "heavy",
-            "estimated_cost": "$5.00",
+            "car_data": {
+                "available_routes": ["Highway A", "Main Street", "Park Avenue"],
+                "congestion_level": 0.8,
+                "avg_time": 18,
+                "parking_availability": "limited",
+                "traffic_status": "heavy",
+                "estimated_cost": "$5.00",
+            }
         },
         "train": {
             "transport_type": "train",
-            "available_routes": ["Red Line", "Blue Line", "Green Line"],
-            "congestion_level": 0.3,
-            "avg_time": 15,
-            "next_departure": "10 minutes",
-            "platform": "Platform 3",
-            "fare": "$3.75",
+            "train_data": {
+                "available_routes": ["Red Line", "Blue Line", "Green Line"],
+                "congestion_level": 0.3,
+                "avg_time": 15,
+                "next_departure": "10 minutes",
+                "platform": "Platform 3",
+                "fare": "$3.75",
+            }
         },
     }
 
-    # Get data based on indicator, default to bus if not found
-    data_indicator_lower = data_indicator.lower()
-    if data_indicator_lower not in mock_data_templates:
-        logger.warning(
-            "⚠️ Unknown data_indicator: %s, defaulting to 'bus'", data_indicator
-        )
-        data_indicator_lower = "bus"
+    indicator_lower = indicatorType.lower()
+    if indicator_lower not in mock_data_templates:
+        logger.warning("⚠️ Unknown indicator: %s, defaulting to 'bus'", indicatorType)
+        indicator_lower = "bus"
 
     return {
-        "data": mock_data_templates[data_indicator_lower],
+        **mock_data_templates[indicator_lower],
         "metadata": {
             "timestamp": datetime.utcnow().isoformat(),
             "data_source": "Mock Data Analysis Engine",
@@ -513,12 +497,9 @@ async def mock_data_engine(data_indicator: str) -> dict:
 
 @app.post("/mock/notification")
 async def mock_notification_handler(payload: dict) -> dict:
-    """
-    🧪 MOCK: Simulates Notification Handler
-    This endpoint pretends to be the Notification Service
-    """
+    """🧪 MOCK: Simulates Notification Handler"""
     logger.info("🧪 Mock Notification Handler called")
-    logger.info("📧 Notification would be sent to user: %s", payload.get("user_id"))
+    logger.info("📧 Notification for indicator: %s", payload.get("data_indicator"))
     logger.info("📋 Recommendation: %s", payload.get("recommendation"))
 
     return {
@@ -528,11 +509,6 @@ async def mock_notification_handler(payload: dict) -> dict:
     }
 
 
-# @app.get("/")
-# def hello_world():
-#     return {"Hello": "World"}
-
-
 @app.get("/")
 async def root() -> dict:
     """Root endpoint with API information"""
@@ -540,6 +516,10 @@ async def root() -> dict:
         "service": "Recommendation Engine API",
         "version": "2.0.0",
         "status": "running",
+        "ml_model": {
+            "active": recommendation_service.model.ml_model.is_trained,
+            "version": recommendation_service.model.ml_model.MODEL_VERSION,
+        },
         "scheduler": {
             "enabled": True,
             "interval_hours": FETCH_INTERVAL_HOURS,
@@ -549,7 +529,8 @@ async def root() -> dict:
             "generate_recommendation": "POST /recommendations/generate",
             "trigger_scheduler": "POST /scheduler/trigger-now",
             "scheduler_status": "GET /scheduler/status",
-            "mock_data_engine": "GET /mock/data-engine?data_indicator=bus|car|train",
+            "model_info": "GET /model/info",
+            "mock_data_engine": "GET /mock/data-engine?indicatorType=bus|car|train",
             "mock_notification": "POST /mock/notification",
         },
         "documentation": {
