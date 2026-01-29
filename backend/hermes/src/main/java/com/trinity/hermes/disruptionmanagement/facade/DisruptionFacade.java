@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,10 +24,13 @@ import org.springframework.stereotype.Component;
 public class DisruptionFacade {
 
   // Core Services
+  @SuppressFBWarnings(value = "EI2", justification = "Spring-injected service dependency")
   private final DisruptionService disruptionService;
   private final ThresholdDetectionService thresholdDetectionService;
 
   private final com.trinity.hermes.notification.services.NotificationFacade notificationFacade;
+
+    @SuppressFBWarnings(value = "EI2", justification = "Spring-injected service dependency")
   private final IncidentLoggingService incidentLoggingService;
 
   // Repository
