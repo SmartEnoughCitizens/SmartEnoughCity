@@ -1,22 +1,22 @@
 from datetime import date, time
-from typing import List, Optional
+from typing import ClassVar
 
-from data_handler.db import Base
 from sqlalchemy import (
-    ForeignKey, 
-    String, 
-    Integer, 
-    Boolean, 
-    Date, 
-    Time, 
-    Text, 
-    Double, 
-    CheckConstraint, 
-    UniqueConstraint, 
-    Index
+    Boolean,
+    CheckConstraint,
+    Date,
+    Double,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Time,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from data_handler.db import Base
 from data_handler.settings.database_settings import get_db_settings
 
 DB_SCHEMA = get_db_settings().postgres_schema
@@ -24,7 +24,7 @@ DB_SCHEMA = get_db_settings().postgres_schema
 
 class BusAgency(Base):
     __tablename__ = "bus_agencies"
-    __table_args__ = {"schema": DB_SCHEMA}
+    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -32,15 +32,17 @@ class BusAgency(Base):
     timezone: Mapped[str] = mapped_column(String, nullable=False)
 
     # Relationships
-    routes: Mapped[List["BusRoute"]] = relationship(back_populates="agency")
+    routes: Mapped[list["BusRoute"]] = relationship(back_populates="agency")
 
 
 class BusCalendarSchedule(Base):
     __tablename__ = "bus_calendar_schedule"
-    __table_args__ = (
-        UniqueConstraint("service_id", "start_date", "end_date", name="uq_service_date_range"),
+    __table_args__: ClassVar[dict] = (
+        UniqueConstraint(
+            "service_id", "start_date", "end_date", name="uq_service_date_range"
+        ),
         CheckConstraint("end_date >= start_date", name="chk_date_range"),
-        {"schema": DB_SCHEMA}
+        {"schema": DB_SCHEMA},
     )
 
     entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -56,34 +58,34 @@ class BusCalendarSchedule(Base):
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
 
     # Relationships
-    trips: Mapped[List["BusTrip"]] = relationship(
+    trips: Mapped[list["BusTrip"]] = relationship(
         primaryjoin="BusCalendarSchedule.service_id == foreign(BusTrip.service_id)",
         back_populates="service",
-        viewonly=True
+        viewonly=True,
     )
 
 
 class BusRoute(Base):
     __tablename__ = "bus_routes"
-    __table_args__ = (
-        {"schema": DB_SCHEMA}
-    )
+    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    agency_id: Mapped[int] = mapped_column(ForeignKey(f"{DB_SCHEMA}.bus_agencies.id"), nullable=False)
+    agency_id: Mapped[int] = mapped_column(
+        ForeignKey(f"{DB_SCHEMA}.bus_agencies.id"), nullable=False
+    )
     short_name: Mapped[str] = mapped_column(String, nullable=False)
     long_name: Mapped[str] = mapped_column(String, nullable=False)
 
     # Relationships
     agency: Mapped["BusAgency"] = relationship(back_populates="routes")
-    trips: Mapped[List["BusTrip"]] = relationship(back_populates="route")
+    trips: Mapped[list["BusTrip"]] = relationship(back_populates="route")
 
 
 class BusTripShape(Base):
     __tablename__ = "bus_trip_shapes"
-    __table_args__ = (
+    __table_args__: ClassVar[dict] = (
         UniqueConstraint("shape_id", "pt_sequence", name="uq_shape_sequence"),
-        {"schema": DB_SCHEMA}
+        {"schema": DB_SCHEMA},
     )
 
     entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -94,37 +96,39 @@ class BusTripShape(Base):
     dist_traveled: Mapped[float] = mapped_column(Double, nullable=False)
 
     # Relationships
-    trips: Mapped[List["BusTrip"]] = relationship(
+    trips: Mapped[list["BusTrip"]] = relationship(
         primaryjoin="BusTripShape.shape_id == foreign(BusTrip.shape_id)",
         back_populates="shape",
-        viewonly=True
+        viewonly=True,
     )
 
 
 class BusStop(Base):
     __tablename__ = "bus_stops"
-    __table_args__ = {"schema": DB_SCHEMA}
+    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     code: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
     lat: Mapped[float] = mapped_column(Double, nullable=False)
     lon: Mapped[float] = mapped_column(Double, nullable=False)
 
     # Relationships
-    stop_times: Mapped[List["BusStopTime"]] = relationship(back_populates="stop")
+    stop_times: Mapped[list["BusStopTime"]] = relationship(back_populates="stop")
 
 
 class BusTrip(Base):
     __tablename__ = "bus_trips"
-    __table_args__ = (
+    __table_args__: ClassVar[dict] = (
         Index("ix_bus_trips_route_id", "route_id"),
-        {"schema": DB_SCHEMA}
+        {"schema": DB_SCHEMA},
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    route_id: Mapped[str] = mapped_column(ForeignKey(f"{DB_SCHEMA}.bus_routes.id"), nullable=False)
+    route_id: Mapped[str] = mapped_column(
+        ForeignKey(f"{DB_SCHEMA}.bus_routes.id"), nullable=False
+    )
     service_id: Mapped[int] = mapped_column(Integer, nullable=False)
     headsign: Mapped[str] = mapped_column(String, nullable=False)
     short_name: Mapped[str] = mapped_column(String, nullable=False)
@@ -133,36 +137,40 @@ class BusTrip(Base):
 
     # Relationships
     route: Mapped["BusRoute"] = relationship(back_populates="trips")
-    stop_times: Mapped[List["BusStopTime"]] = relationship(back_populates="trip")
-    
+    stop_times: Mapped[list["BusStopTime"]] = relationship(back_populates="trip")
+
     service: Mapped["BusCalendarSchedule"] = relationship(
-        primaryjoin=f"foreign(BusTrip.service_id) == BusCalendarSchedule.service_id",
+        primaryjoin="foreign(BusTrip.service_id) == BusCalendarSchedule.service_id",
         back_populates="trips",
-        viewonly=True # service_id is not a unique PK in the calendar schedule table
+        viewonly=True,  # service_id is not a unique PK in the calendar schedule table
     )
-    shape: Mapped[List["BusTripShape"]] = relationship(
-        primaryjoin=f"foreign(BusTrip.shape_id) == BusTripShape.shape_id",
+    shape: Mapped[list["BusTripShape"]] = relationship(
+        primaryjoin="foreign(BusTrip.shape_id) == BusTripShape.shape_id",
         back_populates="trips",
-        viewonly=True # shape_id is not a unique PK in the trip shapes table
+        viewonly=True,  # shape_id is not a unique PK in the trip shapes table
     )
 
 
 class BusStopTime(Base):
     __tablename__ = "bus_stop_times"
-    __table_args__ = (
+    __table_args__: ClassVar[dict] = (
         Index("ix_bus_stop_times_trip_id", "trip_id"),
         Index("ix_bus_stop_times_stop_id", "stop_id"),
         Index("ix_bus_stop_times_trip_stop", "trip_id", "stop_id"),
-        {"schema": DB_SCHEMA}
+        {"schema": DB_SCHEMA},
     )
 
     entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    trip_id: Mapped[str] = mapped_column(ForeignKey(f"{DB_SCHEMA}.bus_trips.id"), nullable=False)
-    stop_id: Mapped[str] = mapped_column(ForeignKey(f"{DB_SCHEMA}.bus_stops.id"), nullable=False)
+    trip_id: Mapped[str] = mapped_column(
+        ForeignKey(f"{DB_SCHEMA}.bus_trips.id"), nullable=False
+    )
+    stop_id: Mapped[str] = mapped_column(
+        ForeignKey(f"{DB_SCHEMA}.bus_stops.id"), nullable=False
+    )
     arrival_time: Mapped[time] = mapped_column(Time, nullable=False)
     departure_time: Mapped[time] = mapped_column(Time, nullable=False)
     sequence: Mapped[int] = mapped_column(Integer, nullable=False)
-    headsign: Mapped[Optional[str]] = mapped_column(String)
+    headsign: Mapped[str | None] = mapped_column(String)
 
     # Relationships
     trip: Mapped["BusTrip"] = relationship(back_populates="stop_times")

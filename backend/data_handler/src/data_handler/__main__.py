@@ -12,19 +12,21 @@ from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.trainstationdata import train_stations_to_db
 
 
-def get_args():
+def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="SmartEnoughCity Data Handler")
-    parser.add_argument('--static', action='store_true', help='Process static data only')
+    parser.add_argument(
+        "--static", action="store_true", help="Process static data only"
+    )
     return parser.parse_args()
 
 
-def init_db():
+def init_db() -> None:
     Base.metadata.create_all(bind=engine)
 
 
 def main_static() -> None:
     logger = logging.getLogger(__name__)
-    
+
     logger.info("Processing static data...")
 
     sources_settings = get_data_sources_settings()
@@ -87,7 +89,7 @@ def main_dynamic() -> None:
 def main() -> None:
     configure_logging()
     logger = logging.getLogger(__name__)
-    
+
     args = get_args()
 
     logger.info("Initializing the database...")
