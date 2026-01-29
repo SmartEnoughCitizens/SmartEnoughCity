@@ -1,5 +1,6 @@
 package com.trinity.hermes.disruptionmanagement.entity;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,6 +14,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@SuppressFBWarnings(
+        value = {"EI", "EI2"},
+        justification = "JPA entity is mutable by design; lists are persistence fields (JSON via converter)"
+)
 public class Disruption {
 
   @Id
