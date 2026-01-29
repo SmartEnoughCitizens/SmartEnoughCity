@@ -45,22 +45,22 @@ class TestParseGtfsDate:
 
     def test_rejects_too_short_string(self) -> None:
         """String shorter than 8 characters raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid date format.*Expected YYYYMMDD"):
+        with pytest.raises(ValueError, match=r"Invalid date format.*Expected YYYYMMDD"):
             parse_gtfs_date("2026012")
 
     def test_rejects_too_long_string(self) -> None:
         """String longer than 8 characters raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid date format.*Expected YYYYMMDD"):
+        with pytest.raises(ValueError, match=r"Invalid date format.*Expected YYYYMMDD"):
             parse_gtfs_date("202601261")
 
     def test_rejects_empty_string(self) -> None:
         """Empty string raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid date format.*Expected YYYYMMDD"):
+        with pytest.raises(ValueError, match=r"Invalid date format.*Expected YYYYMMDD"):
             parse_gtfs_date("")
 
     def test_rejects_whitespace_only_string(self) -> None:
         """Whitespace-only string raises ValueError (length after strip)."""
-        with pytest.raises(ValueError, match="Invalid date format.*Expected YYYYMMDD"):
+        with pytest.raises(ValueError, match=r"Invalid date format.*Expected YYYYMMDD"):
             parse_gtfs_date("        ")
 
     def test_rejects_non_numeric_string(self) -> None:
@@ -139,17 +139,17 @@ class TestParseGtfsTime:
 
     def test_rejects_no_colon(self) -> None:
         """String without colon raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid time format.*Expected HH:MM:SS"):
+        with pytest.raises(ValueError, match=r"Invalid time format.*Expected HH:MM:SS"):
             parse_gtfs_time("072000")
 
     def test_rejects_single_part(self) -> None:
         """Single part (no colon) raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid time format.*Expected HH:MM:SS"):
+        with pytest.raises(ValueError, match=r"Invalid time format.*Expected HH:MM:SS"):
             parse_gtfs_time("07")
 
     def test_rejects_empty_string(self) -> None:
         """Empty string has fewer than 2 parts after split."""
-        with pytest.raises(ValueError, match="Invalid time format.*Expected HH:MM:SS"):
+        with pytest.raises(ValueError, match=r"Invalid time format.*Expected HH:MM:SS"):
             parse_gtfs_time("")
 
     def test_rejects_non_numeric_hours(self) -> None:
