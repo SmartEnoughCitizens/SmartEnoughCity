@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.bus.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusTripUpdateDTO;
 import com.trinity.hermes.indicators.bus.service.BusTripUpdateService;
 import java.util.HashMap;
@@ -36,7 +37,7 @@ public class BusController {
       @RequestParam(required = false) String routeId,
       @RequestParam(defaultValue = "100") Integer limit) {
 
-    log.info("Dashboard API: Getting bus data for route: {}, limit: {}", routeId, limit);
+    log.info("Dashboard API: Getting bus data for route: {}, limit: {}", LogSanitizer.sanitizeLog(routeId), LogSanitizer.sanitizeLog(limit));
 
     try {
       Map<String, Object> response = new HashMap<>();
