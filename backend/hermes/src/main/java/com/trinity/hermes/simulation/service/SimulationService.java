@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,10 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressFBWarnings(
+        value = "EI2",
+        justification = "Spring-managed service dependency; not an internal mutable representation"
+)
 public class SimulationService {
 
   private final RecommendationService recommendationService;
