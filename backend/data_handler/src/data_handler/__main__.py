@@ -1,6 +1,5 @@
 import argparse
 import logging
-from pathlib import Path
 
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.cycle_handler import cycle_stations_to_db
@@ -31,10 +30,10 @@ def main_static() -> None:
 
     sources_settings = get_data_sources_settings()
 
-    static_data_dir = Path("static_data")
-
-    if sources_settings.enable_bus_data:
-        process_bus_static_data(static_data_dir / "GTFS")
+    if sources_settings.enable_bus_data and sources_settings.bus_gtfs_static_data_dir:
+        process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
+    else:
+        logger.info("Skipping bus static data processing...")
 
     logger.info("Finished processing static data.")
 

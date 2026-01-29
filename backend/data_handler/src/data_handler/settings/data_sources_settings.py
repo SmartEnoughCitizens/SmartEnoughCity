@@ -1,6 +1,7 @@
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from data_handler.settings.app_settings import is_dev
@@ -28,6 +29,22 @@ class DataSourcesSettings(BaseSettings):
     enable_train_data: bool = Field(True, alias="ENABLE_TRAIN_DATA")
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
+
+    bus_gtfs_static_data_dir: Path | None = Field(
+        None,
+        alias="BUS_GTFS_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the GTFS bus static data",
+    )
+
+    @field_validator("bus_gtfs_static_data_dir")
+    @classmethod
+    def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
+        if p is None:
+            return None
+        if not p.is_dir():
+            msg = f"Path is not a directory: {p}"
+            raise ValueError(msg)
+        return p
 
     model_config = SettingsConfigDict(
         extra="ignore",
