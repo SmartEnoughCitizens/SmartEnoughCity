@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from data_handler.settings.app_settings import is_dev
@@ -21,6 +21,7 @@ class DatabaseSettings(BaseSettings):
         user: Database user for data handler (from DB_DATA_HANDLER_USER environment variable)
         password: Database password for data handler (from DB_DATA_HANDLER_PASSWORD environment variable)
         postgres_schema: Database schema for data handler (from DB_DATA_HANDLER_SCHEMA environment variable)
+        dsn: Full Postgres DSN for the database (derived from the other settings)
     """
 
     host: str = Field(..., alias="DB_HOST")
@@ -29,6 +30,18 @@ class DatabaseSettings(BaseSettings):
     user: str = Field(..., alias="DB_DATA_HANDLER_USER")
     password: str = Field(..., alias="DB_DATA_HANDLER_PASSWORD")
     postgres_schema: str = Field(..., alias="DB_DATA_HANDLER_SCHEMA")
+
+    @computed_field
+    @property
+    def dsn(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            path=self.name,
+        )
 
     model_config = SettingsConfigDict(
         extra="ignore",
