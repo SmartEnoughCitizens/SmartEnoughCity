@@ -1,5 +1,6 @@
 package com.trinity.hermes.recommendation.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusTripUpdateDTO;
 import com.trinity.hermes.indicators.bus.service.BusTripUpdateService;
 import com.trinity.hermes.indicators.cycle.dto.CycleStationDTO;
@@ -141,9 +142,7 @@ public class RecommendationController {
       @PathVariable String indicatorType, @RequestParam(defaultValue = "100") Integer limit) {
 
     log.info(
-        "Recommendation Engine API: GET request for indicator: {} with limit: {}",
-        indicatorType,
-        limit);
+        "Recommendation Engine API: GET request for indicator: {} with limit: {}", LogSanitizer.sanitizeLog(indicatorType),  LogSanitizer.sanitizeLog(limit));
 
     try {
       RecommendationEngineRequest request = new RecommendationEngineRequest();
