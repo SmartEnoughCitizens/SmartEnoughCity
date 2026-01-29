@@ -17,6 +17,10 @@ public class Notification {
         return qrCode == null ? null : qrCode.clone();
     }
 
+    public void setQrCode(byte[] qrCode) {
+        this.qrCode = qrCode == null ? null : qrCode.clone();
+    }
+
     public static class NotificationBuilder {
         public NotificationBuilder qrCode(byte[] qrCode) {
             this.qrCode = qrCode == null ? null : qrCode.clone();
