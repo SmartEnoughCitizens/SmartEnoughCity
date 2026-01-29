@@ -24,10 +24,10 @@ import software.amazon.awssdk.services.sesv2.model.*;
 @Slf4j
 public class SesMailService implements MailService {
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "SesV2Client is an injected AWS SDK client; shared dependency managed by Spring"
-    )
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification =
+          "SesV2Client is an injected AWS SDK client; shared dependency managed by Spring")
   private final SesV2Client sesV2Client;
 
   @Value("${mail.from}")
