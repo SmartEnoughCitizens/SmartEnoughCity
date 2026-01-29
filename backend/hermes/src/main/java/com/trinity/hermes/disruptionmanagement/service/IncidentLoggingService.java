@@ -218,23 +218,20 @@ public class IncidentLoggingService {
     int totalDisruptions = incidentLogs.size();
     int totalLogEntries = incidentLogs.values().stream().mapToInt(List::size).sum();
 
-    String report =
-        String.format(
-            """
-                ===== DISRUPTION ANALYTICS REPORT =====
-                Period: %s to %s
-                Total Disruptions Tracked: %d
-                Total Log Entries: %d
-                Average Entries per Disruption: %.2f
-
-                NOTE: This is a basic summary for the thin slice.
-                Full analytics would include:
-                - Disruption patterns and trends
-                - Response time analysis
-                - Effectiveness metrics
-                - Peak disruption times
-                ========================================
-                """,
+      String report =
+              String.format(
+                      "===== DISRUPTION ANALYTICS REPORT =====%n" +
+                              "Period: %s to %s%n" +
+                              "Total Disruptions Tracked: %d%n" +
+                              "Total Log Entries: %d%n" +
+                              "Average Entries per Disruption: %.2f%n%n" +
+                              "NOTE: This is a basic summary for the thin slice.%n" +
+                              "Full analytics would include:%n" +
+                              "- Disruption patterns and trends%n" +
+                              "- Response time analysis%n" +
+                              "- Effectiveness metrics%n" +
+                              "- Peak disruption times%n" +
+                              "========================================%n",
             startDate != null ? startDate.format(LOG_TIMESTAMP_FORMAT) : "N/A",
             endDate != null ? endDate.format(LOG_TIMESTAMP_FORMAT) : "N/A",
             totalDisruptions,
