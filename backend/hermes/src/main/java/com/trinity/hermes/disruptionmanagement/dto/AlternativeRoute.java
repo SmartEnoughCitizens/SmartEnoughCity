@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 /** Represents an alternative route option for a disruption */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class AlternativeRoute {
 
   private String routeId;
@@ -32,5 +31,59 @@ public class AlternativeRoute {
   private Integer priority; // Lower number = higher priority
   private String notes;
   // Additional information
+
+    public AlternativeRoute(
+            String routeId,
+            String routeName,
+            List<String> transportModes,
+            List<String> stops,
+            Integer estimatedDurationMinutes,
+            Integer additionalTimeMinutes,
+            Double distanceKm,
+            Double estimatedCost,
+            Integer comfortScore,
+            Integer reliabilityScore,
+            Integer crowdingLevel,
+            Boolean recommended,
+            Integer priority,
+            String notes) {
+
+        this.routeId = routeId;
+        this.routeName = routeName;
+        this.transportModes = copyList(transportModes);
+        this.stops = copyList(stops);
+        this.estimatedDurationMinutes = estimatedDurationMinutes;
+        this.additionalTimeMinutes = additionalTimeMinutes;
+        this.distanceKm = distanceKm;
+        this.estimatedCost = estimatedCost;
+        this.comfortScore = comfortScore;
+        this.reliabilityScore = reliabilityScore;
+        this.crowdingLevel = crowdingLevel;
+        this.recommended = recommended;
+        this.priority = priority;
+        this.notes = notes;
+    }
+
+
+    public List<String> getTransportModes() {
+        return transportModes == null ? null : List.copyOf(transportModes);
+    }
+
+    public List<String> getStops() {
+        return stops == null ? null : List.copyOf(stops);
+    }
+
+
+    public void setTransportModes(List<String> transportModes) {
+        this.transportModes = copyList(transportModes);
+    }
+
+    public void setStops(List<String> stops) {
+        this.stops = copyList(stops);
+    }
+
+    private static <T> List<T> copyList(List<T> in) {
+        return in == null ? null : List.copyOf(in); // unmodifiable copy (Java 10+)
+    }
 
 }
