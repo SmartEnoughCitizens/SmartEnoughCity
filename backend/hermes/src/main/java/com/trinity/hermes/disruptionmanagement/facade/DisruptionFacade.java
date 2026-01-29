@@ -1,5 +1,6 @@
 package com.trinity.hermes.disruptionmanagement.facade;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.disruptionmanagement.dto.*;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
@@ -181,12 +182,12 @@ public class DisruptionFacade {
    * @return true if resolved successfully
    */
   public boolean resolveDisruption(Long disruptionId) {
-    log.info("Resolving disruption ID: {}", disruptionId);
+    log.info("Resolving disruption ID: {}", LogSanitizer.sanitizeLog(disruptionId));
 
     Optional<Disruption> optionalDisruption = disruptionRepository.findById(disruptionId);
 
     if (optionalDisruption.isEmpty()) {
-      log.warn("Disruption {} not found", disruptionId);
+      log.warn("Disruption {} not found", LogSanitizer.sanitizeLog(disruptionId));
       return false;
     }
 
@@ -255,7 +256,7 @@ public class DisruptionFacade {
    * @return List of disruptions matching severity
    */
   public List<DisruptionResponse> getDisruptionsBySeverity(String severity) {
-    log.debug("Retrieving disruptions with severity: {}", severity);
+    log.debug("Retrieving disruptions with severity: {}", LogSanitizer.sanitizeLog(severity));
 
     return disruptionRepository.findBySeverity(severity).stream()
         .map(disruptionService::mapToResponse)
@@ -269,7 +270,7 @@ public class DisruptionFacade {
    * @return List of disruptions in that area
    */
   public List<DisruptionResponse> getDisruptionsByArea(String area) {
-    log.debug("Retrieving disruptions in area: {}", area);
+    log.debug("Retrieving disruptions in area: {}", LogSanitizer.sanitizeLog(area));
 
     return disruptionRepository.findByAffectedArea(area).stream()
         .map(disruptionService::mapToResponse)

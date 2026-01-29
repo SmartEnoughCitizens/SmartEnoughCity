@@ -1,5 +1,6 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -148,14 +149,14 @@ public class IncidentLoggingService {
    * @param resolutionNotes Notes about how it was resolved
    */
   public void logDisruptionResolved(Long disruptionId, String resolutionNotes) {
-    log.info("Logging disruption resolution - ID: {}", disruptionId);
+    log.info("Logging disruption resolution - ID: {}", LogSanitizer.sanitizeLog(disruptionId));
 
     String logEntry =
         String.format(
             "[%s] [RESOLVED] Disruption resolved - %s", getCurrentTimestamp(), resolutionNotes);
 
     addLogEntry(disruptionId, logEntry);
-    log.info("✓ Resolution logged for disruption {}", disruptionId);
+    log.info("✓ Resolution logged for disruption {}", LogSanitizer.sanitizeLog(disruptionId));
   }
 
   /**
@@ -192,15 +193,15 @@ public class IncidentLoggingService {
    * @return List of log entries in chronological order
    */
   public List<String> getIncidentLogs(Long disruptionId) {
-    log.debug("Retrieving incident logs for disruption ID: {}", disruptionId);
+    log.debug("Retrieving incident logs for disruption ID: {}", LogSanitizer.sanitizeLog(disruptionId));
 
     List<String> logs = incidentLogs.get(disruptionId);
     if (logs == null || logs.isEmpty()) {
-      log.debug("No logs found for disruption ID: {}", disruptionId);
+      log.debug("No logs found for disruption ID: {}", LogSanitizer.sanitizeLog(disruptionId));
       return new ArrayList<>();
     }
 
-    log.debug("Retrieved {} log entries for disruption {}", logs.size(), disruptionId);
+    log.debug("Retrieved {} log entries for disruption {}", logs.size(), LogSanitizer.sanitizeLog(disruptionId));
     return new ArrayList<>(logs); // Return copy to prevent external modification
   }
 
