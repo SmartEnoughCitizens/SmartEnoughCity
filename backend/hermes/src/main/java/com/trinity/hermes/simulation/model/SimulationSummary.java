@@ -1,6 +1,5 @@
 package com.trinity.hermes.simulation.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,10 +12,7 @@ public class SimulationSummary {
   private Integer affectedVehicles;
 
   public SimulationSummary(
-          Double avgSpeed,
-          Double congestionLevel,
-          Double totalDelay,
-          Integer affectedVehicles) {
+      Double avgSpeed, Double congestionLevel, Double totalDelay, Integer affectedVehicles) {
     this.avgSpeed = avgSpeed;
     this.congestionLevel = congestionLevel;
     this.totalDelay = totalDelay;
@@ -32,5 +28,4 @@ public class SimulationSummary {
     this.totalDelay = other.totalDelay;
     this.affectedVehicles = other.affectedVehicles;
   }
-
 }

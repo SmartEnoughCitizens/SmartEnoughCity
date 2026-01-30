@@ -3,10 +3,9 @@ package com.trinity.hermes.recommendation.facade;
 import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
 import com.trinity.hermes.recommendation.dto.RecommendationResponse;
 import com.trinity.hermes.recommendation.service.RecommendationService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Optional;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,10 +13,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RecommendationFacade {
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "Spring-injected service dependency stored as field"
-    )
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-injected service dependency stored as field")
   private final RecommendationService recommendationService;
 
   public List<RecommendationResponse> getAllRecommendations() {

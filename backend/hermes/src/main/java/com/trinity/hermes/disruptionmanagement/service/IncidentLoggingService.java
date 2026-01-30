@@ -193,7 +193,8 @@ public class IncidentLoggingService {
    * @return List of log entries in chronological order
    */
   public List<String> getIncidentLogs(Long disruptionId) {
-    log.debug("Retrieving incident logs for disruption ID: {}", LogSanitizer.sanitizeLog(disruptionId));
+    log.debug(
+        "Retrieving incident logs for disruption ID: {}", LogSanitizer.sanitizeLog(disruptionId));
 
     List<String> logs = incidentLogs.get(disruptionId);
     if (logs == null || logs.isEmpty()) {
@@ -201,7 +202,10 @@ public class IncidentLoggingService {
       return new ArrayList<>();
     }
 
-    log.debug("Retrieved {} log entries for disruption {}", logs.size(), LogSanitizer.sanitizeLog(disruptionId));
+    log.debug(
+        "Retrieved {} log entries for disruption {}",
+        logs.size(),
+        LogSanitizer.sanitizeLog(disruptionId));
     return new ArrayList<>(logs); // Return copy to prevent external modification
   }
 
@@ -219,20 +223,20 @@ public class IncidentLoggingService {
     int totalDisruptions = incidentLogs.size();
     int totalLogEntries = incidentLogs.values().stream().mapToInt(List::size).sum();
 
-      String report =
-              String.format(
-                      "===== DISRUPTION ANALYTICS REPORT =====%n" +
-                              "Period: %s to %s%n" +
-                              "Total Disruptions Tracked: %d%n" +
-                              "Total Log Entries: %d%n" +
-                              "Average Entries per Disruption: %.2f%n%n" +
-                              "NOTE: This is a basic summary for the thin slice.%n" +
-                              "Full analytics would include:%n" +
-                              "- Disruption patterns and trends%n" +
-                              "- Response time analysis%n" +
-                              "- Effectiveness metrics%n" +
-                              "- Peak disruption times%n" +
-                              "========================================%n",
+    String report =
+        String.format(
+            "===== DISRUPTION ANALYTICS REPORT =====%n"
+                + "Period: %s to %s%n"
+                + "Total Disruptions Tracked: %d%n"
+                + "Total Log Entries: %d%n"
+                + "Average Entries per Disruption: %.2f%n%n"
+                + "NOTE: This is a basic summary for the thin slice.%n"
+                + "Full analytics would include:%n"
+                + "- Disruption patterns and trends%n"
+                + "- Response time analysis%n"
+                + "- Effectiveness metrics%n"
+                + "- Peak disruption times%n"
+                + "========================================%n",
             startDate != null ? startDate.format(LOG_TIMESTAMP_FORMAT) : "N/A",
             endDate != null ? endDate.format(LOG_TIMESTAMP_FORMAT) : "N/A",
             totalDisruptions,
