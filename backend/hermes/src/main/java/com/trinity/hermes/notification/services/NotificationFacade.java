@@ -7,11 +7,10 @@ import com.trinity.hermes.notification.model.enums.Channel;
 import com.trinity.hermes.notification.util.InMemoryNotificationStore;
 import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
 import com.trinity.hermes.recommendation.service.RecommendationService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,9 +19,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @SuppressFBWarnings(
-        value = "EI2",
-        justification = "Facade stores Spring-injected dependencies; not an encapsulation risk"
-)
+    value = "EI2",
+    justification = "Facade stores Spring-injected dependencies; not an encapsulation risk")
 public class NotificationFacade {
 
   private final NotificationService notificationService;

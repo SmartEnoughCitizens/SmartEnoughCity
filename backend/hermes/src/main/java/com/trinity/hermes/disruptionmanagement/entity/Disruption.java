@@ -15,9 +15,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuppressFBWarnings(
-        value = {"EI", "EI2"},
-        justification = "JPA entity is mutable by design; lists are persistence fields (JSON via converter)"
-)
+    value = {"EI", "EI2"},
+    justification =
+        "JPA entity is mutable by design; lists are persistence fields (JSON via converter)")
 public class Disruption {
 
   @Id

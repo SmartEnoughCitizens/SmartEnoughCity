@@ -83,9 +83,9 @@ public class AuthService {
         Object refreshTokenObj = tokenResponse.get("refresh_token");
 
         if (!(accessTokenObj instanceof String accessToken)
-                || !(tokenTypeObj instanceof String tokenType)
-                || !(expiresInObj instanceof Integer expiresIn)
-                || !(refreshTokenObj instanceof String refreshToken)) {
+            || !(tokenTypeObj instanceof String tokenType)
+            || !(expiresInObj instanceof Integer expiresIn)
+            || !(refreshTokenObj instanceof String refreshToken)) {
           throw new RuntimeException("Invalid token response from Keycloak");
         }
 

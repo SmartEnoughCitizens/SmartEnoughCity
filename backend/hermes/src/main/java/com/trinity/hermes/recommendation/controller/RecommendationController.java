@@ -9,10 +9,9 @@ import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
 import com.trinity.hermes.recommendation.dto.RecommendationEngineRequest;
 import com.trinity.hermes.recommendation.dto.RecommendationResponse;
 import com.trinity.hermes.recommendation.facade.RecommendationFacade;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Optional;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -25,10 +24,9 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class RecommendationController {
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "Spring-injected facade dependency stored in controller field"
-    )
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-injected facade dependency stored in controller field")
   private final RecommendationFacade recommendationFacade;
 
   @GetMapping
@@ -148,7 +146,9 @@ public class RecommendationController {
       @PathVariable String indicatorType, @RequestParam(defaultValue = "100") Integer limit) {
 
     log.info(
-        "Recommendation Engine API: GET request for indicator: {} with limit: {}", LogSanitizer.sanitizeLog(indicatorType),  LogSanitizer.sanitizeLog(limit));
+        "Recommendation Engine API: GET request for indicator: {} with limit: {}",
+        LogSanitizer.sanitizeLog(indicatorType),
+        LogSanitizer.sanitizeLog(limit));
 
     try {
       RecommendationEngineRequest request = new RecommendationEngineRequest();

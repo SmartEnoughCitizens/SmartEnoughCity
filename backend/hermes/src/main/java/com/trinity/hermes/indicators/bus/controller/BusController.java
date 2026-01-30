@@ -37,7 +37,10 @@ public class BusController {
       @RequestParam(required = false) String routeId,
       @RequestParam(defaultValue = "100") Integer limit) {
 
-    log.info("Dashboard API: Getting bus data for route: {}, limit: {}", LogSanitizer.sanitizeLog(routeId), LogSanitizer.sanitizeLog(limit));
+    log.info(
+        "Dashboard API: Getting bus data for route: {}, limit: {}",
+        LogSanitizer.sanitizeLog(routeId),
+        LogSanitizer.sanitizeLog(limit));
 
     try {
       Map<String, Object> response = new HashMap<>();

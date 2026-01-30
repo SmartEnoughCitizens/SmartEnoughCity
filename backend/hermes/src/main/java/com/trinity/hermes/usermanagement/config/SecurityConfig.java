@@ -29,14 +29,15 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-      //For now ignored CSRF only for API endpoints.
-    http.csrf(csrf -> csrf.ignoringRequestMatchers(
+    // For now ignored CSRF only for API endpoints.
+    http.csrf(
+            csrf ->
+                csrf.ignoringRequestMatchers(
                     "/api/**",
                     "/notification/**",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
-                    "/swagger/**"
-            ))
+                    "/swagger/**"))
         .exceptionHandling(
             ex ->
                 ex.accessDeniedHandler(

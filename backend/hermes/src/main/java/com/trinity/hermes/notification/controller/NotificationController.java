@@ -3,9 +3,8 @@ package com.trinity.hermes.notification.controller;
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
 import com.trinity.hermes.notification.services.NotificationFacade;
 import com.trinity.hermes.notification.util.SseManager;
-import java.util.Map;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +18,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class NotificationController {
   private final NotificationFacade notificationFacade;
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "Spring-injected dependency (SseManager) stored as controller field"
-    )
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-injected dependency (SseManager) stored as controller field")
   private final SseManager sseManager;
 
   @PostMapping

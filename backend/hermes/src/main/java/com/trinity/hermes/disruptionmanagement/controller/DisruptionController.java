@@ -2,10 +2,9 @@ package com.trinity.hermes.disruptionmanagement.controller;
 
 import com.trinity.hermes.disruptionmanagement.dto.*;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Optional;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -22,10 +21,9 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class DisruptionController {
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "Spring-injected facade dependency stored in controller field"
-    )
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-injected facade dependency stored in controller field")
   private final DisruptionFacade disruptionFacade;
 
   // =============================================================================

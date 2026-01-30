@@ -22,17 +22,16 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Slf4j
 public class NotificationService {
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "Spring-managed @ConfigurationProperties bean injected; stored as dependency"
-    )
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-managed @ConfigurationProperties bean injected; stored as dependency")
   private final NotificationTemplatesProperties notificationTemplatesProperties;
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "Spring-managed Jackson ObjectMapper injected; stored as dependency"
-    )
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-managed Jackson ObjectMapper injected; stored as dependency")
   private final ObjectMapper objectMapper;
+
   private final QrCodeUtil qrCodeUtil;
 
   /**

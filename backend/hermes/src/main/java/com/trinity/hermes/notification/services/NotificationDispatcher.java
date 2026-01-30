@@ -16,9 +16,7 @@ public class NotificationDispatcher {
 
   private final MailServiceFactory mailServiceFactory;
 
-    @SuppressFBWarnings(
-            value = "EI2"
-    )
+  @SuppressFBWarnings(value = "EI2")
   private final SseManager sseManager;
 
   /** Sends the notification via SES and returns an updated notification object. */

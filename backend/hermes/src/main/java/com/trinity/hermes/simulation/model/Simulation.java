@@ -1,7 +1,6 @@
 package com.trinity.hermes.simulation.model;
 
 import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,18 +18,17 @@ public class Simulation {
   private LocalDateTime completedAt;
   private SimulationResults results;
 
-
   public Simulation(
-          String id,
-          Long recommendationId,
-          String name,
-          String description,
-          String scenario,
-          String status,
-          String createdBy,
-          LocalDateTime createdAt,
-          LocalDateTime completedAt,
-          SimulationResults results) {
+      String id,
+      Long recommendationId,
+      String name,
+      String description,
+      String scenario,
+      String status,
+      String createdBy,
+      LocalDateTime createdAt,
+      LocalDateTime completedAt,
+      SimulationResults results) {
 
     this.id = id;
     this.recommendationId = recommendationId;
@@ -51,5 +49,4 @@ public class Simulation {
   public void setResults(SimulationResults results) {
     this.results = results == null ? null : new SimulationResults(results);
   }
-
 }
