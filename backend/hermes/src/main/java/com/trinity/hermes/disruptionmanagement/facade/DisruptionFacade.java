@@ -1,9 +1,11 @@
 package com.trinity.hermes.disruptionmanagement.facade;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.disruptionmanagement.dto.*;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.disruptionmanagement.service.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -22,10 +24,14 @@ import org.springframework.stereotype.Component;
 public class DisruptionFacade {
 
   // Core Services
+  @SuppressFBWarnings(value = "EI2", justification = "Spring-injected service dependency")
   private final DisruptionService disruptionService;
+
   private final ThresholdDetectionService thresholdDetectionService;
 
   private final com.trinity.hermes.notification.services.NotificationFacade notificationFacade;
+
+  @SuppressFBWarnings(value = "EI2", justification = "Spring-injected service dependency")
   private final IncidentLoggingService incidentLoggingService;
 
   // Repository
@@ -176,12 +182,12 @@ public class DisruptionFacade {
    * @return true if resolved successfully
    */
   public boolean resolveDisruption(Long disruptionId) {
-    log.info("Resolving disruption ID: {}", disruptionId);
+    log.info("Resolving disruption ID: {}", LogSanitizer.sanitizeLog(disruptionId));
 
     Optional<Disruption> optionalDisruption = disruptionRepository.findById(disruptionId);
 
     if (optionalDisruption.isEmpty()) {
-      log.warn("Disruption {} not found", disruptionId);
+      log.warn("Disruption {} not found", LogSanitizer.sanitizeLog(disruptionId));
       return false;
     }
 
@@ -250,7 +256,7 @@ public class DisruptionFacade {
    * @return List of disruptions matching severity
    */
   public List<DisruptionResponse> getDisruptionsBySeverity(String severity) {
-    log.debug("Retrieving disruptions with severity: {}", severity);
+    log.debug("Retrieving disruptions with severity: {}", LogSanitizer.sanitizeLog(severity));
 
     return disruptionRepository.findBySeverity(severity).stream()
         .map(disruptionService::mapToResponse)
@@ -264,7 +270,7 @@ public class DisruptionFacade {
    * @return List of disruptions in that area
    */
   public List<DisruptionResponse> getDisruptionsByArea(String area) {
-    log.debug("Retrieving disruptions in area: {}", area);
+    log.debug("Retrieving disruptions in area: {}", LogSanitizer.sanitizeLog(area));
 
     return disruptionRepository.findByAffectedArea(area).stream()
         .map(disruptionService::mapToResponse)
