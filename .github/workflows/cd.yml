@@ -21,7 +21,7 @@ env:
   # Helm release settings
   K8S_NAMESPACE: dev
   HELM_RELEASE: sec
-  HELM_VALUES_FILE: values-prod.yaml
+  HELM_VALUES_FILE: helm-charts/values-prod.yaml
 
   # GitHub OIDC -> GCP Workload Identity
   # Put the full provider resource name here
