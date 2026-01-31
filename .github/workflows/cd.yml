@@ -11,7 +11,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   # This becomes "<org>/<repo>"
-  IMAGE_BASE: ${{ github.repository }}
+  IMAGE_BASE: smartenoughcitizens/smartenoughcity
 
   # GKE / Deploy settings
   GCP_PROJECT_ID: smart-enough-city-dev
