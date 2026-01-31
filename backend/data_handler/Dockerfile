@@ -23,7 +23,7 @@ COPY --from=builder --chown=nonroot:nonroot /app /app
 
 ENV PATH="/app/.venv/bin:$PATH"
     
-USER nonroot
+USER 999:999
     
 WORKDIR /app
 
