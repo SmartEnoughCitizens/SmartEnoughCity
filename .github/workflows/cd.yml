@@ -171,11 +171,12 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      - name: Build Helm dependencies
+      - name: Helm repo add + dependency build
         run: |
-          helm version
+          set -euo pipefail
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
           helm dependency build helm-charts
-          ls -la helm-charts/charts
 
       - name: Helm upgrade (set tags only for changed services)
         env:
