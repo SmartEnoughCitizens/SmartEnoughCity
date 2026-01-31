@@ -31,7 +31,7 @@ public class UserManagementController {
   @PreAuthorize("hasRole('City_Manager')")
   public ResponseEntity<Map<String, Object>> getTrains() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//    log.info("User {} (roles: {}) accessing Trains API", auth.getName(), auth.getAuthorities());
+    log.info("User {} (roles: {}) accessing Trains API", auth.getName(), auth.getAuthorities());
 
     Map<String, Object> response = new HashMap<>();
     response.put("resource", "Trains");
