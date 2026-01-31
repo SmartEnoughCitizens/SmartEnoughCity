@@ -1,8 +1,8 @@
-name: CD (Build + Deploy to GKE)
+name: CD Pipeline
 
 on:
   push:
-    branches: [AIP-27-Add-deployment-pipeline]
+    branches: [main]
 
 concurrency:
   group: cd-main
@@ -64,7 +64,7 @@ jobs:
               - 'charts/**'
 
   build-and-push:
-    name: Build & push changed images (GHCR)
+    name: Build & push changed images to GHCR
     runs-on: ubuntu-latest
     needs: [detect-changes]
     permissions:
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Compute image tag (short SHA)
+      - name: Compute image tag
         id: tag
         run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
@@ -146,7 +146,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=data-handler
 
   deploy:
-    name: Helm deploy to GKE (dev)
+    name: Helm deploy to GKE
     runs-on: ubuntu-latest
     needs: [detect-changes, build-and-push]
     permissions:
@@ -155,7 +155,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud (OIDC)
+      - name: Authenticate to Google Cloud via OIDC
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
@@ -178,7 +178,7 @@ jobs:
           helm repo update
           helm dependency build helm-charts
 
-      - name: Helm upgrade (set tags only for changed services)
+      - name: Helm upgrade
         env:
           TAG: ${{ needs.build-and-push.outputs.tag }}
           FRONTEND_CHANGED: ${{ needs.detect-changes.outputs.frontend }}
