@@ -10,17 +10,16 @@ data-handler:
     tag: latest
     pullPolicy: IfNotPresent
   securityContext:
-    fsGroup: 1000
-    runAsNonRoot: true
+    fsGroup: 0
+    runAsNonRoot: false
     seccompProfile:
       type: RuntimeDefault
   containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
+    allowPrivilegeEscalation: true
     readOnlyRootFilesystem: false
-    runAsNonRoot: true
 
 frontend:
   imagePullSecrets:
@@ -30,17 +29,16 @@ frontend:
     tag: latest
     pullPolicy: IfNotPresent
   securityContext:
-    fsGroup: 1000
-    runAsNonRoot: true
+    fsGroup: 0
+    runAsNonRoot: false
     seccompProfile:
       type: RuntimeDefault
   containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
+    allowPrivilegeEscalation: true
     readOnlyRootFilesystem: false
-    runAsNonRoot: true
 
 hermes:
   imagePullSecrets:
@@ -50,17 +48,16 @@ hermes:
     tag: latest
     pullPolicy: IfNotPresent
   securityContext:
-    fsGroup: 1000
-    runAsNonRoot: true
+    fsGroup: 0
+    runAsNonRoot: false
     seccompProfile:
       type: RuntimeDefault
   containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
+    allowPrivilegeEscalation: true
     readOnlyRootFilesystem: false
-    runAsNonRoot: true
 
 inference-engine:
   imagePullSecrets:
@@ -70,14 +67,13 @@ inference-engine:
     tag: latest
     pullPolicy: IfNotPresent
   securityContext:
-    fsGroup: 1000
-    runAsNonRoot: true
+    fsGroup: 0
+    runAsNonRoot: false
     seccompProfile:
       type: RuntimeDefault
   containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
+    allowPrivilegeEscalation: true
     readOnlyRootFilesystem: false
-    runAsNonRoot: true
