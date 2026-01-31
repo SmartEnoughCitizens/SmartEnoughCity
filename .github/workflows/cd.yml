@@ -2,7 +2,7 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [AIP-27-Add-deployment-pipeline]
+    branches: [main]
 
 concurrency:
   group: cd-main
