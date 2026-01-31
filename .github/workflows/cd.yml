@@ -22,6 +22,7 @@ env:
   K8S_NAMESPACE: dev
   HELM_RELEASE: sec
   HELM_VALUES_FILE: helm-charts/values-prod.yaml
+  CHART_DIR: helm-charts
 
   # GitHub OIDC -> GCP Workload Identity
   # Put the full provider resource name here
@@ -198,7 +199,7 @@ jobs:
             ARGS+=("--set" "data-handler.image.tag=$TAG")
           fi
 
-          helm upgrade --install "${HELM_RELEASE}" . \
+          helm upgrade --install "${HELM_RELEASE}" "${CHART_DIR}" \
             -n "${K8S_NAMESPACE}" \
             -f "${HELM_VALUES_FILE}" \
             --wait \
