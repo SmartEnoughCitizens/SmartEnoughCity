@@ -2,7 +2,7 @@ name: CD (Build + Deploy to GKE)
 
 on:
   push:
-    branches: [main]
+    branches: [AIP-27-Add-deployment-pipeline]
 
 concurrency:
   group: cd-main
