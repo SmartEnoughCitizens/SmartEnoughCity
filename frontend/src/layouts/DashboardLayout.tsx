@@ -73,7 +73,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
     { text: "Bus Data", icon: <DirectionsBusIcon />, path: "/dashboard/bus" },
     {
-      text: "Cycle Stations",
+      text: "Cycle",
       icon: <DirectionsBikeIcon />,
       path: "/dashboard/cycle",
     },
