@@ -87,7 +87,7 @@ class NotificationPayload(BaseModel):
 
 ## Integration Layer
 async def fetch_data_from_engine(data_indicator: str) -> dict[str, Any]:
-    """Fetch data from Data Analysis Engine """
+    """Fetch data from Data Analysis Engine"""
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
@@ -96,9 +96,9 @@ async def fetch_data_from_engine(data_indicator: str) -> dict[str, Any]:
             )
             response.raise_for_status()
             data = response.json()
-#             logger.info(
-#                 "Fetched data from Data Engine for data indicator %s", data_indicator
-#             )
+            logger.info(
+                "Fetched data from Data Engine for data indicator %s", data_indicator
+            )
             return data
     except httpx.HTTPError:
         logger.exception("Error fetching data from Data Engine")

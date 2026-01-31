@@ -18,7 +18,7 @@ API_KEY = _api_settings.gtfs_api_key
 def fetch_gtfs_trip_updates() -> pd.DataFrame:
     """Fetch GTFS TripUpdates und return DataFrame.
     stop_sequence → STRING (für DB Primary Key)
-    delays → INT oder None
+    delays → INT oder None test
     """
     headers = {"x-api-key": API_KEY}
     resp = requests.get(GTFS_URL, headers=headers)
