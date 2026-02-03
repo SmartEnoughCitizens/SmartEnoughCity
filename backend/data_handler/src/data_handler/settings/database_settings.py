@@ -74,9 +74,7 @@ def get_db_settings() -> DatabaseSettings:
         return DatabaseSettings(
             _env_file=".env.development", _env_file_encoding="utf-8"
         )
-    elif get_app_mode() == "test":
-        return DatabaseSettings(
-            _env_file=".env.test", _env_file_encoding="utf-8"
-        )
+    if get_app_mode() == "test":
+        return DatabaseSettings(_env_file=".env.test", _env_file_encoding="utf-8")
 
     return DatabaseSettings()

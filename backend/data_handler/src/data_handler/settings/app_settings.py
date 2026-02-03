@@ -4,6 +4,7 @@ from typing import Literal
 
 type AppMode = Literal["prod", "dev", "test"]
 
+
 @lru_cache(maxsize=1)
 def get_app_mode() -> AppMode:
     """
@@ -16,5 +17,6 @@ def get_app_mode() -> AppMode:
     if app_mode is None:
         return "prod"
     if app_mode not in ["prod", "dev", "test"]:
-        raise ValueError(f"Invalid app mode: {app_mode}")
+        msg = f"Invalid app mode: {app_mode}"
+        raise ValueError(msg)
     return app_mode
