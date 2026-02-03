@@ -1,9 +1,11 @@
-from data_handler.settings.database_settings import get_db_settings
-from pytest import approx
+import pytest
 from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from data_handler.settings.database_settings import get_db_settings
 
 
-def assert_row_count(session, table_name: str, expected_count: int) -> None:
+def assert_row_count(session: Session, table_name: str, expected_count: int) -> None:
     """
     Assert that the number of rows in the specified table matches the expected count.
 
@@ -23,7 +25,7 @@ def assert_row_count(session, table_name: str, expected_count: int) -> None:
     assert row[0] == expected_count
 
 
-def assert_rows(session, table_name: str, expected_rows: list[dict]) -> None:
+def assert_rows(session: Session, table_name: str, expected_rows: list[dict]) -> None:
     """
     Assert that the rows in the specified table match the expected rows.
 
@@ -41,6 +43,6 @@ def assert_rows(session, table_name: str, expected_rows: list[dict]) -> None:
     actual_rows = list(result.mappings())
 
     assert len(actual_rows) == len(expected_rows)
-    
-    for actual_row, expected_row in zip(actual_rows, expected_rows):
-        assert actual_row == approx(expected_row)
+
+    for actual_row, expected_row in zip(actual_rows, expected_rows, strict=False):
+        assert actual_row == pytest.approx(expected_row)

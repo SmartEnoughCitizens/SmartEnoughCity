@@ -36,10 +36,9 @@ def get_api_settings() -> APISettings:
         `APISettings` directly.
     """
 
-
     if get_app_mode() == "dev":
         return APISettings(_env_file=".env.development", _env_file_encoding="utf-8")
-    elif get_app_mode() == "test":
+    if get_app_mode() == "test":
         return APISettings(_env_file=".env.test", _env_file_encoding="utf-8")
 
     return APISettings()
