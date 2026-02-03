@@ -4,7 +4,7 @@ from pathlib import Path
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from data_handler.settings.app_settings import is_dev
+from data_handler.settings.app_settings import get_app_mode
 
 
 class DataSourcesSettings(BaseSettings):
@@ -60,6 +60,7 @@ def get_data_sources_settings() -> DataSourcesSettings:
     This function automatically detects the current environment and loads settings
     accordingly:
     - In development mode: loads from `.env.development` file
+    - In test mode: loads from `.env.test` file
     - In production mode: loads from environment variables
 
     The result is cached to avoid repeated initialization.
@@ -72,9 +73,13 @@ def get_data_sources_settings() -> DataSourcesSettings:
         `DataSourcesSettings` directly.
     """
 
-    if is_dev():
+    if get_app_mode() == "dev":
         return DataSourcesSettings(
             _env_file=".env.development", _env_file_encoding="utf-8"
+        )
+    elif get_app_mode() == "test":
+        return DataSourcesSettings(
+            _env_file=".env.test", _env_file_encoding="utf-8"
         )
 
     return DataSourcesSettings()
