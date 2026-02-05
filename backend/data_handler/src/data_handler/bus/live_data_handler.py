@@ -117,9 +117,7 @@ def _parse_schedule_relationship(value: str) -> ScheduleRelationship:
     except ValueError:
         valid = [e.value for e in ScheduleRelationship]
         msg = f"Invalid schedule_relationship: {value!r}. Expected one of: {valid}."
-        raise ValueError(
-            msg
-        ) from None
+        raise ValueError(msg) from None
 
 
 def _entity_to_live_vehicle(entity: VehiclePositionEntity) -> BusLiveVehicle:
