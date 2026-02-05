@@ -3,6 +3,7 @@ import logging
 import zoneinfo
 from datetime import datetime
 
+import requests
 from pydantic import BaseModel
 
 from data_handler.bus.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
@@ -13,6 +14,7 @@ from data_handler.bus.models import (
     ScheduleRelationship,
 )
 from data_handler.db import SessionLocal
+from data_handler.settings.api_settings import get_api_settings
 
 logger = logging.getLogger(__name__)
 
@@ -275,7 +277,18 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
             session.close()
 
 
-def process_bus_live_data(json_string: str) -> None:
-    logger.info("Processing bus live data...")
-    process_bus_vehicles_live_data(json_string)
-    process_bus_trip_updates_live_data(json_string)
+def process_bus_live_data() -> None:
+    api_settings = get_api_settings()
+    headers = {"x-api-key": api_settings.gtfs_api_key}
+    vehicles_url = f"{api_settings.gtfs_api_base_url}/Vehicles?format=json"
+    trip_updates_url = f"{api_settings.gtfs_api_base_url}/TripUpdates?format=json"
+
+    logger.info("Fetching bus live vehicles data...")
+    vehicles_response = requests.get(vehicles_url, headers=headers)
+    vehicles_response.raise_for_status()
+    process_bus_vehicles_live_data(vehicles_response.text)
+
+    logger.info("Fetching bus live trip updates data...")
+    trip_updates_response = requests.get(trip_updates_url, headers=headers)
+    trip_updates_response.raise_for_status()
+    process_bus_trip_updates_live_data(trip_updates_response.text)
