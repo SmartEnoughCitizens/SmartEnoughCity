@@ -23,6 +23,7 @@ build-backend = "uv_build"
 dev = [
     "pytest>=9.0.2",
     "ruff>=0.14.13",
+    "testcontainers[postgres]>=4.14.1",
 ]
 
 [tool.ruff.lint]
@@ -51,6 +52,7 @@ select = [
     "G",
     "INP",
     "PIE",
+    "T20",
     "PYI",
     "PT",
     "Q",
@@ -81,9 +83,13 @@ ignore = [
     "PLR2004",  # Magic value used in comparison
     "FBT003",   # Boolean positional value in function call
     "COM812",   # Trailing comma missing (disabled to avoid conflicts with the formatter)
+    "FIX002",   # Line contains TODO, consider resolving the issue
+    "TD002",    # Missing author in TODO
+    "PT011",    # `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
 
     # TODO: Remove the below rules from ignored
     # They are ignored temporarily, the errors should be resolved properly
+    "T201",     # `print` found
     "BLE001",   # Do not catch blind exception: `Exception`
     "S113",     # Probable use of `requests` call without timeout
     "S314",     # Using `xml` to parse untrusted data is known to be vulnerable to XML attacks; use `defusedxml` equivalents
