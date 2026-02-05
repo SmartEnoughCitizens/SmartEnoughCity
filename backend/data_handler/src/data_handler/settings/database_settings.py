@@ -1,9 +1,9 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from data_handler.settings.app_settings import is_dev
+from data_handler.settings.app_settings import get_app_mode
 
 
 class DatabaseSettings(BaseSettings):
@@ -21,6 +21,7 @@ class DatabaseSettings(BaseSettings):
         user: Database user for data handler (from DB_DATA_HANDLER_USER environment variable)
         password: Database password for data handler (from DB_DATA_HANDLER_PASSWORD environment variable)
         postgres_schema: Database schema for data handler (from DB_DATA_HANDLER_SCHEMA environment variable)
+        dsn: Full Postgres DSN for the database (derived from the other settings)
     """
 
     host: str = Field(..., alias="DB_HOST")
@@ -29,6 +30,18 @@ class DatabaseSettings(BaseSettings):
     user: str = Field(..., alias="DB_DATA_HANDLER_USER")
     password: str = Field(..., alias="DB_DATA_HANDLER_PASSWORD")
     postgres_schema: str = Field(..., alias="DB_DATA_HANDLER_SCHEMA")
+
+    @computed_field
+    @property
+    def dsn(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            path=self.name,
+        )
 
     model_config = SettingsConfigDict(
         extra="ignore",
@@ -44,6 +57,7 @@ def get_db_settings() -> DatabaseSettings:
     This function automatically detects the current environment and loads settings
     accordingly:
     - In development mode: loads from `.env.development` file
+    - In test mode: loads from `.env.test` file
     - In production mode: loads from environment variables
 
     The result is cached to avoid repeated initialization.
@@ -56,9 +70,11 @@ def get_db_settings() -> DatabaseSettings:
         `DatabaseSettings` directly.
     """
 
-    if is_dev():
+    if get_app_mode() == "dev":
         return DatabaseSettings(
             _env_file=".env.development", _env_file_encoding="utf-8"
         )
+    if get_app_mode() == "test":
+        return DatabaseSettings(_env_file=".env.test", _env_file_encoding="utf-8")
 
     return DatabaseSettings()
