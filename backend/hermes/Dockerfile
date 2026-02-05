@@ -23,6 +23,6 @@ RUN chown -R 10001:10001 /app
 
 ENV SPRING_PROFILES_ACTIVE=prod
 
-USER 10001:10001
+USER 1000:1000
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
