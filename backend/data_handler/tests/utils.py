@@ -1,8 +1,21 @@
-import pytest
+from deepdiff import DeepDiff
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from data_handler.settings.database_settings import get_db_settings
+
+
+class AnyValue:
+    """A sentinel class that equals everything."""
+    def __eq__(self, other: object) -> bool:
+        return True
+    def __hash__(self) -> int:
+        return hash(AnyValue)
+    def __repr__(self) -> str:
+        return "<ANY>"
+
+
+ANY = AnyValue()
 
 
 def assert_row_count(session: Session, table_name: str, expected_count: int) -> None:
@@ -40,9 +53,9 @@ def assert_rows(session: Session, table_name: str, expected_rows: list[dict]) ->
 
     schema = get_db_settings().postgres_schema
     result = session.execute(text(f"SELECT * FROM {schema}.{table_name}"))
-    actual_rows = list(result.mappings())
+    actual_rows = [dict(row) for row in result.mappings()]
 
     assert len(actual_rows) == len(expected_rows)
 
-    for actual_row, expected_row in zip(actual_rows, expected_rows, strict=False):
-        assert actual_row == pytest.approx(expected_row)
+    diff = DeepDiff(expected_rows, actual_rows, math_epsilon=0.001, exclude_obj_callback=lambda obj, path: isinstance(obj, AnyValue))
+    assert not diff, f"Differences found: {diff.pretty()}"
