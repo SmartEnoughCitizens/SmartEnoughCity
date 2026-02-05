@@ -55,10 +55,10 @@ jobs:
             datahandler:
               - 'backend/data_handler/**'
             helmchart:
-              - 'Chart.yaml'
-              - 'Chart.lock'
-              - 'values*.yaml'
-              - 'templates/**'
+              - 'helm-charts/Chart.yaml'
+              - 'helm-charts/Chart.lock'
+              - 'helm-charts/values*.yaml'
+              - 'helm-charts/templates/**'
               - 'charts/**'
 
   build-and-push:
