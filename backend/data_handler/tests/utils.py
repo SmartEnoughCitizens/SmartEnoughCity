@@ -7,10 +7,13 @@ from data_handler.settings.database_settings import get_db_settings
 
 class AnyValue:
     """A sentinel class that equals everything."""
+
     def __eq__(self, other: object) -> bool:
         return True
+
     def __hash__(self) -> int:
         return hash(AnyValue)
+
     def __repr__(self) -> str:
         return "<ANY>"
 
@@ -57,5 +60,10 @@ def assert_rows(session: Session, table_name: str, expected_rows: list[dict]) ->
 
     assert len(actual_rows) == len(expected_rows)
 
-    diff = DeepDiff(expected_rows, actual_rows, math_epsilon=0.001, exclude_obj_callback=lambda obj, path: isinstance(obj, AnyValue))
+    diff = DeepDiff(
+        expected_rows,
+        actual_rows,
+        math_epsilon=0.001,
+        exclude_obj_callback=lambda obj, path: isinstance(obj, AnyValue),
+    )
     assert not diff, f"Differences found: {diff.pretty()}"

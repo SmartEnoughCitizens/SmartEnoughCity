@@ -122,7 +122,9 @@ class BusStop(Base):
 
     # Relationships
     stop_times: Mapped[list["BusStopTime"]] = relationship(back_populates="stop")
-    live_stop_time_updates: Mapped[list["BusLiveTripStopTimeUpdate"]] = relationship(back_populates="stop")
+    live_stop_time_updates: Mapped[list["BusLiveTripStopTimeUpdate"]] = relationship(
+        back_populates="stop"
+    )
 
 
 class BusTrip(Base):
@@ -146,7 +148,9 @@ class BusTrip(Base):
     route: Mapped["BusRoute"] = relationship(back_populates="trips")
     stop_times: Mapped[list["BusStopTime"]] = relationship(back_populates="trip")
     live_vehicles: Mapped[list["BusLiveVehicle"]] = relationship(back_populates="trip")
-    live_trip_updates: Mapped[list["BusLiveTripUpdate"]] = relationship(back_populates="trip")
+    live_trip_updates: Mapped[list["BusLiveTripUpdate"]] = relationship(
+        back_populates="trip"
+    )
 
     service: Mapped["BusCalendarSchedule"] = relationship(
         primaryjoin="foreign(BusTrip.service_id) == BusCalendarSchedule.service_id",
@@ -236,8 +240,14 @@ class BusLiveTripUpdate(Base):
         Index("ix_bus_live_trip_updates_vehicle_id", "vehicle_id"),
         Index("ix_bus_live_trip_updates_start_date", "start_date"),
         Index("ix_bus_live_trip_updates_start_date_time", "start_date", "start_time"),
-        Index("ix_bus_live_trip_updates_vehicle_id_timestamp", "vehicle_id", desc("timestamp")),
-        Index("ix_bus_live_trip_updates_trip_id_timestamp", "trip_id", desc("timestamp")),
+        Index(
+            "ix_bus_live_trip_updates_vehicle_id_timestamp",
+            "vehicle_id",
+            desc("timestamp"),
+        ),
+        Index(
+            "ix_bus_live_trip_updates_trip_id_timestamp", "trip_id", desc("timestamp")
+        ),
         {"schema": DB_SCHEMA},
     )
 
@@ -272,7 +282,9 @@ class BusLiveTripStopTimeUpdate(Base):
 
     entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     trip_update_entry_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey(f"{DB_SCHEMA}.bus_live_trip_updates.entry_id"), nullable=False
+        Integer,
+        ForeignKey(f"{DB_SCHEMA}.bus_live_trip_updates.entry_id"),
+        nullable=False,
     )
     stop_id: Mapped[str] = mapped_column(
         String, ForeignKey(f"{DB_SCHEMA}.bus_stops.id"), nullable=False
@@ -285,5 +297,7 @@ class BusLiveTripStopTimeUpdate(Base):
     departure_delay: Mapped[int | None] = mapped_column(Integer)
 
     # Relationships
-    trip_update: Mapped["BusLiveTripUpdate"] = relationship(back_populates="stop_time_updates")
+    trip_update: Mapped["BusLiveTripUpdate"] = relationship(
+        back_populates="stop_time_updates"
+    )
     stop: Mapped["BusStop"] = relationship(back_populates="live_stop_time_updates")
