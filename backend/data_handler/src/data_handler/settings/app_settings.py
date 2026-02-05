@@ -1,13 +1,22 @@
 import os
 from functools import lru_cache
+from typing import Literal
+
+type AppMode = Literal["prod", "dev", "test"]
 
 
 @lru_cache(maxsize=1)
-def is_dev() -> bool:
+def get_app_mode() -> AppMode:
     """
-    Determines whether the current application environment is set to development.
+    Determines the current application mode.
 
     Returns:
-        bool: `True` if the application is running in development mode, `False` otherwise.
+        AppMode: The current application mode.
     """
-    return os.getenv("APP_ENV") == "dev"
+    app_mode = os.getenv("APP_ENV")
+    if app_mode is None:
+        return "prod"
+    if app_mode not in ["prod", "dev", "test"]:
+        msg = f"Invalid app mode: {app_mode}"
+        raise ValueError(msg)
+    return app_mode
