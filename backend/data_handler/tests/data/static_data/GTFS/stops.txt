@@ -1,0 +1,6 @@
+stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon,zone_id,stop_url,location_type,parent_station
+8220DB007591,7591,Abbey Street Lower,,53.34889,-6.25683,,,,
+8220DB000496,496,Busáras,,53.3494968761341,-6.25222357868164,,,,
+8220DB000515,515,Five Lamps,,53.35439,-6.2472,,,,
+8220DB000516,516,Newcomen Bridge,,53.35621,-6.244942,,,,
+8220DB000519,519,North Strand Fire Station,,53.360339,-6.239535,,,,
