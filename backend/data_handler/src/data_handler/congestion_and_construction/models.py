@@ -1,0 +1,86 @@
+"""SQLAlchemy models for traffic and construction data."""
+
+from datetime import datetime
+from enum import Enum
+from typing import ClassVar
+
+from sqlalchemy import (
+    DateTime,
+    Double,
+    Enum as SQLEnum,
+    Index,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+
+from data_handler.db import Base
+from data_handler.settings.database_settings import get_db_settings
+
+DB_SCHEMA = get_db_settings().postgres_schema
+
+
+class TrafficEventType(str, Enum):
+    """Types of traffic events from TII API."""
+
+    CONGESTION = "CONGESTION"
+    CLOSURE_INCIDENT = "CLOSURE/INCIDENT"
+    ROADWORKS = "ROADWORKS"
+    WARNING = "WARNING"
+
+
+class TrafficEvent(Base):
+    """
+    Model for traffic events from TII (Transport Infrastructure Ireland).
+
+    Stores real-time traffic information including roadworks, incidents,
+    congestion, and weather warnings in the Dublin area.
+    """
+
+    __tablename__ = "traffic_events"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_traffic_events_type", "event_type"),
+        Index("ix_traffic_events_location", "lat", "lon"),
+        Index("ix_traffic_events_fetched_at", "fetched_at"),
+        {"schema": DB_SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_type: Mapped[TrafficEventType] = mapped_column(
+        SQLEnum(TrafficEventType), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    lat: Mapped[float] = mapped_column(Double, nullable=False)
+    lon: Mapped[float] = mapped_column(Double, nullable=False)
+    color: Mapped[str] = mapped_column(String(20), nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    source_id: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True
+    )
+
+
+class TrafficDataFetchLog(Base):
+    """
+    Model to track traffic data fetch operations.
+
+    Logs each API call to TII for monitoring and debugging purposes.
+    """
+
+    __tablename__ = "traffic_data_fetch_logs"
+    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    events_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    success: Mapped[bool] = mapped_column(nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    bounding_box_north: Mapped[float] = mapped_column(Double, nullable=False)
+    bounding_box_south: Mapped[float] = mapped_column(Double, nullable=False)
+    bounding_box_east: Mapped[float] = mapped_column(Double, nullable=False)
+    bounding_box_west: Mapped[float] = mapped_column(Double, nullable=False)
