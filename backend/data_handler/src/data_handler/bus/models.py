@@ -122,6 +122,7 @@ class BusStop(Base):
 
     # Relationships
     stop_times: Mapped[list["BusStopTime"]] = relationship(back_populates="stop")
+    live_stop_time_updates: Mapped[list["BusLiveTripStopTimeUpdate"]] = relationship(back_populates="stop")
 
 
 class BusTrip(Base):
@@ -145,6 +146,7 @@ class BusTrip(Base):
     route: Mapped["BusRoute"] = relationship(back_populates="trips")
     stop_times: Mapped[list["BusStopTime"]] = relationship(back_populates="trip")
     live_vehicles: Mapped[list["BusLiveVehicle"]] = relationship(back_populates="trip")
+    live_trip_updates: Mapped[list["BusLiveTripUpdate"]] = relationship(back_populates="trip")
 
     service: Mapped["BusCalendarSchedule"] = relationship(
         primaryjoin="foreign(BusTrip.service_id) == BusCalendarSchedule.service_id",
@@ -197,12 +199,14 @@ class BusLiveVehicle(Base):
     __table_args__: ClassVar[dict] = (
         Index("ix_bus_live_vehicles_start_date", "start_date"),
         Index("ix_bus_live_vehicles_start_date_time", "start_date", "start_time"),
+        Index("ix_bus_live_vehicles_vehicle_id", "vehicle_id"),
         Index(
             "ix_bus_live_vehicles_vehicle_timestamp",
             "vehicle_id",
             desc("timestamp"),
         ),
         Index("ix_bus_live_vehicles_trip_id", "trip_id"),
+        Index("ix_bus_live_vehicles_trip_id_timestamp", "trip_id", desc("timestamp")),
         {"schema": DB_SCHEMA},
     )
 
@@ -224,3 +228,62 @@ class BusLiveVehicle(Base):
     # Relationships
     trip: Mapped["BusTrip"] = relationship(back_populates="live_vehicles")
 
+
+class BusLiveTripUpdate(Base):
+    __tablename__ = "bus_live_trip_updates"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_bus_live_trip_updates_trip_id", "trip_id"),
+        Index("ix_bus_live_trip_updates_vehicle_id", "vehicle_id"),
+        Index("ix_bus_live_trip_updates_start_date", "start_date"),
+        Index("ix_bus_live_trip_updates_start_date_time", "start_date", "start_time"),
+        Index("ix_bus_live_trip_updates_vehicle_id_timestamp", "vehicle_id", desc("timestamp")),
+        Index("ix_bus_live_trip_updates_trip_id_timestamp", "trip_id", desc("timestamp")),
+        {"schema": DB_SCHEMA},
+    )
+
+    entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    trip_id: Mapped[str] = mapped_column(
+        String, ForeignKey(f"{DB_SCHEMA}.bus_trips.id"), nullable=False
+    )
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    schedule_relationship: Mapped[ScheduleRelationship] = mapped_column(
+        SQLEnum(ScheduleRelationship), nullable=False
+    )
+    direction_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    vehicle_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    # Relationships
+    trip: Mapped["BusTrip"] = relationship(back_populates="live_trip_updates")
+    stop_time_updates: Mapped[list["BusLiveTripStopTimeUpdate"]] = relationship(
+        back_populates="trip_update", cascade="all, delete-orphan"
+    )
+
+
+class BusLiveTripStopTimeUpdate(Base):
+    __tablename__ = "bus_live_trip_updates_stop_time_updates"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_stop_time_updates_trip_update_id", "trip_update_entry_id"),
+        Index("ix_stop_time_updates_stop_id", "stop_id"),
+        Index("ix_stop_time_updates_stop_sequence", "stop_id", "stop_sequence"),
+        {"schema": DB_SCHEMA},
+    )
+
+    entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    trip_update_entry_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey(f"{DB_SCHEMA}.bus_live_trip_updates.entry_id"), nullable=False
+    )
+    stop_id: Mapped[str] = mapped_column(
+        String, ForeignKey(f"{DB_SCHEMA}.bus_stops.id"), nullable=False
+    )
+    stop_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    schedule_relationship: Mapped[ScheduleRelationship] = mapped_column(
+        SQLEnum(ScheduleRelationship), nullable=False
+    )
+    arrival_delay: Mapped[int | None] = mapped_column(Integer)
+    departure_delay: Mapped[int | None] = mapped_column(Integer)
+
+    # Relationships
+    trip_update: Mapped["BusLiveTripUpdate"] = relationship(back_populates="stop_time_updates")
+    stop: Mapped["BusStop"] = relationship(back_populates="live_stop_time_updates")
