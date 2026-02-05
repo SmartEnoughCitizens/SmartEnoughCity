@@ -1,24 +1,40 @@
 # data_handler/car/models.py
 
+import enum
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
-from sqlalchemy.orm import relationship
+from typing import ClassVar
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from data_handler.db import Base
+
+
+class EmissionBand(enum.Enum):
+    """EU vehicle emission bands."""
+    BAND_A = "Band A"
+    BAND_B = "Band B"
+    BAND_C = "Band C"
+    BAND_D = "Band D"
+    BAND_E = "Band E"
+    BAND_F = "Band F"
+    BAND_G = "Band G"
 
 
 class ScatsSite(Base):
     """SCATS traffic monitoring site locations."""
     __tablename__ = "scats_sites"
 
-    site_id = Column(Integer, primary_key=True)
-    description = Column(String, nullable=False)
-    description_lower = Column(String, nullable=False)
-    region = Column(String, nullable=False)
-    lat = Column(Float, nullable=False)
-    lon = Column(Float, nullable=False)
+    site_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    description_lower: Mapped[str] = mapped_column(String, nullable=False)
+    region: Mapped[str] = mapped_column(String, nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
 
-    # Relationship to traffic volumes
-    traffic_volumes = relationship("TrafficVolume", back_populates="site")
+    # Relationships
+    traffic_volumes: Mapped[list["TrafficVolume"]] = relationship(back_populates="site")
 
 
 class TrafficVolume(Base):
@@ -26,169 +42,52 @@ class TrafficVolume(Base):
     __tablename__ = "traffic_volumes"
 
     # Composite primary key
-    end_time = Column(DateTime, primary_key=True)
-    site_id = Column(Integer, ForeignKey("scats_sites.site_id"), primary_key=True)
-    detector = Column(Integer, primary_key=True)
+    end_time: Mapped[datetime] = mapped_column(DateTime, primary_key=True)
+    site_id: Mapped[int] = mapped_column(
+        ForeignKey("scats_sites.site_id"), primary_key=True
+    )
+    detector: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    region = Column(String, nullable=False)
-    sum_volume = Column(Integer, nullable=False)  # Total vehicles in hour
-    avg_volume = Column(Integer, nullable=False)  # Avg per 5-min interval
-
-    # Relationship to site
-    site = relationship("ScatsSite", back_populates="traffic_volumes")
-
-
-class TaxationClass(Base):
-    """Vehicle taxation classes (e.g., New Private Cars, Second-hand)."""
-    __tablename__ = "taxation_classes"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, nullable=False)
+    region: Mapped[str] = mapped_column(String, nullable=False)
+    sum_volume: Mapped[int] = mapped_column(Integer, nullable=False)  # Total vehicles in hour
+    avg_volume: Mapped[int] = mapped_column(Integer, nullable=False)  # Avg per 5-min interval
 
     # Relationships
-    vehicle_first_time = relationship("VehicleFirstTime", back_populates="taxation_class")
-    vehicle_yearly = relationship("VehicleYearly", back_populates="taxation_class")
-
-
-class FuelType(Base):
-    """Types of vehicle fuel (Petrol, Diesel, Electric, etc.)."""
-    __tablename__ = "fuel_types"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, nullable=False)
-
-    # Relationships
-    vehicle_licensing_area = relationship("VehicleLicensingArea", back_populates="fuel_type")
-    vehicle_new_licensed = relationship("VehicleNewLicensed", back_populates="fuel_type")
-    vehicle_yearly = relationship("VehicleYearly", back_populates="fuel_type")
-
-
-class LicensingAuthority(Base):
-    """Licensing authorities/regions (Dublin, Carlow, etc.)."""
-    __tablename__ = "licensing_authorities"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, nullable=False)
-
-    # Relationships
-    vehicle_licensing_area = relationship("VehicleLicensingArea", back_populates="authority")
-    emission_data = relationship("PrivateCarEmission", back_populates="authority")
-
-
-class EmissionBand(Base):
-    """Vehicle emission bands (A, B, C, etc.)."""
-    __tablename__ = "emission_bands"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    band = Column(String, unique=True, nullable=False)
-
-    # Relationships
-    emission_data = relationship("PrivateCarEmission", back_populates="emission_band")
-
-
-class VehicleRegistrationType(Base):
-    """Types of vehicle registration (New, Second-hand)."""
-    __tablename__ = "vehicle_registration_types"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, nullable=False)
-
-    # Relationships
-    vehicle_new_licensed = relationship("VehicleNewLicensed", back_populates="registration_type")
-
-
-class VehicleFirstTime(Base):
-    """Vehicles licensed for the first time by month and taxation class."""
-    __tablename__ = "vehicle_first_time"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    month = Column(DateTime, nullable=False)
-    taxation_class_id = Column(Integer, ForeignKey("taxation_classes.id"), nullable=False)
-    count = Column(Integer, nullable=False)
-
-    # Relationships
-    taxation_class = relationship("TaxationClass", back_populates="vehicle_first_time")
-
-
-class VehicleLicensingArea(Base):
-    """New and second-hand cars by licensing area, fuel type, and month."""
-    __tablename__ = "vehicle_licensing_area"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    month = Column(DateTime, nullable=False)
-    authority_id = Column(Integer, ForeignKey("licensing_authorities.id"), nullable=False)
-    fuel_type_id = Column(Integer, ForeignKey("fuel_types.id"), nullable=False)
-    count = Column(Integer, nullable=False)
-
-    # Relationships
-    authority = relationship("LicensingAuthority", back_populates="vehicle_licensing_area")
-    fuel_type = relationship("FuelType", back_populates="vehicle_licensing_area")
-
-
-class VehicleNewLicensed(Base):
-    """New vehicles licensed by registration type and fuel type."""
-    __tablename__ = "vehicle_new_licensed"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    month = Column(DateTime, nullable=False)
-    registration_type_id = Column(Integer, ForeignKey("vehicle_registration_types.id"), nullable=False)
-    fuel_type_id = Column(Integer, ForeignKey("fuel_types.id"), nullable=False)
-    count = Column(Integer, nullable=False)
-
-    # Relationships
-    registration_type = relationship("VehicleRegistrationType", back_populates="vehicle_new_licensed")
-    fuel_type = relationship("FuelType", back_populates="vehicle_new_licensed")
-
-
-class VehicleYearly(Base):
-    """New and second-hand vehicles by year, taxation class, and fuel type."""
-    __tablename__ = "vehicle_yearly"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    year = Column(Integer, nullable=False)
-    taxation_class_id = Column(Integer, ForeignKey("taxation_classes.id"), nullable=False)
-    fuel_type_id = Column(Integer, ForeignKey("fuel_types.id"), nullable=False)
-    count = Column(Integer, nullable=False)
-
-    # Relationships
-    taxation_class = relationship("TaxationClass", back_populates="vehicle_yearly")
-    fuel_type = relationship("FuelType", back_populates="vehicle_yearly")
+    site: Mapped["ScatsSite"] = relationship(back_populates="traffic_volumes")
 
 
 class PrivateCarEmission(Base):
     """Private cars licensed by emission band and licensing authority."""
     __tablename__ = "private_car_emissions"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    year = Column(Integer, nullable=False)
-    emission_band_id = Column(Integer, ForeignKey("emission_bands.id"), nullable=False)
-    authority_id = Column(Integer, ForeignKey("licensing_authorities.id"), nullable=False)
-    count = Column(Integer, nullable=False)
-
-    # Relationships
-    emission_band = relationship("EmissionBand", back_populates="emission_data")
-    authority = relationship("LicensingAuthority", back_populates="emission_data")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    emission_band: Mapped[EmissionBand] = mapped_column(
+        SQLEnum(EmissionBand), nullable=False
+    )
+    licensing_authority: Mapped[str] = mapped_column(String, nullable=False)
+    count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class EVChargingPoint(Base):
     """Electric vehicle charging point locations and specifications."""
     __tablename__ = "ev_charging_points"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    county = Column(String, nullable=False)
-    address = Column(String, nullable=True)
-    lat = Column(Float, nullable=False)
-    lon = Column(Float, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    county: Mapped[str] = mapped_column(String, nullable=False)
+    address: Mapped[str | None] = mapped_column(String)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
     
     # Charging specifications
-    max_sim_ccs = Column(Integer, nullable=True)
-    max_sim_chademo = Column(Integer, nullable=True)
-    max_sim_fast_ac = Column(Integer, nullable=True)
-    max_sim_ac_socket = Column(Integer, nullable=True)
+    max_sim_ccs: Mapped[int | None] = mapped_column(Integer)
+    max_sim_chademo: Mapped[int | None] = mapped_column(Integer)
+    max_sim_fast_ac: Mapped[int | None] = mapped_column(Integer)
+    max_sim_ac_socket: Mapped[int | None] = mapped_column(Integer)
     
-    ccs_kw = Column(String, nullable=True)
-    chademo_kw = Column(String, nullable=True)
-    ac_fast_kw = Column(String, nullable=True)
-    ac_socket_kw = Column(String, nullable=True)
+    ccs_kw: Mapped[str | None] = mapped_column(String)
+    chademo_kw: Mapped[str | None] = mapped_column(String)
+    ac_fast_kw: Mapped[str | None] = mapped_column(String)
+    ac_socket_kw: Mapped[str | None] = mapped_column(String)
     
-    open_hours = Column(String, nullable=True)
+    open_hours: Mapped[str | None] = mapped_column(String)

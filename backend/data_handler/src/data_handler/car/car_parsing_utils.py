@@ -33,39 +33,6 @@ def parse_scats_time(time_str: str) -> datetime:
     return datetime(year, month, day, hour, minute, second)
 
 
-def parse_month_year(month_str: str) -> datetime:
-    """
-    Parse month-year format to datetime (first day of month).
-    
-    Formats supported:
-    - "1996 June" -> 1996-06-01
-    - "June 1996" -> 1996-06-01
-    
-    Args:
-        month_str: Month string in various formats
-        
-    Returns:
-        datetime object set to first day of month
-    """
-    month_str = month_str.strip()
-    
-    # Try "YYYY Month" format
-    match = re.match(r"(\d{4})\s+(\w+)", month_str)
-    if match:
-        year = int(match.group(1))
-        month_name = match.group(2)
-        return datetime.strptime(f"{year} {month_name}", "%Y %B")
-    
-    # Try "Month YYYY" format
-    match = re.match(r"(\w+)\s+(\d{4})", month_str)
-    if match:
-        month_name = match.group(1)
-        year = int(match.group(2))
-        return datetime.strptime(f"{year} {month_name}", "%Y %B")
-    
-    raise ValueError(f"Unable to parse month-year: {month_str}")
-
-
 def parse_year(year_str: str) -> int:
     """
     Parse year string to integer.
@@ -106,25 +73,5 @@ def safe_int(value: str, default: int | None = None) -> int | None:
     
     try:
         return int(float(value))  # Handle "1.0" -> 1
-    except (ValueError, TypeError):
-        return default
-
-
-def safe_float(value: str, default: float | None = None) -> float | None:
-    """
-    Safely convert string to float, returning default if empty or invalid.
-    
-    Args:
-        value: String to convert
-        default: Default value if conversion fails
-        
-    Returns:
-        Float or default value
-    """
-    if not value or not value.strip():
-        return default
-    
-    try:
-        return float(value)
     except (ValueError, TypeError):
         return default
