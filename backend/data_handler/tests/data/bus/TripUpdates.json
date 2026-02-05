@@ -1,0 +1,136 @@
+{
+    "header": {
+     "gtfs_realtime_version": "2.0",
+     "incrementality": "FULL_DATASET",
+     "timestamp": "1769700953"
+    },
+    "entity": [
+        {
+        "id": "T626",
+        "trip_update": {
+        "trip": {
+        "trip_id": "5332_14106",
+        "start_time": "14:10:00",
+        "start_date": "20260129",
+        "schedule_relationship": "SCHEDULED",
+        "route_id": "5332_120555",
+        "direction_id": 0
+        },
+        "stop_time_update": [
+        {
+        "stop_sequence": 21,
+        "arrival": {
+            "delay": 32
+        },
+        "departure": {
+            "delay": 32
+        },
+        "stop_id": "8220DB007591",
+        "schedule_relationship": "SCHEDULED"
+        },
+        {
+        "stop_sequence": 22,
+        "arrival": {
+            "delay": 93
+        },
+        "departure": {
+            "delay": 93
+        },
+        "stop_id": "8220DB000496",
+        "schedule_relationship": "SCHEDULED"
+        },
+        {
+        "stop_sequence": 27,
+        "arrival": {
+            "delay": 29
+        },
+        "departure": {
+            "delay": 29
+        },
+        "stop_id": "8220DB000515",
+        "schedule_relationship": "SCHEDULED"
+        },
+        {
+        "stop_sequence": 29,
+        "arrival": {
+            "delay": -52
+        },
+        "departure": {
+            "delay": -52
+        },
+        "stop_id": "8220DB000516",
+        "schedule_relationship": "SCHEDULED"
+        },
+        {
+        "stop_sequence": 40,
+        "arrival": {
+            "delay": 11
+        },
+        "departure": {
+            "delay": 11
+        },
+        "stop_id": "8220DB000519",
+        "schedule_relationship": "SCHEDULED"
+        }
+        ],
+        "vehicle": {
+        "id": "665"
+        },
+        "timestamp": "1769700953"
+        }
+        },
+        {
+            "id": "T1557",
+            "trip_update": {
+            "trip": {
+            "trip_id": "5332_14109",
+            "start_time": "15:10:00",
+            "start_date": "20260129",
+            "schedule_relationship": "SCHEDULED",
+            "route_id": "5332_120555",
+            "direction_id": 0
+            },
+            "stop_time_update": [
+            {
+            "stop_sequence": 5,
+            "arrival": {
+                "time": "1769700058",
+                "uncertainty": 0
+            },
+            "departure": {
+                "delay": 198
+            },
+            "stop_id": "8220DB007591",
+            "schedule_relationship": "SCHEDULED"
+            },
+            {
+            "stop_sequence": 9,
+            "arrival": {
+                "delay": 117
+            },
+            "departure": {
+                "delay": 117
+            },
+            "stop_id": "8220DB000496",
+            "schedule_relationship": "SCHEDULED"
+            },
+            {
+            "stop_sequence": 11,
+            "arrival": {
+                "delay": 178
+            },
+            "departure": {
+                "delay": 178
+            },
+            "stop_id": "8220DB000515",
+            "schedule_relationship": "SCHEDULED"
+            }
+            ],
+            "vehicle": {
+            "id": "439"
+            },
+            "timestamp": "1769700953"
+            }
+        }
+    ]
+}
