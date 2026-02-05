@@ -15,6 +15,7 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+    desc,
 )
 from sqlalchemy import (
     Enum as SQLEnum,
@@ -193,7 +194,17 @@ class ScheduleRelationship(enum.Enum):
 
 class BusLiveVehicle(Base):
     __tablename__ = "bus_live_vehicles"
-    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
+    __table_args__: ClassVar[dict] = (
+        Index("ix_bus_live_vehicles_start_date", "start_date"),
+        Index("ix_bus_live_vehicles_start_date_time", "start_date", "start_time"),
+        Index(
+            "ix_bus_live_vehicles_vehicle_timestamp",
+            "vehicle_id",
+            desc("timestamp"),
+        ),
+        Index("ix_bus_live_vehicles_trip_id", "trip_id"),
+        {"schema": DB_SCHEMA},
+    )
 
     entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     vehicle_id: Mapped[int] = mapped_column(Integer, nullable=False)
