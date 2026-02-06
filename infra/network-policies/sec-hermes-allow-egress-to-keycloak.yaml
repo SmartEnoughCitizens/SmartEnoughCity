@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"sec-hermes-allow-egress-to-keycloak","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":8080,"protocol":"TCP"}],"to":[{"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"keycloak"}}}]}],"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"hermes"}},"policyTypes":["Egress"]}}
+  creationTimestamp: "2026-01-30T22:12:09Z"
+  generation: 1
+  name: sec-hermes-allow-egress-to-keycloak
+  namespace: dev
+  resourceVersion: "1769811129613855016"
+  uid: a968a0a5-d5f4-47e4-8b15-52c4c88e119f
+spec:
+  egress:
+  - ports:
+    - port: 8080
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: sec
+          app.kubernetes.io/name: keycloak
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: sec
+      app.kubernetes.io/name: hermes
+  policyTypes:
+  - Egress

@@ -1,0 +1,405 @@
+apiVersion: v1
+items:
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"allow-nginx-to-certmanager-http01","namespace":"dev"},"spec":{"ingress":[{"from":[{"namespaceSelector":{"matchLabels":{"kubernetes.io/metadata.name":"ingress"}}}],"ports":[{"port":8089,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"acme.cert-manager.io/http01-solver":"true"}},"policyTypes":["Ingress"]}}
+    creationTimestamp: "2026-01-31T15:05:39Z"
+    generation: 2
+    name: allow-nginx-to-certmanager-http01
+    namespace: dev
+    resourceVersion: "1769871986369103014"
+    uid: a88ef707-d8ae-494e-ae9f-20f19b29b4d7
+  spec:
+    ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress
+      ports:
+      - port: 8089
+        protocol: TCP
+    podSelector:
+      matchLabels:
+        acme.cert-manager.io/http01-solver: "true"
+    policyTypes:
+    - Ingress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-dns","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":53,"protocol":"UDP"},{"port":53,"protocol":"TCP"}],"to":[{"namespaceSelector":{"matchLabels":{"kubernetes.io/metadata.name":"kube-system"}},"podSelector":{"matchLabels":{"k8s-app":"node-local-dns"}}}]},{"ports":[{"port":53,"protocol":"UDP"},{"port":53,"protocol":"TCP"}],"to":[{"namespaceSelector":{"matchLabels":{"kubernetes.io/metadata.name":"kube-system"}},"podSelector":{"matchLabels":{"k8s-app":"kube-dns"}}}]}],"podSelector":{},"policyTypes":["Egress"]}}
+    creationTimestamp: "2026-01-30T02:17:02Z"
+    generation: 2
+    name: dev-allow-dns
+    namespace: dev
+    resourceVersion: "1769739741206351007"
+    uid: 4b46c535-85d8-4074-beec-0b505b3d61a6
+  spec:
+    egress:
+    - ports:
+      - port: 53
+        protocol: UDP
+      - port: 53
+        protocol: TCP
+      to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: node-local-dns
+    - ports:
+      - port: 53
+        protocol: UDP
+      - port: 53
+        protocol: TCP
+      to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+    podSelector: {}
+    policyTypes:
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-egress-to-hermes","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":8080,"protocol":"TCP"}],"to":[{"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"hermes"}}}]}],"podSelector":{},"policyTypes":["Egress"]}}
+    creationTimestamp: "2026-01-30T21:33:59Z"
+    generation: 1
+    name: dev-allow-egress-to-hermes
+    namespace: dev
+    resourceVersion: "1769808839265631007"
+    uid: fd95ba42-2e47-4ba3-b7c3-9ec2c903185b
+  spec:
+    egress:
+    - ports:
+      - port: 8080
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: sec
+            app.kubernetes.io/name: hermes
+    podSelector: {}
+    policyTypes:
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-egress-to-keycloak","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":8080,"protocol":"TCP"}],"to":[{"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"keycloak"}}}]}],"podSelector":{},"policyTypes":["Egress"]}}
+    creationTimestamp: "2026-01-30T22:35:14Z"
+    generation: 1
+    name: dev-allow-egress-to-keycloak
+    namespace: dev
+    resourceVersion: "1769812514509503003"
+    uid: cee451c8-85e0-406c-888f-3d166e243069
+  spec:
+    egress:
+    - ports:
+      - port: 8080
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: sec
+            app.kubernetes.io/name: keycloak
+    podSelector: {}
+    policyTypes:
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-https-egress","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":443,"protocol":"TCP"}],"to":[{"ipBlock":{"cidr":"0.0.0.0/0"}}]}],"podSelector":{},"policyTypes":["Egress"]}}
+    creationTimestamp: "2026-01-30T12:37:27Z"
+    generation: 1
+    name: dev-allow-https-egress
+    namespace: dev
+    resourceVersion: "1769776647960959002"
+    uid: 39d57a60-ccf5-40c5-b966-4997ebe83871
+  spec:
+    egress:
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - ipBlock:
+          cidr: 0.0.0.0/0
+    podSelector: {}
+    policyTypes:
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-ingress-from-ingress-nginx","namespace":"dev"},"spec":{"ingress":[{"from":[{"namespaceSelector":{"matchLabels":{"kubernetes.io/metadata.name":"ingress-nginx"}}}],"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"},{"port":8080,"protocol":"TCP"},{"port":8000,"protocol":"TCP"},{"port":8089,"protocol":"TCP"}]}],"podSelector":{},"policyTypes":["Ingress"]}}
+    creationTimestamp: "2026-01-31T15:00:49Z"
+    generation: 1
+    name: dev-allow-ingress-from-ingress-nginx
+    namespace: dev
+    resourceVersion: "1769871649993759009"
+    uid: 204f7eea-1d5e-4b52-8c2c-8533d1e0654e
+  spec:
+    ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
+      ports:
+      - port: 80
+        protocol: TCP
+      - port: 443
+        protocol: TCP
+      - port: 8080
+        protocol: TCP
+      - port: 8000
+        protocol: TCP
+      - port: 8089
+        protocol: TCP
+    podSelector: {}
+    policyTypes:
+    - Ingress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-ingress-from-nginx","namespace":"dev"},"spec":{"ingress":[{"from":[{"namespaceSelector":{"matchLabels":{"kubernetes.io/metadata.name":"ingress"}},"podSelector":{"matchLabels":{"app.kubernetes.io/component":"controller","app.kubernetes.io/name":"ingress-nginx"}}}],"ports":[{"port":80,"protocol":"TCP"},{"port":8080,"protocol":"TCP"}]}],"podSelector":{},"policyTypes":["Ingress"]}}
+    creationTimestamp: "2026-01-30T14:16:10Z"
+    generation: 1
+    name: dev-allow-ingress-from-nginx
+    namespace: dev
+    resourceVersion: "1769782570249263023"
+    uid: 262a65ac-cf3e-4e21-bd9a-7393818c7d3b
+  spec:
+    ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/component: controller
+            app.kubernetes.io/name: ingress-nginx
+      ports:
+      - port: 80
+        protocol: TCP
+      - port: 8080
+        protocol: TCP
+    podSelector: {}
+    policyTypes:
+    - Ingress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-postgres-egress","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":5432,"protocol":"TCP"}],"to":[{"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"postgresql"}}}]}],"podSelector":{},"policyTypes":["Egress"]}}
+    creationTimestamp: "2026-01-30T14:39:57Z"
+    generation: 1
+    name: dev-allow-postgres-egress
+    namespace: dev
+    resourceVersion: "1769783997396271015"
+    uid: 6a8a4f65-6c63-4f0f-b420-56a0bb9248fa
+  spec:
+    egress:
+    - ports:
+      - port: 5432
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: sec
+            app.kubernetes.io/name: postgresql
+    podSelector: {}
+    policyTypes:
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-default-deny","namespace":"dev"},"spec":{"podSelector":{},"policyTypes":["Ingress","Egress"]}}
+    creationTimestamp: "2026-01-30T02:16:55Z"
+    generation: 1
+    name: dev-default-deny
+    namespace: dev
+    resourceVersion: "1769739415557551019"
+    uid: e0673f03-12fd-4e33-a2e7-42fc6974b271
+  spec:
+    podSelector: {}
+    policyTypes:
+    - Ingress
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"sec-hermes-allow-egress-to-keycloak","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":8080,"protocol":"TCP"}],"to":[{"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"keycloak"}}}]}],"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"hermes"}},"policyTypes":["Egress"]}}
+    creationTimestamp: "2026-01-30T22:12:09Z"
+    generation: 1
+    name: sec-hermes-allow-egress-to-keycloak
+    namespace: dev
+    resourceVersion: "1769811129613855016"
+    uid: a968a0a5-d5f4-47e4-8b15-52c4c88e119f
+  spec:
+    egress:
+    - ports:
+      - port: 8080
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: sec
+            app.kubernetes.io/name: keycloak
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/instance: sec
+        app.kubernetes.io/name: hermes
+    policyTypes:
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"sec-hermes-allow-ingress","namespace":"dev"},"spec":{"ingress":[{"from":[{"podSelector":{}},{"namespaceSelector":{"matchLabels":{"kubernetes.io/metadata.name":"ingress-nginx"}}}],"ports":[{"port":8080,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"hermes"}},"policyTypes":["Ingress"]}}
+    creationTimestamp: "2026-01-30T21:33:58Z"
+    generation: 1
+    name: sec-hermes-allow-ingress
+    namespace: dev
+    resourceVersion: "1769808838813295014"
+    uid: af67f3aa-3272-4273-8482-ab3f17e4e030
+  spec:
+    ingress:
+    - from:
+      - podSelector: {}
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
+      ports:
+      - port: 8080
+        protocol: TCP
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/instance: sec
+        app.kubernetes.io/name: hermes
+    policyTypes:
+    - Ingress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: sec
+      meta.helm.sh/release-namespace: dev
+    creationTimestamp: "2026-01-30T20:53:12Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/component: keycloak
+      app.kubernetes.io/instance: sec
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: keycloak
+      app.kubernetes.io/part-of: keycloak
+      app.kubernetes.io/version: 26.3.3
+      helm.sh/chart: keycloak-25.2.0
+    name: sec-keycloak
+    namespace: dev
+    resourceVersion: "1769806392137407015"
+    uid: 42615751-387a-4e3c-8dff-d09aff5b438e
+  spec:
+    egress:
+    - {}
+    ingress:
+    - ports:
+      - port: 8080
+        protocol: TCP
+      - port: 7800
+        protocol: TCP
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/component: keycloak
+        app.kubernetes.io/instance: sec
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/part-of: keycloak
+    policyTypes:
+    - Ingress
+    - Egress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"sec-keycloak-allow-ingress-from-hermes","namespace":"dev"},"spec":{"ingress":[{"from":[{"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"hermes"}}}],"ports":[{"port":8080,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app.kubernetes.io/instance":"sec","app.kubernetes.io/name":"keycloak"}},"policyTypes":["Ingress"]}}
+    creationTimestamp: "2026-01-30T22:12:09Z"
+    generation: 1
+    name: sec-keycloak-allow-ingress-from-hermes
+    namespace: dev
+    resourceVersion: "1769811129378783001"
+    uid: 7e7c6916-df36-4b66-a231-db73f252eb3c
+  spec:
+    ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: sec
+            app.kubernetes.io/name: hermes
+      ports:
+      - port: 8080
+        protocol: TCP
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/instance: sec
+        app.kubernetes.io/name: keycloak
+    policyTypes:
+    - Ingress
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: sec
+      meta.helm.sh/release-namespace: dev
+    creationTimestamp: "2026-01-30T20:53:12Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/component: primary
+      app.kubernetes.io/instance: sec
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: postgresql
+      app.kubernetes.io/version: 18.0.0
+      helm.sh/chart: postgresql-18.1.8
+    name: sec-postgresql
+    namespace: dev
+    resourceVersion: "1769806392162031004"
+    uid: 92f2f1bc-c6ff-4c73-ad25-a10ca3a84c74
+  spec:
+    egress:
+    - {}
+    ingress:
+    - ports:
+      - port: 5432
+        protocol: TCP
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/component: primary
+        app.kubernetes.io/instance: sec
+        app.kubernetes.io/name: postgresql
+    policyTypes:
+    - Ingress
+    - Egress
+kind: List
+metadata:
+  resourceVersion: ""

@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-allow-https-egress","namespace":"dev"},"spec":{"egress":[{"ports":[{"port":443,"protocol":"TCP"}],"to":[{"ipBlock":{"cidr":"0.0.0.0/0"}}]}],"podSelector":{},"policyTypes":["Egress"]}}
+  creationTimestamp: "2026-01-30T12:37:27Z"
+  generation: 1
+  name: dev-allow-https-egress
+  namespace: dev
+  resourceVersion: "1769776647960959002"
+  uid: 39d57a60-ccf5-40c5-b966-4997ebe83871
+spec:
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  podSelector: {}
+  policyTypes:
+  - Egress
