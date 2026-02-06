@@ -4,13 +4,7 @@
  */
 
 import { Box, Typography, Grid } from "@mui/material";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { CycleStatistics } from "@/types";
 
 interface CycleStatsChartProps {
@@ -72,10 +66,7 @@ export const CycleStatsChart = ({
             fontSize: "0.75rem",
           }}
         >
-          <StatItem
-            label="Stations"
-            value={statistics.totalStations}
-          />
+          <StatItem label="Stations" value={statistics.totalStations} />
           <StatItem
             label="Avg Bikes"
             value={statistics.averageBikesAvailable?.toFixed(1) || "0"}
@@ -160,10 +151,7 @@ export const CycleStatsChart = ({
               label="Avg Occupancy"
               value={`${statistics.averageOccupancyRate?.toFixed(1) || 0}%`}
             />
-            <StatItem
-              label="Renting"
-              value={statistics.stationsRenting || 0}
-            />
+            <StatItem label="Renting" value={statistics.stationsRenting || 0} />
             <StatItem
               label="Returning"
               value={statistics.stationsReturning || 0}
