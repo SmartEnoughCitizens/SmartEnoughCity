@@ -21,13 +21,15 @@ class ParsedTrafficEvent:
 
 # Keywords for categorizing traffic events
 CONGESTION_KEYWORDS = frozenset(["congestion", "queue", "delay", "slow"])
-CLOSURE_KEYWORDS = frozenset([
-    "closed", "blocked", "closure", "impassable", "collision", "crash"
-])
+CLOSURE_KEYWORDS = frozenset(
+    ["closed", "blocked", "closure", "impassable", "collision", "crash"]
+)
 ROADWORKS_KEYWORDS = frozenset(["roadworks", "works", "maintenance"])
 
 
-def determine_event_type(title: str, description: str | None) -> tuple[TrafficEventType, str]:
+def determine_event_type(
+    title: str, description: str | None
+) -> tuple[TrafficEventType, str]:
     """
     Categorize a traffic event based on keywords in title and description.
 
@@ -103,7 +105,7 @@ def parse_traffic_event(item: dict[str, Any]) -> ParsedTrafficEvent | None:
 
     lon, lat = coords
     description = props.get("description") or props.get("encodedDescription")
-    
+
     if description:
         # Clean up description by replacing newlines
         description = description.replace("\n", " ").strip()
