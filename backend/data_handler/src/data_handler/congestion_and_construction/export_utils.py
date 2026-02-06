@@ -26,7 +26,7 @@ def export_to_csv(
         Path to the created CSV file
     """
     output_path = Path(output_path)
-    
+
     fieldnames = ["type", "title", "lat", "lon", "description", "fetched_at"]
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
@@ -34,14 +34,16 @@ def export_to_csv(
         writer.writeheader()
 
         for event in events:
-            writer.writerow({
-                "type": event.event_type.value,
-                "title": event.title,
-                "lat": event.lat,
-                "lon": event.lon,
-                "description": event.description or "",
-                "fetched_at": event.fetched_at.isoformat(),
-            })
+            writer.writerow(
+                {
+                    "type": event.event_type.value,
+                    "title": event.title,
+                    "lat": event.lat,
+                    "lon": event.lon,
+                    "description": event.description or "",
+                    "fetched_at": event.fetched_at.isoformat(),
+                }
+            )
 
     logger.info("Exported %d events to CSV: %s", len(events), output_path)
     return output_path

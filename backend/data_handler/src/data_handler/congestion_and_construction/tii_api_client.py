@@ -32,8 +32,8 @@ class BoundingBox:
 DUBLIN_BOUNDING_BOX = BoundingBox(
     north=53.65,  # Past Swords/Balbriggan
     south=53.15,  # Past Bray/Greystones
-    east=-5.90,   # Into the Irish Sea to catch the coast
-    west=-6.70,   # Past Maynooth/Leixlip
+    east=-5.90,  # Into the Irish Sea to catch the coast
+    west=-6.70,  # Past Maynooth/Leixlip
 )
 
 
