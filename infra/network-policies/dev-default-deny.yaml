@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"name":"dev-default-deny","namespace":"dev"},"spec":{"podSelector":{},"policyTypes":["Ingress","Egress"]}}
+  creationTimestamp: "2026-01-30T02:16:55Z"
+  generation: 1
+  name: dev-default-deny
+  namespace: dev
+  resourceVersion: "1769739415557551019"
+  uid: e0673f03-12fd-4e33-a2e7-42fc6974b271
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
