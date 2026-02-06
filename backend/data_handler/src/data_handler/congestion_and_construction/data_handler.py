@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session
 
-from data_handler.db import SessionLocal
 from data_handler.congestion_and_construction.models import (
     TrafficDataFetchLog,
     TrafficEvent,
@@ -20,14 +20,16 @@ from data_handler.congestion_and_construction.tii_api_client import (
     BoundingBox,
     TIIApiClient,
 )
+from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
 
 
 def _log_fetch_operation(
-    session,
+    session: Session,
     bounding_box: BoundingBox,
     events_count: int,
+    *,
     success: bool,
     error_message: str | None = None,
 ) -> None:
@@ -46,7 +48,7 @@ def _log_fetch_operation(
 
 
 def _upsert_traffic_events(
-    session, events: list[ParsedTrafficEvent], fetched_at: datetime
+    session: Session, events: list[ParsedTrafficEvent], fetched_at: datetime
 ) -> int:
     """
     Upsert traffic events into the database.
@@ -106,6 +108,7 @@ def _upsert_traffic_events(
 
 def fetch_and_store_traffic_data(
     bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
+    *,
     delete_old_events: bool = True,
     max_event_age_hours: int = 24,
 ) -> int:
@@ -174,9 +177,6 @@ def fetch_and_store_traffic_data(
         )
 
         session.commit()
-        logger.info("Successfully stored %d traffic events", events_count)
-        return events_count
-
     except Exception as e:
         session.rollback()
         logger.exception("Error fetching/storing traffic data")
@@ -196,6 +196,10 @@ def fetch_and_store_traffic_data(
             logger.exception("Failed to log error to database")
 
         raise
+
+    else:
+        logger.info("Successfully stored %d traffic events", events_count)
+        return events_count
 
     finally:
         session.close()
@@ -251,13 +255,12 @@ def clear_all_traffic_events() -> int:
     try:
         result = session.execute(delete(TrafficEvent))
         session.commit()
-        logger.info("Deleted all traffic events (%d rows)", result.rowcount)
-        return result.rowcount
-
     except Exception:
         session.rollback()
         logger.exception("Error clearing traffic events")
         raise
-
+    else:
+        logger.info("Deleted all traffic events (%d rows)", result.rowcount)
+        return result.rowcount
     finally:
         session.close()

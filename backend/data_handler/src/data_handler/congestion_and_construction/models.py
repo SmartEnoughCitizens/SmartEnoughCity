@@ -1,17 +1,19 @@
 """SQLAlchemy models for traffic and construction data."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import ClassVar
 
 from sqlalchemy import (
     DateTime,
     Double,
-    Enum as SQLEnum,
     Index,
     Integer,
     String,
     Text,
+)
+from sqlalchemy import (
+    Enum as SQLEnum,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,7 +23,7 @@ from data_handler.settings.database_settings import get_db_settings
 DB_SCHEMA = get_db_settings().postgres_schema
 
 
-class TrafficEventType(str, Enum):
+class TrafficEventType(StrEnum):
     """Types of traffic events from TII API."""
 
     CONGESTION = "CONGESTION"

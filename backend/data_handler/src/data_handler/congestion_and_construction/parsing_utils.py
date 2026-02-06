@@ -74,9 +74,8 @@ def extract_coordinates(geometry: dict[str, Any]) -> tuple[float, float] | None:
     if isinstance(coords[0], list):
         # LineString - use first point
         return coords[0][0], coords[0][1]
-    else:
-        # Point
-        return coords[0], coords[1]
+    # Point
+    return coords[0], coords[1]
 
 
 def parse_traffic_event(item: dict[str, Any]) -> ParsedTrafficEvent | None:

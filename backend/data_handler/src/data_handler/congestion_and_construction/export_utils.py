@@ -29,7 +29,7 @@ def export_to_csv(
 
     fieldnames = ["type", "title", "lat", "lon", "description", "fetched_at"]
 
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
+    with output_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -52,8 +52,8 @@ def export_to_csv(
 def export_to_html_map(
     events: list[TrafficEvent],
     output_path: Path | str,
-    center_lat: float = 53.3498,
-    center_lon: float = -6.2603,
+    *,
+    map_center: tuple[float, float] = (53.3498, -6.2603),
     zoom: int = 11,
     open_in_browser: bool = False,
 ) -> Path:
@@ -63,8 +63,7 @@ def export_to_html_map(
     Args:
         events: List of TrafficEvent objects to export
         output_path: Path for the output HTML file
-        center_lat: Map center latitude (default: Dublin)
-        center_lon: Map center longitude (default: Dublin)
+        map_center: Tuple of (latitude, longitude) for map center. Defaults to Dublin.
         zoom: Initial map zoom level
         open_in_browser: Whether to open the map in default browser
 
@@ -72,6 +71,7 @@ def export_to_html_map(
         Path to the created HTML file
     """
     output_path = Path(output_path)
+    center_lat, center_lon = map_center
 
     # Convert events to JSON-serializable format
     events_data = [
@@ -120,7 +120,7 @@ def export_to_html_map(
     <script>
         var trafficData = {js_data};
         var map = L.map('map').setView([{center_lat}, {center_lon}], {zoom});
-        
+
         L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }}).addTo(map);
@@ -134,8 +134,8 @@ def export_to_html_map(
                 radius: 8
             }}).addTo(map)
             .bindPopup(
-                "<b>" + item.type + "</b><br>" + 
-                item.title + 
+                "<b>" + item.type + "</b><br>" +
+                item.title +
                 (item.description ? "<br><small>" + item.description + "</small>" : "")
             );
         }});
@@ -179,7 +179,7 @@ def export_to_html_map(
 </body>
 </html>"""
 
-    with open(output_path, "w", encoding="utf-8") as f:
+    with output_path.open("w", encoding="utf-8") as f:
         f.write(html_content)
 
     logger.info("Exported %d events to HTML map: %s", len(events), output_path)
@@ -246,7 +246,7 @@ def export_to_geojson(
 
     geojson_data = events_to_geojson(events)
 
-    with open(output_path, "w", encoding="utf-8") as f:
+    with output_path.open("w", encoding="utf-8") as f:
         json.dump(geojson_data, f, indent=2)
 
     logger.info("Exported %d events to GeoJSON: %s", len(events), output_path)

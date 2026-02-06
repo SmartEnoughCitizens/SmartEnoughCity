@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import requests
 
@@ -40,8 +40,8 @@ DUBLIN_BOUNDING_BOX = BoundingBox(
 class TIIApiClient:
     """Client for interacting with the TII Traffic API."""
 
-    API_URL = "https://www.tiitraffic.ie/api/graphql"
-    DEFAULT_HEADERS = {
+    API_URL: ClassVar[str] = "https://www.tiitraffic.ie/api/graphql"
+    DEFAULT_HEADERS: ClassVar[dict[str, str]] = {
         "User-Agent": (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -50,9 +50,13 @@ class TIIApiClient:
         "Content-Type": "application/json",
         "Referer": "https://www.tiitraffic.ie/",
     }
-    DEFAULT_LAYER_SLUGS = ["roadReports", "roadwork", "weatherWarningsAreaEvents"]
-    DEFAULT_ZOOM = 11
-    DEFAULT_TIMEOUT = 15
+    DEFAULT_LAYER_SLUGS: ClassVar[list[str]] = [
+        "roadReports",
+        "roadwork",
+        "weatherWarningsAreaEvents",
+    ]
+    DEFAULT_ZOOM: ClassVar[int] = 11
+    DEFAULT_TIMEOUT: ClassVar[int] = 15
 
     def __init__(
         self,
@@ -60,7 +64,7 @@ class TIIApiClient:
         layer_slugs: list[str] | None = None,
         zoom: int = DEFAULT_ZOOM,
         timeout: int = DEFAULT_TIMEOUT,
-    ):
+    ) -> None:
         """
         Initialize the TII API client.
 
@@ -80,17 +84,17 @@ class TIIApiClient:
         return [
             {
                 "query": """
-                query MapFeatures($input: MapFeaturesArgs!) { 
-                    mapFeaturesQuery(input: $input) { 
-                        mapFeatures { 
-                            title 
-                            tooltip 
-                            features { 
-                                geometry 
-                                properties 
-                            } 
-                        } 
-                    } 
+                query MapFeatures($input: MapFeaturesArgs!) {
+                    mapFeaturesQuery(input: $input) {
+                        mapFeatures {
+                            title
+                            tooltip
+                            features {
+                                geometry
+                                properties
+                            }
+                        }
+                    }
                 }
                 """,
                 "variables": {
@@ -127,14 +131,13 @@ class TIIApiClient:
                 timeout=self.timeout,
             )
             response.raise_for_status()
+        except requests.Timeout:
+            logger.exception("Timeout while fetching traffic data from TII API")
+            raise
+        except requests.RequestException:
+            logger.exception("Error fetching traffic data from TII API")
+            raise
+        else:
             data = response.json()
             logger.info("Successfully fetched traffic data from TII API")
             return data
-
-        except requests.Timeout:
-            logger.error("Timeout while fetching traffic data from TII API")
-            raise
-
-        except requests.RequestException as e:
-            logger.error("Error fetching traffic data from TII API: %s", e)
-            raise

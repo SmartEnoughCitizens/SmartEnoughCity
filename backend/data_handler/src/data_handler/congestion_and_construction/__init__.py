@@ -52,26 +52,21 @@ from data_handler.congestion_and_construction.tii_api_client import (
 )
 
 __all__ = [
-    # Data handler functions
-    "fetch_and_store_traffic_data",
-    "get_current_traffic_events",
-    "clear_all_traffic_events",
-    # Export utilities
-    "export_to_csv",
-    "export_to_html_map",
-    "export_to_geojson",
-    "events_to_geojson",
-    # Models
+    "DUBLIN_BOUNDING_BOX",
+    "BoundingBox",
+    "ParsedTrafficEvent",
+    "TIIApiClient",
+    "TrafficDataFetchLog",
     "TrafficEvent",
     "TrafficEventType",
-    "TrafficDataFetchLog",
-    # Parsing utilities
-    "ParsedTrafficEvent",
-    "parse_traffic_event",
-    "parse_api_response",
+    "clear_all_traffic_events",
     "determine_event_type",
-    # API client
-    "TIIApiClient",
-    "BoundingBox",
-    "DUBLIN_BOUNDING_BOX",
+    "events_to_geojson",
+    "export_to_csv",
+    "export_to_geojson",
+    "export_to_html_map",
+    "fetch_and_store_traffic_data",
+    "get_current_traffic_events",
+    "parse_api_response",
+    "parse_traffic_event",
 ]
