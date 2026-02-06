@@ -37,9 +37,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { username } = useAppSelector((state) => state.auth);
-  const { theme, notificationBadgeCount } = useAppSelector(
-    (state) => state.ui,
-  );
+  const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
   const logoutMutation = useLogout();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);

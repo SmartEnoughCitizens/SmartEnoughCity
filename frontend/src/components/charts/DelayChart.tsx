@@ -60,7 +60,10 @@ export const DelayChart = ({
       )}
       <Box sx={{ width: "100%", height: chartHeight }}>
         <ResponsiveContainer>
-          <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+          >
             <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
             <YAxis

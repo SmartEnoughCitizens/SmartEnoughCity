@@ -95,10 +95,7 @@ export const Dashboard = () => {
             <DirectionsBusIcon color="primary" fontSize="small" />
             <Typography variant="h5">Bus Trips</Typography>
           </Box>
-          <IconButton
-            size="small"
-            onClick={() => setBusExpanded(!busExpanded)}
-          >
+          <IconButton size="small" onClick={() => setBusExpanded(!busExpanded)}>
             {busExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Box>
