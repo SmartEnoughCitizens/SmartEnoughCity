@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: internal-intermediate-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: "internal-intermediate-ca"
+  secretName: internal-intermediate-ca-tls
+  issuerRef:
+    name: internal-root-ca
+    kind: ClusterIssuer
