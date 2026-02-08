@@ -1,0 +1,5 @@
+trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,timepoint
+TRIP_G1,06:00:00,06:00:00,LUAS1,1,Bride's Glen,0,1,1
+TRIP_G1,06:03:00,06:03:00,LUAS2,2,,0,0,0
+TRIP_G1,06:06:00,06:06:00,LUAS3,3,,0,0,1
+TRIP_R1,07:00:00,07:00:00,LUAS4,1,,0,1,1
