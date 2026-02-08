@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_color,route_text_color
+LUAS-GREEN,1,Green,Luas Green Line,0,00FF00,FFFFFF
+LUAS-RED,1,Red,Luas Red Line,0,FF0000,FFFFFF
