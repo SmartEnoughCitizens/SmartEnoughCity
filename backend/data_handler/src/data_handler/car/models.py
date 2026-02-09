@@ -184,8 +184,8 @@ class EVChargingPoint(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     county: Mapped[str] = mapped_column(String, nullable=False)
     # address: Mapped[str | None] = mapped_column(String)
-    lat: Mapped[float] = mapped_column(Float, nullable=False)
-    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, nullable=False)
     
     # Number of simultaneous connections
     # max_sim_ccs: Mapped[int | None] = mapped_column(Integer)
