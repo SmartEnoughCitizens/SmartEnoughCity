@@ -14,11 +14,11 @@ server:
 
 resources:
   requests:
-    cpu: "500m"
-    memory: "512Mi"
+    cpu: "250m"
+    memory: "768Mi"
   limits:
-    cpu: "2000m"
-    memory: "2Gi"
+    cpu: "750m"
+    memory: "1536Mi"
 
 labels:
   app.kubernetes.io/name: hermes
