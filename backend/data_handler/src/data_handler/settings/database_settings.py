@@ -3,7 +3,7 @@ from functools import lru_cache
 from pydantic import Field, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from data_handler.settings.app_settings import is_dev
+from data_handler.settings.app_settings import get_app_mode
 
 
 class DatabaseSettings(BaseSettings):
@@ -57,6 +57,7 @@ def get_db_settings() -> DatabaseSettings:
     This function automatically detects the current environment and loads settings
     accordingly:
     - In development mode: loads from `.env.development` file
+    - In test mode: loads from `.env.test` file
     - In production mode: loads from environment variables
 
     The result is cached to avoid repeated initialization.
@@ -69,9 +70,11 @@ def get_db_settings() -> DatabaseSettings:
         `DatabaseSettings` directly.
     """
 
-    if is_dev():
+    if get_app_mode() == "dev":
         return DatabaseSettings(
             _env_file=".env.development", _env_file_encoding="utf-8"
         )
+    if get_app_mode() == "test":
+        return DatabaseSettings(_env_file=".env.test", _env_file_encoding="utf-8")
 
     return DatabaseSettings()
