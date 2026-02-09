@@ -55,6 +55,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/notification/v1", "/notification/v1/**")
                     .permitAll()
+                    .requestMatchers("/api/usermanagement/**")
+                    .permitAll()
                     .requestMatchers("/api/trains")
                     .hasRole("City_Manager")
                     .requestMatchers("/api/buses")
