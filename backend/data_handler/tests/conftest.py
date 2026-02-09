@@ -1,5 +1,6 @@
 import os
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -85,3 +86,9 @@ def db_session(db_engine: Engine) -> Generator[Session, None, None]:
     session.close()
 
     Base.metadata.drop_all(bind=db_engine)
+
+
+@pytest.fixture(scope="session")
+def tests_data_dir() -> Path:
+    """Returns the path to the directory containing test data."""
+    return Path("tests/data")
