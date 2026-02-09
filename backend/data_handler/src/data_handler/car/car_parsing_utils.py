@@ -90,24 +90,24 @@ def parse_year(year_str: str) -> int:
     raise ValueError(f"Unable to parse year: {year_str}")
 
 
-def safe_int(value: str, default: int | None = None) -> int | None:
-    """
-    Safely convert string to int, returning default if empty or invalid.
+# def safe_int(value: str, default: int | None = None) -> int | None:
+#     """
+#     Safely convert string to int, returning default if empty or invalid.
     
-    Args:
-        value: String to convert
-        default: Default value if conversion fails
+#     Args:
+#         value: String to convert
+#         default: Default value if conversion fails
         
-    Returns:
-        Integer or default value
-    """
-    if not value or not value.strip():
-        return default
+#     Returns:
+#         Integer or default value
+#     """
+#     if not value or not value.strip():
+#         return default
     
-    try:
-        return int(float(value))  # Handle "1.0" -> 1
-    except (ValueError, TypeError):
-        return default
+#     try:
+#         return int(float(value))  # Handle "1.0" -> 1
+#     except (ValueError, TypeError):
+#         return default
 
 
 def parse_kw_value(value: str) -> float | None:

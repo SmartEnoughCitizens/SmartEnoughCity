@@ -11,7 +11,7 @@ from data_handler.car.car_parsing_utils import (
     parse_year,
     parse_kw_value,
     parse_open_hours,
-    safe_int,
+    # safe_int,
 )
 from data_handler.car.models import (
     EmissionBand,
@@ -181,17 +181,17 @@ def parse_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoint | None:
     if county.lower() != "dublin":
         return None
     
-    address = row.get("Address", "").strip() or None
+    # address = row.get("Address", "").strip() or None
     
     # Parse operating hours
     open_hours_str = row.get("Open Hours", "")
-    is_24_7, hours_description = parse_open_hours(open_hours_str)
+    is_24_7 = parse_open_hours(open_hours_str)
     
     return EVChargingPoint(
         county=county,
         # address=address,
-        lat=float(row["Latitude"]),
-        lon=float(row["Longitude"]),
+        latitude=float(row["Latitude"]),
+        longitude=float(row["Longitude"]),
         # max_sim_ccs=safe_int(row.get("max__sim__ccs")),
         # max_sim_chademo=safe_int(row.get("max__sim__chademo")),
         # max_sim_fast_ac=safe_int(row.get("max__sim__fast_ac")),
