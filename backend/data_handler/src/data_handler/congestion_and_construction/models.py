@@ -63,26 +63,3 @@ class TrafficEvent(Base):
     source_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True
     )
-
-
-class TrafficDataFetchLog(Base):
-    """
-    Model to track traffic data fetch operations.
-
-    Logs each API call to TII for monitoring and debugging purposes.
-    """
-
-    __tablename__ = "traffic_data_fetch_logs"
-    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    fetched_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
-    )
-    events_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    success: Mapped[bool] = mapped_column(nullable=False)
-    error_message: Mapped[str | None] = mapped_column(Text)
-    bounding_box_north: Mapped[float] = mapped_column(Double, nullable=False)
-    bounding_box_south: Mapped[float] = mapped_column(Double, nullable=False)
-    bounding_box_east: Mapped[float] = mapped_column(Double, nullable=False)
-    bounding_box_west: Mapped[float] = mapped_column(Double, nullable=False)

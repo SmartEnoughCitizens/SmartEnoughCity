@@ -8,7 +8,6 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from data_handler.congestion_and_construction.models import (
-    TrafficDataFetchLog,
     TrafficEvent,
 )
 from data_handler.congestion_and_construction.parsing_utils import (
@@ -23,28 +22,6 @@ from data_handler.congestion_and_construction.tii_api_client import (
 from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
-
-
-def _log_fetch_operation(
-    session: Session,
-    bounding_box: BoundingBox,
-    events_count: int,
-    *,
-    success: bool,
-    error_message: str | None = None,
-) -> None:
-    """Log a fetch operation to the database."""
-    log_entry = TrafficDataFetchLog(
-        fetched_at=datetime.utcnow(),
-        events_count=events_count,
-        success=success,
-        error_message=error_message,
-        bounding_box_north=bounding_box.north,
-        bounding_box_south=bounding_box.south,
-        bounding_box_east=bounding_box.east,
-        bounding_box_west=bounding_box.west,
-    )
-    session.add(log_entry)
 
 
 def _upsert_traffic_events(
@@ -142,13 +119,6 @@ def fetch_and_store_traffic_data(
         raw_data = client.fetch_traffic_data()
 
         if raw_data is None:
-            _log_fetch_operation(
-                session,
-                bounding_box,
-                events_count=0,
-                success=False,
-                error_message="No data returned from API",
-            )
             session.commit()
             return 0
 
@@ -168,33 +138,10 @@ def fetch_and_store_traffic_data(
         # Upsert new events
         events_count = _upsert_traffic_events(session, events, fetched_at)
 
-        # Log successful operation
-        _log_fetch_operation(
-            session,
-            bounding_box,
-            events_count=events_count,
-            success=True,
-        )
-
         session.commit()
-    except Exception as e:
+    except Exception:
         session.rollback()
         logger.exception("Error fetching/storing traffic data")
-
-        # Try to log the failed operation
-        try:
-            session = SessionLocal()
-            _log_fetch_operation(
-                session,
-                bounding_box,
-                events_count=0,
-                success=False,
-                error_message=str(e),
-            )
-            session.commit()
-        except Exception:
-            logger.exception("Failed to log error to database")
-
         raise
 
     else:
