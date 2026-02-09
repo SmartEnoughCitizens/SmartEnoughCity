@@ -8,10 +8,11 @@ metadata:
     app.kubernetes.io/name: ingress
     app.kubernetes.io/component: ingress
     app.kubernetes.io/part-of: smart-enough-city
-  {{- with .Values.ingress.annotations }}
   annotations:
-{{- toYaml . | nindent 4 }}
-  {{- end }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer | default "letsencrypt-prod" | quote }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
@@ -28,7 +29,8 @@ spec:
   {{- end }}
   rules:
   {{- range .Values.ingress.hosts }}
-    - {{- if .host }}host: {{ .host | quote }}
+    - {{- if .host }}
+      host: {{ .host | quote }}
       {{- end }}
       http:
         paths:
@@ -44,7 +46,7 @@ spec:
         {{- end }}
         {{- end }}
         {{- if $.Values.frontend.enabled }}
-        {{- range .frontendPaths }}
+        {{- range .frontendPaths | default list }}
           - path: {{ .path }}
             pathType: {{ .pathType }}
             backend:

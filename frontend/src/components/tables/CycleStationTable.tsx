@@ -1,9 +1,8 @@
 /**
- * Cycle stations table component
+ * Compact cycle stations table component
  */
 
 import {
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -21,6 +20,8 @@ import type { CycleStation } from "@/types";
 interface CycleStationTableProps {
   stations: CycleStation[];
   maxRows?: number;
+  /** Compact mode hides some columns */
+  compact?: boolean;
 }
 
 const StatusIcon = ({ status }: { status: boolean }) =>
@@ -33,27 +34,28 @@ const StatusIcon = ({ status }: { status: boolean }) =>
 export const CycleStationTable = ({
   stations,
   maxRows = 10,
+  compact = false,
 }: CycleStationTableProps) => {
   const displayStations = stations.slice(0, maxRows);
 
   return (
-    <Paper>
-      <TableContainer>
-        <Table size="small">
+    <>
+      <TableContainer sx={{ maxHeight: compact ? 300 : undefined }}>
+        <Table size="small" stickyHeader={compact}>
           <TableHead>
             <TableRow>
-              <TableCell>Station Name</TableCell>
-              <TableCell>Address</TableCell>
+              <TableCell>Station</TableCell>
+              {!compact && <TableCell>Address</TableCell>}
               <TableCell align="center">Bikes</TableCell>
               <TableCell align="center">Docks</TableCell>
-              <TableCell align="center">Occupancy</TableCell>
+              {!compact && <TableCell align="center">Occupancy</TableCell>}
               <TableCell align="center">Status</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {displayStations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={compact ? 4 : 6} align="center">
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -71,11 +73,13 @@ export const CycleStationTable = ({
                       {station.name}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                      {station.address}
-                    </Typography>
-                  </TableCell>
+                  {!compact && (
+                    <TableCell>
+                      <Typography variant="caption" color="text.secondary">
+                        {station.address}
+                      </Typography>
+                    </TableCell>
+                  )}
                   <TableCell align="center">
                     <Chip
                       label={station.numBikesAvailable}
@@ -90,11 +94,13 @@ export const CycleStationTable = ({
                       color="secondary"
                     />
                   </TableCell>
-                  <TableCell align="center">
-                    <Typography variant="body2">
-                      {station.occupancyRate.toFixed(1)}%
-                    </Typography>
-                  </TableCell>
+                  {!compact && (
+                    <TableCell align="center">
+                      <Typography variant="body2">
+                        {station.occupancyRate.toFixed(1)}%
+                      </Typography>
+                    </TableCell>
+                  )}
                   <TableCell align="center">
                     <Box
                       sx={{
@@ -122,6 +128,6 @@ export const CycleStationTable = ({
           Showing {maxRows} of {stations.length} stations
         </Typography>
       )}
-    </Paper>
+    </>
   );
 };
