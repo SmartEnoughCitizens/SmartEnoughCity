@@ -7,53 +7,53 @@
 
     <!-- Read Spring properties -->
     <springProperty scope="context" name="APP"        source="spring.application.name" defaultValue="hermes"/>
-    <springProperty scope="context" name="LOKI_URL"   source="loki.url"                defaultValue="http://localhost:3100/loki/api/v1/push"/>
-    <springProperty scope="context" name="LOKI_TO_MS" source="loki.timeoutMs"          defaultValue="5000"/>
+<!--    <springProperty scope="context" name="LOKI_URL"   source="loki.url"                defaultValue="http://localhost:3100/loki/api/v1/push"/>-->
+<!--    <springProperty scope="context" name="LOKI_TO_MS" source="loki.timeoutMs"          defaultValue="5000"/>-->
     <springProperty scope="context" name="ROOT_LVL"   source="logging.level.root"      defaultValue="INFO"/>
 
     <!-- Loki appender -->
-    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-        <http>
-            <url>${LOKI_URL}</url>
-            <!-- timeouts from Spring properties -->
-            <connectTimeoutMs>${LOKI_TO_MS}</connectTimeoutMs>
-            <readTimeoutMs>${LOKI_TO_MS}</readTimeoutMs>
-        </http>
-        <format>
-            <!-- key=value pairs for Loki labels -->
-            <label>
-                <pattern>app=${APP},level=%level,logger=%logger{20}</pattern>
-            </label>
-            <!-- log line content sent to Loki (safe if traceId/spanId are missing) -->
-            <message>
-                <pattern>
-                    %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread]
-                    [traceId=%X{traceId} spanId=%X{spanId}]
-                    %logger{36} - %msg%ex{full}
-                </pattern>
-            </message>
-            <!-- static labels -->
-            <staticLabels>service=${APP}</staticLabels>
-        </format>
-        <batch>
-            <bufferSize>250</bufferSize>
-            <maxRetries>2</maxRetries>
-        </batch>
-        <sender class="com.github.loki4j.logback.JavaHttpSender"/>
-    </appender>
+<!--    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">-->
+<!--        <http>-->
+<!--            <url>${LOKI_URL}</url>-->
+<!--            &lt;!&ndash; timeouts from Spring properties &ndash;&gt;-->
+<!--            <connectTimeoutMs>${LOKI_TO_MS}</connectTimeoutMs>-->
+<!--            <readTimeoutMs>${LOKI_TO_MS}</readTimeoutMs>-->
+<!--        </http>-->
+<!--        <format>-->
+<!--            &lt;!&ndash; key=value pairs for Loki labels &ndash;&gt;-->
+<!--            <label>-->
+<!--                <pattern>app=${APP},level=%level,logger=%logger{20}</pattern>-->
+<!--            </label>-->
+<!--            &lt;!&ndash; log line content sent to Loki (safe if traceId/spanId are missing) &ndash;&gt;-->
+<!--            <message>-->
+<!--                <pattern>-->
+<!--                    %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread]-->
+<!--                    [traceId=%X{traceId} spanId=%X{spanId}]-->
+<!--                    %logger{36} - %msg%ex{full}-->
+<!--                </pattern>-->
+<!--            </message>-->
+<!--            &lt;!&ndash; static labels &ndash;&gt;-->
+<!--            <staticLabels>service=${APP}</staticLabels>-->
+<!--        </format>-->
+<!--        <batch>-->
+<!--            <bufferSize>250</bufferSize>-->
+<!--            <maxRetries>2</maxRetries>-->
+<!--        </batch>-->
+<!--        <sender class="com.github.loki4j.logback.JavaHttpSender"/>-->
+<!--    </appender>-->
 
     <!-- Async wrapper so logging never blocks -->
-    <appender name="ASYNC_LOKI" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>8192</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <neverBlock>true</neverBlock>
-        <appender-ref ref="LOKI"/>
-    </appender>
+<!--    <appender name="ASYNC_LOKI" class="ch.qos.logback.classic.AsyncAppender">-->
+<!--        <queueSize>8192</queueSize>-->
+<!--        <discardingThreshold>0</discardingThreshold>-->
+<!--        <neverBlock>true</neverBlock>-->
+<!--        <appender-ref ref="LOKI"/>-->
+<!--    </appender>-->
 
     <!-- Root logger -->
     <root level="${ROOT_LVL}">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="ASYNC_LOKI"/>
+<!--        <appender-ref ref="ASYNC_LOKI"/>-->
     </root>
 
     <!-- Local profile: add rolling file appender -->
@@ -80,7 +80,7 @@
         <logger name="com.trinity.hermes" level="${ROOT_LVL}"/>
         <root level="${ROOT_LVL}">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="ASYNC_LOKI"/>
+<!--            <appender-ref ref="ASYNC_LOKI"/>-->
             <appender-ref ref="FILE"/>
         </root>
     </springProfile>
