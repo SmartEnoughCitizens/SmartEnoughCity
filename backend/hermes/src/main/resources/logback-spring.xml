@@ -53,7 +53,7 @@
     <!-- Root logger -->
     <root level="${ROOT_LVL}">
         <appender-ref ref="CONSOLE"/>
-<!--       <appender-ref ref="ASYNC_LOKI"/>-->
+<!--        <appender-ref ref="ASYNC_LOKI"/>-->
     </root>
 
     <!-- Local profile: add rolling file appender -->
