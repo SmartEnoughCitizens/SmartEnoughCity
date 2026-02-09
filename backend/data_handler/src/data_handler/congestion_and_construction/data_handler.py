@@ -83,7 +83,7 @@ def _upsert_traffic_events(
 
 
 def fetch_and_store_traffic_data(
-    bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX
+    bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
 ) -> int:
     """
     Fetch traffic data from TII API and store in database.
