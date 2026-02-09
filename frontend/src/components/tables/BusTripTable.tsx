@@ -1,9 +1,8 @@
 /**
- * Bus trip updates table component
+ * Compact bus trip updates table component
  */
 
 import {
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -18,6 +17,8 @@ import type { BusTripUpdate } from "@/types";
 interface BusTripTableProps {
   trips: BusTripUpdate[];
   maxRows?: number;
+  /** Compact mode hides some columns */
+  compact?: boolean;
 }
 
 const getDelayColor = (delay: number | null) => {
@@ -34,28 +35,32 @@ const formatDelay = (delay: number | null) => {
   return `${delay < 0 ? "-" : ""}${minutes}m ${seconds}s`;
 };
 
-export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
+export const BusTripTable = ({
+  trips,
+  maxRows = 10,
+  compact = false,
+}: BusTripTableProps) => {
   const displayTrips = trips.slice(0, maxRows);
 
   return (
-    <Paper>
-      <TableContainer>
-        <Table size="small">
+    <>
+      <TableContainer sx={{ maxHeight: compact ? 300 : undefined }}>
+        <Table size="small" stickyHeader={compact}>
           <TableHead>
             <TableRow>
-              <TableCell>Route ID</TableCell>
-              <TableCell>Trip ID</TableCell>
-              <TableCell>Stop ID</TableCell>
-              <TableCell>Start Time</TableCell>
-              <TableCell align="center">Arrival Delay</TableCell>
-              <TableCell align="center">Departure Delay</TableCell>
-              <TableCell>Schedule</TableCell>
+              <TableCell>Route</TableCell>
+              {!compact && <TableCell>Trip ID</TableCell>}
+              <TableCell>Stop</TableCell>
+              {!compact && <TableCell>Start</TableCell>}
+              <TableCell align="center">Arr. Delay</TableCell>
+              <TableCell align="center">Dep. Delay</TableCell>
+              {!compact && <TableCell>Schedule</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {displayTrips.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={compact ? 4 : 7} align="center">
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -71,9 +76,9 @@ export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
                   <TableCell>
                     <Chip label={trip.routeId} size="small" color="primary" />
                   </TableCell>
-                  <TableCell>{trip.tripId}</TableCell>
+                  {!compact && <TableCell>{trip.tripId}</TableCell>}
                   <TableCell>{trip.stopId}</TableCell>
-                  <TableCell>{trip.startTime}</TableCell>
+                  {!compact && <TableCell>{trip.startTime}</TableCell>}
                   <TableCell align="center">
                     <Chip
                       label={formatDelay(trip.arrivalDelay)}
@@ -88,11 +93,13 @@ export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
                       color={getDelayColor(trip.departureDelay)}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="caption">
-                      {trip.scheduleRelationship}
-                    </Typography>
-                  </TableCell>
+                  {!compact && (
+                    <TableCell>
+                      <Typography variant="caption">
+                        {trip.scheduleRelationship}
+                      </Typography>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
@@ -108,6 +115,6 @@ export const BusTripTable = ({ trips, maxRows = 10 }: BusTripTableProps) => {
           Showing {maxRows} of {trips.length} trips
         </Typography>
       )}
-    </Paper>
+    </>
   );
 };
