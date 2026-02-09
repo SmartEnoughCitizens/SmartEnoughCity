@@ -7,13 +7,23 @@ from sqlalchemy import delete
 
 from data_handler.car.car_parsing_utils import (
     parse_scats_time,
+    parse_month_year,
     parse_year,
+    parse_kw_value,
+    parse_open_hours,
     safe_int,
 )
 from data_handler.car.models import (
     EmissionBand,
+    TaxationClass,
+    FuelType,
+    VehicleRegistrationType,
     ScatsSite,
     TrafficVolume,
+    VehicleFirstTime,
+    VehicleLicensingArea,
+    VehicleNewLicensed,
+    VehicleYearly,
     PrivateCarEmission,
     EVChargingPoint,
 )
@@ -51,6 +61,95 @@ def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume:
     )
 
 
+def parse_vehicle_first_time_row(row: dict[str, str]) -> VehicleFirstTime:
+    """Parse vehicle first time licensing row."""
+    taxation_class_str = row["Taxation class"].strip()
+    
+    # Convert string to enum
+    try:
+        taxation_class = TaxationClass(taxation_class_str)
+    except ValueError as e:
+        msg = f"Invalid taxation class: {taxation_class_str}. Must be one of: {', '.join([t.value for t in TaxationClass])}"
+        raise ValueError(msg) from e
+    
+    return VehicleFirstTime(
+        month=parse_month_year(row["Month"]),
+        taxation_class=taxation_class,
+        count=int(row["Number"]),
+    )
+
+
+def parse_vehicle_licensing_area_row(row: dict[str, str]) -> VehicleLicensingArea:
+    """Parse vehicle licensing by area row."""
+    fuel_type_str = row["Types of Fuel"].strip()
+    
+    # Convert string to enum
+    try:
+        fuel_type = FuelType(fuel_type_str)
+    except ValueError as e:
+        msg = f"Invalid fuel type: {fuel_type_str}. Must be one of: {', '.join([f.value for f in FuelType])}"
+        raise ValueError(msg) from e
+    
+    return VehicleLicensingArea(
+        month=parse_month_year(row["Month"]),
+        licensing_authority=row["Licensing Authority"].strip(),
+        fuel_type=fuel_type,
+        count=int(row["Number"]),
+    )
+
+
+def parse_vehicle_new_licensed_row(row: dict[str, str]) -> VehicleNewLicensed:
+    """Parse new vehicle licensing row."""
+    registration_type_str = row["Type of Vehicle Registration"].strip()
+    fuel_type_str = row["Types of Fuel"].strip()
+    
+    # Convert strings to enums
+    try:
+        registration_type = VehicleRegistrationType(registration_type_str)
+    except ValueError as e:
+        msg = f"Invalid registration type: {registration_type_str}. Must be one of: {', '.join([r.value for r in VehicleRegistrationType])}"
+        raise ValueError(msg) from e
+    
+    try:
+        fuel_type = FuelType(fuel_type_str)
+    except ValueError as e:
+        msg = f"Invalid fuel type: {fuel_type_str}. Must be one of: {', '.join([f.value for f in FuelType])}"
+        raise ValueError(msg) from e
+    
+    return VehicleNewLicensed(
+        month=parse_month_year(row["Month"]),
+        registration_type=registration_type,
+        fuel_type=fuel_type,
+        count=int(row["Number"]),
+    )
+
+
+def parse_vehicle_yearly_row(row: dict[str, str]) -> VehicleYearly:
+    """Parse yearly vehicle data row."""
+    taxation_class_str = row["Taxation Class"].strip()
+    fuel_type_str = row["Types of Fuel"].strip()
+    
+    # Convert strings to enums
+    try:
+        taxation_class = TaxationClass(taxation_class_str)
+    except ValueError as e:
+        msg = f"Invalid taxation class: {taxation_class_str}. Must be one of: {', '.join([t.value for t in TaxationClass])}"
+        raise ValueError(msg) from e
+    
+    try:
+        fuel_type = FuelType(fuel_type_str)
+    except ValueError as e:
+        msg = f"Invalid fuel type: {fuel_type_str}. Must be one of: {', '.join([f.value for f in FuelType])}"
+        raise ValueError(msg) from e
+    
+    return VehicleYearly(
+        year=parse_year(row["Year"]),
+        taxation_class=taxation_class,
+        fuel_type=fuel_type,
+        count=int(row["Number"]),
+    )
+
+
 def parse_private_car_emission_row(row: dict[str, str]) -> PrivateCarEmission:
     """Parse private car emission data row."""
     emission_band_str = row["Emission Band"].strip()
@@ -62,12 +161,10 @@ def parse_private_car_emission_row(row: dict[str, str]) -> PrivateCarEmission:
         msg = f"Invalid emission band: {emission_band_str}. Must be one of: {', '.join([b.value for b in EmissionBand])}"
         raise ValueError(msg) from e
     
-    licensing_authority = row["Licensing Authority"].strip()
-    
     return PrivateCarEmission(
         year=parse_year(row["Year"]),
         emission_band=emission_band,
-        licensing_authority=licensing_authority,
+        licensing_authority=row["Licensing Authority"].strip(),
         count=int(row["Value"]),
     )
 
@@ -86,20 +183,24 @@ def parse_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoint | None:
     
     address = row.get("Address", "").strip() or None
     
+    # Parse operating hours
+    open_hours_str = row.get("Open Hours", "")
+    is_24_7, hours_description = parse_open_hours(open_hours_str)
+    
     return EVChargingPoint(
         county=county,
-        address=address,
+        # address=address,
         lat=float(row["Latitude"]),
         lon=float(row["Longitude"]),
-        max_sim_ccs=safe_int(row.get("max__sim__ccs")),
-        max_sim_chademo=safe_int(row.get("max__sim__chademo")),
-        max_sim_fast_ac=safe_int(row.get("max__sim__fast_ac")),
-        max_sim_ac_socket=safe_int(row.get("max__sim__ac_socket")),
-        ccs_kw=row.get("CCS kWs", "").strip() or None,
-        chademo_kw=row.get("CHAdeMO kWs", "").strip() or None,
-        ac_fast_kw=row.get("AC Fast kWs", "").strip() or None,
-        ac_socket_kw=row.get("AC Socket kWs", "").strip() or None,
-        open_hours=row.get("Open Hours", "").strip() or None,
+        # max_sim_ccs=safe_int(row.get("max__sim__ccs")),
+        # max_sim_chademo=safe_int(row.get("max__sim__chademo")),
+        # max_sim_fast_ac=safe_int(row.get("max__sim__fast_ac")),
+        # max_sim_ac_socket=safe_int(row.get("max__sim__ac_socket")),
+        ccs_kw=parse_kw_value(row.get("CCS kWs", "")),
+        chademo_kw=parse_kw_value(row.get("CHAdeMO kWs", "")),
+        ac_fast_kw=parse_kw_value(row.get("AC Fast kWs", "")),
+        ac_socket_kw=parse_kw_value(row.get("AC Socket kWs", "")),
+        is_24_7=is_24_7,
     )
 
 
@@ -136,6 +237,22 @@ def process_car_static_data(data_dir: Path) -> None:
             ["End_Time", "Region", "Site", "Detector", "Sum_Volume", "Avg_Volume"],
             parse_traffic_volume_row,
         ),
+        "vehicle_first_time.csv": (
+            ["Month", "Taxation class", "Number"],
+            parse_vehicle_first_time_row,
+        ),
+        "vehicle_licensing_area.csv": (
+            ["Month", "Licensing Authority", "Types of Fuel", "Number"],
+            parse_vehicle_licensing_area_row,
+        ),
+        "vehicle_new_licensed.csv": (
+            ["Month", "Type of Vehicle Registration", "Types of Fuel", "Number"],
+            parse_vehicle_new_licensed_row,
+        ),
+        "vehicle_yearly.csv": (
+            ["Year", "Taxation Class", "Types of Fuel", "Number"],
+            parse_vehicle_yearly_row,
+        ),
         "private_car_emissions.csv": (
             ["Year", "Emission Band", "Licensing Authority", "Value"],
             parse_private_car_emission_row,
@@ -162,6 +279,10 @@ def process_car_static_data(data_dir: Path) -> None:
         # Delete existing data in reverse dependency order
         logger.info("Deleting existing data...")
         session.execute(delete(TrafficVolume))
+        session.execute(delete(VehicleFirstTime))
+        session.execute(delete(VehicleLicensingArea))
+        session.execute(delete(VehicleNewLicensed))
+        session.execute(delete(VehicleYearly))
         session.execute(delete(PrivateCarEmission))
         session.execute(delete(EVChargingPoint))
         session.execute(delete(ScatsSite))
