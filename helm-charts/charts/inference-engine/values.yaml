@@ -11,11 +11,11 @@ service:
 
 resources:
   requests:
-    cpu: "500m"
+    cpu: "200m"
     memory: "512Mi"
   limits:
-    cpu: "2000m"
-    memory: "2Gi"
+    cpu: "800m"
+    memory: "1Gi"
 
 labels:
   app.kubernetes.io/name: inference-engine

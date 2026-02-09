@@ -1,0 +1,5 @@
+service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
+211,0,0,0,0,0,1,0,20260131,20260207
+223,0,0,0,0,1,0,0,20260130,20260206
+224,1,1,1,1,0,0,0,20260126,20260205
+225,0,0,0,0,0,0,1,20260201,20260201
