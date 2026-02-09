@@ -1,15 +1,14 @@
 import argparse
 import logging
 
+from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
 from data_handler.cycle_handler import cycle_stations_to_db
 from data_handler.db import Base, engine
 from data_handler.logging import configure_logging
-from data_handler.luas_handler import luas_forecasts_to_db, luas_stops_to_db
 from data_handler.settings.data_sources_settings import get_data_sources_settings
 from data_handler.settings.database_settings import get_db_settings
-from data_handler.train.trainstationdata import train_stations_to_db
 
 
 def get_args() -> argparse.Namespace:
@@ -64,31 +63,22 @@ def main_dynamic() -> None:
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
         print("Processing train data...")
-        # train_stations_to_csv(r"irishrail_stations.csv")
-        # continious_data_to_csv(r"irishrail_train_history.csv")
-        train_stations_to_db()
 
     if sources_settings.enable_cycle_data:
         print("Processing cycle data...")
-        cycle_stations_to_db()
-        # Add cycle data processing here
 
     if sources_settings.enable_car_data:
         print("Processing car data...")
-        # Add car data processing here
 
     if sources_settings.enable_bus_data:
         print("Processing bus data...")
-        # Add bus data processing here
+        process_bus_live_data()
 
     if sources_settings.enable_tram_data:
         print("Processing tram data...")
-        luas_stops_to_db()
-        luas_forecasts_to_db()  # Add tram data processing here
 
     if sources_settings.enable_construction_data:
         print("Processing construction data...")
-        # Add construction data processing here
 
 
 def main() -> None:
