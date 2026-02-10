@@ -1,5 +1,5 @@
 /**
- * Notifications page
+ * Notifications page — streamlined, compact list
  */
 
 import {
@@ -62,7 +62,14 @@ export const NotificationsPage = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -70,7 +77,7 @@ export const NotificationsPage = () => {
 
   if (error) {
     return (
-      <Box>
+      <Box sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
           Notifications
         </Typography>
@@ -80,12 +87,22 @@ export const NotificationsPage = () => {
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box
+      sx={{
+        height: "100%",
+        overflow: "auto",
+        p: 3,
+        bgcolor: (t) => t.palette.background.default,
+      }}
+    >
+      <Typography variant="h4" sx={{ mb: 2 }}>
         Notifications
       </Typography>
 
-      <Paper sx={{ mt: 2 }}>
+      <Paper
+        elevation={0}
+        sx={{ borderRadius: 3, maxWidth: 720, overflow: "hidden" }}
+      >
         {!data?.notifications || data.notifications.length === 0 ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography variant="body1" color="text.secondary">
@@ -93,11 +110,13 @@ export const NotificationsPage = () => {
             </Typography>
           </Box>
         ) : (
-          <List>
+          <List disablePadding>
             {data.notifications.map((notification, index) => (
               <Box key={notification.id}>
                 <ListItem
                   sx={{
+                    py: 1.5,
+                    px: 2,
                     bgcolor: notification.read ? "transparent" : "action.hover",
                   }}
                 >
@@ -106,9 +125,10 @@ export const NotificationsPage = () => {
                       <Box
                         sx={{
                           display: "flex",
-                          gap: 1,
-                          mb: 1,
+                          gap: 0.75,
+                          mb: 0.75,
                           alignItems: "center",
+                          flexWrap: "wrap",
                         }}
                       >
                         <Chip
@@ -134,10 +154,10 @@ export const NotificationsPage = () => {
                     secondary={
                       <>
                         <Typography
-                          variant="body1"
+                          variant="body2"
                           component="span"
                           display="block"
-                          sx={{ mb: 1 }}
+                          sx={{ mb: 0.5 }}
                         >
                           {notification.message}
                         </Typography>

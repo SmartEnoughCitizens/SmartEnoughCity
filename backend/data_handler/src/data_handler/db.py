@@ -1,31 +1,16 @@
-# backend/data_handler/src/data_handler/db.py
-from collections.abc import Generator
-
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from data_handler.settings.database_settings import get_db_settings
 
-_settings = get_db_settings()
-# Use psycopg (psycopg v3) dialect which is installed via `psycopg[binary]`.
-# SQLAlchemy dialect string for psycopg v3 is 'postgresql+psycopg'.
-DATABASE_URL = f"postgresql+psycopg://{_settings.user}:{_settings.password}@{_settings.host}:{_settings.port}/{_settings.name}"
+
+class Base(DeclarativeBase):
+    pass
+
 
 engine = create_engine(
-    DATABASE_URL,
+    str(get_db_settings().dsn),
     pool_pre_ping=True,
-    future=True,
 )
 
-# Session factory
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-
-
-# Dependency / Contextmanager
-def get_session() -> Generator[Session, None, None]:
-    """Yield a SQLAlchemy Session for use as a dependency or context manager."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

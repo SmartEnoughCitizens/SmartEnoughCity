@@ -41,7 +41,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 //  Logback + Loki for logging
-    implementation 'com.github.loki4j:loki-logback-appender:1.5.2'
+//    implementation 'com.github.loki4j:loki-logback-appender:1.5.2'
 //    lombok
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
