@@ -53,7 +53,7 @@ class PedestrianCounterSite(Base):
         DateTime(timezone=True), nullable=False
     )
     granularity: Mapped[PedestrianGranularity] = mapped_column(
-        SQLEnum(PedestrianGranularity), nullable=False
+        SQLEnum(PedestrianGranularity, schema=DB_SCHEMA), nullable=False
     )
     pedestrian_sensor: Mapped[bool] = mapped_column(Boolean, nullable=False)
     bike_sensor: Mapped[bool] = mapped_column(Boolean, nullable=False)
@@ -77,10 +77,10 @@ class PedestrianChannel(Base):
         ForeignKey(f"{DB_SCHEMA}.pedestrian_counter_sites.id"), nullable=False
     )
     mobility_type: Mapped[MobilityType] = mapped_column(
-        SQLEnum(MobilityType), nullable=False
+        SQLEnum(MobilityType, schema=DB_SCHEMA), nullable=False
     )
     direction: Mapped[ChannelDirection] = mapped_column(
-        SQLEnum(ChannelDirection), nullable=False
+        SQLEnum(ChannelDirection, schema=DB_SCHEMA), nullable=False
     )
     time_step: Mapped[int] = mapped_column(Integer, nullable=False)
 

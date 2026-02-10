@@ -222,7 +222,7 @@ class BusLiveVehicle(Base):
     start_time: Mapped[time] = mapped_column(Time, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     schedule_relationship: Mapped[ScheduleRelationship] = mapped_column(
-        SQLEnum(ScheduleRelationship), nullable=False
+        SQLEnum(ScheduleRelationship, schema=DB_SCHEMA), nullable=False
     )
     direction_id: Mapped[int] = mapped_column(Integer, nullable=False)
     lat: Mapped[float] = mapped_column(Double, nullable=False)
@@ -258,7 +258,7 @@ class BusLiveTripUpdate(Base):
     start_time: Mapped[time] = mapped_column(Time, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     schedule_relationship: Mapped[ScheduleRelationship] = mapped_column(
-        SQLEnum(ScheduleRelationship), nullable=False
+        SQLEnum(ScheduleRelationship, schema=DB_SCHEMA), nullable=False
     )
     direction_id: Mapped[int] = mapped_column(Integer, nullable=False)
     vehicle_id: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -291,7 +291,7 @@ class BusLiveTripStopTimeUpdate(Base):
     )
     stop_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
     schedule_relationship: Mapped[ScheduleRelationship] = mapped_column(
-        SQLEnum(ScheduleRelationship), nullable=False
+        SQLEnum(ScheduleRelationship, schema=DB_SCHEMA), nullable=False
     )
     arrival_delay: Mapped[int | None] = mapped_column(Integer)
     departure_delay: Mapped[int | None] = mapped_column(Integer)
