@@ -184,8 +184,8 @@ class EVChargingPoint(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     county: Mapped[str] = mapped_column(String, nullable=False)
     # address: Mapped[str | None] = mapped_column(String)
-    latitude: Mapped[float] = mapped_column(Float, nullable=False)
-    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
     
     # Number of simultaneous connections
     # max_sim_ccs: Mapped[int | None] = mapped_column(Integer)
@@ -194,10 +194,10 @@ class EVChargingPoint(Base):
     # max_sim_ac_socket: Mapped[int | None] = mapped_column(Integer)
     
     # Charging power in kilowatts (kW)
-    ccs_kw: Mapped[float | None] = mapped_column(Float)
-    chademo_kw: Mapped[float | None] = mapped_column(Float)
-    ac_fast_kw: Mapped[float | None] = mapped_column(Float)
-    ac_socket_kw: Mapped[float | None] = mapped_column(Float)
+    Power_Rating_of_ccs_connectors_kw: Mapped[float | None] = mapped_column(Float)
+    Power_Rating_of_chademo_connectors_kw: Mapped[float | None] = mapped_column(Float)
+    Power_Rating_of_ac_fast_kw: Mapped[float | None] = mapped_column(Float)
+    Power_Rating_of_standard_ac_socket_kw: Mapped[float | None] = mapped_column(Float)
     
     # Operating hours
     is_24_7: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

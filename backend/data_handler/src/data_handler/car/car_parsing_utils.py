@@ -1,27 +1,27 @@
 # data_handler/car/car_parsing_utils.py
 
-from datetime import datetime
 import re
+from datetime import datetime
 
 
 def parse_scats_time(time_str: str) -> datetime:
     """
     Parse SCATS time format to datetime.
-    
+
     Format: 20250826000000 -> 2025-08-26 00:00:00
-    
+
     Args:
         time_str: Time string in format YYYYMMDDHHMMSS
-        
+
     Returns:
         datetime object
-        
+
     Example:
         >>> parse_scats_time("20250826000000")
         datetime(2025, 8, 26, 0, 0, 0)
     """
     if not time_str or len(time_str) != 14:
-        raise ValueError(f"Invalid SCATS time format: {time_str}")
+        raise ValueError("Invalid SCATS time format")
     
     year = int(time_str[0:4])
     month = int(time_str[4:6])

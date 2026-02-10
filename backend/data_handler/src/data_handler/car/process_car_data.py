@@ -169,7 +169,7 @@ def parse_private_car_emission_row(row: dict[str, str]) -> PrivateCarEmission:
     )
 
 
-def parse_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoint | None:
+def parse_and_filter_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoint | None:
     """
     Parse EV charging point row.
     
@@ -190,16 +190,16 @@ def parse_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoint | None:
     return EVChargingPoint(
         county=county,
         # address=address,
-        latitude=float(row["Latitude"]),
-        longitude=float(row["Longitude"]),
+        lat=float(row["Latitude"]),
+        lon=float(row["Longitude"]),
         # max_sim_ccs=safe_int(row.get("max__sim__ccs")),
         # max_sim_chademo=safe_int(row.get("max__sim__chademo")),
         # max_sim_fast_ac=safe_int(row.get("max__sim__fast_ac")),
         # max_sim_ac_socket=safe_int(row.get("max__sim__ac_socket")),
-        ccs_kw=parse_kw_value(row.get("CCS kWs", "")),
-        chademo_kw=parse_kw_value(row.get("CHAdeMO kWs", "")),
-        ac_fast_kw=parse_kw_value(row.get("AC Fast kWs", "")),
-        ac_socket_kw=parse_kw_value(row.get("AC Socket kWs", "")),
+        Power_Rating_of_ccs_connectors_kw=parse_kw_value(row.get("CCS kWs", "")),
+        Power_Rating_of_chademo_connectors_kw=parse_kw_value(row.get("CHAdeMO kWs", "")),
+        Power_Rating_of_ac_fast_kw=parse_kw_value(row.get("AC Fast kWs", "")),
+        Power_Rating_of_standard_ac_socket_kw=parse_kw_value(row.get("AC Socket kWs", "")),
         is_24_7=is_24_7,
     )
 
@@ -259,7 +259,7 @@ def process_car_static_data(data_dir: Path) -> None:
         ),
         "ev_charging_points.csv": (
             ["County", "Latitude", "Longitude"],
-            parse_ev_charging_point_row,
+            parse_and_filter_ev_charging_point_row,
         ),
     }
 
