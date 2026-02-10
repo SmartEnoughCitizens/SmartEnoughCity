@@ -1,0 +1,6 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color
+5332_120555,7778019,6,Howth Dart Stn - Lower Abbey Street,,3,,,
+5332_120556,7778019,11B,Phoenix Park - Donnybrook,,3,,,
+5332_120557,7778019,11,Phoenix Park - Sandyford Business District,,3,,,
+5332_120558,7778019,13,Grange Castle - Harristown,,3,,,
+5332_120561,7778019,16,Ballinteer - Dublin Airport,,3,,,
