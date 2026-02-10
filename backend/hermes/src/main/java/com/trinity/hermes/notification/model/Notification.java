@@ -12,6 +12,21 @@ public class Notification {
   private String body;
   private Channel channel;
   private byte[] qrCode;
+
+  public byte[] getQrCode() {
+    return qrCode == null ? null : qrCode.clone();
+  }
+
+  public void setQrCode(byte[] qrCode) {
+    this.qrCode = qrCode == null ? null : qrCode.clone();
+  }
+
+  public static class NotificationBuilder {
+    public NotificationBuilder qrCode(byte[] qrCode) {
+      this.qrCode = qrCode == null ? null : qrCode.clone();
+      return this;
+    }
+  }
   //    private String templateKey;
   //    private Map<String, Object> data; // original data if you want
 }

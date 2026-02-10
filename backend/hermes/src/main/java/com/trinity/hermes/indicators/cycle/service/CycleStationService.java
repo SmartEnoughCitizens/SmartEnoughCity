@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.cycle.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.CycleStationDTO;
 import com.trinity.hermes.indicators.cycle.entity.CycleStation;
 import com.trinity.hermes.indicators.cycle.repository.CycleStationRepository;
@@ -21,7 +22,7 @@ public class CycleStationService {
   /** Get all cycle stations */
   @Transactional(readOnly = true)
   public List<CycleStationDTO> getAllCycleStations(Integer limit) {
-    log.info("Fetching all cycle stations with limit: {}", limit);
+    log.info("Fetching all cycle stations with limit: {}", LogSanitizer.sanitizeLog(limit));
 
     List<CycleStation> stations;
     if (limit != null && limit > 0) {
