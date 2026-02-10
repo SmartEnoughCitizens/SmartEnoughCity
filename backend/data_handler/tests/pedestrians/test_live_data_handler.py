@@ -12,9 +12,7 @@ from data_handler.pedestrians.live_data_handler import (
 from tests.utils import ANY, assert_row_count, assert_rows
 
 
-def test_process_pedestrian_sites(
-    db_session: Session, tests_data_dir: Path
-) -> None:
+def test_process_pedestrian_sites(db_session: Session, tests_data_dir: Path) -> None:
     sites_json_path = tests_data_dir / "pedestrians" / "sites.json"
     with sites_json_path.open() as f:
         sites_json_string = f.read()
@@ -26,50 +24,60 @@ def test_process_pedestrian_sites(
     assert set(updated_ids) == {100000425, 100001297, 100001484}
 
     assert_row_count(db_session, "pedestrian_counter_sites", 3)
-    assert_rows(db_session, "pedestrian_counter_sites", [
-        {
-            "id": 100000425,
-            "name": "Glenageary",
-            "description": None,
-            "lat": 53.28141,
-            "lon": -6.12319,
-            "first_data": datetime(2010, 10, 24, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT1H",
-            "pedestrian_sensor": True,
-            "bike_sensor": True,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-        {
-            "id": 100001297,
-            "name": "Westmoreland WEST old",
-            "description": None,
-            "lat": 53.3460338367334,
-            "lon": -6.25927465033187,
-            "first_data": datetime(2011, 5, 5, 3, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-        {
-            "id": 100001484,
-            "name": "O'Connell St/Pennys",
-            "description": "Counter Re-located on 8/3/17 to Pennys as PL poles outside Burger King and Schuh interfering with counter. Mounted at correct height on new pole.",
-            "lat": 53.34879,
-            "lon": -6.25969,
-            "first_data": datetime(2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-    ])
+    assert_rows(
+        db_session,
+        "pedestrian_counter_sites",
+        [
+            {
+                "id": 100000425,
+                "name": "Glenageary",
+                "description": None,
+                "lat": 53.28141,
+                "lon": -6.12319,
+                "first_data": datetime(
+                    2010, 10, 24, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT1H",
+                "pedestrian_sensor": True,
+                "bike_sensor": True,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+            {
+                "id": 100001297,
+                "name": "Westmoreland WEST old",
+                "description": None,
+                "lat": 53.3460338367334,
+                "lon": -6.25927465033187,
+                "first_data": datetime(
+                    2011, 5, 5, 3, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+            {
+                "id": 100001484,
+                "name": "O'Connell St/Pennys",
+                "description": "Counter Re-located on 8/3/17 to Pennys as PL poles outside Burger King and Schuh interfering with counter. Mounted at correct height on new pole.",
+                "lat": 53.34879,
+                "lon": -6.25969,
+                "first_data": datetime(
+                    2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+        ],
+    )
 
 
 def test_process_pedestrian_sites_upsert(
@@ -91,64 +99,76 @@ def test_process_pedestrian_sites_upsert(
     assert set(updated_ids) == {100000425, 100001485}
 
     assert_row_count(db_session, "pedestrian_counter_sites", 4)
-    assert_rows(db_session, "pedestrian_counter_sites", [
-        {
-            "id": 100001297,
-            "name": "Westmoreland WEST old",
-            "description": None,
-            "lat": 53.3460338367334,
-            "lon": -6.25927465033187,
-            "first_data": datetime(2011, 5, 5, 3, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-        {
-            "id": 100001484,
-            "name": "O'Connell St/Pennys",
-            "description": "Counter Re-located on 8/3/17 to Pennys as PL poles outside Burger King and Schuh interfering with counter. Mounted at correct height on new pole.",
-            "lat": 53.34879,
-            "lon": -6.25969,
-            "first_data": datetime(2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-        {
-            "id": 100000425,
-            "name": "Glenageary modified",
-            "description": "Modified description",
-            "lat": 13.28141,
-            "lon": -13.12319,
-            "first_data": datetime(2020, 10, 24, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": False,
-            "has_timestamped_data": True,
-            "has_weather": False,
-        },
-        {
-            "id": 100001485,
-            "name": "O'Connell st/Princes st North",
-            "description": "Outside Clerys 15M Pyro. New type pyrobox.",
-            "lat": 53.34895,
-            "lon": -6.26004,
-            "first_data": datetime(2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-    ])
+    assert_rows(
+        db_session,
+        "pedestrian_counter_sites",
+        [
+            {
+                "id": 100001297,
+                "name": "Westmoreland WEST old",
+                "description": None,
+                "lat": 53.3460338367334,
+                "lon": -6.25927465033187,
+                "first_data": datetime(
+                    2011, 5, 5, 3, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+            {
+                "id": 100001484,
+                "name": "O'Connell St/Pennys",
+                "description": "Counter Re-located on 8/3/17 to Pennys as PL poles outside Burger King and Schuh interfering with counter. Mounted at correct height on new pole.",
+                "lat": 53.34879,
+                "lon": -6.25969,
+                "first_data": datetime(
+                    2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+            {
+                "id": 100000425,
+                "name": "Glenageary modified",
+                "description": "Modified description",
+                "lat": 13.28141,
+                "lon": -13.12319,
+                "first_data": datetime(
+                    2020, 10, 24, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": False,
+                "has_timestamped_data": True,
+                "has_weather": False,
+            },
+            {
+                "id": 100001485,
+                "name": "O'Connell st/Princes st North",
+                "description": "Outside Clerys 15M Pyro. New type pyrobox.",
+                "lat": 53.34895,
+                "lon": -6.26004,
+                "first_data": datetime(
+                    2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+        ],
+    )
 
 
 def test_process_pedestrian_channel_data(
@@ -201,6 +221,7 @@ def test_process_pedestrian_channel_data(
         ],
     )
 
+
 def test_process_pedestrian_channel_data_upsert(
     db_session: Session, tests_data_dir: Path
 ) -> None:
@@ -217,7 +238,6 @@ def test_process_pedestrian_channel_data_upsert(
 
     with channels_csv_upsert_path.open(encoding="utf-8") as f:
         process_pedestrian_channel_data(f)
-
 
     assert_row_count(db_session, "pedestrian_channels", 4)
     assert_rows(
@@ -381,9 +401,7 @@ def test_process_pedestrian_measures_data_upsert(
     )
 
 
-def test_process_batch_job_result(
-    db_session: Session, tests_data_dir: Path
-) -> None:
+def test_process_batch_job_result(db_session: Session, tests_data_dir: Path) -> None:
     sites_json_path = tests_data_dir / "pedestrians" / "sites.json"
     with sites_json_path.open() as f:
         sites_json_string = f.read()
@@ -403,50 +421,60 @@ def test_process_batch_job_result(
         process_batch_job_result(f.read())
 
     assert_row_count(db_session, "pedestrian_counter_sites", 3)
-    assert_rows(db_session, "pedestrian_counter_sites", [
-        {
-            "id": 100000425,
-            "name": "Glenageary",
-            "description": None,
-            "lat": 53.28141,
-            "lon": -6.12319,
-            "first_data": datetime(2010, 10, 24, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT1H",
-            "pedestrian_sensor": True,
-            "bike_sensor": True,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-        {
-            "id": 100001297,
-            "name": "Westmoreland WEST old",
-            "description": None,
-            "lat": 53.3460338367334,
-            "lon": -6.25927465033187,
-            "first_data": datetime(2011, 5, 5, 3, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-        {
-            "id": 100001484,
-            "name": "O'Connell St/Pennys",
-            "description": "Counter Re-located on 8/3/17 to Pennys as PL poles outside Burger King and Schuh interfering with counter. Mounted at correct height on new pole.",
-            "lat": 53.34879,
-            "lon": -6.25969,
-            "first_data": datetime(2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))),
-            "granularity": "PT15M",
-            "pedestrian_sensor": True,
-            "bike_sensor": False,
-            "directional": True,
-            "has_timestamped_data": False,
-            "has_weather": True,
-        },
-    ])
+    assert_rows(
+        db_session,
+        "pedestrian_counter_sites",
+        [
+            {
+                "id": 100000425,
+                "name": "Glenageary",
+                "description": None,
+                "lat": 53.28141,
+                "lon": -6.12319,
+                "first_data": datetime(
+                    2010, 10, 24, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT1H",
+                "pedestrian_sensor": True,
+                "bike_sensor": True,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+            {
+                "id": 100001297,
+                "name": "Westmoreland WEST old",
+                "description": None,
+                "lat": 53.3460338367334,
+                "lon": -6.25927465033187,
+                "first_data": datetime(
+                    2011, 5, 5, 3, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+            {
+                "id": 100001484,
+                "name": "O'Connell St/Pennys",
+                "description": "Counter Re-located on 8/3/17 to Pennys as PL poles outside Burger King and Schuh interfering with counter. Mounted at correct height on new pole.",
+                "lat": 53.34879,
+                "lon": -6.25969,
+                "first_data": datetime(
+                    2011, 6, 7, 0, 0, 0, tzinfo=timezone(timedelta(hours=1))
+                ),
+                "granularity": "PT15M",
+                "pedestrian_sensor": True,
+                "bike_sensor": False,
+                "directional": True,
+                "has_timestamped_data": False,
+                "has_weather": True,
+            },
+        ],
+    )
 
     assert_row_count(db_session, "pedestrian_channels", 4)
     assert_rows(
