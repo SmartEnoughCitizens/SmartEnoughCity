@@ -90,6 +90,7 @@ def parse_year(year_str: str) -> int:
     msg = "Unable to parse year:" + year_str
     raise ValueError(msg)
 
+
 def parse_kw_value(value: str) -> float | None:
     """
     Parse kilowatt (kW) power value from string to float.
@@ -142,6 +143,7 @@ def parse_kw_value(value: str) -> float | None:
     else:
         return result
 
+
 def parse_open_hours(value: str) -> tuple[bool, str | None]:
     """
     Parse operating hours string into (is_24_7, description) tuple.
@@ -166,12 +168,14 @@ def parse_open_hours(value: str) -> tuple[bool, str | None]:
     value_lower = value_clean.lower()
 
     # Check for 24/7 indicators
-    is_24_7 = any([
-        "24/7" in value_lower,
-        "24 hours" in value_lower,
-        "24hrs" in value_lower,
-        "always" in value_lower,
-        value_lower == "24",
-    ])
+    is_24_7 = any(
+        [
+            "24/7" in value_lower,
+            "24 hours" in value_lower,
+            "24hrs" in value_lower,
+            "always" in value_lower,
+            value_lower == "24",
+        ]
+    )
 
     return (is_24_7, value_clean)
