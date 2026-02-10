@@ -50,7 +50,7 @@ class TrafficEvent(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     event_type: Mapped[TrafficEventType] = mapped_column(
-        SQLEnum(TrafficEventType), nullable=False
+        SQLEnum(TrafficEventType, schema=DB_SCHEMA), nullable=False
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
