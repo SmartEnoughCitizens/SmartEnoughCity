@@ -1,5 +1,6 @@
 package com.trinity.hermes.usermanagement.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import jakarta.ws.rs.core.Response;
@@ -152,7 +153,7 @@ public class UserManagementService {
     // Delete the user
     getUsersResource().get(targetUser.getId()).remove();
 
-    log.info("User deleted: {}", username);
+    log.info("User deleted: {}", LogSanitizer.sanitizeLog(username));
   }
 
   // ---------------------------------------------------------------

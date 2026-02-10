@@ -1,15 +1,20 @@
 package com.trinity.hermes.usermanagement.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import lombok.RequiredArgsConstructor;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -49,6 +54,9 @@ public class UserManagementController {
           "Tram_Provider", Set.of("Tram_Admin"),
           "City_Manager", Set.of("Government_Admin"));
 
+    @SuppressFBWarnings(
+            value = "EI2",
+            justification = "Spring-managed dependency injected via constructor; stored in final field.")
   public UserManagementController(UserManagementService userManagementService) {
     this.userManagementService = userManagementService;
   }
@@ -61,7 +69,7 @@ public class UserManagementController {
   public ResponseEntity<?> registerUser(
       @Valid @RequestBody RegisterUserRequest request, @AuthenticationPrincipal Jwt jwt) {
 
-    log.info("Received request to register user {}", request);
+    log.info("Received request to register user {}", LogSanitizer.sanitizeLog(request));
 
     // Check if the caller has Government_Admin role
 
@@ -87,7 +95,7 @@ public class UserManagementController {
 
     try {
       RegisterUserResponse response = userManagementService.registerUser(request);
-      return ResponseEntity.created(null).body(response);
+      return ResponseEntity.status(HttpStatus.CREATED).body(response);
     } catch (RuntimeException e) {
       log.error("Error registering user: {}", e.getMessage());
       return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
@@ -141,10 +149,4 @@ public class UserManagementController {
     return ResponseEntity.ok(users);
   }
 
-  @GetMapping("/sample")
-  public ResponseEntity<?> getAllUsers() {
-
-    log.info("Received request to get all sample ");
-    return ResponseEntity.ok(null);
-  }
 }
