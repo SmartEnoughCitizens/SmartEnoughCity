@@ -1,0 +1,38 @@
+[
+	{
+		"id": 100000425,
+		"name": "Glenageary modified",
+		"description": "Modified description",
+		"location": {
+			"lat": 13.28141,
+			"lon": -13.12319
+		},
+		"firstData": "2020-10-24T00:00:00+01:00",
+		"lastData": "2026-02-06T00:00:00Z",
+		"granularity": "PT15M",
+		"travelModes": [
+			"pedestrian"
+		],
+		"directional": false,
+		"hasTimestampedData": true,
+		"hasWeather": false
+	},
+	{
+		"id": 100001485,
+		"name": "O'Connell st/Princes st North",
+		"description": "Outside Clerys 15M Pyro. New type pyrobox.",
+		"location": {
+			"lat": 53.34895,
+			"lon": -6.26004
+		},
+		"firstData": "2011-06-07T00:00:00+01:00",
+		"lastData": "2025-05-28T00:45:00+01:00",
+		"granularity": "PT15M",
+		"travelModes": [
+			"pedestrian"
+		],
+		"directional": true,
+		"hasTimestampedData": false,
+		"hasWeather": true
+	}
+]
