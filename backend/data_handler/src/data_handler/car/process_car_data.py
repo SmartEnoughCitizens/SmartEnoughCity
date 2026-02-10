@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 # ROW PARSERS
 # ============================================================================
 
+
 def parse_scats_site_row(row: dict[str, str]) -> ScatsSite:
     """Parse SCATS site row."""
     return ScatsSite(
@@ -168,7 +169,9 @@ def parse_private_car_emission_row(row: dict[str, str]) -> PrivateCarEmission:
     )
 
 
-def parse_and_filter_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoint | None:
+def parse_and_filter_ev_charging_point_row(
+    row: dict[str, str],
+) -> EVChargingPoint | None:
     """
     Parse EV charging point row.
 
@@ -189,9 +192,13 @@ def parse_and_filter_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoi
         lat=float(row["Latitude"]),
         lon=float(row["Longitude"]),
         Power_Rating_of_ccs_connectors_kw=parse_kw_value(row.get("CCS kWs", "")),
-        Power_Rating_of_chademo_connectors_kw=parse_kw_value(row.get("CHAdeMO kWs", "")),
+        Power_Rating_of_chademo_connectors_kw=parse_kw_value(
+            row.get("CHAdeMO kWs", "")
+        ),
         Power_Rating_of_ac_fast_kw=parse_kw_value(row.get("AC Fast kWs", "")),
-        Power_Rating_of_standard_ac_socket_kw=parse_kw_value(row.get("AC Socket kWs", "")),
+        Power_Rating_of_standard_ac_socket_kw=parse_kw_value(
+            row.get("AC Socket kWs", "")
+        ),
         is_24_7=is_24_7,
     )
 
@@ -199,6 +206,7 @@ def parse_and_filter_ev_charging_point_row(row: dict[str, str]) -> EVChargingPoi
 # ============================================================================
 # MAIN PROCESSING FUNCTION
 # ============================================================================
+
 
 def process_car_static_data(data_dir: Path) -> None:
     """
@@ -222,7 +230,14 @@ def process_car_static_data(data_dir: Path) -> None:
     # CSV file name -> (required headers, transform row function)
     csv_files = {
         "scats_sites.csv": (
-            ["SiteID", "Site Description", "Site Description Lower", "Region", "Lat", "Long"],
+            [
+                "SiteID",
+                "Site Description",
+                "Site Description Lower",
+                "Region",
+                "Lat",
+                "Long",
+            ],
             parse_scats_site_row,
         ),
         "traffic_volumes.csv": (

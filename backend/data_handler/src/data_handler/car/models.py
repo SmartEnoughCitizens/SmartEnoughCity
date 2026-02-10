@@ -17,8 +17,10 @@ DB_SCHEMA = get_db_settings().postgres_schema
 # ENUMS (replacing lookup tables)
 # ============================================================================
 
+
 class EmissionBand(enum.Enum):
     """EU vehicle emission bands."""
+
     BAND_A = "Band A"
     BAND_B = "Band B"
     BAND_C = "Band C"
@@ -50,11 +52,14 @@ class TaxationClass(enum.Enum):
 
 class FuelType(enum.Enum):
     """Types of vehicle fuel."""
+
     PETROL = "Petrol"
     DIESEL = "Diesel"
     ELECTRIC = "Electric"
     PETROL_AND_ELECTRIC_HYBRID = "Petrol and electric hybrid"
-    PETROL_OR_DIESEL_PLUG_IN_HYBRID_ELECTRIC = "Petrol or Diesel plug-in hybrid electric"
+    PETROL_OR_DIESEL_PLUG_IN_HYBRID_ELECTRIC = (
+        "Petrol or Diesel plug-in hybrid electric"
+    )
     DIESEL_AND_ELECTRIC_HYBRID = "Diesel and electric hybrid"
     OTHER_FUEL_TYPES = "Other fuel types"
     ALL_FUEL_TYPES = "All fuel types"
@@ -80,8 +85,10 @@ class VehicleRegistrationType(enum.Enum):
 # MODELS
 # ============================================================================
 
+
 class ScatsSite(Base):
     """SCATS traffic monitoring site locations."""
+
     __tablename__ = "scats_sites"
     __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
 
@@ -98,6 +105,7 @@ class ScatsSite(Base):
 
 class TrafficVolume(Base):
     """Hourly traffic volume data from SCATS detectors."""
+
     __tablename__ = "traffic_volumes"
     __table_args__: ClassVar[dict] = (
         Index("ix_traffic_volumes_site_id", "site_id"),
@@ -123,6 +131,7 @@ class TrafficVolume(Base):
 
 class VehicleFirstTime(Base):
     """Vehicles licensed for the first time by month and taxation class."""
+
     __tablename__ = "vehicle_first_time"
     __table_args__: ClassVar[dict] = (
         Index("ix_vehicle_first_time_month", "month"),
@@ -140,6 +149,7 @@ class VehicleFirstTime(Base):
 
 class VehicleLicensingArea(Base):
     """New and second-hand cars by licensing area, fuel type, and month."""
+
     __tablename__ = "vehicle_licensing_area"
     __table_args__: ClassVar[dict] = (
         Index("ix_vehicle_licensing_area_month", "month"),
@@ -157,6 +167,7 @@ class VehicleLicensingArea(Base):
 
 class VehicleNewLicensed(Base):
     """New vehicles licensed by registration type and fuel type."""
+
     __tablename__ = "vehicle_new_licensed"
     __table_args__: ClassVar[dict] = (
         Index("ix_vehicle_new_licensed_month", "month"),
@@ -176,6 +187,7 @@ class VehicleNewLicensed(Base):
 
 class VehicleYearly(Base):
     """New and second-hand vehicles by year, taxation class, and fuel type."""
+
     __tablename__ = "vehicle_yearly"
     __table_args__: ClassVar[dict] = (
         Index("ix_vehicle_yearly_year", "year"),
@@ -195,6 +207,7 @@ class VehicleYearly(Base):
 
 class PrivateCarEmission(Base):
     """Private cars licensed by emission band and licensing authority."""
+
     __tablename__ = "private_car_emissions"
     __table_args__: ClassVar[dict] = (
         Index("ix_private_car_emissions_year", "year"),
@@ -214,6 +227,7 @@ class PrivateCarEmission(Base):
 
 class EVChargingPoint(Base):
     """Electric vehicle charging point locations and specifications."""
+
     __tablename__ = "ev_charging_points"
     __table_args__: ClassVar[dict] = (
         Index("ix_ev_charging_points_county", "county"),
