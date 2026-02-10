@@ -4,6 +4,7 @@ import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.notification.services.mail.MailServiceFactory;
 import com.trinity.hermes.notification.util.SseManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ public class NotificationDispatcher {
 
   private final MailServiceFactory mailServiceFactory;
 
+  @SuppressFBWarnings(value = "EI2")
   private final SseManager sseManager;
 
   /** Sends the notification via SES and returns an updated notification object. */

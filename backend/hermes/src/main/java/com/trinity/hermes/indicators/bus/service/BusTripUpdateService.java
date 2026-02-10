@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.bus.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusTripUpdateDTO;
 import com.trinity.hermes.indicators.bus.entity.BusTripUpdate;
 import com.trinity.hermes.indicators.bus.repository.BusTripUpdateRepository;
@@ -21,7 +22,7 @@ public class BusTripUpdateService {
   /** Get all bus trip updates for a specific route */
   @Transactional(readOnly = true)
   public List<BusTripUpdateDTO> getBusTripUpdatesByRoute(String routeId, Integer limit) {
-    log.info("Fetching bus trip updates for route: {}", routeId);
+    log.info("Fetching bus trip updates for route: {}", LogSanitizer.sanitizeLog(routeId));
 
     List<BusTripUpdate> updates = repository.findByRouteIdOrderByIdDesc(routeId);
 
@@ -81,7 +82,7 @@ public class BusTripUpdateService {
   /** Get all bus trip updates (for recommendation engine) */
   @Transactional(readOnly = true)
   public List<BusTripUpdateDTO> getAllBusTripUpdates(Integer limit) {
-    log.info("Fetching all bus trip updates with limit: {}", limit);
+    log.info("Fetching all bus trip updates with limit: {}", LogSanitizer.sanitizeLog(limit));
 
     List<BusTripUpdate> updates;
     if (limit != null && limit > 0) {

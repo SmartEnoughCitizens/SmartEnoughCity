@@ -1,27 +1,19 @@
 /**
- * Main dashboard layout component
+ * Map-centric dashboard layout with slim icon sidebar
  */
 
 import { useState } from "react";
 import {
   Box,
-  AppBar,
-  Toolbar,
   IconButton,
   Typography,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
+  Tooltip,
   Badge,
   Menu,
   MenuItem,
   Avatar,
+  Divider,
 } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
@@ -32,11 +24,9 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { toggleSidebar, toggleTheme } from "@/store/slices/uiSlice";
+import { toggleTheme } from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
-
-const drawerWidth = 240;
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -47,9 +37,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { username } = useAppSelector((state) => state.auth);
-  const { sidebarOpen, theme, notificationBadgeCount } = useAppSelector(
-    (state) => state.ui,
-  );
+  const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
   const logoutMutation = useLogout();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -69,125 +57,168 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate("/login");
   };
 
-  const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
-    { text: "Bus Data", icon: <DirectionsBusIcon />, path: "/dashboard/bus" },
+  const navItems = [
+    { icon: <DashboardIcon />, path: "/dashboard", label: "Overview" },
+    { icon: <DirectionsBusIcon />, path: "/dashboard/bus", label: "Bus Data" },
     {
-      text: "Cycle Stations",
       icon: <DirectionsBikeIcon />,
       path: "/dashboard/cycle",
+      label: "Cycles",
     },
     {
-      text: "Notifications",
-      icon: <NotificationsIcon />,
+      icon: (
+        <Badge badgeContent={notificationBadgeCount} color="error">
+          <NotificationsIcon />
+        </Badge>
+      ),
       path: "/dashboard/notifications",
+      label: "Notifications",
     },
   ];
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <Box sx={{ display: "flex" }}>
-      <AppBar
-        position="fixed"
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Slim icon rail */}
+      <Box
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
+          width: 56,
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          py: 1.5,
+          gap: 0.5,
+          bgcolor: (t) =>
+            t.palette.mode === "dark"
+              ? "rgba(15, 23, 42, 0.95)"
+              : "rgba(255, 255, 255, 0.95)",
+          borderRight: 1,
+          borderColor: "divider",
+          zIndex: 1200,
+          backdropFilter: "blur(16px)",
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={() => dispatch(toggleSidebar())}
-            sx={{ mr: 2 }}
+        {/* Brand mark */}
+        <Box
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: "10px",
+            bgcolor: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            mb: 1,
+            cursor: "pointer",
+          }}
+          onClick={() => navigate("/dashboard")}
+        >
+          <Typography
+            sx={{ color: "#fff", fontWeight: 800, fontSize: "0.9rem" }}
           >
-            <MenuIcon />
-          </IconButton>
-
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Hermes Transport Analytics
+            H
           </Typography>
+        </Box>
 
-          <IconButton color="inherit" onClick={() => dispatch(toggleTheme())}>
+        {/* Nav items */}
+        {navItems.map((item) => (
+          <Tooltip key={item.path} title={item.label} placement="right" arrow>
+            <IconButton
+              onClick={() => navigate(item.path)}
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "10px",
+                color: isActive(item.path) ? "primary.main" : "text.secondary",
+                bgcolor: isActive(item.path)
+                  ? (t) =>
+                      t.palette.mode === "dark"
+                        ? "rgba(96, 165, 250, 0.12)"
+                        : "rgba(37, 99, 235, 0.08)"
+                  : "transparent",
+                "&:hover": {
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark"
+                      ? "rgba(255,255,255,0.06)"
+                      : "rgba(0,0,0,0.04)",
+                },
+              }}
+            >
+              {item.icon}
+            </IconButton>
+          </Tooltip>
+        ))}
+
+        {/* Spacer */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* Theme toggle */}
+        <Tooltip
+          title={theme === "dark" ? "Light mode" : "Dark mode"}
+          placement="right"
+          arrow
+        >
+          <IconButton
+            onClick={() => dispatch(toggleTheme())}
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: "10px",
+              color: "text.secondary",
+            }}
+          >
             {theme === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
+        </Tooltip>
 
-          <IconButton
-            color="inherit"
-            onClick={() => navigate("/dashboard/notifications")}
-          >
-            <Badge badgeContent={notificationBadgeCount} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
-
-          <IconButton color="inherit" onClick={handleMenuOpen}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: "secondary.main" }}>
+        {/* User avatar */}
+        <Tooltip title={username || "Account"} placement="right" arrow>
+          <IconButton onClick={handleMenuOpen} sx={{ p: 0.5 }}>
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                bgcolor: "primary.main",
+                fontSize: "0.85rem",
+                fontWeight: 700,
+              }}
+            >
               {username?.charAt(0).toUpperCase() || "U"}
             </Avatar>
           </IconButton>
+        </Tooltip>
 
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem disabled>
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              {username}
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <LogoutIcon sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+          anchorOrigin={{ vertical: "center", horizontal: "right" }}
+          transformOrigin={{ vertical: "center", horizontal: "left" }}
+        >
+          <MenuItem disabled>
+            <AccountCircleIcon sx={{ mr: 1 }} />
+            {username}
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleLogout}>
+            <LogoutIcon sx={{ mr: 1 }} />
+            Logout
+          </MenuItem>
+        </Menu>
+      </Box>
 
-      <Drawer
-        variant="persistent"
-        open={sidebarOpen}
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-            boxSizing: "border-box",
-          },
-        }}
-      >
-        <Toolbar />
-        <Box sx={{ overflow: "auto" }}>
-          <List>
-            {menuItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  selected={location.pathname === item.path}
-                  onClick={() => navigate(item.path)}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
-
+      {/* Main content — full bleed for map pages */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: "100%",
-          ml: sidebarOpen ? 0 : `-${drawerWidth}px`,
-          transition: (theme) =>
-            theme.transitions.create(["margin"], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
+          height: "100vh",
+          overflow: "hidden",
+          position: "relative",
         }}
       >
-        <Toolbar />
         {children}
       </Box>
     </Box>
