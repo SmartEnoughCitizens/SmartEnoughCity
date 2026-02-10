@@ -59,17 +59,18 @@ public class UserManagementController {
     this.userManagementService = userManagementService;
   }
 
-  // ---------------------------------------------------------------
-  // 1. REGISTER USER
-  //    Only Government_Admin can call this.
-  // ---------------------------------------------------------------
+  /**
+   * Registers a new user based on role-based permissions.
+   *
+   * @param request user registration details
+   * @param jwt authenticated JWT of the caller
+   * @return response containing created user details or an error message
+   */
   @PostMapping("/register")
   public ResponseEntity<?> registerUser(
       @Valid @RequestBody RegisterUserRequest request, @AuthenticationPrincipal Jwt jwt) {
 
     log.info("Received request to register user {}", LogSanitizer.sanitizeLog(request));
-
-    // Check if the caller has Government_Admin role
 
     Set<String> allowedCreators = CREATE_PERMISSIONS.get(request.getRole());
 
@@ -100,10 +101,13 @@ public class UserManagementController {
     }
   }
 
-  // ---------------------------------------------------------------
-  // 2. DELETE USER
-  //    Only Government_Admin can call this.
-  // ---------------------------------------------------------------
+  /**
+   * Deletes a user by username.
+   *
+   * @param username username of the user to be deleted
+   * @param jwt authenticated JWT of the caller
+   * @return success or error response
+   */
   @DeleteMapping("/delete")
   public ResponseEntity<?> deleteUser(
       @RequestParam String username, @AuthenticationPrincipal Jwt jwt) {
@@ -112,13 +116,6 @@ public class UserManagementController {
     if (!userManagementService.hasRole(jwt, "Government_Admin")) {
       return ResponseEntity.status(403)
           .body(Map.of("message", "Access denied. Only Government_Admin can delete users."));
-    }
-
-    // Prevent gov_admin from deleting itself
-    String callerUsername = jwt.getClaimAsString("preferred_username");
-    if (callerUsername != null && callerUsername.equalsIgnoreCase(username)) {
-      return ResponseEntity.badRequest()
-          .body(Map.of("message", "You cannot delete your own account."));
     }
 
     try {
@@ -131,10 +128,12 @@ public class UserManagementController {
     }
   }
 
-  // ---------------------------------------------------------------
-  // 3. LIST ALL USERS (bonus)
-  //    Only Government_Admin can call this.
-  // ---------------------------------------------------------------
+  /**
+   * Retrieves all users in the system.
+   *
+   * @param jwt authenticated JWT of the caller
+   * @return list of users or an error response
+   */
   @GetMapping("/users")
   public ResponseEntity<?> getAllUsers(@AuthenticationPrincipal Jwt jwt) {
 
