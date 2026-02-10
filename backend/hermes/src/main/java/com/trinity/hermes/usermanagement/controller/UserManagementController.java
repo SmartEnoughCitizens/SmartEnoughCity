@@ -9,8 +9,6 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import lombok.RequiredArgsConstructor;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,9 +52,9 @@ public class UserManagementController {
           "Tram_Provider", Set.of("Tram_Admin"),
           "City_Manager", Set.of("Government_Admin"));
 
-    @SuppressFBWarnings(
-            value = "EI2",
-            justification = "Spring-managed dependency injected via constructor; stored in final field.")
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-managed dependency injected via constructor; stored in final field.")
   public UserManagementController(UserManagementService userManagementService) {
     this.userManagementService = userManagementService;
   }
@@ -148,5 +146,4 @@ public class UserManagementController {
     List<UserRepresentation> users = userManagementService.getAllUsers();
     return ResponseEntity.ok(users);
   }
-
 }
