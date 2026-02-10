@@ -83,6 +83,7 @@ dependencies {
     errorprone('com.google.errorprone:error_prone_core:2.42.0')
 
     spotbugsPlugins('com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0')
+    compileOnly("com.github.spotbugs:spotbugs-annotations:4.8.6")
 }
 
 tasks.named('test') {
