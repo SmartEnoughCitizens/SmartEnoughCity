@@ -1,5 +1,6 @@
 package com.trinity.hermes.notification.services.mail;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.activation.DataHandler;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -23,6 +24,10 @@ import software.amazon.awssdk.services.sesv2.model.*;
 @Slf4j
 public class SesMailService implements MailService {
 
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification =
+          "SesV2Client is an injected AWS SDK client; shared dependency managed by Spring")
   private final SesV2Client sesV2Client;
 
   @Value("${mail.from}")
