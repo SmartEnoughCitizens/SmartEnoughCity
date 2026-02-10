@@ -4,12 +4,14 @@ import enum
 from datetime import datetime
 from typing import ClassVar
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from data_handler.db import Base
+from data_handler.settings.database_settings import get_db_settings
 
+DB_SCHEMA = get_db_settings().postgres_schema
 
 # ============================================================================
 # ENUMS (replacing lookup tables)
@@ -74,9 +76,6 @@ class VehicleRegistrationType(enum.Enum):
     OTHER = "Other Classes New Other Vehicles"
 
 
-    # Add more as they appear in your CSV
-
-
 # ============================================================================
 # MODELS
 # ============================================================================
@@ -84,6 +83,7 @@ class VehicleRegistrationType(enum.Enum):
 class ScatsSite(Base):
     """SCATS traffic monitoring site locations."""
     __tablename__ = "scats_sites"
+    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
 
     site_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     description: Mapped[str] = mapped_column(String, nullable=False)
@@ -99,11 +99,17 @@ class ScatsSite(Base):
 class TrafficVolume(Base):
     """Hourly traffic volume data from SCATS detectors."""
     __tablename__ = "traffic_volumes"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_traffic_volumes_site_id", "site_id"),
+        Index("ix_traffic_volumes_end_time", "end_time"),
+        Index("ix_traffic_volumes_region", "region"),
+        {"schema": DB_SCHEMA},
+    )
 
     # Composite primary key
     end_time: Mapped[datetime] = mapped_column(DateTime, primary_key=True)
     site_id: Mapped[int] = mapped_column(
-        ForeignKey("scats_sites.site_id"), primary_key=True
+        ForeignKey(f"{DB_SCHEMA}.scats_sites.site_id"), primary_key=True
     )
     detector: Mapped[int] = mapped_column(Integer, primary_key=True)
 
@@ -118,6 +124,11 @@ class TrafficVolume(Base):
 class VehicleFirstTime(Base):
     """Vehicles licensed for the first time by month and taxation class."""
     __tablename__ = "vehicle_first_time"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_vehicle_first_time_month", "month"),
+        Index("ix_vehicle_first_time_taxation_class", "taxation_class"),
+        {"schema": DB_SCHEMA},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -130,6 +141,12 @@ class VehicleFirstTime(Base):
 class VehicleLicensingArea(Base):
     """New and second-hand cars by licensing area, fuel type, and month."""
     __tablename__ = "vehicle_licensing_area"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_vehicle_licensing_area_month", "month"),
+        Index("ix_vehicle_licensing_area_authority", "licensing_authority"),
+        Index("ix_vehicle_licensing_area_fuel_type", "fuel_type"),
+        {"schema": DB_SCHEMA},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -141,6 +158,12 @@ class VehicleLicensingArea(Base):
 class VehicleNewLicensed(Base):
     """New vehicles licensed by registration type and fuel type."""
     __tablename__ = "vehicle_new_licensed"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_vehicle_new_licensed_month", "month"),
+        Index("ix_vehicle_new_licensed_registration_type", "registration_type"),
+        Index("ix_vehicle_new_licensed_fuel_type", "fuel_type"),
+        {"schema": DB_SCHEMA},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -154,6 +177,12 @@ class VehicleNewLicensed(Base):
 class VehicleYearly(Base):
     """New and second-hand vehicles by year, taxation class, and fuel type."""
     __tablename__ = "vehicle_yearly"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_vehicle_yearly_year", "year"),
+        Index("ix_vehicle_yearly_taxation_class", "taxation_class"),
+        Index("ix_vehicle_yearly_fuel_type", "fuel_type"),
+        {"schema": DB_SCHEMA},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -167,6 +196,12 @@ class VehicleYearly(Base):
 class PrivateCarEmission(Base):
     """Private cars licensed by emission band and licensing authority."""
     __tablename__ = "private_car_emissions"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_private_car_emissions_year", "year"),
+        Index("ix_private_car_emissions_emission_band", "emission_band"),
+        Index("ix_private_car_emissions_authority", "licensing_authority"),
+        {"schema": DB_SCHEMA},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -180,24 +215,22 @@ class PrivateCarEmission(Base):
 class EVChargingPoint(Base):
     """Electric vehicle charging point locations and specifications."""
     __tablename__ = "ev_charging_points"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_ev_charging_points_county", "county"),
+        Index("ix_ev_charging_points_is_24_7", "is_24_7"),
+        {"schema": DB_SCHEMA},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     county: Mapped[str] = mapped_column(String, nullable=False)
-    # address: Mapped[str | None] = mapped_column(String)
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lon: Mapped[float] = mapped_column(Float, nullable=False)
-    
-    # Number of simultaneous connections
-    # max_sim_ccs: Mapped[int | None] = mapped_column(Integer)
-    # max_sim_chademo: Mapped[int | None] = mapped_column(Integer)
-    # max_sim_fast_ac: Mapped[int | None] = mapped_column(Integer)
-    # max_sim_ac_socket: Mapped[int | None] = mapped_column(Integer)
-    
+
     # Charging power in kilowatts (kW)
     Power_Rating_of_ccs_connectors_kw: Mapped[float | None] = mapped_column(Float)
     Power_Rating_of_chademo_connectors_kw: Mapped[float | None] = mapped_column(Float)
     Power_Rating_of_ac_fast_kw: Mapped[float | None] = mapped_column(Float)
     Power_Rating_of_standard_ac_socket_kw: Mapped[float | None] = mapped_column(Float)
-    
+
     # Operating hours
     is_24_7: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
