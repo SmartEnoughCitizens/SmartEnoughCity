@@ -156,7 +156,7 @@ def send_batch_job_request(site_ids: list[int], date: date) -> int:
         "granularity": "PT15M",
         "validatedDataOnly": False,
         "gapFilling": False,
-        "validateSchema": False
+        "validateSchema": False,
     }
 
     logger.info("Sending batch job request for date %s...", date)

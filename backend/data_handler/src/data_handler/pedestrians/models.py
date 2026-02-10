@@ -49,7 +49,9 @@ class PedestrianCounterSite(Base):
     description: Mapped[str | None] = mapped_column(Text)
     lat: Mapped[float] = mapped_column(Double, nullable=False)
     lon: Mapped[float] = mapped_column(Double, nullable=False)
-    first_data: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    first_data: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     granularity: Mapped[PedestrianGranularity] = mapped_column(
         SQLEnum(PedestrianGranularity), nullable=False
     )
