@@ -142,7 +142,7 @@ class VehicleFirstTime(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     taxation_class: Mapped[TaxationClass] = mapped_column(
-        SQLEnum(TaxationClass), nullable=False
+        SQLEnum(TaxationClass, schema=DB_SCHEMA), nullable=False
     )
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -161,7 +161,7 @@ class VehicleLicensingArea(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     licensing_authority: Mapped[str] = mapped_column(String, nullable=False)
-    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType), nullable=False)
+    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -179,9 +179,9 @@ class VehicleNewLicensed(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     registration_type: Mapped[VehicleRegistrationType] = mapped_column(
-        SQLEnum(VehicleRegistrationType), nullable=False
+        SQLEnum(VehicleRegistrationType, schema=DB_SCHEMA), nullable=False
     )
-    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType), nullable=False)
+    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -199,9 +199,9 @@ class VehicleYearly(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     taxation_class: Mapped[TaxationClass] = mapped_column(
-        SQLEnum(TaxationClass), nullable=False
+        SQLEnum(TaxationClass, schema=DB_SCHEMA), nullable=False
     )
-    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType), nullable=False)
+    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -219,7 +219,7 @@ class PrivateCarEmission(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     emission_band: Mapped[EmissionBand] = mapped_column(
-        SQLEnum(EmissionBand), nullable=False
+        SQLEnum(EmissionBand, schema=DB_SCHEMA), nullable=False
     )
     licensing_authority: Mapped[str] = mapped_column(String, nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -241,10 +241,10 @@ class EVChargingPoint(Base):
     lon: Mapped[float] = mapped_column(Float, nullable=False)
 
     # Charging power in kilowatts (kW)
-    Power_Rating_of_ccs_connectors_kw: Mapped[float | None] = mapped_column(Float)
-    Power_Rating_of_chademo_connectors_kw: Mapped[float | None] = mapped_column(Float)
-    Power_Rating_of_ac_fast_kw: Mapped[float | None] = mapped_column(Float)
-    Power_Rating_of_standard_ac_socket_kw: Mapped[float | None] = mapped_column(Float)
+    power_rating_of_ccs_connectors_kw: Mapped[float | None] = mapped_column(Float)
+    power_rating_of_chademo_connectors_kw: Mapped[float | None] = mapped_column(Float)
+    power_rating_of_ac_fast_kw: Mapped[float | None] = mapped_column(Float)
+    power_rating_of_standard_ac_socket_kw: Mapped[float | None] = mapped_column(Float)
 
     # Operating hours
     is_24_7: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
