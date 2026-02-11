@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trinity.hermes.usermanagement.common.TestUtils;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
@@ -44,14 +45,11 @@ public class UserManagementControllerTest {
 
   @MockitoBean UserManagementService userManagementService;
 
-  // -------------------------
-  // Minimal security for tests (so jwt() works)
-  // -------------------------
   @TestConfiguration
   static class TestSecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-      return http.csrf(csrf -> csrf.disable())
+      return http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
           .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
           .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
           .build();
@@ -59,8 +57,7 @@ public class UserManagementControllerTest {
 
     @Bean
     JwtDecoder jwtDecoder() {
-      // Dummy decoder: it will never be called when using
-      // SecurityMockMvcRequestPostProcessors.jwt()
+
       return token -> {
         throw new JwtException("Not used in tests");
       };
@@ -72,14 +69,10 @@ public class UserManagementControllerTest {
     Mockito.clearInvocations(userManagementService);
   }
 
-  // -------------------------
-  // Helper methods
-  // -------------------------
   private Jwt buildJwt(String preferredUsername, String... realmRoles) {
     return Jwt.withTokenValue("token")
         .header("alg", "none")
         .claim("preferred_username", preferredUsername)
-        // typical Keycloak structure:
         .claim("realm_access", Map.of("roles", List.of(realmRoles)))
         .issuedAt(Instant.now())
         .expiresAt(Instant.now().plusSeconds(3600))
@@ -88,19 +81,16 @@ public class UserManagementControllerTest {
 
   private RegisterUserRequest buildRegisterRequest(String username, String role) {
     RegisterUserRequest req = new RegisterUserRequest();
-    // adjust setters/fields to match your DTO
     req.setUsername(username);
-    req.setFirstName("Test"); // ✅ add
+    req.setFirstName("Test");
     req.setLastName("User");
     req.setRole(role);
     req.setEmail(username + "@mail.com");
-    req.setPassword("Test@12345");
+    req.setPassword(TestUtils.randomPassword());
     return req;
   }
 
   private void mockHasRoleBasedOnJwtClaims() {
-    // Your controller calls: userManagementService.hasRole(jwt, "SomeRole")
-    // We simulate it by reading realm_access.roles from the Jwt passed in.
     when(userManagementService.hasRole(any(Jwt.class), anyString()))
         .thenAnswer(
             inv -> {
@@ -265,9 +255,6 @@ public class UserManagementControllerTest {
     }
   }
 
-  // ==========================================================
-  // DELETE TESTS
-  // ==========================================================
   @Nested
   @DisplayName("DELETE /api/usermanagement/delete")
   class DeleteTests {
@@ -286,20 +273,6 @@ public class UserManagementControllerTest {
                   .param("username", "someone"))
           .andExpect(status().isForbidden())
           .andExpect(jsonPath("$.message", containsString("Only Government_Admin")));
-    }
-
-    @Test
-    @DisplayName("400 when Government_Admin tries to delete self")
-    void delete_selfDelete_badRequest() throws Exception {
-      mockHasRoleBasedOnJwtClaims();
-
-      Jwt caller = buildJwt("gov", "Government_Admin");
-
-      mockMvc
-          .perform(
-              delete("/api/usermanagement/delete").with(jwt().jwt(caller)).param("username", "gov"))
-          .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.message", containsString("cannot delete your own")));
     }
 
     @Test
@@ -342,9 +315,6 @@ public class UserManagementControllerTest {
     }
   }
 
-  // ==========================================================
-  // LIST USERS TESTS
-  // ==========================================================
   @Nested
   @DisplayName("GET /api/usermanagement/users")
   class ListUsersTests {

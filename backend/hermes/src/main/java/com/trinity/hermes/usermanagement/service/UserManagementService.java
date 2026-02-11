@@ -33,7 +33,7 @@ public class UserManagementService {
   private final Keycloak keycloak;
   private final String realm;
 
-  // These are the only roles gov_admin is allowed to assign
+
   private static final Set<String> ALLOWED_ROLES =
       Set.of(
           "City_Manager",
@@ -51,9 +51,6 @@ public class UserManagementService {
     this.realm = realm;
   }
 
-  // ---------------------------------------------------------------
-  // GET REALM RESOURCE (helper)
-  // ---------------------------------------------------------------
   private RealmResource getRealmResource() {
     return keycloak.realm(realm);
   }
@@ -62,20 +59,13 @@ public class UserManagementService {
     return getRealmResource().users();
   }
 
-  // ---------------------------------------------------------------
-  // 1. REGISTER USER
-  //    - Creates user in Keycloak
-  //    - Sets password
-  //    - Assigns the requested role
-  // ---------------------------------------------------------------
+
   public RegisterUserResponse registerUser(RegisterUserRequest request) {
 
-    // --- Safety check: block disallowed roles ---
     if (!ALLOWED_ROLES.contains(request.getRole())) {
       throw new IllegalArgumentException("Role not allowed: " + request.getRole());
     }
 
-    // --- Check if username already exists ---
     List<UserRepresentation> existingUsers =
         getUsersResource().search(request.getUsername(), 0, 10);
 
@@ -85,7 +75,6 @@ public class UserManagementService {
       throw new RuntimeException("Username already exists: " + request.getUsername());
     }
 
-    // --- Build user representation ---
     UserRepresentation user = new UserRepresentation();
     user.setUsername(request.getUsername());
     user.setEmail(request.getEmail());
@@ -94,39 +83,33 @@ public class UserManagementService {
     user.setEnabled(true);
     user.setEmailVerified(true);
 
-    // --- Create user in Keycloak ---
-    // Response contains the new user's ID in the Location header
+
     Response response = getUsersResource().create(user);
 
     if (response.getStatus() != 201) {
       throw new RuntimeException("Failed to create user. Status: " + response.getStatus());
     }
 
-    // Extract the user ID from the Location header
-    // Location header looks like: http://localhost:8081/admin/realms/.../users/{userId}
     String userId = CreatedResponseUtil.getCreatedId(response);
 
     log.info("User created successfully. ID: {}, Username: {}", userId, request.getUsername());
 
-    // --- Set password ---
     CredentialRepresentation credential = new CredentialRepresentation();
     credential.setType(CredentialRepresentation.PASSWORD);
 
     if (request.getPassword() != null && !request.getPassword().isBlank()) {
       credential.setValue(request.getPassword());
-      credential.setTemporary(false); // user does NOT need to change password
+      credential.setTemporary(false);
     } else {
-      credential.setValue("ChangeMe@123"); // default temp password
-      credential.setTemporary(true); // user MUST change on first login
+      credential.setValue("ChangeMe@123");
+      credential.setTemporary(true);
     }
 
     getUsersResource().get(userId).resetPassword(credential);
     log.info("Password set for user: {}", request.getUsername());
 
-    // --- Assign role ---
     assignRole(userId, request.getRole());
 
-    // --- Build and return response ---
     return new RegisterUserResponse(
         userId,
         request.getUsername(),
@@ -135,13 +118,9 @@ public class UserManagementService {
         "User registered successfully");
   }
 
-  // ---------------------------------------------------------------
-  // 2. DELETE USER
-  //    - Deletes user from Keycloak by username
-  // ---------------------------------------------------------------
   public void deleteUser(String username) {
 
-    // Find user by username
+
     List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
 
     UserRepresentation targetUser =
@@ -150,31 +129,23 @@ public class UserManagementService {
             .findFirst()
             .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-    // Delete the user
     getUsersResource().get(targetUser.getId()).remove();
 
     log.info("User deleted: {}", LogSanitizer.sanitizeLog(username));
   }
 
-  // ---------------------------------------------------------------
-  // 3. LIST ALL USERS (bonus -- useful for the UI)
-  // ---------------------------------------------------------------
   public List<UserRepresentation> getAllUsers() {
     return getUsersResource().search("", 0, 100);
   }
 
-  // ---------------------------------------------------------------
-  // PRIVATE: Assign a realm role to a user
-  // ---------------------------------------------------------------
   private void assignRole(String userId, String roleName) {
-    // Get the role object from Keycloak by name
+
     RoleRepresentation role = getRealmResource().roles().get(roleName).toRepresentation();
 
     if (role == null) {
       throw new RuntimeException("Role not found in Keycloak: " + roleName);
     }
 
-    // Assign that role to the user
     getRealmResource()
         .users()
         .get(userId)
@@ -185,13 +156,7 @@ public class UserManagementService {
     log.info("Role '{}' assigned to user ID: {}", roleName, userId);
   }
 
-  /**
-   * Keycloak puts realm roles inside the JWT token like this:
-   *
-   * <p>{ "realm_access": { "roles": ["Government_Admin", "offline_access"] } }
-   *
-   * <p>This method reads that and checks if the required role is present.
-   */
+
   public boolean hasRole(Jwt jwt, String requiredRole) {
     Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
 
