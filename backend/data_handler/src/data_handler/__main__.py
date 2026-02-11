@@ -3,6 +3,7 @@ import logging
 
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
+from data_handler.car.process_car_data import process_car_static_data
 from data_handler.db import Base, engine
 from data_handler.logging import configure_logging
 from data_handler.settings.data_sources_settings import get_data_sources_settings
@@ -32,6 +33,11 @@ def main_static() -> None:
         process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
     else:
         logger.info("Skipping bus static data processing...")
+
+    if sources_settings.enable_car_data and sources_settings.car_static_data_dir:
+        process_car_static_data(sources_settings.car_static_data_dir)
+    else:
+        logger.info("Skipping car static data processing...")
 
     logger.info("Finished processing static data.")
 
