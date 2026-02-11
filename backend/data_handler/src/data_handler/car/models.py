@@ -161,7 +161,9 @@ class VehicleLicensingArea(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     month: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     licensing_authority: Mapped[str] = mapped_column(String, nullable=False)
-    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False)
+    fuel_type: Mapped[FuelType] = mapped_column(
+        SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False
+    )
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -181,7 +183,9 @@ class VehicleNewLicensed(Base):
     registration_type: Mapped[VehicleRegistrationType] = mapped_column(
         SQLEnum(VehicleRegistrationType, schema=DB_SCHEMA), nullable=False
     )
-    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False)
+    fuel_type: Mapped[FuelType] = mapped_column(
+        SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False
+    )
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -201,7 +205,9 @@ class VehicleYearly(Base):
     taxation_class: Mapped[TaxationClass] = mapped_column(
         SQLEnum(TaxationClass, schema=DB_SCHEMA), nullable=False
     )
-    fuel_type: Mapped[FuelType] = mapped_column(SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False)
+    fuel_type: Mapped[FuelType] = mapped_column(
+        SQLEnum(FuelType, schema=DB_SCHEMA), nullable=False
+    )
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
