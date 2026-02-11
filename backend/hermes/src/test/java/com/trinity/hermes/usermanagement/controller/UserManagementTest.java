@@ -61,7 +61,6 @@ class UserManagementTest {
 
     r.add("keycloak.admin-username", keycloak::getAdminUsername);
     r.add("keycloak.admin-password", keycloak::getAdminPassword);
-
   }
 
   @Autowired MockMvc mockMvc;

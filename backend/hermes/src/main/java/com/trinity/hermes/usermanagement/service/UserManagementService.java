@@ -33,7 +33,6 @@ public class UserManagementService {
   private final Keycloak keycloak;
   private final String realm;
 
-
   private static final Set<String> ALLOWED_ROLES =
       Set.of(
           "City_Manager",
@@ -59,7 +58,6 @@ public class UserManagementService {
     return getRealmResource().users();
   }
 
-
   public RegisterUserResponse registerUser(RegisterUserRequest request) {
 
     if (!ALLOWED_ROLES.contains(request.getRole())) {
@@ -82,7 +80,6 @@ public class UserManagementService {
     user.setLastName(request.getLastName());
     user.setEnabled(true);
     user.setEmailVerified(true);
-
 
     Response response = getUsersResource().create(user);
 
@@ -120,7 +117,6 @@ public class UserManagementService {
 
   public void deleteUser(String username) {
 
-
     List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
 
     UserRepresentation targetUser =
@@ -155,7 +151,6 @@ public class UserManagementService {
 
     log.info("Role '{}' assigned to user ID: {}", roleName, userId);
   }
-
 
   public boolean hasRole(Jwt jwt, String requiredRole) {
     Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
