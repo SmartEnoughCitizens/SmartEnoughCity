@@ -39,12 +39,10 @@ public class UserManagementController {
 
   private static final Map<String, Set<String>> CREATE_PERMISSIONS =
       Map.of(
-
           "Cycle_Admin", Set.of("City_Manager"),
           "Bus_Admin", Set.of("City_Manager"),
           "Train_Admin", Set.of("City_Manager"),
           "Tram_Admin", Set.of("City_Manager"),
-
           "Cycle_Provider", Set.of("Cycle_Admin"),
           "Bus_Provider", Set.of("Bus_Admin"),
           "Train_Provider", Set.of("Train_Admin"),

@@ -25,11 +25,9 @@ public class UserManagementServiceTest {
 
   @Mock Keycloak keycloak;
 
-
   @Mock RealmResource realmResource;
   @Mock UsersResource usersResource;
   @Mock UserResource userResource;
-
 
   @Mock RolesResource rolesResource;
   @Mock RoleResource roleResource;
@@ -72,7 +70,6 @@ public class UserManagementServiceTest {
     u.setUsername(username);
     return u;
   }
-
 
   @Test
   void registerUser_rejectsRoleNotAllowed() {
@@ -122,10 +119,8 @@ public class UserManagementServiceTest {
     when(usersResource.create(any(UserRepresentation.class))).thenReturn(createResponse);
     when(createResponse.getStatus()).thenReturn(201);
 
-
     try (MockedStatic<CreatedResponseUtil> mocked = Mockito.mockStatic(CreatedResponseUtil.class)) {
       mocked.when(() -> CreatedResponseUtil.getCreatedId(createResponse)).thenReturn("userId-123");
-
 
       RoleRepresentation roleRep = new RoleRepresentation();
       roleRep.setName("Cycle_Provider");
