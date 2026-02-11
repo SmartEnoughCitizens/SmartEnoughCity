@@ -25,12 +25,12 @@ public class UserManagementServiceTest {
 
   @Mock Keycloak keycloak;
 
-  // Keycloak resource chain
+
   @Mock RealmResource realmResource;
   @Mock UsersResource usersResource;
   @Mock UserResource userResource;
 
-  // role assignment chain
+
   @Mock RolesResource rolesResource;
   @Mock RoleResource roleResource;
 
@@ -41,32 +41,20 @@ public class UserManagementServiceTest {
 
   UserManagementService service;
 
-  private final String realm = "user-management-realm";
-
   @BeforeEach
   void setup() {
+
+    String realm = "user-management-realm";
     service = new UserManagementService(keycloak, realm);
 
-    // keycloak.realm(realm) -> realmResource
     lenient().when(keycloak.realm(realm)).thenReturn(realmResource);
-
-    // realmResource.users() -> usersResource
     lenient().when(realmResource.users()).thenReturn(usersResource);
-
-    // realmResource.roles() -> rolesResource
     lenient().when(realmResource.roles()).thenReturn(rolesResource);
-
-    // usersResource.get(userId) -> userResource
     lenient().when(usersResource.get(anyString())).thenReturn(userResource);
-
-    // userResource.roles().realmLevel().add(...)
     lenient().when(userResource.roles()).thenReturn(roleMappingResource);
     lenient().when(roleMappingResource.realmLevel()).thenReturn(roleScopeResource);
   }
 
-  // ------------------------
-  // Helpers
-  // ------------------------
   private RegisterUserRequest req(String username, String role, String password) {
     RegisterUserRequest r = new RegisterUserRequest();
     r.setUsername(username);
@@ -85,9 +73,6 @@ public class UserManagementServiceTest {
     return u;
   }
 
-  // ==========================================================
-  // registerUser tests
-  // ==========================================================
 
   @Test
   void registerUser_rejectsRoleNotAllowed() {
@@ -97,7 +82,7 @@ public class UserManagementServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.registerUser(request));
 
     assertTrue(ex.getMessage().contains("Role not allowed"));
-    verifyNoInteractions(usersResource); // should fail before calling Keycloak
+    verifyNoInteractions(usersResource);
   }
 
   @Test
@@ -126,7 +111,7 @@ public class UserManagementServiceTest {
     RuntimeException ex = assertThrows(RuntimeException.class, () -> service.registerUser(request));
 
     assertTrue(ex.getMessage().contains("Failed to create user"));
-    verify(usersResource, never()).get(anyString()); // no password reset if create failed
+    verify(usersResource, never()).get(anyString());
   }
 
   @Test
@@ -137,11 +122,11 @@ public class UserManagementServiceTest {
     when(usersResource.create(any(UserRepresentation.class))).thenReturn(createResponse);
     when(createResponse.getStatus()).thenReturn(201);
 
-    // mock CreatedResponseUtil.getCreatedId(response) (static)
+
     try (MockedStatic<CreatedResponseUtil> mocked = Mockito.mockStatic(CreatedResponseUtil.class)) {
       mocked.when(() -> CreatedResponseUtil.getCreatedId(createResponse)).thenReturn("userId-123");
 
-      // role exists
+
       RoleRepresentation roleRep = new RoleRepresentation();
       roleRep.setName("Cycle_Provider");
       when(rolesResource.get("Cycle_Provider")).thenReturn(roleResource);
@@ -154,7 +139,6 @@ public class UserManagementServiceTest {
       assertEquals("cycleprov1", resp.getUsername());
       assertEquals("Cycle_Provider", resp.getRole());
 
-      // verify password reset called with non-temporary credential and correct password
       ArgumentCaptor<CredentialRepresentation> credCaptor =
           ArgumentCaptor.forClass(CredentialRepresentation.class);
       verify(userResource).resetPassword(credCaptor.capture());
@@ -164,7 +148,6 @@ public class UserManagementServiceTest {
       assertEquals("Pass@123", cred.getValue());
       assertFalse(cred.isTemporary());
 
-      // verify role assignment happens
       verify(roleScopeResource)
           .add(
               argThat(
@@ -226,10 +209,6 @@ public class UserManagementServiceTest {
     }
   }
 
-  // ==========================================================
-  // deleteUser tests
-  // ==========================================================
-
   @Test
   void deleteUser_throwsWhenUserNotFound() {
     when(usersResource.search(eq("missing"), eq(0), eq(10)))
@@ -252,10 +231,6 @@ public class UserManagementServiceTest {
 
     verify(userResource).remove();
   }
-
-  // ==========================================================
-  // getAllUsers tests
-  // ==========================================================
 
   @Test
   void getAllUsers_callsSearchWithEmptyQueryAndLimit100() {

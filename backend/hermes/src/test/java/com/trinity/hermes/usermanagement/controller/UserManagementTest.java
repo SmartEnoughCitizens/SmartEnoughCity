@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trinity.hermes.usermanagement.common.TestUtils;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import java.util.Map;
@@ -42,7 +43,6 @@ class UserManagementTest {
 
   @DynamicPropertySource
   static void props(DynamicPropertyRegistry r) {
-    // ---------- PostgreSQL overrides ----------
     r.add("spring.datasource.url", postgres::getJdbcUrl);
     r.add("spring.datasource.username", postgres::getUsername);
     r.add("spring.datasource.password", postgres::getPassword);
@@ -50,27 +50,18 @@ class UserManagementTest {
     r.add("spring.jpa.properties.hibernate.default_schema", () -> "public");
     r.add("spring.liquibase.enabled", () -> "false");
 
-    // If you use schema "backend"
-    // Ensure schema exists either via Flyway/Liquibase or init script.
-    // Example: r.add("spring.jpa.properties.hibernate.default_schema", () -> "backend");
-
-    // ---------- Keycloak resource server override ----------
     r.add(
         "spring.security.oauth2.resourceserver.jwt.issuer-uri",
         () -> keycloak.getAuthServerUrl().replaceAll("/$", "") + "/realms/user-management-realm");
 
-    // ---------- Your Keycloak admin client bean properties ----------
     r.add("keycloak.server-url", keycloak::getAuthServerUrl);
     r.add("keycloak.realm", () -> "user-management-realm");
     r.add("keycloak.client-id", () -> "user-service");
     r.add("keycloak.client-secret", () -> "dev-keycloak-user-service-secret");
 
-    // If your KeycloakConfig uses admin username/password:
     r.add("keycloak.admin-username", keycloak::getAdminUsername);
     r.add("keycloak.admin-password", keycloak::getAdminPassword);
 
-    // Optional: reduce noise / avoid open-in-view etc
-    // r.add("spring.jpa.open-in-view", () -> "false");
   }
 
   @Autowired MockMvc mockMvc;
@@ -88,16 +79,41 @@ class UserManagementTest {
 
     var body = new org.springframework.util.LinkedMultiValueMap<String, String>();
     body.add("grant_type", "password");
-    body.add("client_id", "frontend-app"); // public client with directAccessGrantsEnabled=true
+    body.add("client_id", "frontend-app");
     body.add("username", username);
     body.add("password", password);
 
     var req = new org.springframework.http.HttpEntity<>(body, headers);
 
     @SuppressWarnings("unchecked")
-    Map<String, Object> resp = client.postForObject(tokenUrl, req, Map.class);
+    Map<String, Object> resp;
+    try {
+      resp = client.postForObject(tokenUrl, req, Map.class);
+    } catch (org.springframework.web.client.RestClientResponseException e) {
+      throw new IllegalStateException(
+          "Failed to fetch token for user '"
+              + username
+              + "'. HTTP "
+              + e.getRawStatusCode()
+              + " body="
+              + e.getResponseBodyAsString(),
+          e);
+    }
 
-    return (String) resp.get("access_token");
+    if (resp == null) {
+      throw new IllegalStateException(
+          "Token endpoint returned null response for user '" + username + "'");
+    }
+
+    Object token = resp.get("access_token");
+    if (!(token instanceof String accessToken) || accessToken.isBlank()) {
+      throw new IllegalStateException(
+          "Token endpoint did not return access_token for user '"
+              + username
+              + "'. Response="
+              + resp);
+    }
+    return accessToken;
   }
 
   private RegisterUserRequest registerReq(String username, String role) {
@@ -107,7 +123,7 @@ class UserManagementTest {
     r.setFirstName("First");
     r.setLastName("Last");
     r.setRole(role);
-    r.setPassword("Pass@123");
+    r.setPassword(TestUtils.randomPassword());
     return r;
   }
 

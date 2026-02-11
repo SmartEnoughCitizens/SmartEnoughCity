@@ -39,13 +39,12 @@ public class UserManagementController {
 
   private static final Map<String, Set<String>> CREATE_PERMISSIONS =
       Map.of(
-          // admins can be created only by City_Manager
+
           "Cycle_Admin", Set.of("City_Manager"),
           "Bus_Admin", Set.of("City_Manager"),
           "Train_Admin", Set.of("City_Manager"),
           "Tram_Admin", Set.of("City_Manager"),
 
-          // providers can be created only by their respective admin
           "Cycle_Provider", Set.of("Cycle_Admin"),
           "Bus_Provider", Set.of("Bus_Admin"),
           "Train_Provider", Set.of("Train_Admin"),
@@ -112,7 +111,6 @@ public class UserManagementController {
   public ResponseEntity<?> deleteUser(
       @RequestParam String username, @AuthenticationPrincipal Jwt jwt) {
 
-    // Check if the caller has Government_Admin role
     if (!userManagementService.hasRole(jwt, "Government_Admin")) {
       return ResponseEntity.status(403)
           .body(Map.of("message", "Access denied. Only Government_Admin can delete users."));
