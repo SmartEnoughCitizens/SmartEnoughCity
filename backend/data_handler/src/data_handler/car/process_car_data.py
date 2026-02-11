@@ -191,12 +191,12 @@ def parse_and_filter_ev_charging_point_row(
         county="Dublin",  # Hardcoded for consistency
         lat=float(row["Latitude"]),
         lon=float(row["Longitude"]),
-        Power_Rating_of_ccs_connectors_kw=parse_kw_value(row.get("CCS kWs", "")),
-        Power_Rating_of_chademo_connectors_kw=parse_kw_value(
+        power_rating_of_ccs_connectors_kw=parse_kw_value(row.get("CCS kWs", "")),
+        power_rating_of_chademo_connectors_kw=parse_kw_value(
             row.get("CHAdeMO kWs", "")
         ),
-        Power_Rating_of_ac_fast_kw=parse_kw_value(row.get("AC Fast kWs", "")),
-        Power_Rating_of_standard_ac_socket_kw=parse_kw_value(
+        power_rating_of_ac_fast_kw=parse_kw_value(row.get("AC Fast kWs", "")),
+        power_rating_of_standard_ac_socket_kw=parse_kw_value(
             row.get("AC Socket kWs", "")
         ),
         is_24_7=is_24_7,
