@@ -1,6 +1,9 @@
 from datetime import date
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
 from data_handler.tram.models import (
     TramAgency,
     TramCalendarDate,
@@ -17,8 +20,6 @@ from data_handler.tram.models import (
     TramTripShape,
     TramWeeklyFlow,
 )
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
 # ── GTFS Model Structure Tests ──────────────────────────────────────
 
