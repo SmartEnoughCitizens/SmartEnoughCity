@@ -14,6 +14,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 @RestController
 @RequestMapping("/notification/v1")
+@CrossOrigin(origins = "*") // Allow frontend to call this API
 @RequiredArgsConstructor
 public class NotificationController {
   private final NotificationFacade notificationFacade;

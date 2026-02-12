@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 public class NotificationFacade {
 
   private final NotificationService notificationService;
-  private final RecommendationService recommendationService;
+  //private final RecommendationService recommendationService;
   private final NotificationDispatcher notificationDispatcher;
   private final InMemoryNotificationStore notificationStore;
 
@@ -49,7 +49,7 @@ public class NotificationFacade {
         notificationStore.add(notification);
       }
 
-      recommendationService.createRecommendation(new CreateRecommendationRequest());
+      //recommendationService.createRecommendation(new CreateRecommendationRequest());
     }
   }
 
