@@ -2,8 +2,6 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import requests
-from sqlalchemy.orm import Session
-
 from data_handler.train.models import (
     IrishRailCurrentTrain,
     IrishRailStation,
@@ -23,8 +21,8 @@ from data_handler.train.realtime_handler import (
     irish_rail_stations_to_db,
     irish_rail_train_movements_to_db,
 )
+from sqlalchemy.orm import Session
 from tests.utils import assert_row_count
-
 
 # ── Sample XML responses ─────────────────────────────────────────────
 

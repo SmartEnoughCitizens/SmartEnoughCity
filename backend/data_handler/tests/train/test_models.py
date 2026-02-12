@@ -1,9 +1,6 @@
 from datetime import date, datetime
 
 import pytest
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-
 from data_handler.train.models import (
     IrishRailCurrentTrain,
     IrishRailStation,
@@ -18,7 +15,8 @@ from data_handler.train.models import (
     TrainTrip,
     TrainTripShape,
 )
-
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 # ── GTFS Model Structure Tests ──────────────────────────────────────
 
