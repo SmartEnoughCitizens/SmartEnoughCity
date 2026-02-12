@@ -2,6 +2,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 import requests
+from sqlalchemy.orm import Session
+
 from data_handler.tram.forecast_handler import (
     fetch_forecast_for_stop,
     fetch_luas_stops,
@@ -9,7 +11,6 @@ from data_handler.tram.forecast_handler import (
     luas_stops_to_db,
 )
 from data_handler.tram.models import TramLuasStop
-from sqlalchemy.orm import Session
 from tests.utils import assert_row_count
 
 # ── Sample XML responses ─────────────────────────────────────────────
