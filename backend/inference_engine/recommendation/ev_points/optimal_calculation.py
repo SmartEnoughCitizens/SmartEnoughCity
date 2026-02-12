@@ -61,9 +61,11 @@ print("SCATS combined description:\n", ev_registered.describe())
 print("SCATS unique Sites:", ev_registered['Site'].nunique())
 
 
-ev_registered.groupby('Site', 'Year', 'Month')['Sum_Volume'].sum().sort_values(ascending=False)
-
-print("debuuug:" + ev_registered)
+ev_registered.groupby(['Site', 'Year', 'Month'])['Sum_Volume'] \
+    .sum() \
+    .sort_values(ascending=False)
+print("debug:")
+print(ev_registered)
 
 
 # --- 2. Site mappings ---
@@ -82,9 +84,43 @@ ev_registered['Final_Lat'] = ev_registered['Lat_DLR'].combine_first(ev_registere
 ev_registered['Final_Long'] = ev_registered['Long_DLR'].combine_first(ev_registered['Long_DCC'])
 ev_registered['Final_Region'] = ev_registered['Region']
 
-# --- 3. Aggregate by Region & Year ---
-regional_ev = ev_registered.groupby(['Final_Region','Year'])['Sum_Volume'].sum().reset_index()
-print("\nRegional EV aggregation head:\n", regional_ev.head())
+# --- 3. Aggregate by Region, Year and Month ---
+regional_monthly = (
+    ev_registered
+    .groupby(['Final_Region', 'Year', 'Month'])['Sum_Volume']
+    .sum()
+    .reset_index()
+)
+
+# Count how many months exist per region/year
+month_counts = (
+    regional_monthly
+    .groupby(['Final_Region', 'Year'])['Month']
+    .nunique()
+    .reset_index(name='Months_Available')
+)
+
+# Sum total traffic per region/year
+regional_yearly = (
+    regional_monthly
+    .groupby(['Final_Region', 'Year'])['Sum_Volume']
+    .sum()
+    .reset_index()
+)
+
+# Merge month counts
+regional_ev = regional_yearly.merge(
+    month_counts,
+    on=['Final_Region', 'Year']
+)
+
+# Normalize to full 12-month year
+regional_ev['Adjusted_Yearly_Volume'] = (
+    regional_ev['Sum_Volume'] / regional_ev['Months_Available'] * 12
+)
+
+print("\nAdjusted yearly values:\n", regional_ev)
+
 
 # --- 4. Forecast EVs for 2026 per region ---
 future_year = 2026
@@ -98,7 +134,7 @@ for region in regional_ev['Final_Region'].unique():
         predicted = region_data['Sum_Volume'].iloc[-1]
     else:
         X = region_data['Year'].values.reshape(-1,1)
-        y = region_data['Sum_Volume'].values
+        y = region_data['Adjusted_Yearly_Volume'].values
         print("X:", X.flatten(), "y:", y)
         model = LinearRegression()
         model.fit(X, y)
