@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.static_data_handler import process_train_static_data
-from tests.utils import ANY, assert_row_count, assert_rows
+from tests.utils import assert_row_count, assert_rows
 
 
 class TestProcessTrainStaticData:
