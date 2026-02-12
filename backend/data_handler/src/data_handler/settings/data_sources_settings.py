@@ -36,7 +36,23 @@ class DataSourcesSettings(BaseSettings):
         description="Filesystem path to the directory containing the GTFS bus static data",
     )
 
+    car_static_data_dir: Path | None = Field(
+        None,
+        alias="CAR_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the Car static data",
+    )
+
     @field_validator("bus_gtfs_static_data_dir")
+    @classmethod
+    def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
+        if p is None:
+            return None
+        if not p.is_dir():
+            msg = f"Path is not a directory: {p}"
+            raise ValueError(msg)
+        return p
+
+    @field_validator("car_static_data_dir")
     @classmethod
     def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
         if p is None:
