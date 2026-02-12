@@ -189,9 +189,11 @@ def _update_station_types() -> None:
                 """
                 session.execute(
                     text(update_sql),
-                    {"station_type": type_code, "codes": station_codes}
+                    {"station_type": type_code, "codes": station_codes},
                 )
-                logger.info("Updated %d stations with type %s.", len(station_codes), type_code)
+                logger.info(
+                    "Updated %d stations with type %s.", len(station_codes), type_code
+                )
 
         session.commit()
 
@@ -331,7 +333,9 @@ def irish_rail_station_data_to_db() -> None:
         station_codes = [row[0] for row in result.fetchall()]
 
         if not station_codes:
-            logger.warning("No stations in database. Run irish_rail_stations_to_db() first.")
+            logger.warning(
+                "No stations in database. Run irish_rail_stations_to_db() first."
+            )
             return
 
         # Clear old station data
@@ -424,12 +428,16 @@ def irish_rail_train_movements_to_db() -> None:
         # Get current trains from database
         schema = get_db_settings().postgres_schema
         result = session.execute(
-            text(f"SELECT train_code, train_date FROM {schema}.irish_rail_current_trains")
+            text(
+                f"SELECT train_code, train_date FROM {schema}.irish_rail_current_trains"
+            )
         )
         trains = [(row[0], row[1]) for row in result.fetchall()]
 
         if not trains:
-            logger.warning("No current trains in database. Run irish_rail_current_trains_to_db() first.")
+            logger.warning(
+                "No current trains in database. Run irish_rail_current_trains_to_db() first."
+            )
             return
 
         # Clear old movement data
@@ -449,11 +457,16 @@ def irish_rail_train_movements_to_db() -> None:
                     train_origin=(m.get("TrainOrigin") or "").strip(),
                     train_destination=(m.get("TrainDestination") or "").strip(),
                     scheduled_arrival=(m.get("ScheduledArrival") or "").strip() or None,
-                    scheduled_departure=(m.get("ScheduledDeparture") or "").strip() or None,
+                    scheduled_departure=(m.get("ScheduledDeparture") or "").strip()
+                    or None,
                     actual_arrival=(m.get("Arrival") or "").strip() or None,
                     actual_departure=(m.get("Departure") or "").strip() or None,
-                    auto_arrival=m.get("AutoArrival") == "1" if m.get("AutoArrival") else None,
-                    auto_depart=m.get("AutoDepart") == "1" if m.get("AutoDepart") else None,
+                    auto_arrival=m.get("AutoArrival") == "1"
+                    if m.get("AutoArrival")
+                    else None,
+                    auto_depart=m.get("AutoDepart") == "1"
+                    if m.get("AutoDepart")
+                    else None,
                     stop_type=(m.get("StopType") or "").strip() or None,
                     fetched_at=fetched_at,
                 )

@@ -235,8 +235,7 @@ def process_train_static_data(gtfs_dir: Path) -> None:
             logger.info("Processing %s...", filename)
             file_path = gtfs_dir / filename
             rows = [
-                transform_row(row)
-                for row in read_csv_file(file_path, required_headers)
+                transform_row(row) for row in read_csv_file(file_path, required_headers)
             ]
             session.add_all(rows)
 

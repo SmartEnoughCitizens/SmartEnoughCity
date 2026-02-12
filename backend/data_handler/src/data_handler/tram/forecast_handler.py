@@ -15,12 +15,8 @@ LUAS_LINES = {
     "green": "Luas Green Line",
 }
 
-LUAS_STOPS_URL = (
-    "https://luasforecasts.rpa.ie/xml/get.ashx?action=stops&encrypt=false"
-)
-LUAS_FORECAST_URL = (
-    "https://luasforecasts.rpa.ie/xml/get.ashx?action=forecast&stop={stop_id}&encrypt=false"
-)
+LUAS_STOPS_URL = "https://luasforecasts.rpa.ie/xml/get.ashx?action=stops&encrypt=false"
+LUAS_FORECAST_URL = "https://luasforecasts.rpa.ie/xml/get.ashx?action=forecast&stop={stop_id}&encrypt=false"
 
 
 # ── Fetch helpers ────────────────────────────────────────────────
@@ -143,9 +139,7 @@ def luas_stops_to_db() -> None:
                         )
                     )
 
-            logger.info(
-                "Inserted/updated %d LUAS stops (%s line).", len(df), line
-            )
+            logger.info("Inserted/updated %d LUAS stops (%s line).", len(df), line)
 
         session.commit()
 

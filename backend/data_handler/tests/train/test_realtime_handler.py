@@ -352,13 +352,17 @@ class TestIrishRailStationsToDb:
 
         assert_row_count(db_session, "irish_rail_stations", 2)
 
-        cnlly = db_session.query(IrishRailStation).filter_by(station_code="CNLLY").first()
+        cnlly = (
+            db_session.query(IrishRailStation).filter_by(station_code="CNLLY").first()
+        )
         assert cnlly is not None
         assert cnlly.station_desc == "Connolly"
         assert cnlly.station_id == 100
 
     @patch("data_handler.train.realtime_handler.requests.get")
-    def test_upserts_existing_stations(self, mock_get: Mock, db_session: Session) -> None:
+    def test_upserts_existing_stations(
+        self, mock_get: Mock, db_session: Session
+    ) -> None:
         mock_response = Mock()
         mock_response.text = STATIONS_XML_RESPONSE
         mock_response.raise_for_status = Mock()
@@ -372,7 +376,9 @@ class TestIrishRailStationsToDb:
         assert_row_count(db_session, "irish_rail_stations", 2)
 
     @patch("data_handler.train.realtime_handler.requests.get")
-    def test_empty_api_response_does_not_insert(self, mock_get: Mock, db_session: Session) -> None:
+    def test_empty_api_response_does_not_insert(
+        self, mock_get: Mock, db_session: Session
+    ) -> None:
         mock_response = Mock()
         mock_response.text = '<?xml version="1.0"?><ArrayOfObjStation />'
         mock_response.raise_for_status = Mock()
@@ -408,7 +414,9 @@ class TestIrishRailCurrentTrainsToDb:
         assert "A200" in codes
 
     @patch("data_handler.train.realtime_handler.requests.get")
-    def test_clears_old_trains_before_inserting(self, mock_get: Mock, db_session: Session) -> None:
+    def test_clears_old_trains_before_inserting(
+        self, mock_get: Mock, db_session: Session
+    ) -> None:
         mock_response = Mock()
         mock_response.text = CURRENT_TRAINS_XML_RESPONSE
         mock_response.raise_for_status = Mock()
@@ -421,7 +429,9 @@ class TestIrishRailCurrentTrainsToDb:
         assert_row_count(db_session, "irish_rail_current_trains", 2)
 
     @patch("data_handler.train.realtime_handler.requests.get")
-    def test_running_train_has_coordinates(self, mock_get: Mock, db_session: Session) -> None:
+    def test_running_train_has_coordinates(
+        self, mock_get: Mock, db_session: Session
+    ) -> None:
         mock_response = Mock()
         mock_response.text = CURRENT_TRAINS_XML_RESPONSE
         mock_response.raise_for_status = Mock()
@@ -429,12 +439,16 @@ class TestIrishRailCurrentTrainsToDb:
 
         irish_rail_current_trains_to_db()
 
-        running = db_session.query(IrishRailCurrentTrain).filter_by(train_code="E109").first()
+        running = (
+            db_session.query(IrishRailCurrentTrain).filter_by(train_code="E109").first()
+        )
         assert running is not None
         assert running.lat == 53.352
         assert running.lon == -6.249
 
-        not_running = db_session.query(IrishRailCurrentTrain).filter_by(train_code="A200").first()
+        not_running = (
+            db_session.query(IrishRailCurrentTrain).filter_by(train_code="A200").first()
+        )
         assert not_running is not None
         assert not_running.lat is None
         assert not_running.lon is None
@@ -448,14 +462,21 @@ class TestIrishRailStationDataToDb:
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_inserts_station_data_for_known_stations(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
         """Station data is fetched and inserted for every station in DB."""
         # Insert station first
-        db_session.add(IrishRailStation(
-            station_id=100, station_code="CNLLY",
-            station_desc="Connolly", lat=53.352925, lon=-6.249463,
-        ))
+        db_session.add(
+            IrishRailStation(
+                station_id=100,
+                station_code="CNLLY",
+                station_desc="Connolly",
+                lat=53.352925,
+                lon=-6.249463,
+            )
+        )
         db_session.commit()
 
         def side_effect_get(url: str, **kwargs: object) -> Mock:
@@ -482,7 +503,9 @@ class TestIrishRailStationDataToDb:
         assert result.late == 1
 
     @patch("data_handler.train.realtime_handler.requests.get")
-    def test_no_stations_returns_early(self, mock_get: Mock, db_session: Session) -> None:
+    def test_no_stations_returns_early(
+        self, mock_get: Mock, db_session: Session
+    ) -> None:
         """When no stations exist in DB, function returns without calling API."""
         irish_rail_station_data_to_db()
 
@@ -491,12 +514,19 @@ class TestIrishRailStationDataToDb:
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_clears_old_data_before_inserting(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
-        db_session.add(IrishRailStation(
-            station_id=100, station_code="CNLLY",
-            station_desc="Connolly", lat=53.352925, lon=-6.249463,
-        ))
+        db_session.add(
+            IrishRailStation(
+                station_id=100,
+                station_code="CNLLY",
+                station_desc="Connolly",
+                lat=53.352925,
+                lon=-6.249463,
+            )
+        )
         db_session.commit()
 
         def side_effect_get(url: str, **kwargs: object) -> Mock:
@@ -525,15 +555,23 @@ class TestIrishRailTrainMovementsToDb:
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_inserts_movements_for_current_trains(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
         # Insert a current train first
-        db_session.add(IrishRailCurrentTrain(
-            train_code="E109", train_date="22 Jan 2026",
-            train_status="R", train_type="DART",
-            direction="Northbound", lat=53.352, lon=-6.249,
-            fetched_at=datetime(2026, 1, 22, 10, 0, 0),
-        ))
+        db_session.add(
+            IrishRailCurrentTrain(
+                train_code="E109",
+                train_date="22 Jan 2026",
+                train_status="R",
+                train_type="DART",
+                direction="Northbound",
+                lat=53.352,
+                lon=-6.249,
+                fetched_at=datetime(2026, 1, 22, 10, 0, 0),
+            )
+        )
         db_session.commit()
 
         mock_response = Mock()
@@ -560,14 +598,22 @@ class TestIrishRailTrainMovementsToDb:
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_clears_old_movements_before_inserting(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
-        db_session.add(IrishRailCurrentTrain(
-            train_code="E109", train_date="22 Jan 2026",
-            train_status="R", train_type="DART",
-            direction="Northbound", lat=53.352, lon=-6.249,
-            fetched_at=datetime(2026, 1, 22, 10, 0, 0),
-        ))
+        db_session.add(
+            IrishRailCurrentTrain(
+                train_code="E109",
+                train_date="22 Jan 2026",
+                train_status="R",
+                train_type="DART",
+                direction="Northbound",
+                lat=53.352,
+                lon=-6.249,
+                fetched_at=datetime(2026, 1, 22, 10, 0, 0),
+            )
+        )
         db_session.commit()
 
         mock_response = Mock()
