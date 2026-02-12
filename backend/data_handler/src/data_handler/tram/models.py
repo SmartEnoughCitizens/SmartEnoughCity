@@ -72,9 +72,7 @@ class TramCalendarSchedule(Base):
 class TramCalendarDate(Base):
     __tablename__ = "tram_calendar_dates"
     __table_args__: ClassVar[dict] = (
-        UniqueConstraint(
-            "service_id", "date", name="uq_tram_calendar_date"
-        ),
+        UniqueConstraint("service_id", "date", name="uq_tram_calendar_date"),
         {"schema": DB_SCHEMA},
     )
 

@@ -72,9 +72,7 @@ class TrainCalendarSchedule(Base):
 class TrainCalendarDate(Base):
     __tablename__ = "train_calendar_dates"
     __table_args__: ClassVar[dict] = (
-        UniqueConstraint(
-            "service_id", "date", name="uq_train_calendar_date"
-        ),
+        UniqueConstraint("service_id", "date", name="uq_train_calendar_date"),
         {"schema": DB_SCHEMA},
     )
 
@@ -211,15 +209,21 @@ class IrishRailStation(Base):
     __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
 
     station_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    station_code: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    station_code: Mapped[str] = mapped_column(
+        String, nullable=False, unique=True, index=True
+    )
     station_desc: Mapped[str] = mapped_column(String, nullable=False)
     station_alias: Mapped[str | None] = mapped_column(String)
-    station_type: Mapped[str | None] = mapped_column(String)  # M=Mainline, S=Suburban, D=DART
+    station_type: Mapped[str | None] = mapped_column(
+        String
+    )  # M=Mainline, S=Suburban, D=DART
     lat: Mapped[float] = mapped_column(Double, nullable=False)
     lon: Mapped[float] = mapped_column(Double, nullable=False)
 
     # Relationships
-    station_data: Mapped[list["IrishRailStationData"]] = relationship(back_populates="station")
+    station_data: Mapped[list["IrishRailStationData"]] = relationship(
+        back_populates="station"
+    )
 
 
 class IrishRailCurrentTrain(Base):
@@ -231,9 +235,15 @@ class IrishRailCurrentTrain(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     train_code: Mapped[str] = mapped_column(String, nullable=False, index=True)
     train_date: Mapped[str] = mapped_column(String, nullable=False)
-    train_status: Mapped[str] = mapped_column(String, nullable=False)  # N=Not yet running, R=Running
-    train_type: Mapped[str | None] = mapped_column(String)  # DART, Intercity, Commuter, etc.
-    direction: Mapped[str | None] = mapped_column(String)  # Northbound, Southbound, To <Destination>
+    train_status: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # N=Not yet running, R=Running
+    train_type: Mapped[str | None] = mapped_column(
+        String
+    )  # DART, Intercity, Commuter, etc.
+    direction: Mapped[str | None] = mapped_column(
+        String
+    )  # Northbound, Southbound, To <Destination>
     lat: Mapped[float | None] = mapped_column(Double)
     lon: Mapped[float | None] = mapped_column(Double)
     public_message: Mapped[str | None] = mapped_column(Text)
@@ -248,7 +258,9 @@ class IrishRailStationData(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     station_code: Mapped[str] = mapped_column(
-        ForeignKey(f"{DB_SCHEMA}.irish_rail_stations.station_code"), nullable=False, index=True
+        ForeignKey(f"{DB_SCHEMA}.irish_rail_stations.station_code"),
+        nullable=False,
+        index=True,
     )
     train_code: Mapped[str] = mapped_column(String, nullable=False, index=True)
     train_date: Mapped[str] = mapped_column(String, nullable=False)
@@ -266,7 +278,9 @@ class IrishRailStationData(Base):
     sch_arrival: Mapped[str | None] = mapped_column(String)
     sch_depart: Mapped[str | None] = mapped_column(String)
     direction: Mapped[str | None] = mapped_column(String)
-    location_type: Mapped[str | None] = mapped_column(String)  # O=Origin, D=Destination, S=Stop
+    location_type: Mapped[str | None] = mapped_column(
+        String
+    )  # O=Origin, D=Destination, S=Stop
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     # Relationships
@@ -285,7 +299,9 @@ class IrishRailTrainMovement(Base):
     location_code: Mapped[str] = mapped_column(String, nullable=False)
     location_full_name: Mapped[str] = mapped_column(String, nullable=False)
     location_order: Mapped[int] = mapped_column(Integer, nullable=False)
-    location_type: Mapped[str] = mapped_column(String, nullable=False)  # O=Origin, S=Stop, T=TimingPoint, D=Destination
+    location_type: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # O=Origin, S=Stop, T=TimingPoint, D=Destination
     train_origin: Mapped[str] = mapped_column(String, nullable=False)
     train_destination: Mapped[str] = mapped_column(String, nullable=False)
     scheduled_arrival: Mapped[str | None] = mapped_column(String)

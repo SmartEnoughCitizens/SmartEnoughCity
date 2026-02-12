@@ -279,24 +279,57 @@ def _get_cso_csv_files() -> dict:
     """Return CSO dataset file definitions (downloaded from data.gov.ie)."""
     return {
         "TII03.csv": (
-            ["STATISTIC", "Statistic Label", "TLIST(W1)", "Week",
-             "C03132V03784", "Luas Line", "UNIT", "VALUE"],
+            [
+                "STATISTIC",
+                "Statistic Label",
+                "TLIST(W1)",
+                "Week",
+                "C03132V03784",
+                "Luas Line",
+                "UNIT",
+                "VALUE",
+            ],
             parse_passenger_journey_row,
         ),
         "TOA11.csv": (
-            ["STATISTIC", "Statistic Label", "TLIST(A1)", "Year",
-             "C01885V02316", "Month", "UNIT", "VALUE"],
+            [
+                "STATISTIC",
+                "Statistic Label",
+                "TLIST(A1)",
+                "Year",
+                "C01885V02316",
+                "Month",
+                "UNIT",
+                "VALUE",
+            ],
             parse_passenger_number_row,
         ),
         "TOA09.csv": (
-            ["STATISTIC", "Statistic Label", "TLIST(A1)", "Year",
-             "C03132V03784", "Luas Line", "C03841V04591", "Time of day",
-             "UNIT", "VALUE"],
+            [
+                "STATISTIC",
+                "Statistic Label",
+                "TLIST(A1)",
+                "Year",
+                "C03132V03784",
+                "Luas Line",
+                "C03841V04591",
+                "Time of day",
+                "UNIT",
+                "VALUE",
+            ],
             parse_hourly_distribution_row,
         ),
         "TOA02.csv": (
-            ["STATISTIC", "Statistic Label", "TLIST(A1)", "Year",
-             "C02639V03196", "Days of Week", "UNIT", "VALUE"],
+            [
+                "STATISTIC",
+                "Statistic Label",
+                "TLIST(A1)",
+                "Year",
+                "C02639V03196",
+                "Days of Week",
+                "UNIT",
+                "VALUE",
+            ],
             parse_weekly_flow_row,
         ),
     }
@@ -369,8 +402,7 @@ def process_tram_static_data(data_dir: Path) -> None:
             logger.info("Processing %s...", filename)
             file_path = data_dir / filename
             rows = [
-                transform_row(row)
-                for row in read_csv_file(file_path, required_headers)
+                transform_row(row) for row in read_csv_file(file_path, required_headers)
             ]
             session.add_all(rows)
 

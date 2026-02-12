@@ -14,7 +14,9 @@ class TestProcessTramStaticData:
     """Integration tests for process_tram_static_data."""
 
     def test_process_gtfs_data_inserts_all_tables(
-        self, db_session: Session, tests_data_dir: Path,
+        self,
+        db_session: Session,
+        tests_data_dir: Path,
     ) -> None:
         """Processing GTFS + CSO data populates all expected tables."""
         # Build a combined data dir with both GTFS and CSO files
@@ -117,7 +119,9 @@ class TestProcessTramStaticData:
         shutil.rmtree(tram_data_dir)
 
     def test_missing_required_gtfs_file_raises_error(
-        self, db_session: Session, tmp_path: Path,
+        self,
+        db_session: Session,
+        tmp_path: Path,
     ) -> None:
         """Missing a required GTFS file raises FileNotFoundError."""
         # Create directory with only agency.txt (missing all others)
@@ -132,7 +136,9 @@ class TestProcessTramStaticData:
             process_tram_static_data(data_dir)
 
     def test_optional_calendar_dates_skipped_when_missing(
-        self, db_session: Session, tests_data_dir: Path,
+        self,
+        db_session: Session,
+        tests_data_dir: Path,
     ) -> None:
         """Processing works even without optional calendar_dates.txt."""
         # Build dir with GTFS but no calendar_dates.txt
@@ -154,7 +160,9 @@ class TestProcessTramStaticData:
         shutil.rmtree(tram_data_dir)
 
     def test_optional_cso_files_skipped_when_missing(
-        self, db_session: Session, tests_data_dir: Path,
+        self,
+        db_session: Session,
+        tests_data_dir: Path,
     ) -> None:
         """Processing works without any CSO files present."""
         # GTFS-only directory (no CSO files)
@@ -178,7 +186,9 @@ class TestProcessTramStaticData:
         shutil.rmtree(tram_data_dir)
 
     def test_idempotent_reprocessing(
-        self, db_session: Session, tests_data_dir: Path,
+        self,
+        db_session: Session,
+        tests_data_dir: Path,
     ) -> None:
         """Running process twice produces same row counts (delete-then-insert)."""
         tram_data_dir = tests_data_dir / "tram" / "idempotent"

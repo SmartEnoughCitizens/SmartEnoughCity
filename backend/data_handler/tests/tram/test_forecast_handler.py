@@ -185,7 +185,9 @@ class TestLuasStopsToDb:
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_inserts_stops_for_both_lines(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
         """Fetching stops for red and green inserts all into DB."""
         mock_response = Mock()
@@ -212,7 +214,9 @@ class TestLuasStopsToDb:
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_upserts_existing_stops(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
         """Running twice updates existing stops rather than duplicating."""
         mock_response = Mock()
@@ -236,20 +240,36 @@ class TestLuasForecastsToDb:
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_inserts_forecasts_for_all_stops(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
         """Forecasts are fetched and inserted for every known stop."""
         # First, insert stops
-        db_session.add(TramLuasStop(
-            stop_id="STG", line="green", name="St. Stephen's Green",
-            pronunciation="", park_ride=False, cycle_ride=True,
-            lat=53.339428, lon=-6.261495,
-        ))
-        db_session.add(TramLuasStop(
-            stop_id="HAR", line="green", name="Harcourt",
-            pronunciation="", park_ride=False, cycle_ride=False,
-            lat=53.333333, lon=-6.262222,
-        ))
+        db_session.add(
+            TramLuasStop(
+                stop_id="STG",
+                line="green",
+                name="St. Stephen's Green",
+                pronunciation="",
+                park_ride=False,
+                cycle_ride=True,
+                lat=53.339428,
+                lon=-6.261495,
+            )
+        )
+        db_session.add(
+            TramLuasStop(
+                stop_id="HAR",
+                line="green",
+                name="Harcourt",
+                pronunciation="",
+                park_ride=False,
+                cycle_ride=False,
+                lat=53.333333,
+                lon=-6.262222,
+            )
+        )
         db_session.commit()
 
         # Mock different responses per URL
@@ -273,15 +293,24 @@ class TestLuasForecastsToDb:
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_clears_old_forecasts_before_inserting(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
         """Old forecasts are deleted before fresh ones are inserted."""
         # Insert stop
-        db_session.add(TramLuasStop(
-            stop_id="STG", line="green", name="St. Stephen's Green",
-            pronunciation="", park_ride=False, cycle_ride=True,
-            lat=53.339428, lon=-6.261495,
-        ))
+        db_session.add(
+            TramLuasStop(
+                stop_id="STG",
+                line="green",
+                name="St. Stephen's Green",
+                pronunciation="",
+                park_ride=False,
+                cycle_ride=True,
+                lat=53.339428,
+                lon=-6.261495,
+            )
+        )
         db_session.commit()
 
         mock_response = Mock()
@@ -299,7 +328,9 @@ class TestLuasForecastsToDb:
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_no_stops_in_db_returns_early(
-        self, mock_get: Mock, db_session: Session,
+        self,
+        mock_get: Mock,
+        db_session: Session,
     ) -> None:
         """When no stops exist in DB, function returns without calling API."""
         luas_forecasts_to_db()

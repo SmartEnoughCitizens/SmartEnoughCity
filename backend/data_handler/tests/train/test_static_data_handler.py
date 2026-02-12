@@ -14,7 +14,9 @@ class TestProcessTrainStaticData:
     """Integration tests for process_train_static_data."""
 
     def test_process_gtfs_data_inserts_all_tables(
-        self, db_session: Session, tests_data_dir: Path,
+        self,
+        db_session: Session,
+        tests_data_dir: Path,
     ) -> None:
         """Processing GTFS data populates all expected tables."""
         train_data_dir = tests_data_dir / "train" / "gtfs"
@@ -101,7 +103,9 @@ class TestProcessTrainStaticData:
         assert_row_count(db_session, "train_stop_times", 4)
 
     def test_missing_required_gtfs_file_raises_error(
-        self, db_session: Session, tmp_path: Path,
+        self,
+        db_session: Session,
+        tmp_path: Path,
     ) -> None:
         """Missing a required GTFS file raises FileNotFoundError."""
         data_dir = tmp_path / "incomplete_train"
@@ -115,7 +119,9 @@ class TestProcessTrainStaticData:
             process_train_static_data(data_dir)
 
     def test_optional_calendar_dates_skipped_when_missing(
-        self, db_session: Session, tests_data_dir: Path,
+        self,
+        db_session: Session,
+        tests_data_dir: Path,
     ) -> None:
         """Processing works even without optional calendar_dates.txt."""
         train_data_dir = tests_data_dir / "train" / "no_cal_dates"
@@ -135,7 +141,9 @@ class TestProcessTrainStaticData:
         shutil.rmtree(train_data_dir)
 
     def test_idempotent_reprocessing(
-        self, db_session: Session, tests_data_dir: Path,
+        self,
+        db_session: Session,
+        tests_data_dir: Path,
     ) -> None:
         """Running process twice produces same row counts (delete-then-insert)."""
         train_data_dir = tests_data_dir / "train" / "gtfs"
