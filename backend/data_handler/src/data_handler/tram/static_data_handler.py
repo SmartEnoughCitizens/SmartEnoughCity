@@ -3,9 +3,9 @@ from pathlib import Path
 
 from sqlalchemy import delete
 
-from data_handler.tram.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.csv_utils import read_csv_file
 from data_handler.db import SessionLocal
+from data_handler.tram.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.tram.models import (
     TramAgency,
     TramCalendarDate,
@@ -203,35 +203,12 @@ def parse_weekly_flow_row(row: dict[str, str]) -> TramWeeklyFlow:
     )
 
 
-# ── Main Processor ──────────────────────────────────────────────────
+# ── File Definitions ────────────────────────────────────────────────
 
 
-def process_tram_static_data(data_dir: Path) -> None:
-    """
-    Process tram data from GTFS CSV files and CSO dataset CSV files.
-
-    Expects a directory containing:
-      GTFS files:  agency.txt, calendar.txt, routes.txt, shapes.txt,
-                   stop_times.txt, stops.txt, trips.txt
-      Optional GTFS: calendar_dates.txt
-      CSO files:   TII03.csv, TOA11.csv, TOA09.csv, TOA02.csv
-
-    This function:
-    1. Deletes all existing data from relevant tables
-    2. Reads data from CSV files
-    3. Inserts the data into the database
-    4. All operations happen within a single transaction
-
-    Args:
-        data_dir: Path to the directory containing the data files.
-
-    Raises:
-        FileNotFoundError: If any required GTFS CSV file is missing
-        ValueError: If any CSV file is missing required headers
-    """
-
-    # ── Required GTFS files ──────────────────────────────────────
-    gtfs_csv_files = {
+def _get_gtfs_csv_files() -> dict:
+    """Return required GTFS file definitions (filename → headers, parser)."""
+    return {
         "agency.txt": (
             ["agency_id", "agency_name", "agency_url", "agency_timezone"],
             parse_agency_row,
@@ -287,18 +264,20 @@ def process_tram_static_data(data_dir: Path) -> None:
         ),
     }
 
-    # ── Optional GTFS files ──────────────────────────────────────
-    optional_gtfs_files = {
+
+def _get_optional_gtfs_files() -> dict:
+    """Return optional GTFS file definitions."""
+    return {
         "calendar_dates.txt": (
             ["service_id", "date", "exception_type"],
             parse_calendar_date_row,
         ),
     }
 
-    # ── Optional CSO dataset files ───────────────────────────────
-    # Downloaded from data.gov.ie CSO PxStat CSV exports and placed
-    # in the same data directory.
-    cso_csv_files = {
+
+def _get_cso_csv_files() -> dict:
+    """Return CSO dataset file definitions (downloaded from data.gov.ie)."""
+    return {
         "TII03.csv": (
             ["STATISTIC", "Statistic Label", "TLIST(W1)", "Week",
              "C03132V03784", "Luas Line", "UNIT", "VALUE"],
@@ -322,6 +301,56 @@ def process_tram_static_data(data_dir: Path) -> None:
         ),
     }
 
+
+def _delete_all_tram_data(session: object) -> None:
+    """Delete all existing tram data in reverse dependency order."""
+    logger.info("Deleting existing tram data...")
+    # CSO tables (no FK dependencies)
+    session.execute(delete(TramWeeklyFlow))
+    session.execute(delete(TramHourlyDistribution))
+    session.execute(delete(TramPassengerNumber))
+    session.execute(delete(TramPassengerJourney))
+    # GTFS tables (reverse FK order)
+    session.execute(delete(TramStopTime))
+    session.execute(delete(TramTrip))
+    session.execute(delete(TramTripShape))
+    session.execute(delete(TramRoute))
+    session.execute(delete(TramStop))
+    session.execute(delete(TramCalendarDate))
+    session.execute(delete(TramCalendarSchedule))
+    session.execute(delete(TramAgency))
+
+
+# ── Main Processor ──────────────────────────────────────────────────
+
+
+def process_tram_static_data(data_dir: Path) -> None:
+    """
+    Process tram data from GTFS CSV files and CSO dataset CSV files.
+
+    Expects a directory containing:
+      GTFS files:  agency.txt, calendar.txt, routes.txt, shapes.txt,
+                   stop_times.txt, stops.txt, trips.txt
+      Optional GTFS: calendar_dates.txt
+      CSO files:   TII03.csv, TOA11.csv, TOA09.csv, TOA02.csv
+
+    This function:
+    1. Deletes all existing data from relevant tables
+    2. Reads data from CSV files
+    3. Inserts the data into the database
+    4. All operations happen within a single transaction
+
+    Args:
+        data_dir: Path to the directory containing the data files.
+
+    Raises:
+        FileNotFoundError: If any required GTFS CSV file is missing
+        ValueError: If any CSV file is missing required headers
+    """
+    gtfs_csv_files = _get_gtfs_csv_files()
+    optional_gtfs_files = _get_optional_gtfs_files()
+    cso_csv_files = _get_cso_csv_files()
+
     for filename in gtfs_csv_files:
         file_path = data_dir / filename
         if not file_path.exists():
@@ -333,22 +362,7 @@ def process_tram_static_data(data_dir: Path) -> None:
     session = SessionLocal()
 
     try:
-        # Delete existing data in reverse dependency order
-        logger.info("Deleting existing tram data...")
-        # CSO tables (no FK dependencies)
-        session.execute(delete(TramWeeklyFlow))
-        session.execute(delete(TramHourlyDistribution))
-        session.execute(delete(TramPassengerNumber))
-        session.execute(delete(TramPassengerJourney))
-        # GTFS tables (reverse FK order)
-        session.execute(delete(TramStopTime))
-        session.execute(delete(TramTrip))
-        session.execute(delete(TramTripShape))
-        session.execute(delete(TramRoute))
-        session.execute(delete(TramStop))
-        session.execute(delete(TramCalendarDate))
-        session.execute(delete(TramCalendarSchedule))
-        session.execute(delete(TramAgency))
+        _delete_all_tram_data(session)
 
         # Process required GTFS files
         for filename, (required_headers, transform_row) in gtfs_csv_files.items():

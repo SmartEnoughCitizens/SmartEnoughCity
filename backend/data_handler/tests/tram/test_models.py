@@ -1,6 +1,7 @@
-from datetime import date, time
+from datetime import date
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from data_handler.tram.models import (
@@ -103,7 +104,7 @@ class TestTramCalendarScheduleModel:
         db_session.add(s1)
         db_session.commit()
         db_session.add(s2)
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
 
@@ -201,7 +202,7 @@ class TestTramTripShapeModel:
         db_session.add(s1)
         db_session.commit()
         db_session.add(s2)
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
 

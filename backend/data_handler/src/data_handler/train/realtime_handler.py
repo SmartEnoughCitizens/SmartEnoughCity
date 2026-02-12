@@ -57,7 +57,7 @@ def _safe_float(val: str | None) -> float | None:
         return None
 
 
-def _ensure_list(data) -> list:
+def _ensure_list(data: object) -> list:
     """Ensure data is always a list (XML parsing returns dict for single item)."""
     if data is None:
         return []
@@ -87,7 +87,7 @@ def fetch_all_stations(station_type: str = "A") -> list[dict]:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
     except requests.RequestException as e:
-        logger.error("Failed to fetch stations: %s", e)
+        logger.exception("Failed to fetch stations")
         return []
 
     try:
@@ -95,7 +95,7 @@ def fetch_all_stations(station_type: str = "A") -> list[dict]:
         stations = doc.get("ArrayOfObjStation", {}).get("objStation", [])
         return _ensure_list(stations)
     except Exception as e:
-        logger.error("Failed to parse stations XML: %s", e)
+        logger.exception("Failed to parse stations XML")
         return []
 
 
@@ -159,7 +159,7 @@ def irish_rail_stations_to_db() -> None:
 
     except Exception as e:
         session.rollback()
-        logger.exception("Error inserting stations: %s", e)
+        logger.exception("Error inserting stations")
 
     finally:
         session.close()
@@ -197,7 +197,7 @@ def _update_station_types() -> None:
 
     except Exception as e:
         session.rollback()
-        logger.exception("Error updating station types: %s", e)
+        logger.exception("Error updating station types")
 
     finally:
         session.close()
@@ -225,7 +225,7 @@ def fetch_current_trains(train_type: str = "A") -> list[dict]:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
     except requests.RequestException as e:
-        logger.error("Failed to fetch current trains: %s", e)
+        logger.exception("Failed to fetch current trains")
         return []
 
     try:
@@ -233,7 +233,7 @@ def fetch_current_trains(train_type: str = "A") -> list[dict]:
         trains = doc.get("ArrayOfObjTrainPositions", {}).get("objTrainPositions", [])
         return _ensure_list(trains)
     except Exception as e:
-        logger.error("Failed to parse trains XML: %s", e)
+        logger.exception("Failed to parse trains XML")
         return []
 
 
@@ -275,7 +275,7 @@ def irish_rail_current_trains_to_db() -> None:
 
     except Exception as e:
         session.rollback()
-        logger.exception("Error inserting current trains: %s", e)
+        logger.exception("Error inserting current trains")
 
     finally:
         session.close()
@@ -303,7 +303,7 @@ def fetch_station_data(station_code: str, num_mins: int = 90) -> list[dict]:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
     except requests.RequestException as e:
-        logger.error("Failed to fetch station data for %s: %s", station_code, e)
+        logger.exception("Failed to fetch station data for %s", station_code)
         return []
 
     try:
@@ -311,7 +311,7 @@ def fetch_station_data(station_code: str, num_mins: int = 90) -> list[dict]:
         data = doc.get("ArrayOfObjStationData", {}).get("objStationData", [])
         return _ensure_list(data)
     except Exception as e:
-        logger.error("Failed to parse station data XML: %s", e)
+        logger.exception("Failed to parse station data XML")
         return []
 
 
@@ -374,7 +374,7 @@ def irish_rail_station_data_to_db() -> None:
 
     except Exception as e:
         session.rollback()
-        logger.exception("Error inserting station data: %s", e)
+        logger.exception("Error inserting station data")
 
     finally:
         session.close()
@@ -401,7 +401,7 @@ def fetch_train_movements(train_code: str, train_date: str) -> list[dict]:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
     except requests.RequestException as e:
-        logger.error("Failed to fetch train movements for %s: %s", train_code, e)
+        logger.exception("Failed to fetch train movements for %s", train_code)
         return []
 
     try:
@@ -409,7 +409,7 @@ def fetch_train_movements(train_code: str, train_date: str) -> list[dict]:
         movements = doc.get("ArrayOfObjTrainMovements", {}).get("objTrainMovements", [])
         return _ensure_list(movements)
     except Exception as e:
-        logger.error("Failed to parse train movements XML: %s", e)
+        logger.exception("Failed to parse train movements XML")
         return []
 
 
@@ -469,7 +469,7 @@ def irish_rail_train_movements_to_db() -> None:
 
     except Exception as e:
         session.rollback()
-        logger.exception("Error inserting train movements: %s", e)
+        logger.exception("Error inserting train movements")
 
     finally:
         session.close()

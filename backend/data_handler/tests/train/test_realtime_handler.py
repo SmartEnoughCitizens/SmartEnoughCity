@@ -1,9 +1,15 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-import pytest
+import requests
 from sqlalchemy.orm import Session
 
+from data_handler.train.models import (
+    IrishRailCurrentTrain,
+    IrishRailStation,
+    IrishRailStationData,
+    IrishRailTrainMovement,
+)
 from data_handler.train.realtime_handler import (
     _ensure_list,
     _safe_float,
@@ -16,12 +22,6 @@ from data_handler.train.realtime_handler import (
     irish_rail_station_data_to_db,
     irish_rail_stations_to_db,
     irish_rail_train_movements_to_db,
-)
-from data_handler.train.models import (
-    IrishRailCurrentTrain,
-    IrishRailStation,
-    IrishRailStationData,
-    IrishRailTrainMovement,
 )
 from tests.utils import assert_row_count
 
@@ -242,7 +242,6 @@ class TestFetchAllStations:
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_http_error_returns_empty_list(self, mock_get: Mock) -> None:
-        import requests
         mock_get.side_effect = requests.HTTPError("503")
 
         stations = fetch_all_stations("A")
@@ -273,7 +272,6 @@ class TestFetchCurrentTrains:
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_http_error_returns_empty_list(self, mock_get: Mock) -> None:
-        import requests
         mock_get.side_effect = requests.ConnectionError("timeout")
 
         trains = fetch_current_trains("A")

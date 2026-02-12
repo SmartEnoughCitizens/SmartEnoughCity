@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
 from sqlalchemy.orm import Session
 
 from data_handler.tram.forecast_handler import (
@@ -9,7 +10,7 @@ from data_handler.tram.forecast_handler import (
     luas_forecasts_to_db,
     luas_stops_to_db,
 )
-from data_handler.tram.models import TramLuasForecast, TramLuasStop
+from data_handler.tram.models import TramLuasStop
 from tests.utils import assert_row_count
 
 
@@ -81,8 +82,8 @@ class TestFetchLuasStops:
         assert df.iloc[0]["name"] == "St. Stephen's Green"
         assert df.iloc[0]["lat"] == 53.339428
         assert df.iloc[0]["lon"] == -6.261495
-        assert df.iloc[0]["park_ride"] == False
-        assert df.iloc[0]["cycle_ride"] == True
+        assert not df.iloc[0]["park_ride"]
+        assert df.iloc[0]["cycle_ride"]
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_fetch_red_line_stops(self, mock_get: Mock) -> None:
@@ -170,7 +171,6 @@ class TestFetchForecastForStop:
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_http_error_raises_exception(self, mock_get: Mock) -> None:
         """HTTP error is propagated."""
-        import requests
 
         mock_get.side_effect = requests.HTTPError("503 Service Unavailable")
 

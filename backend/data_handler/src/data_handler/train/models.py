@@ -1,4 +1,4 @@
-from datetime import date, time, datetime
+from datetime import date, datetime, time
 from typing import ClassVar
 
 from sqlalchemy import (
@@ -7,7 +7,6 @@ from sqlalchemy import (
     Date,
     DateTime,
     Double,
-    Float,
     ForeignKey,
     Index,
     Integer,
