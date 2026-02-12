@@ -14,7 +14,7 @@ ev_stations = pd.read_csv(
 )
 households = pd.read_csv(
     os.path.join(BASE_DIR, "data", "Household_data.csv"),
-    encoding='latin1'
+    encoding='utf-8-sig'
 )
 dlr_sites = pd.read_csv(
     os.path.join(BASE_DIR, "data", "dlr_scats_sites-1.csv"),
@@ -25,66 +25,71 @@ dcc_sites = pd.read_csv(
     encoding='latin1'
 )
 
+
 print("DCC site columns:", dcc_sites.columns.tolist())
 
-# --- 1. Aggregate SCATS files ---
-scats_folder = os.path.join(BASE_DIR, "data", "scats")
-all_files = glob.glob(os.path.join(scats_folder, "*.csv"))
+# # --- 1. Aggregate SCATS files ---
+# scats_folder = os.path.join(BASE_DIR, "data", "scats")
+# all_files = glob.glob(os.path.join(scats_folder, "*.csv"))
 
-regional_sums = []
+# regional_sums = []
 
-for file in all_files:
-    print(f"\nProcessing {file} ...")
+# for file in all_files:
+#     print(f"\nProcessing {file} ...")
 
-    cols = ['End_Time', 'Site', 'Sum_Volume']
-    for chunk in pd.read_csv(file, usecols=cols, encoding='utf-8-sig', chunksize=100_000):
+#     cols = ['End_Time', 'Site', 'Sum_Volume']
+#     for chunk in pd.read_csv(file, usecols=cols, encoding='utf-8-sig', chunksize=100_000):
         
        
 
-        chunk['End_Time'] = pd.to_datetime(chunk['End_Time'], format="%Y%m%d%H%M%S", errors='coerce')
-        chunk = chunk.dropna(subset=['End_Time'])
-        chunk['Year'] = chunk['End_Time'].dt.year
-        chunk['Month'] = chunk['End_Time'].dt.month
+#         chunk['End_Time'] = pd.to_datetime(chunk['End_Time'], format="%Y%m%d%H%M%S", errors='coerce')
+#         chunk = chunk.dropna(subset=['End_Time'])
+#         chunk['Year'] = chunk['End_Time'].dt.year
+#         chunk['Month'] = chunk['End_Time'].dt.month
 
-        agg = chunk.groupby(['Site', 'Year', 'Month'])['Sum_Volume'].sum().reset_index()
+#         agg = chunk.groupby(['Site', 'Year', 'Month'])['Sum_Volume'].sum().reset_index()
         
         
-        regional_sums.append(agg)
+#         regional_sums.append(agg)
 
-ev_registered = pd.concat(regional_sums, ignore_index=True)
-print("\nCombined SCATS data head:\n", ev_registered.head())
-print("\nCombined SCATS data:\n", ev_registered)
+# ev_registered = pd.concat(regional_sums, ignore_index=True)
+# print("\nCombined SCATS data head:\n", ev_registered.head())
+# print("\nCombined SCATS data:\n", ev_registered)
 
-print("\nSCATS data types:\n", ev_registered[ev_registered["Site"]== 3].sum())
+# print("\nSCATS data types:\n", ev_registered[ev_registered["Site"]== 3].sum())
 
-print("SCATS combined description:\n", ev_registered.describe())
-print("SCATS unique Sites:", ev_registered['Site'].nunique())
-
-
-ev_registered.groupby(['Site', 'Year', 'Month'])['Sum_Volume'] \
-    .sum() \
-    .sort_values(ascending=False)
-print("debug:")
-print(ev_registered)
+# print("SCATS combined description:\n", ev_registered.describe())
+# print("SCATS unique Sites:", ev_registered['Site'].nunique())
 
 
-# --- 2. Site mappings ---
-dlr_sites = dlr_sites[['Site_ID','Location','Lat','Long']].rename(columns={'Site_ID':'Site'})
-dcc_sites = dcc_sites[['SiteID','Site_Description_Cap','Region','Lat','Long']].rename(columns={'SiteID':'Site','Site_Description_Cap':'Location'})
+# ev_registered.groupby(['Site', 'Year', 'Month'])['Sum_Volume'] \
+#     .sum() \
+#     .sort_values(ascending=False)
+# print("debug:")
+# print(ev_registered)
 
-ev_registered = ev_registered.merge(dlr_sites, on='Site', how='left')
-ev_registered = ev_registered.merge(dcc_sites, on='Site', how='left', suffixes=('_DLR','_DCC'))
 
-print("\nAfter merging site info:")
-print(ev_registered.head())
-print("Null counts:\n", ev_registered.isnull().sum())
+# # --- 2. Site mappings ---
+# dlr_sites = dlr_sites[['Site_ID','Location','Lat','Long']].rename(columns={'Site_ID':'Site'})
+# dcc_sites = dcc_sites[['SiteID','Site_Description_Cap','Region','Lat','Long']].rename(columns={'SiteID':'Site','Site_Description_Cap':'Location'})
 
-ev_registered['Final_Location'] = ev_registered['Location_DLR'].combine_first(ev_registered['Location_DCC'])
-ev_registered['Final_Lat'] = ev_registered['Lat_DLR'].combine_first(ev_registered['Lat_DCC'])
-ev_registered['Final_Long'] = ev_registered['Long_DLR'].combine_first(ev_registered['Long_DCC'])
-ev_registered['Final_Region'] = ev_registered['Region']
+# ev_registered = ev_registered.merge(dlr_sites, on='Site', how='left')
+# ev_registered = ev_registered.merge(dcc_sites, on='Site', how='left', suffixes=('_DLR','_DCC'))
 
+# print("\nAfter merging site info:")
+# print(ev_registered.head())
+# print("Null counts:\n", ev_registered.isnull().sum())
+
+# ev_registered['Final_Location'] = ev_registered['Location_DLR'].combine_first(ev_registered['Location_DCC'])
+# ev_registered['Final_Lat'] = ev_registered['Lat_DLR'].combine_first(ev_registered['Lat_DCC'])
+# ev_registered['Final_Long'] = ev_registered['Long_DLR'].combine_first(ev_registered['Long_DCC'])
+# ev_registered['Final_Region'] = ev_registered['Region']
+
+# ev_registered.to_csv(os.path.join(BASE_DIR, "data", "combined_scats_with_locations.csv"), index=False)  
 # --- 3. Aggregate by Region, Year and Month ---
+
+ev_registered = pd.read_csv(os.path.join(BASE_DIR, "data", "combined_scats_with_locations.csv"), encoding='utf-8-sig' )
+
 regional_monthly = (
     ev_registered
     .groupby(['Final_Region', 'Year', 'Month'])['Sum_Volume']
@@ -92,35 +97,15 @@ regional_monthly = (
     .reset_index()
 )
 
-# Count how many months exist per region/year
-month_counts = (
-    regional_monthly
-    .groupby(['Final_Region', 'Year'])['Month']
-    .nunique()
-    .reset_index(name='Months_Available')
-)
-
-# Sum total traffic per region/year
-regional_yearly = (
+# Compute average monthly traffic per region/year
+regional_ev = (
     regional_monthly
     .groupby(['Final_Region', 'Year'])['Sum_Volume']
-    .sum()
-    .reset_index()
+    .mean()
+    .reset_index(name='Avg_Monthly_Volume')
 )
 
-# Merge month counts
-regional_ev = regional_yearly.merge(
-    month_counts,
-    on=['Final_Region', 'Year']
-)
-
-# Normalize to full 12-month year
-regional_ev['Adjusted_Yearly_Volume'] = (
-    regional_ev['Sum_Volume'] / regional_ev['Months_Available'] * 12
-)
-
-print("\nAdjusted yearly values:\n", regional_ev)
-
+print("\nAverage monthly values per region/year:\n", regional_ev)
 
 # --- 4. Forecast EVs for 2026 per region ---
 future_year = 2026
@@ -131,10 +116,10 @@ for region in regional_ev['Final_Region'].unique():
     print(f"\nRegion: {region}, data:\n", region_data)
     
     if len(region_data) < 2:
-        predicted = region_data['Sum_Volume'].iloc[-1]
+        predicted = region_data['Avg_Monthly_Volume'].iloc[-1]
     else:
         X = region_data['Year'].values.reshape(-1,1)
-        y = region_data['Adjusted_Yearly_Volume'].values
+        y = region_data['Avg_Monthly_Volume'].values
         print("X:", X.flatten(), "y:", y)
         model = LinearRegression()
         model.fit(X, y)
@@ -145,13 +130,31 @@ for region in regional_ev['Final_Region'].unique():
 
 pred_df = pd.DataFrame(predictions)
 print("\nEV forecast for 2026 per region:\n", pred_df)
+#
+print(households.columns.tolist())
+households.columns = households.columns.str.strip()
 
+# Keep only "Private households"
+households = households[
+    households['Statistic Label'] == 'Private households'
+]
+
+# Exclude "Caravan/Mobile home"
+households = households[
+    households['Type of Accommodation'] != 'Caravan/Mobile home'
+]
 # --- 5. Estimate EVs per household division ---
 total_households = households['VALUE'].sum()
 households['EV_proportion'] = households['VALUE'] / total_households
+
+
+
+
 total_EVs_2026 = pred_df['Predicted_EVs_2026'].sum()
 households['Estimated_EVs_2026'] = households['EV_proportion'] * total_EVs_2026
 households['Stations_Needed'] = households['Estimated_EVs_2026'] / 50
+
+
 
 existing_stations = len(ev_stations)
 total_needed = households['Stations_Needed'].sum()
