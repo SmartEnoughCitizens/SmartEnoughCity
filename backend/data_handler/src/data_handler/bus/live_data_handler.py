@@ -13,6 +13,7 @@ from data_handler.bus.models import (
     BusLiveVehicle,
     ScheduleRelationship,
 )
+from data_handler.bus.synthetic_ridership import generate_ridership_for_vehicles
 from data_handler.db import SessionLocal
 from data_handler.settings.api_settings import get_api_settings
 
@@ -290,3 +291,6 @@ def process_bus_live_data() -> None:
     trip_updates_response = requests.get(trip_updates_url, headers=headers)
     trip_updates_response.raise_for_status()
     process_bus_trip_updates_live_data(trip_updates_response.text)
+
+    logger.info("Generating synthetic ridership data...")
+    generate_ridership_for_vehicles()
