@@ -66,10 +66,13 @@ jobs:
         working-directory: ./backend/data_handler
         run: uv sync
       
-      - name: Run pytest
+      - name: Run pytest with code coverage
         working-directory: ./backend/data_handler
         run: |
-          uv run -m pytest
+          echo "### Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo " \`\`\` " >> $GITHUB_STEP_SUMMARY
+          uv run -m pytest --cov=data_handler --cov-report=term-missing --cov-fail-under=75 >> $GITHUB_STEP_SUMMARY
+          echo " \`\`\` " >> $GITHUB_STEP_SUMMARY
 
   test-inference-engine:
     name: Test Inference Engine
@@ -96,12 +99,16 @@ jobs:
         working-directory: ./backend/inference_engine
         run: uv sync
       
-      - name: Run pytest
+      - name: Run pytest with code coverage
         working-directory: ./backend/inference_engine
         env:
           HERMES_URL: http://localhost:8080
+        # TODO: Add --cov-fail-under=... when the coverage is achieved
         run: |
-          uv run -m pytest
+          echo "### Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo " \`\`\` " >> $GITHUB_STEP_SUMMARY
+          uv run -m pytest --cov=inference_engine --cov-report=term-missing >> $GITHUB_STEP_SUMMARY
+          echo " \`\`\` " >> $GITHUB_STEP_SUMMARY
 
   lint-and-test-java:
     name: Lint and Test Java Backend
