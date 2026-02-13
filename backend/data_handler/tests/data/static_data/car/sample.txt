@@ -1,7 +1,0 @@
-This file is only there to get the folder for car data tracked in order to resolve the path error 
-
-file_path = data_dir / filename
-                        ^^^^^^^^^^^^^^^^^^^
-E           TypeError: unsupported operand type(s) for /: 'NoneType' and 'str'
-
-src/data_handler/car/process_car_data.py:276: TypeError
