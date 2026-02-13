@@ -273,6 +273,9 @@ def process_car_static_data(data_dir: Path) -> None:
     # Validate all files exist before processing
     logger.info("Validating CSV files...")
     for filename in csv_files:
+        if data_dir is None:
+            msg = "data_dir cannot be None"
+            raise ValueError(msg)
         file_path = data_dir / filename
         if not file_path.exists():
             msg = f"Required CSV file not found: {file_path}"

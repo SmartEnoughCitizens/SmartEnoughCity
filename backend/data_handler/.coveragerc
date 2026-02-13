@@ -5,7 +5,6 @@ omit =
     **/models.py
 
     # TODO: Remove; ignored temporarily
-    src/data_handler/car/*
     src/data_handler/congestion_and_construction/*
     src/data_handler/train/*
     src/data_handler/cycle_handler.py
