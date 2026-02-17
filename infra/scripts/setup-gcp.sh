@@ -13,7 +13,7 @@ echo ""
 
 # Check if gcloud is installed
 if ! command -v gcloud &> /dev/null; then
-    echo -e "${RED}❌ gcloud CLI not found.${NC}"
+    echo -e "${RED} gcloud CLI not found.${NC}"
     echo "Install it first: https://cloud.google.com/sdk/docs/install"
     exit 1
 fi
@@ -21,7 +21,7 @@ fi
 # Get project ID
 read -p "Enter your GCP project ID: " PROJECT_ID
 if [ -z "$PROJECT_ID" ]; then
-    echo -e "${RED}❌ Project ID is required${NC}"
+    echo -e "${RED} Project ID is required${NC}"
     exit 1
 fi
 
@@ -38,13 +38,13 @@ if ! gcloud projects describe "$PROJECT_ID" &> /dev/null; then
     if [[ $CREATE_PROJECT =~ ^[Yy][Ee][Ss]$ ]]; then
         echo "Creating project..."
         gcloud projects create "$PROJECT_ID" --name="SmartEnoughCity"
-        echo -e "${GREEN}✅ Project created${NC}"
+        echo -e "${GREEN} Project created${NC}"
     else
-        echo -e "${RED}❌ Project required. Exiting.${NC}"
+        echo -e "${RED} Project required. Exiting.${NC}"
         exit 1
     fi
 else
-    echo -e "${GREEN}✅ Project exists${NC}"
+    echo -e "${GREEN} Project exists${NC}"
 fi
 
 # Set default project
@@ -77,16 +77,16 @@ if [ "$BILLING_CHECK" = "skip" ] || [ -z "$BILLING_CHECK" ]; then
         if [ -n "$BILLING_ACCOUNT" ]; then
             echo "Linking billing account..."
             gcloud billing projects link "$PROJECT_ID" --billing-account="$BILLING_ACCOUNT"
-            echo -e "${GREEN}✅ Billing linked${NC}"
+            echo -e "${GREEN} Billing linked${NC}"
         else
-            echo -e "${RED}❌ Billing account ID required. Exiting.${NC}"
+            echo -e "${RED} Billing account ID required. Exiting.${NC}"
             exit 1
         fi
     else
-        echo -e "${GREEN}✅ Skipping billing (assuming already configured)${NC}"
+        echo -e "${GREEN} Skipping billing (assuming already configured)${NC}"
     fi
 else
-    echo -e "${GREEN}✅ Project accessible (billing likely configured)${NC}"
+    echo -e "${GREEN} Project accessible (billing likely configured)${NC}"
 fi
 
 # Enable APIs
@@ -116,7 +116,7 @@ for api in "${APIS[@]}"; do
 done
 
 echo ""
-echo -e "${GREEN}✅ All APIs enabled${NC}"
+echo -e "${GREEN} All APIs enabled${NC}"
 
 # Create Terraform state bucket
 echo ""
@@ -127,9 +127,9 @@ if ! gsutil ls -b "gs://${BUCKET_NAME}" &> /dev/null; then
     echo "Creating Terraform state bucket: gs://${BUCKET_NAME}"
     gsutil mb -p "$PROJECT_ID" -l europe-west1 "gs://${BUCKET_NAME}"
     gsutil versioning set on "gs://${BUCKET_NAME}"
-    echo -e "${GREEN}✅ Bucket created${NC}"
+    echo -e "${GREEN} Bucket created${NC}"
 else
-    echo -e "${GREEN}✅ Bucket already exists${NC}"
+    echo -e "${GREEN} Bucket already exists${NC}"
 fi
 
 # Get script directory
@@ -160,7 +160,7 @@ environment = "dev"
 use_preemptible = false
 EOF
 
-echo -e "${GREEN}✅ Updated $TFVARS_FILE${NC}"
+echo -e "${GREEN} Updated $TFVARS_FILE${NC}"
 
 # Prompt for cert-manager email
 echo ""
@@ -175,7 +175,7 @@ letsencrypt_email = "$CERT_EMAIL"
 namespace            = "cert-manager"
 cert_manager_version = "v1.14.4"
 EOF
-    echo -e "${GREEN}✅ Updated $CERT_TFVARS${NC}"
+    echo -e "${GREEN} Updated $CERT_TFVARS${NC}"
 fi
 
 # Optional: Configure backend
@@ -196,7 +196,7 @@ terraform {
   }
 }
 EOF
-        echo -e "${GREEN}✅ Created backend config for $module${NC}"
+        echo -e "${GREEN} Created backend config for $module${NC}"
     done
 fi
 
@@ -209,18 +209,18 @@ if ! gcloud auth application-default print-access-token &> /dev/null; then
 
     if [[ $DO_AUTH =~ ^[Yy][Ee][Ss]$ ]]; then
         gcloud auth application-default login
-        echo -e "${GREEN}✅ Authenticated${NC}"
+        echo -e "${GREEN} Authenticated${NC}"
     else
         echo -e "${YELLOW}⚠️  You'll need to run: gcloud auth application-default login${NC}"
     fi
 else
-    echo -e "${GREEN}✅ Already authenticated${NC}"
+    echo -e "${GREEN} Already authenticated${NC}"
 fi
 
 # Summary
 echo ""
 echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}✅ GCP Setup Complete!${NC}"
+echo -e "${GREEN} GCP Setup Complete!${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
 echo -e "${BLUE}Configuration:${NC}"
