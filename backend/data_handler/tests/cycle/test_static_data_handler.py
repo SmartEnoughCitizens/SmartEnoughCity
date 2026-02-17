@@ -30,7 +30,7 @@ from data_handler.cycle.static_data_handler import (
 
 
 class TestParseStationInformationRecord:
-    """Test transforming API response to model instance."""
+    """Test transforming API response to dict for upsert."""
 
     def test_parses_all_required_fields(self) -> None:
         """Test parsing a complete station information record."""
@@ -45,17 +45,17 @@ class TestParseStationInformationRecord:
             "region_id": "dublin_central",
         }
 
-        station = parse_station_information_record(record)
+        result = parse_station_information_record(record)
 
-        assert station.station_id == 1
-        assert station.system_id == "dublin"
-        assert station.name == "Mary Street"
-        assert station.short_name == "001"
-        assert station.address == "Mary Street, Dublin 1"
-        assert station.latitude == Decimal("53.349316")
-        assert station.longitude == Decimal("-6.262876")
-        assert station.capacity == 30
-        assert station.region_id == "dublin_central"
+        assert result["station_id"] == 1
+        assert result["system_id"] == "dublin"
+        assert result["name"] == "Mary Street"
+        assert result["short_name"] == "001"
+        assert result["address"] == "Mary Street, Dublin 1"
+        assert result["latitude"] == Decimal("53.349316")
+        assert result["longitude"] == Decimal("-6.262876")
+        assert result["capacity"] == 30
+        assert result["region_id"] == "dublin_central"
 
     def test_handles_missing_optional_fields(self) -> None:
         """Test parsing record with missing optional fields."""
@@ -67,13 +67,13 @@ class TestParseStationInformationRecord:
             "capacity": 15,
         }
 
-        station = parse_station_information_record(record)
+        result = parse_station_information_record(record)
 
-        assert station.station_id == 2
-        assert station.name == "Stoneybatter"
-        assert station.short_name is None
-        assert station.address is None
-        assert station.region_id is None
+        assert result["station_id"] == 2
+        assert result["name"] == "Stoneybatter"
+        assert result["short_name"] is None
+        assert result["address"] is None
+        assert result["region_id"] is None
 
     def test_station_id_converted_to_int(self) -> None:
         """Test that string station_id is converted to integer."""
@@ -85,9 +85,9 @@ class TestParseStationInformationRecord:
             "capacity": 10,
         }
 
-        station = parse_station_information_record(record)
-        assert station.station_id == 42
-        assert isinstance(station.station_id, int)
+        result = parse_station_information_record(record)
+        assert result["station_id"] == 42
+        assert isinstance(result["station_id"], int)
 
     def test_latitude_longitude_precision(self) -> None:
         """Test that lat/lon retain decimal precision."""
@@ -99,9 +99,9 @@ class TestParseStationInformationRecord:
             "capacity": 10,
         }
 
-        station = parse_station_information_record(record)
-        assert station.latitude == Decimal("53.349316")
-        assert station.longitude == Decimal("-6.262876")
+        result = parse_station_information_record(record)
+        assert result["latitude"] == Decimal("53.349316")
+        assert result["longitude"] == Decimal("-6.262876")
 
 
 class TestProcessStationInformation:
@@ -131,6 +131,13 @@ class TestProcessStationInformation:
             lambda: mock_client,
         )
 
+        mock_settings = Mock()
+        mock_settings.postgres_schema = "public"
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.get_db_settings",
+            lambda: mock_settings,
+        )
+
         mock_session = Mock()
         monkeypatch.setattr(
             "data_handler.cycle.static_data_handler.SessionLocal",
@@ -140,10 +147,7 @@ class TestProcessStationInformation:
         process_station_information()
 
         mock_client.fetch_station_information.assert_called_once()
-        mock_session.execute.assert_called_once()  # DELETE statement
-        mock_session.add_all.assert_called_once()
-        stations = mock_session.add_all.call_args[0][0]
-        assert len(stations) == 2
+        assert mock_session.execute.call_count == 2  # upsert + delete stale
         mock_session.commit.assert_called_once()
         mock_session.close.assert_called_once()
 
@@ -162,6 +166,13 @@ class TestProcessStationInformation:
         monkeypatch.setattr(
             "data_handler.cycle.static_data_handler.get_jcdecaux_client",
             lambda: mock_client,
+        )
+
+        mock_settings = Mock()
+        mock_settings.postgres_schema = "public"
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.get_db_settings",
+            lambda: mock_settings,
         )
 
         mock_session = Mock()
@@ -186,6 +197,13 @@ class TestProcessStationInformation:
             lambda: mock_client,
         )
 
+        mock_settings = Mock()
+        mock_settings.postgres_schema = "public"
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.get_db_settings",
+            lambda: mock_settings,
+        )
+
         mock_session = Mock()
         monkeypatch.setattr(
             "data_handler.cycle.static_data_handler.SessionLocal",
@@ -194,5 +212,5 @@ class TestProcessStationInformation:
 
         process_station_information()
 
-        mock_session.add_all.assert_called_once_with([])
+        mock_session.execute.assert_not_called()
         mock_session.commit.assert_called_once()
