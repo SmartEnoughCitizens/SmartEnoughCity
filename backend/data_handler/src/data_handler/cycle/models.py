@@ -1,10 +1,11 @@
 """Database models for Dublin Bikes data."""
 
 from datetime import datetime
-from typing import ClassVar, Optional
 from decimal import Decimal
+from typing import ClassVar
 
 from sqlalchemy import (
+    DECIMAL,
     Boolean,
     DateTime,
     ForeignKey,
@@ -13,7 +14,6 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    DECIMAL,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -31,14 +31,14 @@ class DublinBikesStation(Base):
     __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
 
     station_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    system_id: Mapped[str] = mapped_column(String, nullable=False, default='dublin')
+    system_id: Mapped[str] = mapped_column(String, nullable=False, default="dublin")
     name: Mapped[str] = mapped_column(String, nullable=False)
-    short_name: Mapped[Optional[str]] = mapped_column(String)
-    address: Mapped[Optional[str]] = mapped_column(Text)
+    short_name: Mapped[str | None] = mapped_column(String)
+    address: Mapped[str | None] = mapped_column(Text)
     latitude: Mapped[Decimal] = mapped_column(DECIMAL(10, 6), nullable=False)
     longitude: Mapped[Decimal] = mapped_column(DECIMAL(10, 6), nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False)
-    region_id: Mapped[Optional[str]] = mapped_column(String)
+    region_id: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=datetime.utcnow

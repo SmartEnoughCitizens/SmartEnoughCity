@@ -1,10 +1,9 @@
 """Tests for real-time station snapshot handler."""
 
-from datetime import datetime, timezone
-from unittest.mock import patch, Mock, call
 import sys
+from datetime import UTC, datetime
+from unittest.mock import Mock
 
-import pytest
 from sqlalchemy.orm import DeclarativeBase
 
 # Mock db module before importing handler
@@ -41,7 +40,7 @@ class TestTransformStationRecords:
                 "last_reported": "2026-01-22T17:30:00+00:00",
             }
         ]
-        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=timezone.utc)
+        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=UTC)
 
         records = _transform_station_records(stations, fetch_ts)
 
@@ -56,9 +55,7 @@ class TestTransformStationRecords:
         assert rec["is_installed"] is True
         assert rec["is_renting"] is True
         assert rec["is_returning"] is True
-        assert rec["last_reported"] == datetime(
-            2026, 1, 22, 17, 30, 0, tzinfo=timezone.utc
-        )
+        assert rec["last_reported"] == datetime(2026, 1, 22, 17, 30, 0, tzinfo=UTC)
 
     def test_defaults_disabled_counts_to_zero(self) -> None:
         """Test that missing disabled fields default to 0."""
@@ -74,7 +71,7 @@ class TestTransformStationRecords:
                 "last_reported": "2026-01-22T17:30:00+00:00",
             }
         ]
-        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=timezone.utc)
+        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=UTC)
 
         records = _transform_station_records(stations, fetch_ts)
 
@@ -103,7 +100,7 @@ class TestTransformStationRecords:
                 "last_reported": "2026-01-22T17:30:00+00:00",
             },
         ]
-        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=timezone.utc)
+        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=UTC)
 
         records = _transform_station_records(stations, fetch_ts)
 
@@ -125,7 +122,7 @@ class TestTransformStationRecords:
                 "last_reported": 1769194200,  # Unix timestamp
             }
         ]
-        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=timezone.utc)
+        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=UTC)
 
         records = _transform_station_records(stations, fetch_ts)
 
@@ -134,7 +131,7 @@ class TestTransformStationRecords:
 
     def test_empty_stations_returns_empty_list(self) -> None:
         """Test that empty stations list returns empty records."""
-        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=timezone.utc)
+        fetch_ts = datetime(2026, 1, 22, 17, 31, 0, tzinfo=UTC)
 
         records = _transform_station_records([], fetch_ts)
 

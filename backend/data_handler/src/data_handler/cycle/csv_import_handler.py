@@ -55,7 +55,8 @@ def import_station_history_csv(csv_path: Path) -> None:
     logger.info("Importing station history from %s", csv_path)
 
     if not csv_path.exists():
-        raise FileNotFoundError(f"CSV file not found: {csv_path}")
+        msg = f"CSV file not found: {csv_path}"
+        raise FileNotFoundError(msg)
 
     records = [
         parse_station_history_csv_row(row)
@@ -67,7 +68,11 @@ def import_station_history_csv(csv_path: Path) -> None:
         return
 
     schema = get_db_settings().postgres_schema
-    table = f"{schema}.dublin_bikes_station_history" if schema else "dublin_bikes_station_history"
+    table = (
+        f"{schema}.dublin_bikes_station_history"
+        if schema
+        else "dublin_bikes_station_history"
+    )
 
     insert_sql = f"""
     INSERT INTO {table}
@@ -96,7 +101,8 @@ def import_all_station_history_csvs(directory: Path) -> None:
     logger.info("Scanning directory for CSV files: %s", directory)
 
     if not directory.exists() or not directory.is_dir():
-        raise ValueError(f"Invalid directory: {directory}")
+        msg = f"Invalid directory: {directory}"
+        raise ValueError(msg)
 
     csv_files = sorted(directory.glob("dublin-bikes_station_status_*.csv"))
 
@@ -110,6 +116,4 @@ def import_all_station_history_csvs(directory: Path) -> None:
         try:
             import_station_history_csv(csv_file)
         except Exception:
-            logger.exception(
-                "Failed to import %s, continuing with next file", csv_file
-            )
+            logger.exception("Failed to import %s, continuing with next file", csv_file)

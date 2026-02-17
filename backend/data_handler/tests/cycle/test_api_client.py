@@ -1,7 +1,8 @@
 """Tests for JCDecaux GBFS API client."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 import requests
 
 from data_handler.cycle.api_client import JCDecauxGBFSClient

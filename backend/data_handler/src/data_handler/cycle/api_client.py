@@ -6,6 +6,7 @@ from typing import Any
 import requests
 
 from data_handler.cycle.gbfs_parsing_utils import validate_station_status_record
+from data_handler.settings.data_sources_settings import get_data_sources_settings
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,9 @@ class JCDecauxGBFSClient:
 
     def __init__(
         self,
-        api_key: str = None,
+        api_key: str | None = None,
         base_url: str = "https://api.cyclocity.fr/contracts/dublin/gbfs",
-    ):
+    ) -> None:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
 
@@ -44,9 +45,8 @@ class JCDecauxGBFSClient:
         data = self._make_request("station_information.json")
 
         if "data" not in data or "stations" not in data["data"]:
-            raise ValueError(
-                "Invalid API response structure for station_information"
-            )
+            msg = "Invalid API response structure for station_information"
+            raise ValueError(msg)
 
         stations = data["data"]["stations"]
         logger.info("Fetched %d station information records", len(stations))
@@ -57,9 +57,8 @@ class JCDecauxGBFSClient:
         data = self._make_request("station_status.json")
 
         if "data" not in data or "stations" not in data["data"]:
-            raise ValueError(
-                "Invalid API response structure for station_status"
-            )
+            msg = "Invalid API response structure for station_status"
+            raise ValueError(msg)
 
         stations = data["data"]["stations"]
 
@@ -72,9 +71,5 @@ class JCDecauxGBFSClient:
 
 def get_jcdecaux_client() -> JCDecauxGBFSClient:
     """Factory function to create API client with settings."""
-    from data_handler.settings.data_sources_settings import (
-        get_data_sources_settings,
-    )
-
     settings = get_data_sources_settings()
     return JCDecauxGBFSClient(api_key=settings.jcdecaux_api_key)

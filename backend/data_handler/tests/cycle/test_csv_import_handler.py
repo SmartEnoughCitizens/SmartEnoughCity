@@ -1,10 +1,9 @@
 """Tests for historical CSV import handler."""
 
-from datetime import datetime, timezone
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import Mock
-import sys
-import tempfile
 
 import pytest
 from sqlalchemy.orm import DeclarativeBase
@@ -21,8 +20,9 @@ if "data_handler.db" not in sys.modules:
     sys.modules["data_handler.db"] = _mock_db
 
 from data_handler.cycle.csv_import_handler import (
-    parse_station_history_csv_row,
     REQUIRED_HEADERS,
+    import_station_history_csv,
+    parse_station_history_csv_row,
 )
 
 
@@ -57,9 +57,7 @@ class TestParseStationHistoryCsvRow:
         assert result["is_installed"] is True
         assert result["is_renting"] is True
         assert result["is_returning"] is True
-        assert result["timestamp"] == datetime(
-            2025, 7, 15, 14, 30, 0, tzinfo=timezone.utc
-        )
+        assert result["timestamp"] == datetime(2025, 7, 15, 14, 30, 0, tzinfo=UTC)
 
     def test_converts_string_booleans(self) -> None:
         """Test that string booleans are converted to Python booleans."""
@@ -158,8 +156,6 @@ class TestImportStationHistoryCsv:
 
     def test_raises_on_missing_file(self) -> None:
         """Test that missing CSV file raises FileNotFoundError."""
-        from data_handler.cycle.csv_import_handler import import_station_history_csv
-
         fake_path = Path("/nonexistent/file.csv")
         with pytest.raises(FileNotFoundError):
             import_station_history_csv(fake_path)
