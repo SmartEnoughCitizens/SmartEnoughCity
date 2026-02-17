@@ -3,11 +3,11 @@
 import logging
 from decimal import Decimal
 
-from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.cycle.api_client import get_jcdecaux_client
+from data_handler.cycle.models import DublinBikesStation
 from data_handler.db import SessionLocal
-from data_handler.settings.database_settings import get_db_settings
 
 logger = logging.getLogger(__name__)
 
@@ -44,37 +44,30 @@ def process_station_information() -> None:
 
     records = [parse_station_information_record(r) for r in stations_data]
 
-    schema = get_db_settings().postgres_schema
-    table = f"{schema}.dublin_bikes_stations" if schema else "dublin_bikes_stations"
-
-    upsert_sql = f"""
-    INSERT INTO {table}
-        (station_id, system_id, name, short_name, address, latitude, longitude, capacity, region_id)
-    VALUES
-        (:station_id, :system_id, :name, :short_name, :address, :latitude, :longitude, :capacity, :region_id)
-    ON CONFLICT (station_id) DO UPDATE SET
-        system_id = EXCLUDED.system_id,
-        name = EXCLUDED.name,
-        short_name = EXCLUDED.short_name,
-        address = EXCLUDED.address,
-        latitude = EXCLUDED.latitude,
-        longitude = EXCLUDED.longitude,
-        capacity = EXCLUDED.capacity,
-        region_id = EXCLUDED.region_id,
-        updated_at = NOW();
-    """
-
     session = SessionLocal()
     try:
         if records:
-            session.execute(text(upsert_sql), records)
+            stmt = pg_insert(DublinBikesStation).values(records)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["station_id"],
+                set_={
+                    "system_id": stmt.excluded.system_id,
+                    "name": stmt.excluded.name,
+                    "short_name": stmt.excluded.short_name,
+                    "address": stmt.excluded.address,
+                    "latitude": stmt.excluded.latitude,
+                    "longitude": stmt.excluded.longitude,
+                    "capacity": stmt.excluded.capacity,
+                    "region_id": stmt.excluded.region_id,
+                },
+            )
+            session.execute(stmt)
 
             # Remove stations no longer in API response
             active_ids = [r["station_id"] for r in records]
-            session.execute(
-                text(f"DELETE FROM {table} WHERE station_id != ALL(:ids)"),
-                {"ids": active_ids},
-            )
+            session.query(DublinBikesStation).filter(
+                DublinBikesStation.station_id.notin_(active_ids)
+            ).delete(synchronize_session=False)
 
         logger.info("Committing changes to database...")
         session.commit()

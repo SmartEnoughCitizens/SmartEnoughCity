@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 
-from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.csv_utils import read_csv_file
 from data_handler.cycle.gbfs_parsing_utils import (
@@ -11,8 +11,8 @@ from data_handler.cycle.gbfs_parsing_utils import (
     parse_csv_timestamp,
     validate_csv_station_history_row,
 )
+from data_handler.cycle.models import DublinBikesStationHistory
 from data_handler.db import SessionLocal
-from data_handler.settings.database_settings import get_db_settings
 
 logger = logging.getLogger(__name__)
 
@@ -67,26 +67,13 @@ def import_station_history_csv(csv_path: Path) -> None:
         logger.warning("No records to import")
         return
 
-    schema = get_db_settings().postgres_schema
-    table = (
-        f"{schema}.dublin_bikes_station_history"
-        if schema
-        else "dublin_bikes_station_history"
-    )
-
-    insert_sql = f"""
-    INSERT INTO {table}
-        (station_id, timestamp, last_reported, available_bikes, available_docks,
-         is_installed, is_renting, is_returning)
-    VALUES
-        (:station_id, :timestamp, :last_reported, :available_bikes, :available_docks,
-         :is_installed, :is_renting, :is_returning)
-    ON CONFLICT (station_id, timestamp) DO NOTHING;
-    """
-
     try:
         with SessionLocal() as session:
-            session.execute(text(insert_sql), records)
+            stmt = pg_insert(DublinBikesStationHistory).values(records)
+            stmt = stmt.on_conflict_do_nothing(
+                constraint="uq_station_timestamp",
+            )
+            session.execute(stmt)
             session.commit()
 
         logger.info("Successfully imported %d station history records", len(records))
