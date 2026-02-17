@@ -184,7 +184,9 @@ class TestFetchAndStoreStationSnapshots:
             "last_reported": "2026-01-22T17:30:00+00:00",
         }
 
-    def test_fetches_and_stores_snapshots(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_fetches_and_stores_snapshots(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test successful fetch and store of station snapshots."""
         mock_client = Mock()
         mock_client.fetch_station_status.return_value = [
