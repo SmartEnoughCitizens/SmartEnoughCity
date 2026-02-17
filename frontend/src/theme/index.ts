@@ -1,100 +1,96 @@
 /**
- * MUI theme configuration
+ * MUI theme configuration - Map-centric design
+ * Glass-panel aesthetic with semi-transparent overlays
  */
 
 import { createTheme, type ThemeOptions } from "@mui/material/styles";
+
+const commonTypography = {
+  fontFamily: [
+    "Inter",
+    "-apple-system",
+    "BlinkMacSystemFont",
+    '"Segoe UI"',
+    "Roboto",
+    '"Helvetica Neue"',
+    "Arial",
+    "sans-serif",
+  ].join(","),
+  h1: { fontSize: "2rem", fontWeight: 700, letterSpacing: "-0.02em" },
+  h2: { fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.01em" },
+  h3: { fontSize: "1.25rem", fontWeight: 600 },
+  h4: { fontSize: "1.125rem", fontWeight: 600 },
+  h5: { fontSize: "1rem", fontWeight: 600 },
+  h6: {
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.05em",
+  },
+  body2: { fontSize: "0.8125rem" },
+  caption: { fontSize: "0.75rem", letterSpacing: "0.02em" },
+};
 
 const lightThemeOptions: ThemeOptions = {
   palette: {
     mode: "light",
     primary: {
-      main: "#1976d2",
-      light: "#42a5f5",
-      dark: "#1565c0",
+      main: "#2563eb",
+      light: "#60a5fa",
+      dark: "#1d4ed8",
       contrastText: "#fff",
     },
     secondary: {
-      main: "#dc004e",
-      light: "#ff5983",
-      dark: "#9a0036",
+      main: "#7c3aed",
+      light: "#a78bfa",
+      dark: "#5b21b6",
       contrastText: "#fff",
     },
-    success: {
-      main: "#2e7d32",
-      light: "#4caf50",
-      dark: "#1b5e20",
-    },
-    warning: {
-      main: "#ed6c02",
-      light: "#ff9800",
-      dark: "#e65100",
-    },
-    error: {
-      main: "#d32f2f",
-      light: "#ef5350",
-      dark: "#c62828",
-    },
-    info: {
-      main: "#0288d1",
-      light: "#03a9f4",
-      dark: "#01579b",
-    },
+    success: { main: "#16a34a", light: "#4ade80", dark: "#15803d" },
+    warning: { main: "#ea580c", light: "#fb923c", dark: "#c2410c" },
+    error: { main: "#dc2626", light: "#f87171", dark: "#b91c1c" },
+    info: { main: "#0891b2", light: "#22d3ee", dark: "#0e7490" },
     background: {
-      default: "#f5f5f5",
-      paper: "#ffffff",
+      default: "#f1f5f9",
+      paper: "rgba(255, 255, 255, 0.92)",
     },
+    divider: "rgba(0, 0, 0, 0.06)",
   },
-  typography: {
-    fontFamily: [
-      "-apple-system",
-      "BlinkMacSystemFont",
-      '"Segoe UI"',
-      "Roboto",
-      '"Helvetica Neue"',
-      "Arial",
-      "sans-serif",
-    ].join(","),
-    h1: {
-      fontSize: "2.5rem",
-      fontWeight: 600,
-    },
-    h2: {
-      fontSize: "2rem",
-      fontWeight: 600,
-    },
-    h3: {
-      fontSize: "1.75rem",
-      fontWeight: 600,
-    },
-    h4: {
-      fontSize: "1.5rem",
-      fontWeight: 600,
-    },
-    h5: {
-      fontSize: "1.25rem",
-      fontWeight: 600,
-    },
-    h6: {
-      fontSize: "1rem",
-      fontWeight: 600,
-    },
-  },
-  shape: {
-    borderRadius: 8,
-  },
+  typography: commonTypography,
+  shape: { borderRadius: 12 },
   components: {
     MuiButton: {
       styleOverrides: {
+        root: { textTransform: "none", fontWeight: 600, borderRadius: 8 },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
         root: {
-          textTransform: "none",
-          fontWeight: 600,
+          backgroundImage: "none",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(0, 0, 0, 0.06)",
         },
       },
     },
-    MuiCard: {
+    MuiChip: {
+      styleOverrides: {
+        root: { fontWeight: 500, fontSize: "0.75rem" },
+        sizeSmall: { height: 22 },
+      },
+    },
+    MuiTableCell: {
       styleOverrides: {
         root: {
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+          padding: "8px 12px",
+        },
+        head: {
+          fontWeight: 600,
+          fontSize: "0.75rem",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color: "rgba(0, 0, 0, 0.5)",
         },
       },
     },
@@ -105,45 +101,66 @@ const darkThemeOptions: ThemeOptions = {
   palette: {
     mode: "dark",
     primary: {
-      main: "#90caf9",
-      light: "#e3f2fd",
-      dark: "#42a5f5",
+      main: "#60a5fa",
+      light: "#93c5fd",
+      dark: "#3b82f6",
       contrastText: "#000",
     },
     secondary: {
-      main: "#f48fb1",
-      light: "#ffc1e3",
-      dark: "#bf5f82",
+      main: "#a78bfa",
+      light: "#c4b5fd",
+      dark: "#7c3aed",
       contrastText: "#000",
     },
-    success: {
-      main: "#66bb6a",
-      light: "#81c784",
-      dark: "#388e3c",
-    },
-    warning: {
-      main: "#ffa726",
-      light: "#ffb74d",
-      dark: "#f57c00",
-    },
-    error: {
-      main: "#f44336",
-      light: "#e57373",
-      dark: "#d32f2f",
-    },
-    info: {
-      main: "#29b6f6",
-      light: "#4fc3f7",
-      dark: "#0288d1",
-    },
+    success: { main: "#4ade80", light: "#86efac", dark: "#22c55e" },
+    warning: { main: "#fb923c", light: "#fdba74", dark: "#f97316" },
+    error: { main: "#f87171", light: "#fca5a5", dark: "#ef4444" },
+    info: { main: "#22d3ee", light: "#67e8f9", dark: "#06b6d4" },
     background: {
-      default: "#121212",
-      paper: "#1e1e1e",
+      default: "#0f172a",
+      paper: "rgba(30, 41, 59, 0.85)",
+    },
+    divider: "rgba(255, 255, 255, 0.06)",
+  },
+  typography: commonTypography,
+  shape: { borderRadius: 12 },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { textTransform: "none", fontWeight: 600, borderRadius: 8 },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: { fontWeight: 500, fontSize: "0.75rem" },
+        sizeSmall: { height: 22 },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+          padding: "8px 12px",
+        },
+        head: {
+          fontWeight: 600,
+          fontSize: "0.75rem",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color: "rgba(255, 255, 255, 0.4)",
+        },
+      },
     },
   },
-  typography: lightThemeOptions.typography,
-  shape: lightThemeOptions.shape,
-  components: lightThemeOptions.components,
 };
 
 export const lightTheme = createTheme(lightThemeOptions);
