@@ -16,10 +16,10 @@ class TestJCDecauxGBFSClientInit:
         client = JCDecauxGBFSClient(api_key="test_key")
         assert client.api_key == "test_key"
 
-    def test_client_default_base_url(self) -> None:
-        """Test client uses correct default base URL."""
+    def test_client_default_base_url_is_empty(self) -> None:
+        """Test client base URL defaults to empty when not provided."""
         client = JCDecauxGBFSClient()
-        assert "api.cyclocity.fr" in client.base_url
+        assert client.base_url == ""
 
     def test_client_strips_trailing_slash_from_base_url(self) -> None:
         """Test base URL trailing slash is removed."""
