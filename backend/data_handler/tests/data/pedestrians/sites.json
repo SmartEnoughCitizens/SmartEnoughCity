@@ -1,0 +1,57 @@
+[
+	{
+		"id": 100000425,
+		"name": "Glenageary",
+		"description": "",
+		"location": {
+			"lat": 53.28141,
+			"lon": -6.12319
+		},
+		"firstData": "2010-10-24T00:00:00+01:00",
+		"lastData": "2026-02-06T00:00:00Z",
+		"granularity": "PT1H",
+		"travelModes": [
+			"bike",
+			"pedestrian"
+		],
+		"directional": true,
+		"hasTimestampedData": false,
+		"hasWeather": true
+	},
+	{
+		"id": 100001297,
+		"name": "Westmoreland WEST old",
+		"location": {
+			"lat": 53.3460338367334,
+			"lon": -6.25927465033187
+		},
+		"firstData": "2011-05-05T03:00:00+01:00",
+		"lastData": "2013-07-17T12:45:00+01:00",
+		"granularity": "PT15M",
+		"travelModes": [
+			"pedestrian"
+		],
+		"directional": true,
+		"hasTimestampedData": false,
+		"hasWeather": true
+	},
+	{
+		"id": 100001484,
+		"name": "O'Connell St/Pennys",
+		"description": "Counter Re-located on 8/3/17 to Pennys as PL poles outside Burger King and Schuh interfering with counter. Mounted at correct height on new pole.",
+		"location": {
+			"lat": 53.34879,
+			"lon": -6.25969
+		},
+		"firstData": "2011-06-07T00:00:00+01:00",
+		"lastData": "2025-01-19T11:45:00Z",
+		"granularity": "PT15M",
+		"travelModes": [
+			"pedestrian",
+			"undefined"
+		],
+		"directional": true,
+		"hasTimestampedData": false,
+		"hasWeather": true
+	}
+]

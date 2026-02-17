@@ -1,5 +1,6 @@
 package com.trinity.hermes.recommendation.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusTripUpdateDTO;
 import com.trinity.hermes.indicators.bus.service.BusTripUpdateService;
 import com.trinity.hermes.indicators.cycle.dto.CycleStationDTO;
@@ -8,6 +9,7 @@ import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
 import com.trinity.hermes.recommendation.dto.RecommendationEngineRequest;
 import com.trinity.hermes.recommendation.dto.RecommendationResponse;
 import com.trinity.hermes.recommendation.facade.RecommendationFacade;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,9 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class RecommendationController {
 
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-injected facade dependency stored in controller field")
   private final RecommendationFacade recommendationFacade;
 
   @GetMapping
@@ -142,8 +147,8 @@ public class RecommendationController {
 
     log.info(
         "Recommendation Engine API: GET request for indicator: {} with limit: {}",
-        indicatorType,
-        limit);
+        LogSanitizer.sanitizeLog(indicatorType),
+        LogSanitizer.sanitizeLog(limit));
 
     try {
       RecommendationEngineRequest request = new RecommendationEngineRequest();
