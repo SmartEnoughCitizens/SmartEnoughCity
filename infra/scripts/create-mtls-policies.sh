@@ -30,37 +30,28 @@ for i in {1..30}; do
   sleep 3
 done
 
-# Create PERMISSIVE mTLS for dev namespace
+# Apply PERMISSIVE mTLS policies from file
 echo ""
-echo -e "${BLUE}Creating default-permissive PeerAuthentication...${NC}"
-kubectl apply -f - <<EOF
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
-metadata:
-  name: default-permissive
-  namespace: dev
-spec:
-  mtls:
-    mode: PERMISSIVE
-EOF
+echo -e "${BLUE}Applying mTLS policies from istio/permissive-mtls.yaml...${NC}"
 
-echo ""
-echo -e "${BLUE}Creating postgresql-disable PeerAuthentication...${NC}"
-kubectl apply -f - <<EOF
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
-metadata:
-  name: postgresql-disable
-  namespace: dev
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: postgresql
-  mtls:
-    mode: DISABLE
-EOF
+# Get script directory to find the YAML file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ISTIO_DIR="$(dirname "$SCRIPT_DIR")/istio"
+
+if [ ! -f "$ISTIO_DIR/permissive-mtls.yaml" ]; then
+  echo -e "${YELLOW}⚠️  Warning: $ISTIO_DIR/permissive-mtls.yaml not found${NC}"
+  echo "Expected location: $ISTIO_DIR/permissive-mtls.yaml"
+  exit 1
+fi
+
+kubectl apply -f "$ISTIO_DIR/permissive-mtls.yaml"
 
 echo ""
 echo -e "${GREEN}=== mTLS policies created successfully! ===${NC}"
 echo ""
-echo "Verify with: kubectl get peerauthentications -n dev"
+echo "Applied: PERMISSIVE mTLS mode (from istio/permissive-mtls.yaml)"
+echo ""
+echo "Verify: kubectl get peerauthentications -n dev"
+echo ""
+echo -e "${BLUE}To switch to STRICT mode:${NC}"
+echo "  kubectl apply -f $ISTIO_DIR/strict-mtls.yaml"
