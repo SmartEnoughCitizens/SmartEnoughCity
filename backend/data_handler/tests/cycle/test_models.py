@@ -1,46 +1,16 @@
 """Tests for Dublin Bikes database models."""
 
-import sys
 from datetime import datetime
 from decimal import Decimal
-from unittest.mock import Mock
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.orm import Session
 
-
-# Create a test Base to avoid importing db.py (which creates a PostgreSQL engine)
-class Base(DeclarativeBase):
-    pass
-
-
-# Mock db and settings modules before importing models
-_mock_db = type(sys)("data_handler.db")
-_mock_db.Base = Base
-_mock_db.SessionLocal = Mock()
-sys.modules["data_handler.db"] = _mock_db
-
-_mock_settings = Mock()
-_mock_settings.get_db_settings.return_value.postgres_schema = None
-sys.modules["data_handler.settings.database_settings"] = _mock_settings
-
-from data_handler.cycle.models import (  # noqa: E402
+from data_handler.cycle.models import (
     DublinBikesStation,
     DublinBikesStationHistory,
     DublinBikesStationSnapshot,
 )
-
-
-@pytest.fixture
-def in_memory_db() -> Session:
-    """Create an in-memory SQLite database for testing."""
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    session_factory = sessionmaker(bind=engine)
-    session = session_factory()
-    yield session
-    session.close()
 
 
 class TestDublinBikesStationModel:
@@ -59,7 +29,7 @@ class TestDublinBikesStationModel:
         model_fields = set(DublinBikesStation.__table__.columns.keys())
         assert required_fields.issubset(model_fields)
 
-    def test_can_create_station_instance(self, in_memory_db: Session) -> None:
+    def test_can_create_station_instance(self, db_session: Session) -> None:
         """Test creating a station instance."""
         station = DublinBikesStation(
             station_id=1,
@@ -69,10 +39,10 @@ class TestDublinBikesStationModel:
             longitude=Decimal("-6.262876"),
             capacity=30,
         )
-        in_memory_db.add(station)
-        in_memory_db.commit()
+        db_session.add(station)
+        db_session.commit()
 
-        result = in_memory_db.query(DublinBikesStation).filter_by(station_id=1).first()
+        result = db_session.query(DublinBikesStation).filter_by(station_id=1).first()
         assert result is not None
         assert result.name == "Test Station"
         assert result.capacity == 30
@@ -101,9 +71,8 @@ class TestDublinBikesStationSnapshotModel:
         model_fields = set(DublinBikesStationSnapshot.__table__.columns.keys())
         assert required_fields.issubset(model_fields)
 
-    def test_can_create_snapshot_with_foreign_key(self, in_memory_db: Session) -> None:
+    def test_can_create_snapshot_with_foreign_key(self, db_session: Session) -> None:
         """Test creating snapshot linked to station."""
-        # Create station first
         station = DublinBikesStation(
             station_id=1,
             system_id="dublin",
@@ -112,10 +81,9 @@ class TestDublinBikesStationSnapshotModel:
             longitude=Decimal("-6.262876"),
             capacity=30,
         )
-        in_memory_db.add(station)
-        in_memory_db.commit()
+        db_session.add(station)
+        db_session.commit()
 
-        # Create snapshot
         snapshot = DublinBikesStationSnapshot(
             station_id=1,
             timestamp=datetime(2026, 1, 22, 17, 30, 0),
@@ -128,10 +96,10 @@ class TestDublinBikesStationSnapshotModel:
             is_renting=True,
             is_returning=True,
         )
-        in_memory_db.add(snapshot)
-        in_memory_db.commit()
+        db_session.add(snapshot)
+        db_session.commit()
 
-        result = in_memory_db.query(DublinBikesStationSnapshot).first()
+        result = db_session.query(DublinBikesStationSnapshot).first()
         assert result is not None
         assert result.available_bikes == 8
         assert result.is_renting is True
@@ -160,7 +128,6 @@ class TestDublinBikesStationHistoryModel:
         constraints = DublinBikesStationHistory.__table__.constraints
         unique_constraints = [c for c in constraints if hasattr(c, "columns")]
 
-        # Check that there's a unique constraint on station_id and timestamp
         has_unique = any(
             "station_id" in [col.name for col in c.columns]
             and "timestamp" in [col.name for col in c.columns]
@@ -169,10 +136,9 @@ class TestDublinBikesStationHistoryModel:
         assert has_unique, "Missing unique constraint on (station_id, timestamp)"
 
     def test_cannot_insert_duplicate_station_timestamp(
-        self, in_memory_db: Session
+        self, db_session: Session
     ) -> None:
         """Test that duplicate (station_id, timestamp) raises error."""
-        # Create station
         station = DublinBikesStation(
             station_id=1,
             system_id="dublin",
@@ -181,12 +147,11 @@ class TestDublinBikesStationHistoryModel:
             longitude=Decimal("-6.262876"),
             capacity=30,
         )
-        in_memory_db.add(station)
-        in_memory_db.commit()
+        db_session.add(station)
+        db_session.commit()
 
         timestamp = datetime(2026, 1, 22, 17, 30, 0)
 
-        # First history record
         history1 = DublinBikesStationHistory(
             station_id=1,
             timestamp=timestamp,
@@ -197,22 +162,20 @@ class TestDublinBikesStationHistoryModel:
             is_renting=True,
             is_returning=True,
         )
-        in_memory_db.add(history1)
-        in_memory_db.commit()
+        db_session.add(history1)
+        db_session.commit()
 
-        # Duplicate record (same station_id and timestamp)
         history2 = DublinBikesStationHistory(
             station_id=1,
-            timestamp=timestamp,  # Same timestamp
+            timestamp=timestamp,
             last_reported=timestamp,
-            available_bikes=10,  # Different values
+            available_bikes=10,
             available_docks=20,
             is_installed=True,
             is_renting=True,
             is_returning=True,
         )
-        in_memory_db.add(history2)
+        db_session.add(history2)
 
-        # Should raise IntegrityError
-        with pytest.raises(Exception):  # noqa: B017  # SQLite raises IntegrityError
-            in_memory_db.commit()
+        with pytest.raises(Exception):  # noqa: B017
+            db_session.commit()
