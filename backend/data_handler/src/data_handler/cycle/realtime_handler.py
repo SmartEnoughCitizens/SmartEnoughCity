@@ -1,7 +1,5 @@
 """Handler for real-time station snapshot ingestion."""
 
-from __future__ import annotations
-
 import logging
 from datetime import UTC, datetime
 

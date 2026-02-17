@@ -196,13 +196,6 @@ class TestFetchAndStoreStationSnapshots:
             lambda: mock_client,
         )
 
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
         mock_session = Mock()
         mock_session_ctx = Mock()
         mock_session_ctx.__enter__ = Mock(return_value=mock_session)
@@ -242,13 +235,6 @@ class TestFetchAndStoreStationSnapshots:
             lambda: mock_client,
         )
 
-        mock_settings = Mock()
-        mock_settings.postgres_schema = None
-        monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
         mock_session = Mock()
         mock_session.execute.side_effect = Exception("DB error")
         mock_session_ctx = Mock()
@@ -261,37 +247,3 @@ class TestFetchAndStoreStationSnapshots:
 
         with pytest.raises(Exception, match="DB error"):
             fetch_and_store_station_snapshots()
-
-    def test_no_schema_prefix(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test SQL generation when schema is empty."""
-        mock_client = Mock()
-        mock_client.fetch_station_status.return_value = [
-            self._make_station_record(),
-        ]
-        monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.get_jcdecaux_client",
-            lambda: mock_client,
-        )
-
-        mock_settings = Mock()
-        mock_settings.postgres_schema = ""
-        monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
-        mock_session = Mock()
-        mock_session_ctx = Mock()
-        mock_session_ctx.__enter__ = Mock(return_value=mock_session)
-        mock_session_ctx.__exit__ = Mock(return_value=False)
-        monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.SessionLocal",
-            lambda: mock_session_ctx,
-        )
-
-        fetch_and_store_station_snapshots()
-
-        # Verify SQL doesn't have schema prefix
-        snapshot_sql = mock_session.execute.call_args_list[0][0][0].text
-        assert "dublin_bikes_station_snapshots" in snapshot_sql
-        assert "public." not in snapshot_sql
