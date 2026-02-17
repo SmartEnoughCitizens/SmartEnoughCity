@@ -24,6 +24,11 @@ from data_handler.settings.database_settings import get_db_settings
 DB_SCHEMA = get_db_settings().postgres_schema
 
 
+def _fk(table_col: str) -> str:
+    """Build a ForeignKey reference, with or without schema prefix."""
+    return f"{DB_SCHEMA}.{table_col}" if DB_SCHEMA else table_col
+
+
 class DublinBikesStation(Base):
     """Static station metadata (Table 1: stations)."""
 
@@ -64,7 +69,7 @@ class DublinBikesStationSnapshot(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     station_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{DB_SCHEMA}.dublin_bikes_stations.station_id"), nullable=False
+        ForeignKey(_fk("dublin_bikes_stations.station_id")), nullable=False
     )
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     last_reported: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -94,7 +99,7 @@ class DublinBikesStationHistory(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     station_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{DB_SCHEMA}.dublin_bikes_stations.station_id"), nullable=False
+        ForeignKey(_fk("dublin_bikes_stations.station_id")), nullable=False
     )
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     last_reported: Mapped[datetime] = mapped_column(DateTime, nullable=False)
