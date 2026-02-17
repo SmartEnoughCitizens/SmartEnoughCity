@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import text
 
@@ -19,14 +19,12 @@ def _parse_last_reported(value: int | str) -> datetime:
     """Parse last_reported which may be a Unix timestamp (int) or ISO string."""
     if isinstance(value, (int, float)):
         if value < 0:
-            return datetime(1, 1, 1, tzinfo=timezone.utc)
-        return datetime.fromtimestamp(value, tz=timezone.utc)
+            return datetime(1, 1, 1, tzinfo=UTC)
+        return datetime.fromtimestamp(value, tz=UTC)
     return parse_iso_timestamp(value)
 
 
-def _transform_station_records(
-    stations: list[dict], fetch_ts: datetime
-) -> list[dict]:
+def _transform_station_records(stations: list[dict], fetch_ts: datetime) -> list[dict]:
     """Transform API station status records to database-ready dicts.
 
     Args:
@@ -72,7 +70,7 @@ def fetch_and_store_station_snapshots() -> None:
         logger.warning("No station data received from API")
         return
 
-    fetch_timestamp = datetime.now(timezone.utc)
+    fetch_timestamp = datetime.now(UTC)
     records = _transform_station_records(stations, fetch_timestamp)
 
     schema = get_db_settings().postgres_schema

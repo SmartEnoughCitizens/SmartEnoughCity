@@ -3,6 +3,7 @@ import logging
 
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
+from data_handler.cycle.csv_import_handler import import_all_station_history_csvs
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
 from data_handler.db import Base, engine
@@ -90,8 +91,6 @@ def main_dynamic() -> None:
 
 def main_import_history() -> None:
     """Import historical Dublin Bikes CSV archives."""
-    from data_handler.cycle.csv_import_handler import import_all_station_history_csvs
-
     logger = logging.getLogger(__name__)
 
     sources_settings = get_data_sources_settings()

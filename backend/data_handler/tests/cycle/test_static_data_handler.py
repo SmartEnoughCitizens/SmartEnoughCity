@@ -1,13 +1,12 @@
 """Tests for static station information handler."""
 
-from decimal import Decimal
-from unittest.mock import patch, Mock
 import sys
+from decimal import Decimal
+from unittest.mock import Mock
 
-import pytest
 from sqlalchemy.orm import DeclarativeBase
 
-# Mock db module before importing handler (avoids PostgreSQL engine creation)
+# Mock db and settings modules before importing handler (avoids PostgreSQL engine creation)
 if "data_handler.db" not in sys.modules:
 
     class _Base(DeclarativeBase):
@@ -17,6 +16,11 @@ if "data_handler.db" not in sys.modules:
     _mock_db.Base = _Base
     _mock_db.SessionLocal = Mock()
     sys.modules["data_handler.db"] = _mock_db
+
+if "data_handler.settings.database_settings" not in sys.modules:
+    _mock_settings = Mock()
+    _mock_settings.get_db_settings.return_value.postgres_schema = "public"
+    sys.modules["data_handler.settings.database_settings"] = _mock_settings
 
 from data_handler.cycle.static_data_handler import parse_station_information_record
 
