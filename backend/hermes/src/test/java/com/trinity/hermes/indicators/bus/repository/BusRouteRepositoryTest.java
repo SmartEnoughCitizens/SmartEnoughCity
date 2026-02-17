@@ -25,8 +25,7 @@ class BusRouteRepositoryTest {
 
   @Container
   static PostgreSQLContainer<?> postgres =
-      new PostgreSQLContainer<>("postgres:18-alpine")
-          .withInitScript("init-test-schemas.sql");
+      new PostgreSQLContainer<>("postgres:18-alpine").withInitScript("init-test-schemas.sql");
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
