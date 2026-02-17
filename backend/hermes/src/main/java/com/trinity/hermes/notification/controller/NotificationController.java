@@ -21,7 +21,7 @@ public class NotificationController {
   @PostMapping
   public ResponseEntity<?> receiveBackendNotification(
       @RequestBody BackendNotificationRequestDTO request) {
-    log.info("Received backend notification: userId={},", request.getUserId());
+    log.info(" backend notification: userId={},", request.getUserId());
 
     notificationFacade.handleBackendNotification(request);
 
