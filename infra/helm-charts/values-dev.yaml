@@ -9,8 +9,8 @@ data-handler:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
     pullPolicy: IfNotPresent
-  cronjob:
-    suspend: true
+#  cronjob:
+#    suspend: true
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -52,13 +52,6 @@ hermes:
     tag: latest
     pullPolicy: IfNotPresent
   # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
-  # Issue: /actuator/health requires OAuth2 authentication, causing 401 errors
-  # SecurityConfig.java already updated (line 46-47) to permitAll() for actuator endpoints
-  # Fix steps:
-  #   1. Rebuild hermes Docker image: docker build -t ghcr.io/.../hermes:latest .
-  #   2. Push to GHCR: docker push ghcr.io/.../hermes:latest
-  #   3. Re-enable httpGet probes to /actuator/health (initialDelaySeconds: 90)
-  # Current: Probes disabled - pod healthy as long as process runs
   livenessProbe: null
   readinessProbe: null
   securityContext:
