@@ -6,7 +6,7 @@ from typing import Any
 import requests
 
 from data_handler.cycle.gbfs_parsing_utils import validate_station_status_record
-from data_handler.settings.data_sources_settings import get_data_sources_settings
+from data_handler.settings.api_settings import get_api_settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +17,10 @@ class JCDecauxGBFSClient:
     def __init__(
         self,
         api_key: str | None = None,
-        base_url: str = "https://api.cyclocity.fr/contracts/dublin/gbfs",
+        base_url: str | None = None,
     ) -> None:
         self.api_key = api_key
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.rstrip("/") if base_url else ""
 
     def _make_request(self, endpoint: str, timeout: int = 10) -> dict[str, Any]:
         """Make HTTP request to GBFS API."""
@@ -71,5 +71,8 @@ class JCDecauxGBFSClient:
 
 def get_jcdecaux_client() -> JCDecauxGBFSClient:
     """Factory function to create API client with settings."""
-    settings = get_data_sources_settings()
-    return JCDecauxGBFSClient(api_key=settings.jcdecaux_api_key)
+    settings = get_api_settings()
+    return JCDecauxGBFSClient(
+        api_key=settings.jcdecaux_api_key,
+        base_url=settings.jcdecaux_api_base_url,
+    )
