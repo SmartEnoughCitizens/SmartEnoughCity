@@ -3,6 +3,7 @@
 import logging
 from decimal import Decimal
 
+from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.cycle.api_client import get_jcdecaux_client
@@ -65,9 +66,11 @@ def process_station_information() -> None:
 
             # Remove stations no longer in API response
             active_ids = [r["station_id"] for r in records]
-            session.query(DublinBikesStation).filter(
-                DublinBikesStation.station_id.notin_(active_ids)
-            ).delete(synchronize_session=False)
+            session.execute(
+                delete(DublinBikesStation).where(
+                    DublinBikesStation.station_id.notin_(active_ids)
+                )
+            )
 
         logger.info("Committing changes to database...")
         session.commit()
