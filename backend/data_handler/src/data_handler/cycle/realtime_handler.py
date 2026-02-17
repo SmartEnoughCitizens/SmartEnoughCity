@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.cycle.api_client import get_jcdecaux_client
 from data_handler.cycle.gbfs_parsing_utils import parse_iso_timestamp
+from data_handler.cycle.models import DublinBikesStationHistory, DublinBikesStationSnapshot
 from data_handler.db import SessionLocal
-from data_handler.settings.database_settings import get_db_settings
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def fetch_and_store_station_snapshots() -> None:
     This function:
     1. Fetches current status from JCDecaux API
     2. Stores in station_snapshots table
-    3. Archives to station_history table
+    3. Archives to station_history table (with ON CONFLICT DO NOTHING)
     """
     logger.info("Fetching real-time station snapshots...")
 
@@ -73,32 +73,24 @@ def fetch_and_store_station_snapshots() -> None:
     fetch_timestamp = datetime.now(UTC)
     records = _transform_station_records(stations, fetch_timestamp)
 
-    schema = get_db_settings().postgres_schema
-    table_prefix = f"{schema}." if schema else ""
-
-    insert_snapshot_sql = f"""
-    INSERT INTO {table_prefix}dublin_bikes_station_snapshots
-        (station_id, timestamp, last_reported, available_bikes, available_docks,
-         disabled_bikes, disabled_docks, is_installed, is_renting, is_returning)
-    VALUES
-        (:station_id, :timestamp, :last_reported, :available_bikes, :available_docks,
-         :disabled_bikes, :disabled_docks, :is_installed, :is_renting, :is_returning)
-    """
-
-    insert_history_sql = f"""
-    INSERT INTO {table_prefix}dublin_bikes_station_history
-        (station_id, timestamp, last_reported, available_bikes, available_docks,
-         is_installed, is_renting, is_returning)
-    VALUES
-        (:station_id, :timestamp, :last_reported, :available_bikes, :available_docks,
-         :is_installed, :is_renting, :is_returning)
-    ON CONFLICT (station_id, timestamp) DO NOTHING;
-    """
+    # History records exclude disabled_bikes and disabled_docks
+    history_records = [
+        {k: v for k, v in r.items() if k not in ("disabled_bikes", "disabled_docks")}
+        for r in records
+    ]
 
     try:
         with SessionLocal() as session:
-            session.execute(text(insert_snapshot_sql), records)
-            session.execute(text(insert_history_sql), records)
+            session.execute(
+                pg_insert(DublinBikesStationSnapshot).values(records)
+            )
+
+            stmt = pg_insert(DublinBikesStationHistory).values(history_records)
+            stmt = stmt.on_conflict_do_nothing(
+                constraint="uq_station_timestamp",
+            )
+            session.execute(stmt)
+
             session.commit()
 
         logger.info(
