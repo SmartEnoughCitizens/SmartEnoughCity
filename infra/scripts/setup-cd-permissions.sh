@@ -48,7 +48,7 @@ gcloud services enable \
   cloudresourcemanager.googleapis.com \
   sts.googleapis.com \
   --project="$PROJECT_ID"
-echo -e "${GREEN}✅ APIs enabled${NC}"
+echo -e "${GREEN} APIs enabled${NC}"
 
 # Create Workload Identity Pool
 echo ""
@@ -62,7 +62,7 @@ else
     --location="global" \
     --project="$PROJECT_ID" \
     --display-name="GitHub Actions Pool"
-  echo -e "${GREEN}✅ Pool created${NC}"
+  echo -e "${GREEN} Pool created${NC}"
 fi
 
 # Get project number
@@ -101,7 +101,7 @@ if [[ "$PROVIDER_EXISTS" == "false" ]]; then
     --allowed-audiences="https://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/providers/github-provider-v2" \
     --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" \
     --attribute-condition="assertion.repository_owner=='${GITHUB_OWNER}'"
-  echo -e "${GREEN}✅ Provider created${NC}"
+  echo -e "${GREEN} Provider created${NC}"
 fi
 
 # Create Service Account
@@ -114,7 +114,7 @@ else
   gcloud iam service-accounts create "$SERVICE_ACCOUNT" \
     --project="$PROJECT_ID" \
     --display-name="GitHub Actions Deployer"
-  echo -e "${GREEN}✅ Service account created${NC}"
+  echo -e "${GREEN} Service account created${NC}"
 fi
 
 # Grant GKE permissions
@@ -124,7 +124,7 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/container.developer" \
   --condition=None 2>/dev/null || echo -e "${YELLOW}Role may already be bound${NC}"
-echo -e "${GREEN}✅ GKE permissions granted${NC}"
+echo -e "${GREEN} GKE permissions granted${NC}"
 
 # FIXED: Add Service Account Token Creator role
 echo ""
@@ -134,7 +134,7 @@ gcloud iam service-accounts add-iam-policy-binding \
   --project="$PROJECT_ID" \
   --role="roles/iam.serviceAccountTokenCreator" \
   --member="serviceAccount:${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" 2>/dev/null || echo -e "${YELLOW}Role may already be bound${NC}"
-echo -e "${GREEN}✅ Token Creator permission granted${NC}"
+echo -e "${GREEN} Token Creator permission granted${NC}"
 
 # Bind Workload Identity
 echo ""
@@ -147,7 +147,7 @@ gcloud iam service-accounts add-iam-policy-binding \
   --role="roles/iam.workloadIdentityUser" \
   --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/attribute.repository/${GITHUB_REPO}" 2>/dev/null || echo -e "${YELLOW}Binding may already exist${NC}"
 
-echo -e "${GREEN}✅ Workload Identity bound${NC}"
+echo -e "${GREEN} Workload Identity bound${NC}"
 
 # Get provider name
 PROVIDER_NAME="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/providers/github-provider-v2"
@@ -155,7 +155,7 @@ PROVIDER_NAME="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools
 # Summary
 echo ""
 echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}✅ CD Permissions Setup Complete!${NC}"
+echo -e "${GREEN} CD Permissions Setup Complete!${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
 echo -e "${BLUE}Add these GitHub Variables:${NC}"
