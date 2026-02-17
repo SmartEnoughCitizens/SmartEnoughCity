@@ -173,13 +173,6 @@ class TestImportStationHistoryCsv:
             "dublin,2025-07-15T14:30:00+00:00,2,5,10,true,false,true\n"
         )
 
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.csv_import_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
         mock_session = Mock()
         mock_session_ctx = Mock()
         mock_session_ctx.__enter__ = Mock(return_value=mock_session)
@@ -193,8 +186,6 @@ class TestImportStationHistoryCsv:
 
         mock_session.execute.assert_called_once()
         mock_session.commit.assert_called_once()
-        records = mock_session.execute.call_args[0][1]
-        assert len(records) == 2
 
     def test_returns_early_on_empty_csv(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -219,13 +210,6 @@ class TestImportStationHistoryCsv:
             "dublin,2025-07-15T14:30:00+00:00,1,8,2,true,true,true\n"
         )
 
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.csv_import_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
         mock_session = Mock()
         mock_session.execute.side_effect = Exception("DB error")
         mock_session_ctx = Mock()
@@ -238,39 +222,6 @@ class TestImportStationHistoryCsv:
 
         with pytest.raises(Exception, match="DB error"):
             import_station_history_csv(csv_file)
-
-    def test_no_schema_prefix(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test SQL generation when schema is empty."""
-        csv_file = tmp_path / "test.csv"
-        csv_file.write_text(
-            "system_id,last_reported,station_id,num_bikes_available,"
-            "num_docks_available,is_installed,is_renting,is_returning\n"
-            "dublin,2025-07-15T14:30:00+00:00,1,8,2,true,true,true\n"
-        )
-
-        mock_settings = Mock()
-        mock_settings.postgres_schema = ""
-        monkeypatch.setattr(
-            "data_handler.cycle.csv_import_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
-        mock_session = Mock()
-        mock_session_ctx = Mock()
-        mock_session_ctx.__enter__ = Mock(return_value=mock_session)
-        mock_session_ctx.__exit__ = Mock(return_value=False)
-        monkeypatch.setattr(
-            "data_handler.cycle.csv_import_handler.SessionLocal",
-            lambda: mock_session_ctx,
-        )
-
-        import_station_history_csv(csv_file)
-
-        sql_text = mock_session.execute.call_args[0][0].text
-        assert "dublin_bikes_station_history" in sql_text
-        assert "public." not in sql_text
 
 
 class TestImportAllStationHistoryCsvs:
@@ -305,13 +256,6 @@ class TestImportAllStationHistoryCsvs:
         (tmp_path / "dublin-bikes_station_status_2025-08.csv").write_text(csv_content)
         (tmp_path / "other_file.csv").write_text(csv_content)  # should not match
 
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.csv_import_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
         mock_session = Mock()
         mock_session_ctx = Mock()
         mock_session_ctx.__enter__ = Mock(return_value=mock_session)
@@ -338,13 +282,6 @@ class TestImportAllStationHistoryCsvs:
         )
         (tmp_path / "dublin-bikes_station_status_2025-07.csv").write_text(csv_content)
         (tmp_path / "dublin-bikes_station_status_2025-08.csv").write_text(csv_content)
-
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.csv_import_handler.get_db_settings",
-            lambda: mock_settings,
-        )
 
         call_count = 0
 

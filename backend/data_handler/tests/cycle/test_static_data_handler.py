@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import pytest
 from sqlalchemy.orm import DeclarativeBase
 
-# Mock db and settings modules before importing handler (avoids PostgreSQL engine creation)
+# Mock db module before importing handler (avoids PostgreSQL engine creation)
 if "data_handler.db" not in sys.modules:
 
     class _Base(DeclarativeBase):
@@ -17,11 +17,6 @@ if "data_handler.db" not in sys.modules:
     _mock_db.Base = _Base
     _mock_db.SessionLocal = Mock()
     sys.modules["data_handler.db"] = _mock_db
-
-if "data_handler.settings.database_settings" not in sys.modules:
-    _mock_settings = Mock()
-    _mock_settings.get_db_settings.return_value.postgres_schema = "public"
-    sys.modules["data_handler.settings.database_settings"] = _mock_settings
 
 from data_handler.cycle.static_data_handler import (
     parse_station_information_record,
@@ -131,13 +126,6 @@ class TestProcessStationInformation:
             lambda: mock_client,
         )
 
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.static_data_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
         mock_session = Mock()
         monkeypatch.setattr(
             "data_handler.cycle.static_data_handler.SessionLocal",
@@ -168,13 +156,6 @@ class TestProcessStationInformation:
             lambda: mock_client,
         )
 
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.static_data_handler.get_db_settings",
-            lambda: mock_settings,
-        )
-
         mock_session = Mock()
         mock_session.commit.side_effect = Exception("DB error")
         monkeypatch.setattr(
@@ -195,13 +176,6 @@ class TestProcessStationInformation:
         monkeypatch.setattr(
             "data_handler.cycle.static_data_handler.get_jcdecaux_client",
             lambda: mock_client,
-        )
-
-        mock_settings = Mock()
-        mock_settings.postgres_schema = "public"
-        monkeypatch.setattr(
-            "data_handler.cycle.static_data_handler.get_db_settings",
-            lambda: mock_settings,
         )
 
         mock_session = Mock()
