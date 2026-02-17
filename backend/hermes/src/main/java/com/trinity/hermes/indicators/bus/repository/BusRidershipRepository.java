@@ -1,7 +1,6 @@
 package com.trinity.hermes.indicators.bus.repository;
 
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
-import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

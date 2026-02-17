@@ -8,8 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BusCalendarScheduleRepository
-    extends JpaRepository<BusCalendarSchedule, Integer> {
+public interface BusCalendarScheduleRepository extends JpaRepository<BusCalendarSchedule, Integer> {
 
   @Query("SELECT c FROM BusCalendarSchedule c WHERE c.serviceId = :serviceId")
   List<BusCalendarSchedule> findByServiceId(@Param("serviceId") Integer serviceId);

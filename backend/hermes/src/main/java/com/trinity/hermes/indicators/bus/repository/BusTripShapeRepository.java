@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BusTripShapeRepository extends JpaRepository<BusTripShape, Integer> {
 
-  @Query(
-      "SELECT s FROM BusTripShape s WHERE s.shapeId = :shapeId ORDER BY s.ptSequence ASC")
+  @Query("SELECT s FROM BusTripShape s WHERE s.shapeId = :shapeId ORDER BY s.ptSequence ASC")
   List<BusTripShape> findByShapeIdOrderByPtSequenceAsc(@Param("shapeId") String shapeId);
 }
