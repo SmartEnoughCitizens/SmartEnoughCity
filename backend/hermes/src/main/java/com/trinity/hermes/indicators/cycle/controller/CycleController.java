@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.cycle.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.CycleStationDTO;
 import com.trinity.hermes.indicators.cycle.service.CycleStationService;
 import java.util.HashMap;
@@ -31,7 +32,7 @@ public class CycleController {
   public ResponseEntity<Map<String, Object>> getCycleData(
       @RequestParam(defaultValue = "100") Integer limit) {
 
-    log.info("Dashboard API: Getting cycle data with limit: {}", limit);
+    log.info("Dashboard API: Getting cycle data with limit: {}", LogSanitizer.sanitizeLog(limit));
 
     try {
       List<CycleStationDTO> stations = cycleStationService.getAllCycleStations(limit);

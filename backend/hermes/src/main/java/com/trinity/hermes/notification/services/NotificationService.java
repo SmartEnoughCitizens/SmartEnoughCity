@@ -9,6 +9,7 @@ import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
 import com.trinity.hermes.notification.util.NotificationTemplatesProperties;
 import com.trinity.hermes.notification.util.QrCodeUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.micrometer.common.util.StringUtils;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +22,16 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Slf4j
 public class NotificationService {
 
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-managed @ConfigurationProperties bean injected; stored as dependency")
   private final NotificationTemplatesProperties notificationTemplatesProperties;
+
+  @SuppressFBWarnings(
+      value = "EI2",
+      justification = "Spring-managed Jackson ObjectMapper injected; stored as dependency")
   private final ObjectMapper objectMapper;
+
   private final QrCodeUtil qrCodeUtil;
 
   /**

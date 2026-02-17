@@ -3,6 +3,7 @@ import logging
 
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
+from data_handler.car.process_car_data import process_car_static_data
 from data_handler.cycle.csv_import_handler import import_all_station_history_csvs
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
@@ -40,6 +41,11 @@ def main_static() -> None:
         process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
     else:
         logger.info("Skipping bus static data processing...")
+
+    if sources_settings.enable_car_data and sources_settings.car_static_data_dir:
+        process_car_static_data(sources_settings.car_static_data_dir)
+    else:
+        logger.info("Skipping car static data processing...")
 
     if sources_settings.enable_cycle_data:
         logger.info("Processing Dublin Bikes static station information...")
