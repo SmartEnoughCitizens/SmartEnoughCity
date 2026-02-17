@@ -32,7 +32,7 @@ echo ""
 # Check if project exists
 echo "Checking if project exists..."
 if ! gcloud projects describe "$PROJECT_ID" &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Project '$PROJECT_ID' does not exist${NC}"
+    echo -e "${YELLOW}  Project '$PROJECT_ID' does not exist${NC}"
     read -p "Create project '$PROJECT_ID'? (yes/no): " CREATE_PROJECT
 
     if [[ $CREATE_PROJECT =~ ^[Yy][Ee][Ss]$ ]]; then
@@ -63,7 +63,7 @@ gcloud services enable cloudbilling.googleapis.com --project="$PROJECT_ID" 2>/de
 BILLING_CHECK=$(timeout 10s gcloud projects get-iam-policy "$PROJECT_ID" 2>/dev/null || echo "skip")
 
 if [ "$BILLING_CHECK" = "skip" ] || [ -z "$BILLING_CHECK" ]; then
-    echo -e "${YELLOW}⚠️  Could not verify billing status automatically${NC}"
+    echo -e "${YELLOW}️  Could not verify billing status automatically${NC}"
     echo ""
     read -p "Do you need to link a billing account? (yes/no): " NEED_BILLING
 
@@ -204,14 +204,14 @@ fi
 echo ""
 echo "Checking authentication..."
 if ! gcloud auth application-default print-access-token &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Application default credentials not found${NC}"
+    echo -e "${YELLOW}  Application default credentials not found${NC}"
     read -p "Authenticate now? (required for Terraform) (yes/no): " DO_AUTH
 
     if [[ $DO_AUTH =~ ^[Yy][Ee][Ss]$ ]]; then
         gcloud auth application-default login
         echo -e "${GREEN} Authenticated${NC}"
     else
-        echo -e "${YELLOW}⚠️  You'll need to run: gcloud auth application-default login${NC}"
+        echo -e "${YELLOW}️  You'll need to run: gcloud auth application-default login${NC}"
     fi
 else
     echo -e "${GREEN} Already authenticated${NC}"

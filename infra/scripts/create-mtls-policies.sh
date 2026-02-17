@@ -39,7 +39,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ISTIO_DIR="$(dirname "$SCRIPT_DIR")/istio"
 
 if [ ! -f "$ISTIO_DIR/permissive-mtls.yaml" ]; then
-  echo -e "${YELLOW}⚠️  Warning: $ISTIO_DIR/permissive-mtls.yaml not found${NC}"
+  echo -e "${YELLOW}️  Warning: $ISTIO_DIR/permissive-mtls.yaml not found${NC}"
   echo "Expected location: $ISTIO_DIR/permissive-mtls.yaml"
   exit 1
 fi
