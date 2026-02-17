@@ -32,7 +32,7 @@ echo "  GitHub Owner: $GITHUB_OWNER"
 echo "  GitHub Repo: $GITHUB_REPO"
 echo "  Service Account: $SERVICE_ACCOUNT"
 echo ""
-echo -e "${YELLOW}⚠️  Make sure the owner/repo match the exact case in GitHub!${NC}"
+echo -e "${YELLOW}️  Make sure the owner/repo match the exact case in GitHub!${NC}"
 echo ""
 read -p "Continue? (y/n): " CONFIRM
 if [[ ! $CONFIRM =~ ^[Yy]$ ]]; then
