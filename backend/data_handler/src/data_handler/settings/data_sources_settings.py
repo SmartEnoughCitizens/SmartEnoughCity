@@ -36,6 +36,12 @@ class DataSourcesSettings(BaseSettings):
         description="Filesystem path to the directory containing the GTFS bus static data",
     )
 
+    car_static_data_dir: Path | None = Field(
+        None,
+        alias="CAR_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the Car static data",
+    )
+
     jcdecaux_api_key: str | None = Field(
         None,
         alias="JCDECAUX_API_KEY",
@@ -48,7 +54,7 @@ class DataSourcesSettings(BaseSettings):
         description="Directory containing historical Dublin Bikes CSV archives",
     )
 
-    @field_validator("bus_gtfs_static_data_dir", "dublin_bikes_csv_archive_dir")
+    @field_validator("bus_gtfs_static_data_dir", "car_static_data_dir", "dublin_bikes_csv_archive_dir")
     @classmethod
     def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
         if p is None:

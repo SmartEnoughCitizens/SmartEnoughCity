@@ -74,14 +74,26 @@ public class AuthService {
       // Call Keycloak token endpoint
       ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
 
-      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-        Map<String, Object> tokenResponse = response.getBody();
+      Map<String, Object> tokenResponse = response.getBody();
+      if (response.getStatusCode() == HttpStatus.OK && tokenResponse != null) {
+
+        Object accessTokenObj = tokenResponse.get("access_token");
+        Object tokenTypeObj = tokenResponse.get("token_type");
+        Object expiresInObj = tokenResponse.get("expires_in");
+        Object refreshTokenObj = tokenResponse.get("refresh_token");
+
+        if (!(accessTokenObj instanceof String accessToken)
+            || !(tokenTypeObj instanceof String tokenType)
+            || !(expiresInObj instanceof Integer expiresIn)
+            || !(refreshTokenObj instanceof String refreshToken)) {
+          throw new RuntimeException("Invalid token response from Keycloak");
+        }
 
         LoginResponse loginResponse = new LoginResponse();
-        loginResponse.setAccessToken((String) tokenResponse.get("access_token"));
-        loginResponse.setTokenType((String) tokenResponse.get("token_type"));
-        loginResponse.setExpiresIn((Integer) tokenResponse.get("expires_in"));
-        loginResponse.setRefreshToken((String) tokenResponse.get("refresh_token"));
+        loginResponse.setAccessToken(accessToken);
+        loginResponse.setTokenType(tokenType);
+        loginResponse.setExpiresIn(expiresIn);
+        loginResponse.setRefreshToken(refreshToken);
         loginResponse.setUsername(loginRequest.getUsername());
         loginResponse.setMessage("Login successful");
 
@@ -92,9 +104,9 @@ public class AuthService {
         throw new RuntimeException("Authentication failed");
       }
 
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       log.error("Error during authentication for user: {}", loginRequest.getUsername(), e);
-      throw new RuntimeException("Invalid username or password");
+      throw e;
     }
   }
 
@@ -116,8 +128,14 @@ public class AuthService {
 
       ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
 
-      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-        String token = (String) response.getBody().get("access_token");
+      Map<String, Object> responseBody = response.getBody();
+      if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
+
+        Object tokenObj = responseBody.get("access_token");
+        if (!(tokenObj instanceof String token)) {
+          throw new RuntimeException("Admin access_token missing in Keycloak response");
+        }
+
         log.info("Admin token obtained successfully");
         return token;
       }
@@ -136,6 +154,9 @@ public class AuthService {
       log.info("Fetching all users from realm: {}", realm);
 
       String adminToken = getAdminToken();
+      if (adminToken == null) {
+        throw new IllegalStateException("Admin token is null");
+      }
       String usersUrl = keycloakServerUrl + "/admin/realms/" + realm + "/users";
 
       HttpHeaders headers = new HttpHeaders();
@@ -150,9 +171,11 @@ public class AuthService {
               request,
               new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
-      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-        log.info("Successfully fetched {} users", response.getBody().size());
-        return response.getBody();
+      List<Map<String, Object>> users = response.getBody();
+
+      if (response.getStatusCode() == HttpStatus.OK && users != null) {
+        log.info("Successfully fetched {} users", users.size());
+        return users;
       }
 
       throw new RuntimeException("Failed to get users");
