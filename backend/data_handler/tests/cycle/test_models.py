@@ -22,7 +22,7 @@ _mock_db.SessionLocal = Mock()
 sys.modules["data_handler.db"] = _mock_db
 
 _mock_settings = Mock()
-_mock_settings.get_db_settings.return_value.postgres_schema = "public"
+_mock_settings.get_db_settings.return_value.postgres_schema = None
 sys.modules["data_handler.settings.database_settings"] = _mock_settings
 
 from data_handler.cycle.models import (  # noqa: E402
