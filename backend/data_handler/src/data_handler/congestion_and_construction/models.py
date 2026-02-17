@@ -1,20 +1,11 @@
 """SQLAlchemy models for traffic and construction data."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import ClassVar
 
-from sqlalchemy import (
-    DateTime,
-    Double,
-    Index,
-    Integer,
-    String,
-    Text,
-)
-from sqlalchemy import (
-    Enum as SQLEnum,
-)
+from sqlalchemy import DateTime, Double, Index, Integer, String, Text
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from data_handler.db import Base
@@ -24,8 +15,6 @@ DB_SCHEMA = get_db_settings().postgres_schema
 
 
 class TrafficEventType(StrEnum):
-    """Types of traffic events from TII API."""
-
     CONGESTION = "CONGESTION"
     CLOSURE_INCIDENT = "CLOSURE/INCIDENT"
     ROADWORKS = "ROADWORKS"
@@ -33,13 +22,6 @@ class TrafficEventType(StrEnum):
 
 
 class TrafficEvent(Base):
-    """
-    Model for traffic events from TII (Transport Infrastructure Ireland).
-
-    Stores real-time traffic information including roadworks, incidents,
-    congestion, and weather warnings in the Dublin area.
-    """
-
     __tablename__ = "traffic_events"
     __table_args__: ClassVar[dict] = (
         Index("ix_traffic_events_type", "event_type"),
@@ -58,7 +40,9 @@ class TrafficEvent(Base):
     lon: Mapped[float] = mapped_column(Double, nullable=False)
     color: Mapped[str] = mapped_column(String(20), nullable=False)
     fetched_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime(timezone=True),                                 # ← timezone=True
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)              # ← Fixed default
     )
     source_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True
