@@ -7,7 +7,10 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.cycle.api_client import get_jcdecaux_client
 from data_handler.cycle.gbfs_parsing_utils import parse_iso_timestamp
-from data_handler.cycle.models import DublinBikesStationHistory, DublinBikesStationSnapshot
+from data_handler.cycle.models import (
+    DublinBikesStationHistory,
+    DublinBikesStationSnapshot,
+)
 from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
