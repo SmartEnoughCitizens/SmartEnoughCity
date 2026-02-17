@@ -4,6 +4,7 @@ import sys
 from decimal import Decimal
 from unittest.mock import Mock
 
+import pytest
 from sqlalchemy.orm import DeclarativeBase
 
 # Mock db and settings modules before importing handler (avoids PostgreSQL engine creation)
@@ -22,7 +23,10 @@ if "data_handler.settings.database_settings" not in sys.modules:
     _mock_settings.get_db_settings.return_value.postgres_schema = "public"
     sys.modules["data_handler.settings.database_settings"] = _mock_settings
 
-from data_handler.cycle.static_data_handler import parse_station_information_record
+from data_handler.cycle.static_data_handler import (
+    parse_station_information_record,
+    process_station_information,
+)
 
 
 class TestParseStationInformationRecord:
@@ -98,3 +102,97 @@ class TestParseStationInformationRecord:
         station = parse_station_information_record(record)
         assert station.latitude == Decimal("53.349316")
         assert station.longitude == Decimal("-6.262876")
+
+
+class TestProcessStationInformation:
+    """Test the full process_station_information workflow."""
+
+    def test_fetches_and_stores_stations(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test successful fetch and store of station information."""
+        mock_client = Mock()
+        mock_client.fetch_station_information.return_value = [
+            {
+                "station_id": "1",
+                "name": "Mary Street",
+                "lat": 53.349,
+                "lon": -6.262,
+                "capacity": 30,
+            },
+            {
+                "station_id": "2",
+                "name": "Stoneybatter",
+                "lat": 53.356,
+                "lon": -6.289,
+                "capacity": 15,
+            },
+        ]
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.get_jcdecaux_client",
+            lambda: mock_client,
+        )
+
+        mock_session = Mock()
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.SessionLocal",
+            lambda: mock_session,
+        )
+
+        process_station_information()
+
+        mock_client.fetch_station_information.assert_called_once()
+        mock_session.execute.assert_called_once()  # DELETE statement
+        mock_session.add_all.assert_called_once()
+        stations = mock_session.add_all.call_args[0][0]
+        assert len(stations) == 2
+        mock_session.commit.assert_called_once()
+        mock_session.close.assert_called_once()
+
+    def test_rolls_back_on_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that database errors trigger rollback."""
+        mock_client = Mock()
+        mock_client.fetch_station_information.return_value = [
+            {
+                "station_id": "1",
+                "name": "Test",
+                "lat": 53.0,
+                "lon": -6.0,
+                "capacity": 10,
+            },
+        ]
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.get_jcdecaux_client",
+            lambda: mock_client,
+        )
+
+        mock_session = Mock()
+        mock_session.commit.side_effect = Exception("DB error")
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.SessionLocal",
+            lambda: mock_session,
+        )
+
+        with pytest.raises(Exception, match="DB error"):
+            process_station_information()
+
+        mock_session.rollback.assert_called_once()
+        mock_session.close.assert_called_once()
+
+    def test_empty_stations_list(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test processing when API returns no stations."""
+        mock_client = Mock()
+        mock_client.fetch_station_information.return_value = []
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.get_jcdecaux_client",
+            lambda: mock_client,
+        )
+
+        mock_session = Mock()
+        monkeypatch.setattr(
+            "data_handler.cycle.static_data_handler.SessionLocal",
+            lambda: mock_session,
+        )
+
+        process_station_information()
+
+        mock_session.add_all.assert_called_once_with([])
+        mock_session.commit.assert_called_once()
