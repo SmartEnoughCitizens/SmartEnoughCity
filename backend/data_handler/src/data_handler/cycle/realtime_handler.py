@@ -82,9 +82,7 @@ def fetch_and_store_station_snapshots() -> None:
 
     try:
         with SessionLocal() as session:
-            session.execute(
-                pg_insert(DublinBikesStationSnapshot).values(records)
-            )
+            session.execute(pg_insert(DublinBikesStationSnapshot).values(records))
 
             stmt = pg_insert(DublinBikesStationHistory).values(history_records)
             stmt = stmt.on_conflict_do_nothing(
