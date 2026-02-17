@@ -8,3 +8,38 @@
 *.njsproj
 *.sln
 *.sw?
+# ============================================
+# Terraform
+# ============================================
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files - contain sensitive infrastructure state
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (may contain secrets)
+*.tfvars
+*.tfvars.json
+
+# Ignore override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore transient lock info files
+.terraform.tfstate.lock.info
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Keep example files
+!*.tfvars.example
+!*_example.tfvars
