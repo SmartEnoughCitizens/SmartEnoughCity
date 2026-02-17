@@ -1,8 +1,14 @@
 // frontend/src/services/sseService.ts
 
-import { Notification } from '../types/notification';
+type SSENotification = {
+  subject: string;
+  body: string;
+  recipient?: string;
+  channel?: string;
+  qrCode?: string;
+};
 
-type NotificationCallback = (notification: Notification) => void;
+type NotificationCallback = (notification: SSENotification) => void;
 
 class SSEService {
   private eventSource: EventSource | null = null;
@@ -18,18 +24,18 @@ class SSEService {
     }
 
     const url = 'http://localhost:8080/notification/v1/notifications/stream';
-    
+
     console.log('🔌 Connecting to SSE:', url);
-    
+
     this.eventSource = new EventSource(url, {
       withCredentials: true,
     });
 
     this.eventSource.addEventListener('notification', (event: MessageEvent) => {
       try {
-        const notification: Notification = JSON.parse(event.data);
+        const notification: SSENotification = JSON.parse(event.data);
         console.log('📬 Notification received:', notification);
-        
+
         this.listeners.forEach(callback => callback(notification));
         this.showBrowserNotification(notification);
         this.reconnectAttempts = 0;
@@ -59,8 +65,7 @@ class SSEService {
 
   subscribe(callback: NotificationCallback): () => void {
     this.listeners.push(callback);
-    
-    // Return unsubscribe function
+
     return () => {
       this.listeners = this.listeners.filter(cb => cb !== callback);
     };
@@ -77,15 +82,15 @@ class SSEService {
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * this.reconnectAttempts;
-    
+
     console.log(`🔄 Reconnecting SSE in ${delay}ms (attempt ${this.reconnectAttempts})`);
-    
+
     setTimeout(() => {
       this.connect();
     }, delay);
   }
 
-  private showBrowserNotification(notification: Notification): void {
+  private showBrowserNotification(notification: SSENotification): void {
     if (!('Notification' in window)) return;
 
     if (Notification.permission === 'granted') {
@@ -107,4 +112,6 @@ class SSEService {
   }
 }
 
-export default new SSEService();
+// Export singleton instance as default
+const sseService = new SSEService();
+export default sseService;

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Test - Notification Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .notification {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .notification strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .qr-code {
+            margin-top: 10px;
+            max-width: 200px;
+        }
+        h1 {
+            color: #333;
+        }
+        .logs {
+            background: #2d2d2d;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔔 SSE Notification Tester</h1>
+
+    <div id="status" class="status disconnected">
+        ● Status: Disconnected
+    </div>
+
+    <div>
+        <button onclick="connectSSE()">🔌 Connect to SSE</button>
+        <button onclick="disconnectSSE()">⏹️ Disconnect</button>
+        <button onclick="clearNotifications()">🗑️ Clear All</button>
+    </div>
+
+    <h2>📬 Received Notifications:</h2>
+    <div id="notifications"></div>
+
+    <h3>📋 Console Logs:</h3>
+    <div id="logs" class="logs"></div>
+</div>
+
+<script>
+    let eventSource = null;
+
+    function log(message) {
+        const logsDiv = document.getElementById('logs');
+        const time = new Date().toLocaleTimeString();
+        logsDiv.innerHTML += `[${time}] ${message}<br>`;
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+        console.log(message);
+    }
+
+    function connectSSE() {
+        if (eventSource) {
+            log('⚠️ Already connected!');
+            return;
+        }
+
+        log('🔄 Attempting to connect to SSE...');
+
+        // YOUR BACKEND SSE ENDPOINT
+        const url = 'http://localhost:8080/notification/v1/notifications/stream';
+
+        eventSource = new EventSource(url);
+
+        eventSource.onopen = function() {
+            log('✅ SSE Connection established!');
+            document.getElementById('status').className = 'status connected';
+            document.getElementById('status').textContent = '● Status: Connected';
+        };
+
+        eventSource.addEventListener('notification', function(event) {
+            log('📨 Notification received!');
+            console.log('Raw data:', event.data);
+
+            try {
+                const notification = JSON.parse(event.data);
+                displayNotification(notification);
+            } catch (error) {
+                log('❌ Error parsing notification: ' + error.message);
+            }
+        });
+
+        eventSource.onerror = function(error) {
+            log('❌ SSE Error occurred');
+            console.error('Error details:', error);
+            document.getElementById('status').className = 'status disconnected';
+            document.getElementById('status').textContent = '● Status: Disconnected (Error)';
+
+            // Auto-reconnect after 3 seconds
+            setTimeout(() => {
+                if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+                    log('🔄 Attempting to reconnect...');
+                    eventSource = null;
+                    connectSSE();
+                }
+            }, 3000);
+        };
+    }
+
+    function displayNotification(notification) {
+        const div = document.createElement('div');
+        div.className = 'notification';
+
+        let html = `
+            <strong>📧 ${notification.subject || 'No Subject'}</strong>
+            <p>${notification.body || 'No content'}</p>
+            <small>Received at: ${new Date().toLocaleTimeString()}</small>
+        `;
+
+        // Show QR code if present
+        if (notification.qrCode) {
+            html += `<br><img src="data:image/png;base64,${notification.qrCode}" class="qr-code" alt="QR Code">`;
+        }
+
+        div.innerHTML = html;
+        document.getElementById('notifications').prepend(div);
+
+        log('✅ Notification displayed on page');
+    }
+
+    function disconnectSSE() {
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+            document.getElementById('status').className = 'status disconnected';
+            document.getElementById('status').textContent = '● Status: Disconnected';
+            log('⏹️ Disconnected from SSE');
+        } else {
+            log('⚠️ Not connected');
+        }
+    }
+
+    function clearNotifications() {
+        document.getElementById('notifications').innerHTML = '';
+        log('🗑️ Cleared all notifications');
+    }
+
+    // Log initial state
+    log('Page loaded. Click "Connect to SSE" to start.');
+</script>
+</body>
+</html>

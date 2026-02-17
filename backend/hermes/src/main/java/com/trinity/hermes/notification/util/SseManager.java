@@ -82,7 +82,7 @@ public class SseManager {
             }
 
             emitter.send(SseEmitter.event().name("notification").data(payload));
-            log.info("SSE notification sent successfully: {}", notification.getSubject()
+            log.info("SSE notification sent successfully: {}", notification.getSubject());
         } catch (IOException ex) {
             log.error("Failed to push SSE event: {}", ex.getMessage());
             emitter = null;
