@@ -2,7 +2,7 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [AIP-42-Harden-NetworkPolicies-least-privilege-networking]
 
 concurrency:
   group: cd-main
@@ -13,20 +13,19 @@ env:
   IMAGE_BASE: smartenoughcitizens/smartenoughcity
 
   # GKE / Deploy settings
-  GCP_PROJECT_ID: smart-enough-city-dev
-  GKE_CLUSTER: smart-enough-city
-  GKE_LOCATION: europe-west1-b
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GKE_CLUSTER: ${{ vars.GKE_CLUSTER }}
+  GKE_LOCATION: ${{ vars.GKE_LOCATION }}
 
   # Helm release settings
   K8S_NAMESPACE: dev
   HELM_RELEASE: sec
-  HELM_VALUES_FILE: helm-charts/values-prod.yaml
+  HELM_VALUES_FILE: helm-charts/values-dev.yaml
   CHART_DIR: helm-charts
 
   # GitHub OIDC -> GCP Workload Identity
-  WORKLOAD_IDENTITY_PROVIDER: projects/946066538527/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-  # Put the Service Account email here
-  GCP_SERVICE_ACCOUNT: github-deployer@smart-enough-city-dev.iam.gserviceaccount.com
+  WORKLOAD_IDENTITY_PROVIDER: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+  GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
 jobs:
   detect-changes:
@@ -55,11 +54,11 @@ jobs:
             datahandler:
               - 'backend/data_handler/**'
             helmchart:
-              - 'helm-charts/Chart.yaml'
-              - 'helm-charts/Chart.lock'
-              - 'helm-charts/values*.yaml'
-              - 'helm-charts/templates/**'
-              - 'charts/**'
+              - 'infra/helm-charts/Chart.yaml'
+              - 'infra/helm-charts/Chart.lock'
+              - 'infra/helm-charts/values*.yaml'
+              - 'infra/helm-charts/templates/**'
+              - 'infra/helm-charts/charts/**'
 
   build-and-push:
     name: Build & push changed images to GHCR
