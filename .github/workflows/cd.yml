@@ -2,7 +2,7 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [AIP-42-Harden-NetworkPolicies-least-privilege-networking]
+    branches: [main]
 
 concurrency:
   group: cd-main
