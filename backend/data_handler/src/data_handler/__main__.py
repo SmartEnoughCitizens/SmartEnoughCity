@@ -8,6 +8,7 @@ from data_handler.cycle.csv_import_handler import import_all_station_history_csv
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
 from data_handler.db import Base, engine
+from data_handler.events.data_handler import fetch_and_store_events
 from data_handler.logging import configure_logging
 from data_handler.settings.data_sources_settings import get_data_sources_settings
 from data_handler.settings.database_settings import get_db_settings
@@ -71,7 +72,8 @@ def main_dynamic() -> None:
     print(f"  - Bus data: {sources_settings.enable_bus_data}")
     print(f"  - Train data: {sources_settings.enable_train_data}")
     print(f"  - Tram data: {sources_settings.enable_tram_data}")
-    print(f"  - Construction data: {sources_settings.enable_construction_data}\n")
+    print(f"  - Construction data: {sources_settings.enable_construction_data}")
+    print(f"  - Events data: {sources_settings.enable_events_data}\n")
 
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
@@ -93,6 +95,10 @@ def main_dynamic() -> None:
 
     if sources_settings.enable_construction_data:
         print("Processing construction data...")
+
+    if sources_settings.enable_events_data:
+        print("Processing events data...")
+        fetch_and_store_events()
 
 
 def main_import_history() -> None:
