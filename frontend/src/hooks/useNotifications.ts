@@ -1,9 +1,5 @@
-/**
- * React Query hooks for notifications with SSE real-time updates
- */
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { notificationApi } from "@/api";
 import sseService from "@/services/sseService";
 import { Notification, NotificationType, Priority } from "@/types/notification";
@@ -12,86 +8,69 @@ export const NOTIFICATION_KEYS = {
   user: (userId: string) => ["notifications", userId] as const,
 };
 
-/**
- * Get user notifications with SSE real-time updates
- */
+const toFrontendNotification = (raw: any, index: number): Notification => ({
+  id: raw.id || String(Date.now() + index),
+  type: (raw.type as NotificationType) || "ALERT",
+  message: raw.message || `${raw.subject || ""}: ${raw.body || ""}`,
+  priority: (raw.priority as Priority) || "MEDIUM",
+  timestamp: raw.timestamp || new Date().toISOString(),
+  read: raw.read ?? false,
+  metadata: raw.metadata || {
+    subject: raw.subject,
+    body: raw.body,
+    qrCode: raw.qrCode,
+    channel: raw.channel,
+    recipient: raw.recipient,
+  },
+});
+
 export const useUserNotifications = (
   userId: string,
   enabled: boolean = true,
 ) => {
   const queryClient = useQueryClient();
-  const hasConnectedRef = useRef(false);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  // Initial fetch from API
   const query = useQuery({
     queryKey: NOTIFICATION_KEYS.user(userId),
-    queryFn: () => notificationApi.getUserNotifications(userId),
+    queryFn: async () => {
+      const data: any = await notificationApi.getUserNotifications(userId);
+      const items = Array.isArray(data) ? data : (data?.notifications || []);
+      const notifications = items.map(toFrontendNotification);
+      return { userId, notifications, totalCount: notifications.length };
+    },
     enabled: !!userId && enabled,
     staleTime: 60_000,
   });
 
-  // Connect to SSE for real-time updates (only once!)
+  // Connect SSE + subscribe to push new notifications into React Query cache
   useEffect(() => {
     if (!userId || !enabled) return;
-    if (hasConnectedRef.current) {
-      console.log('⚠️ Already connected to SSE, skipping...');
-      return;
-    }
 
-    console.log('🚀 Connecting to SSE for user:', userId);
-    hasConnectedRef.current = true;
-
-    // Connect to SSE
     sseService.connect();
 
-    // Subscribe to new notifications from SSE
-    unsubscribeRef.current = sseService.subscribe((notification: any) => {
-      console.log('📨 New notification via SSE:', notification);
-
-      // Add new notification to React Query cache
+    const unsubscribe = sseService.subscribe((notification: any) => {
       queryClient.setQueryData(
         NOTIFICATION_KEYS.user(userId),
         (old: any) => {
-          if (!old) return old;
+          const existing = old?.notifications
+            ? old
+            : { userId, notifications: [], totalCount: 0 };
 
-          // Convert backend SSE notification to your Notification type
-          const newNotification: Notification = {
-            id: String(Date.now()),
-            type: "ALERT" as NotificationType,
-            message: `${notification.subject}: ${notification.body}`,
-            priority: "MEDIUM" as Priority,
-            timestamp: new Date().toISOString(),
-            read: false,
-            metadata: {
-              subject: notification.subject,
-              body: notification.body,
-              qrCode: notification.qrCode,
-              channel: notification.channel,
-              recipient: notification.recipient,
-            },
-          };
+          const newNotification = toFrontendNotification(notification, 0);
 
           return {
-            userId: old.userId,
-            notifications: [newNotification, ...old.notifications],
-            totalCount: old.totalCount + 1,
+            userId: existing.userId,
+            notifications: [newNotification, ...existing.notifications],
+            totalCount: existing.totalCount + 1,
           };
         }
       );
     });
 
-    // Cleanup function - only unsubscribe, DON'T disconnect
     return () => {
-      console.log('🧹 Cleaning up SSE subscription (keeping connection alive)');
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-        unsubscribeRef.current = null;
-      }
-      // Don't call sseService.disconnect() here!
-      // The connection stays alive for the entire session
+      unsubscribe();
     };
-  }, [userId, enabled]); // Removed queryClient from dependencies
+  }, [userId, enabled, queryClient]);
 
   return query;
 };
