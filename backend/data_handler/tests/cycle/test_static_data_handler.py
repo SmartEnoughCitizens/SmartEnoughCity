@@ -7,17 +7,6 @@ from unittest.mock import Mock
 import pytest
 from sqlalchemy.orm import DeclarativeBase
 
-# Mock db module before importing handler (avoids PostgreSQL engine creation)
-if "data_handler.db" not in sys.modules:
-
-    class _Base(DeclarativeBase):
-        pass
-
-    _mock_db = type(sys)("data_handler.db")
-    _mock_db.Base = _Base
-    _mock_db.SessionLocal = Mock()
-    sys.modules["data_handler.db"] = _mock_db
-
 from data_handler.cycle.static_data_handler import (
     parse_station_information_record,
     process_station_information,
