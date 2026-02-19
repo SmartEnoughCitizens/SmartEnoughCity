@@ -42,11 +42,10 @@ export const useUserNotifications = (
     staleTime: 60_000,
   });
 
-  // Connect SSE + subscribe to push new notifications into React Query cache
+  // Subscribe to SSE to push new notifications into React Query cache
+  // (SSE connection is managed by DashboardLayout)
   useEffect(() => {
     if (!userId || !enabled) return;
-
-    sseService.connect(userId);
 
     const unsubscribe = sseService.subscribe((notification: any) => {
       queryClient.setQueryData(
