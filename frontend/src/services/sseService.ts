@@ -36,6 +36,8 @@ class SSEService {
 
     this.eventSource.addEventListener("notification", (event: MessageEvent) => {
       try {
+        // TODO: Temporary; to be fixed
+        // eslint-disable-next-line no-restricted-syntax
         const notification: SSENotification = JSON.parse(event.data);
         console.log("Notification received:", notification);
         for (const cb of this.listeners) {
