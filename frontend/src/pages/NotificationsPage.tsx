@@ -14,8 +14,10 @@ import {
   Alert,
   Divider,
 } from "@mui/material";
+import { useEffect } from "react";
 import { useUserNotifications } from "@/hooks";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { setNotificationBadgeCount } from "@/store/slices/uiSlice";
 import { Priority, NotificationType } from "@/types";
 
 const getPriorityColor = (priority: Priority) => {
@@ -54,6 +56,12 @@ const getTypeColor = (type: NotificationType) => {
 
 export const NotificationsPage = () => {
   const { username } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+
+  // Clear badge when user views notifications
+  useEffect(() => {
+    dispatch(setNotificationBadgeCount(0));
+  }, [dispatch]);
 
   const { data, isLoading, error } = useUserNotifications(
     username || "",
