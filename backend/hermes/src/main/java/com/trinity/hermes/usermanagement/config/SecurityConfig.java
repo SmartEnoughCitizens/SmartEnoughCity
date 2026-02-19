@@ -62,7 +62,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/error")
                     .permitAll()
-                    .requestMatchers("/notification/v1", "/notification/v1/**")
+                    .requestMatchers("/api/notification/v1", "/api/notification/v1/**")
                     .permitAll()
                     .requestMatchers("/api/trains")
                     .hasRole("City_Manager")
