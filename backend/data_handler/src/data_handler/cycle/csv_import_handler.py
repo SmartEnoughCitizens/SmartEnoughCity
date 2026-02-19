@@ -8,9 +8,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from data_handler.csv_utils import read_csv_file
 from data_handler.cycle.gbfs_parsing_utils import (
     parse_csv_boolean,
-    parse_csv_timestamp,
+    parse_iso_timestamp,
     validate_csv_station_history_row,
-    parse_iso_timestamp
 )
 from data_handler.cycle.models import DublinBikesStationHistory
 from data_handler.db import SessionLocal
