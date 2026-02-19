@@ -55,7 +55,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       unsubscribe();
       sseService.disconnect();
     };
-  }, [username]);
+  }, [username, dispatch]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 

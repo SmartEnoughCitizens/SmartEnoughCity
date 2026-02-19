@@ -34,20 +34,22 @@ class SSEService {
       try {
         const notification: SSENotification = JSON.parse(event.data);
         console.log('Notification received:', notification);
-        this.listeners.forEach(cb => cb(notification));
+        for (const cb of this.listeners) {
+          cb(notification);
+        }
       } catch (error) {
         console.error('Error parsing SSE notification:', error);
       }
     });
 
-    this.eventSource.onopen = () => {
+    this.eventSource.addEventListener('open', () => {
       console.log('SSE Connected');
-    };
+    });
 
     // Let EventSource handle reconnection automatically — just log the error
-    this.eventSource.onerror = () => {
+    this.eventSource.addEventListener('error', () => {
       console.warn('SSE connection error — browser will auto-reconnect');
-    };
+    });
   }
 
   disconnect(): void {

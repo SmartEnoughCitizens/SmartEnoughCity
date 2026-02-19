@@ -8,7 +8,22 @@ export const NOTIFICATION_KEYS = {
   user: (userId: string) => ["notifications", userId] as const,
 };
 
-const toFrontendNotification = (raw: any, index: number): Notification => ({
+interface RawNotification {
+  id?: string;
+  type?: string;
+  message?: string;
+  subject?: string;
+  body?: string;
+  priority?: string;
+  timestamp?: string;
+  read?: boolean;
+  metadata?: Record<string, unknown>;
+  qrCode?: string;
+  channel?: string;
+  recipient?: string;
+}
+
+const toFrontendNotification = (raw: RawNotification, index: number): Notification => ({
   id: raw.id || String(Date.now() + index),
   type: (raw.type as NotificationType) || "ALERT",
   message: raw.message || `${raw.subject || ""}: ${raw.body || ""}`,
@@ -33,9 +48,11 @@ export const useUserNotifications = (
   const query = useQuery<NotificationResponse>({
     queryKey: NOTIFICATION_KEYS.user(userId),
     queryFn: async () => {
-      const data: any = await notificationApi.getUserNotifications(userId);
-      const items = Array.isArray(data) ? data : (data?.notifications || []);
-      const notifications = items.map(toFrontendNotification);
+      const data = await notificationApi.getUserNotifications(userId);
+      const rawItems: RawNotification[] = Array.isArray(data)
+        ? (data as RawNotification[])
+        : (data.notifications || []);
+      const notifications = rawItems.map((item, index) => toFrontendNotification(item, index));
       return { userId, notifications, totalCount: notifications.length };
     },
     enabled: !!userId && enabled,
@@ -47,11 +64,11 @@ export const useUserNotifications = (
   useEffect(() => {
     if (!userId || !enabled) return;
 
-    const unsubscribe = sseService.subscribe((notification: any) => {
-      queryClient.setQueryData(
+    const unsubscribe = sseService.subscribe((notification) => {
+      queryClient.setQueryData<NotificationResponse>(
         NOTIFICATION_KEYS.user(userId),
-        (old: any) => {
-          const existing = old?.notifications
+        (old) => {
+          const existing: NotificationResponse = old?.notifications
             ? old
             : { userId, notifications: [], totalCount: 0 };
 
