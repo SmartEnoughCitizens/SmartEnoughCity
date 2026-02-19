@@ -1,12 +1,10 @@
 """Tests for historical CSV import handler."""
 
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from sqlalchemy.orm import DeclarativeBase
 
 
 from data_handler.cycle.csv_import_handler import (
