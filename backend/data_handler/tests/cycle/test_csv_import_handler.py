@@ -6,7 +6,6 @@ from unittest.mock import Mock
 
 import pytest
 
-
 from data_handler.cycle.csv_import_handler import (
     REQUIRED_HEADERS,
     import_all_station_history_csvs,
