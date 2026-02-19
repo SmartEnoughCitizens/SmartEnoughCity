@@ -11,11 +11,12 @@ import {
   ListItemText,
   Chip,
   CircularProgress,
-  Alert,
   Divider,
 } from "@mui/material";
+import { useEffect } from "react";
 import { useUserNotifications } from "@/hooks";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { setNotificationBadgeCount } from "@/store/slices/uiSlice";
 import { Priority, NotificationType } from "@/types";
 
 const getPriorityColor = (priority: Priority) => {
@@ -54,11 +55,14 @@ const getTypeColor = (type: NotificationType) => {
 
 export const NotificationsPage = () => {
   const { username } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
 
-  const { data, isLoading, error } = useUserNotifications(
-    username || "",
-    !!username,
-  );
+  // Clear badge when user views notifications
+  useEffect(() => {
+    dispatch(setNotificationBadgeCount(0));
+  }, [dispatch]);
+
+  const { data, isLoading } = useUserNotifications(username || "", !!username);
 
   if (isLoading) {
     return (
@@ -75,16 +79,7 @@ export const NotificationsPage = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Notifications
-        </Typography>
-        <Alert severity="error">Failed to load notifications</Alert>
-      </Box>
-    );
-  }
+  // Don't early-return on error — SSE notifications may still arrive
 
   return (
     <Box
