@@ -62,10 +62,7 @@ export const NotificationsPage = () => {
     dispatch(setNotificationBadgeCount(0));
   }, [dispatch]);
 
-  const { data, isLoading } = useUserNotifications(
-    username || "",
-    !!username,
-  );
+  const { data, isLoading } = useUserNotifications(username || "", !!username);
 
   if (isLoading) {
     return (
