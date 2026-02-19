@@ -33,9 +33,11 @@ public class NotificationFacade {
     // TODO: Add code for schema validations that need to be performed via networkNT
     // TODO: Add code for user retreival
     // TODO: fix code to have facade work better
+    String userId = backendNotificationRequestDTO.getUserId();
     User user = User.builder().build();
     Set<Notification> notificationSet =
         notificationService.createNotification(user, backendNotificationRequestDTO);
+    if (notificationSet == null) return;
     for (Notification notification : notificationSet) {
       if (Objects.nonNull(notification)
           && (notification.getChannel() == Channel.EMAIL
@@ -45,11 +47,9 @@ public class NotificationFacade {
       if (Objects.nonNull(notification)
           && (notification.getChannel() == Channel.NOTIFICATION
               || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
-        notificationDispatcher.dispatchSse(notification);
+        notificationDispatcher.dispatchSse(userId, notification);
         notificationStore.add(notification);
       }
-
-      //recommendationService.createRecommendation(new CreateRecommendationRequest());
     }
   }
 
@@ -95,6 +95,10 @@ public class NotificationFacade {
     User user = User.builder().build();
 
     Set<Notification> notifications = notificationService.createNotification(user, payload);
+    if (notifications == null) return;
+
+    List<String> userGroups =
+        solution.getAffectedUserGroups() != null ? solution.getAffectedUserGroups() : List.of();
 
     for (Notification notification : notifications) {
       if (Objects.nonNull(notification)
@@ -105,12 +109,15 @@ public class NotificationFacade {
       if (Objects.nonNull(notification)
           && (notification.getChannel() == Channel.NOTIFICATION
               || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
-        notificationDispatcher.dispatchSse(notification);
+        for (String userId : userGroups) {
+          notificationDispatcher.dispatchSse(userId, notification);
+        }
       }
     }
   }
 
-  public List<Notification> getAll() {
+  // TODO: Filter by userId when persistence is added
+  public List<Notification> getAll(String userId) {
     return notificationStore.getAll();
   }
 }
