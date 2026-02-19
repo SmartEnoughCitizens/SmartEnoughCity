@@ -19,7 +19,7 @@ class SSEService {
     // Already connected for this user
     if (
       this.eventSource &&
-      this.eventSource.readyState !== EventSource.CLOSED &&
+      this.eventSource.readyState === EventSource.OPEN &&
       this.connectedUserId === userId
     ) {
       return;
