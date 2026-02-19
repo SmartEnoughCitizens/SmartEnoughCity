@@ -1,4 +1,4 @@
-import { API_CONFIG, API_ENDPOINTS } from '@/config/api.config';
+import { API_ENDPOINTS } from '@/config/api.config';
 
 type SSENotification = {
   subject: string;
