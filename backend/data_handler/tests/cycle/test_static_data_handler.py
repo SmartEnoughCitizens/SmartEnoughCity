@@ -1,11 +1,9 @@
 """Tests for static station information handler."""
 
-import sys
 from decimal import Decimal
 from unittest.mock import Mock
 
 import pytest
-from sqlalchemy.orm import DeclarativeBase
 
 from data_handler.cycle.static_data_handler import (
     parse_station_information_record,
