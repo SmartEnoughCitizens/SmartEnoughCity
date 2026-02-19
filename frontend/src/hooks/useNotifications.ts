@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { notificationApi } from "@/api";
 import sseService from "@/services/sseService";
-import { Notification, NotificationType, Priority } from "@/types";
+import { type Notification, type NotificationResponse, NotificationType, Priority } from "@/types";
 
 export const NOTIFICATION_KEYS = {
   user: (userId: string) => ["notifications", userId] as const,
@@ -30,7 +30,7 @@ export const useUserNotifications = (
 ) => {
   const queryClient = useQueryClient();
 
-  const query = useQuery({
+  const query = useQuery<NotificationResponse>({
     queryKey: NOTIFICATION_KEYS.user(userId),
     queryFn: async () => {
       const data: any = await notificationApi.getUserNotifications(userId);

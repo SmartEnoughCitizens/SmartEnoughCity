@@ -11,7 +11,6 @@ import {
   ListItemText,
   Chip,
   CircularProgress,
-  Alert,
   Divider,
 } from "@mui/material";
 import { useEffect } from "react";
@@ -63,7 +62,7 @@ export const NotificationsPage = () => {
     dispatch(setNotificationBadgeCount(0));
   }, [dispatch]);
 
-  const { data, isLoading, error } = useUserNotifications(
+  const { data, isLoading } = useUserNotifications(
     username || "",
     !!username,
   );

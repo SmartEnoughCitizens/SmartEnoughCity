@@ -5,8 +5,6 @@ import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
 import com.trinity.hermes.notification.model.enums.Channel;
 import com.trinity.hermes.notification.util.InMemoryNotificationStore;
-import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
-import com.trinity.hermes.recommendation.service.RecommendationService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
@@ -24,7 +22,7 @@ import org.springframework.stereotype.Component;
 public class NotificationFacade {
 
   private final NotificationService notificationService;
-  //private final RecommendationService recommendationService;
+  // private final RecommendationService recommendationService;
   private final NotificationDispatcher notificationDispatcher;
   private final InMemoryNotificationStore notificationStore;
 
