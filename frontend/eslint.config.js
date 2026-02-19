@@ -33,6 +33,16 @@ export default defineConfig([
           "unicorn/filename-case": "off",
           "unicorn/prevent-abbreviations": "off",
 
+          "no-restricted-syntax": [
+            "error",
+            {
+              selector:
+                "CallExpression[callee.object.name='JSON'][callee.property.name='parse']",
+              message:
+                "Do not use JSON.parse() directly as it returns 'any'. Use a validation library (Zod) in combination with safeJsonParse function from @/utils/safeJsonParse.ts.",
+            },
+          ],
+
           // TODO: Reenable the below rules
           // They are ignored temporarily, the errors should be resolved properly
           "@typescript-eslint/no-unsafe-argument": "off",
