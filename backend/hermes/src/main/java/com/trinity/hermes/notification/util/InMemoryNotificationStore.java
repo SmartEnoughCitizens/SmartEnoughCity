@@ -35,7 +35,7 @@ public class InMemoryNotificationStore {
   /** Returns latest notification or null */
   public Optional<Notification> getLatest() {
     synchronized (notifications) {
-      if (notifications.isEmpty()) return null;
+      if (notifications.isEmpty()) return Optional.empty();
       return Optional.ofNullable(notifications.get(notifications.size() - 1));
     }
   }

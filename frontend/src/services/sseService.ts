@@ -13,16 +13,21 @@ type NotificationCallback = (notification: SSENotification) => void;
 class SSEService {
   private eventSource: EventSource | null = null;
   private listeners: NotificationCallback[] = [];
+  private connectedUserId: string | null = null;
 
-  connect(): void {
-    // Already connected or connecting
-    if (this.eventSource && this.eventSource.readyState !== EventSource.CLOSED) {
+  connect(userId: string): void {
+    // Already connected for this user
+    if (this.eventSource && this.eventSource.readyState !== EventSource.CLOSED && this.connectedUserId === userId) {
       return;
     }
 
-    const url = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.NOTIFICATIONS_STREAM}`;
+    // Different user or stale connection — disconnect first
+    this.disconnect();
+
+    const url = `${API_ENDPOINTS.NOTIFICATIONS_STREAM}?userId=${encodeURIComponent(userId)}`;
     console.log('Connecting to SSE:', url);
 
+    this.connectedUserId = userId;
     this.eventSource = new EventSource(url);
 
     this.eventSource.addEventListener('notification', (event: MessageEvent) => {
@@ -50,6 +55,7 @@ class SSEService {
       this.eventSource.close();
       this.eventSource = null;
     }
+    this.connectedUserId = null;
   }
 
   subscribe(callback: NotificationCallback): () => void {

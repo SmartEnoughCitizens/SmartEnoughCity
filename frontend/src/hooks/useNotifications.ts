@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { notificationApi } from "@/api";
 import sseService from "@/services/sseService";
-import { Notification, NotificationType, Priority } from "@/types/notification";
+import { Notification, NotificationType, Priority } from "@/types";
 
 export const NOTIFICATION_KEYS = {
   user: (userId: string) => ["notifications", userId] as const,
@@ -46,7 +46,7 @@ export const useUserNotifications = (
   useEffect(() => {
     if (!userId || !enabled) return;
 
-    sseService.connect();
+    sseService.connect(userId);
 
     const unsubscribe = sseService.subscribe((notification: any) => {
       queryClient.setQueryData(

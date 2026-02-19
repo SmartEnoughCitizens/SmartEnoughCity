@@ -1,16 +1,12 @@
 package com.trinity.hermes.notification.util;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.trinity.hermes.notification.model.Notification;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -19,78 +15,33 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Component
 public class SseManager {
 
-    private volatile SseEmitter emitter;
+    private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
-    private final ScheduledExecutorService heartbeatExecutor =
-            Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(r, "sse-heartbeat");
-                t.setDaemon(true);
-                return t;
-            });
-
-    private volatile ScheduledFuture<?> heartbeatTask;
-
-    public synchronized SseEmitter register() {
-        if (this.heartbeatTask != null) {
-            this.heartbeatTask.cancel(false);
-        }
-
-        if (this.emitter != null) {
+    public SseEmitter register(String userId) {
+        SseEmitter old = emitters.remove(userId);
+        if (old != null) {
             try {
-                this.emitter.complete();
+                old.complete();
             } catch (Exception ex) {
-                log.warn("Error completing old SSE emitter", ex);
+                log.warn("Error completing old SSE emitter for user {}", userId, ex);
             }
         }
 
-        SseEmitter newEmitter = new SseEmitter(0L);
-        this.emitter = newEmitter;
+        SseEmitter emitter = new SseEmitter(0L);
+        emitters.put(userId, emitter);
 
-        newEmitter.onCompletion(() -> {
-            if (this.emitter == newEmitter) {
-                this.emitter = null;
-            }
-        });
+        emitter.onCompletion(() -> emitters.remove(userId, emitter));
+        emitter.onTimeout(() -> emitters.remove(userId, emitter));
+        emitter.onError(e -> emitters.remove(userId, emitter));
 
-        newEmitter.onTimeout(() -> {
-            if (this.emitter == newEmitter) {
-                this.emitter = null;
-            }
-        });
-
-        newEmitter.onError(e -> {
-            if (this.emitter == newEmitter) {
-                this.emitter = null;
-            }
-        });
-
-        // Send initial event so browser knows connection is alive
-        try {
-            newEmitter.send(SseEmitter.event().comment("connected"));
-        } catch (IOException e) {
-            log.error("Failed to send initial SSE event", e);
-        }
-
-        // Heartbeat every 30s to keep connection alive
-        this.heartbeatTask = heartbeatExecutor.scheduleAtFixedRate(() -> {
-            SseEmitter current = this.emitter;
-            if (current != null) {
-                try {
-                    current.send(SseEmitter.event().comment("heartbeat"));
-                } catch (IOException e) {
-                    log.warn("Heartbeat failed, clearing emitter");
-                    this.emitter = null;
-                }
-            }
-        }, 30, 30, TimeUnit.SECONDS);
-
-        log.info("SSE emitter registered");
-        return newEmitter;
+        log.info("SSE emitter registered for user {}", userId);
+        return emitter;
     }
 
-    public void push(Notification notification) {
-        if (Objects.isNull(emitter)) {
-            log.warn("No active SSE emitter; event dropped");
+    public void push(String userId, Notification notification) {
+        SseEmitter emitter = emitters.get(userId);
+        if (emitter == null) {
+            log.warn("No active SSE emitter for user {}; event dropped", userId);
             return;
         }
 
@@ -100,21 +51,17 @@ public class SseManager {
             payload.put("body", notification.getBody());
             payload.put("recipient", notification.getRecipient());
             payload.put("channel", notification.getChannel() != null ? notification.getChannel().toString() : null);
+            // TODO: Add type and priority fields to Notification model and include here
 
             if (notification.getQrCode() != null && notification.getQrCode().length > 0) {
-                payload.put("qrCode", java.util.Base64.getEncoder().encodeToString(notification.getQrCode()));
+                payload.put("qrCode", Base64.getEncoder().encodeToString(notification.getQrCode()));
             }
 
             emitter.send(SseEmitter.event().name("notification").data(payload));
-            log.info("SSE notification sent: {}", notification.getSubject());
+            log.info("SSE notification sent to user {}: {}", userId, notification.getSubject());
         } catch (IOException ex) {
-            log.error("Failed to push SSE event: {}", ex.getMessage());
-            emitter = null;
+            log.error("Failed to push SSE event to user {}: {}", userId, ex.getMessage());
+            emitters.remove(userId, emitter);
         }
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        heartbeatExecutor.shutdownNow();
     }
 }
