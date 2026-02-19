@@ -1,9 +1,8 @@
 """Tests for real-time station snapshot handler."""
 
-import sys
 from datetime import UTC, datetime
 from unittest.mock import Mock
-from sqlalchemy.orm import DeclarativeBase
+
 import pytest
 
 from data_handler.cycle.realtime_handler import (
