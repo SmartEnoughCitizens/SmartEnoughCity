@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@/config/api.config';
+import { API_ENDPOINTS } from "@/config/api.config";
 
 type SSENotification = {
   subject: string;
@@ -17,7 +17,11 @@ class SSEService {
 
   connect(userId: string): void {
     // Already connected for this user
-    if (this.eventSource && this.eventSource.readyState !== EventSource.CLOSED && this.connectedUserId === userId) {
+    if (
+      this.eventSource &&
+      this.eventSource.readyState !== EventSource.CLOSED &&
+      this.connectedUserId === userId
+    ) {
       return;
     }
 
@@ -25,30 +29,30 @@ class SSEService {
     this.disconnect();
 
     const url = `${API_ENDPOINTS.NOTIFICATIONS_STREAM}?userId=${encodeURIComponent(userId)}`;
-    console.log('Connecting to SSE:', url);
+    console.log("Connecting to SSE:", url);
 
     this.connectedUserId = userId;
     this.eventSource = new EventSource(url);
 
-    this.eventSource.addEventListener('notification', (event: MessageEvent) => {
+    this.eventSource.addEventListener("notification", (event: MessageEvent) => {
       try {
         const notification: SSENotification = JSON.parse(event.data);
-        console.log('Notification received:', notification);
+        console.log("Notification received:", notification);
         for (const cb of this.listeners) {
           cb(notification);
         }
       } catch (error) {
-        console.error('Error parsing SSE notification:', error);
+        console.error("Error parsing SSE notification:", error);
       }
     });
 
-    this.eventSource.addEventListener('open', () => {
-      console.log('SSE Connected');
+    this.eventSource.addEventListener("open", () => {
+      console.log("SSE Connected");
     });
 
     // Let EventSource handle reconnection automatically — just log the error
-    this.eventSource.addEventListener('error', () => {
-      console.warn('SSE connection error — browser will auto-reconnect');
+    this.eventSource.addEventListener("error", () => {
+      console.warn("SSE connection error — browser will auto-reconnect");
     });
   }
 
@@ -63,11 +67,10 @@ class SSEService {
   subscribe(callback: NotificationCallback): () => void {
     this.listeners.push(callback);
     return () => {
-      this.listeners = this.listeners.filter(cb => cb !== callback);
+      this.listeners = this.listeners.filter((cb) => cb !== callback);
     };
   }
 }
 
 const sseService = new SSEService();
 export default sseService;
-

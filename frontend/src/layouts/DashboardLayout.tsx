@@ -24,7 +24,10 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { toggleTheme, incrementNotificationBadge } from "@/store/slices/uiSlice";
+import {
+  toggleTheme,
+  incrementNotificationBadge,
+} from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
 import sseService from "@/services/sseService";

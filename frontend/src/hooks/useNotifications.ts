@@ -2,7 +2,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { notificationApi } from "@/api";
 import sseService from "@/services/sseService";
-import { type Notification, type NotificationResponse, NotificationType, Priority } from "@/types";
+import {
+  type Notification,
+  type NotificationResponse,
+  NotificationType,
+  Priority,
+} from "@/types";
 
 export const NOTIFICATION_KEYS = {
   user: (userId: string) => ["notifications", userId] as const,
@@ -23,7 +28,10 @@ interface RawNotification {
   recipient?: string;
 }
 
-const toFrontendNotification = (raw: RawNotification, index: number): Notification => ({
+const toFrontendNotification = (
+  raw: RawNotification,
+  index: number,
+): Notification => ({
   id: raw.id || String(Date.now() + index),
   type: (raw.type as NotificationType) || "ALERT",
   message: raw.message || `${raw.subject || ""}: ${raw.body || ""}`,
@@ -51,8 +59,10 @@ export const useUserNotifications = (
       const data = await notificationApi.getUserNotifications(userId);
       const rawItems: RawNotification[] = Array.isArray(data)
         ? (data as RawNotification[])
-        : (data.notifications || []);
-      const notifications = rawItems.map((item, index) => toFrontendNotification(item, index));
+        : data.notifications || [];
+      const notifications = rawItems.map((item, index) =>
+        toFrontendNotification(item, index),
+      );
       return { userId, notifications, totalCount: notifications.length };
     },
     enabled: !!userId && enabled,
@@ -79,7 +89,7 @@ export const useUserNotifications = (
             notifications: [newNotification, ...existing.notifications],
             totalCount: existing.totalCount + 1,
           };
-        }
+        },
       );
     });
 
