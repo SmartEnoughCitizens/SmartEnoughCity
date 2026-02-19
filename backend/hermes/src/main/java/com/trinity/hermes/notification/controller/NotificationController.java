@@ -15,7 +15,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 @RequestMapping("/notification/v1")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Allow frontend to call this API
+@CrossOrigin(origins = "*")
+
 public class NotificationController {
   private final NotificationFacade notificationFacade;
 
@@ -35,13 +36,12 @@ public class NotificationController {
   }
 
   /** Endpoint to establish an SSE connection for streaming notifications. */
-  // TODO :  Make a seperate class for streams .. maybe?
   @GetMapping("/notifications/stream")
   public SseEmitter stream() {
     return sseManager.register();
   }
 
-  // TODO: Remove this endpoint after DEMO
+  // TODO: Implement API to get all notifications for a user
   @GetMapping("/{userId}")
   public ResponseEntity<?> getLatestNotification(@PathVariable String userId) {
     return ResponseEntity.ok(notificationFacade.getAll());

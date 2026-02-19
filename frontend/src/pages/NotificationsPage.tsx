@@ -75,16 +75,7 @@ export const NotificationsPage = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Notifications
-        </Typography>
-        <Alert severity="error">Failed to load notifications</Alert>
-      </Box>
-    );
-  }
+  // Don't early-return on error — SSE notifications may still arrive
 
   return (
     <Box

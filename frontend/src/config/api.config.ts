@@ -37,4 +37,5 @@ export const API_ENDPOINTS = {
 
   // Notifications
   NOTIFICATIONS: (userId: string) => `/notification/v1/${userId}`,
+  NOTIFICATIONS_STREAM: "/notification/v1/notifications/stream",
 };
