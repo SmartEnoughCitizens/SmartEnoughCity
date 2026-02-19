@@ -16,10 +16,6 @@ spring:
    username: backend_user
    password: dev_backend_user_password
 
-  mvc:
-    async:
-      request-timeout: -1
-
   jpa:
     properties:
       hibernate:
