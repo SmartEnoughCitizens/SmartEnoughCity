@@ -9,15 +9,15 @@ import pytest
 from sqlalchemy.orm import DeclarativeBase
 
 # Mock db module before importing handler
-if "data_handler.db" not in sys.modules:
+# if "data_handler.db" not in sys.modules:
 
-    class _Base(DeclarativeBase):
-        pass
+#     class _Base(DeclarativeBase):
+#         pass
 
-    _mock_db = type(sys)("data_handler.db")
-    _mock_db.Base = _Base
-    _mock_db.SessionLocal = Mock()
-    sys.modules["data_handler.db"] = _mock_db
+#     _mock_db = type(sys)("data_handler.db")
+#     _mock_db.Base = _Base
+#     _mock_db.SessionLocal = Mock()
+#     sys.modules["data_handler.db"] = _mock_db
 
 from data_handler.cycle.csv_import_handler import (
     REQUIRED_HEADERS,

@@ -10,6 +10,7 @@ from data_handler.cycle.gbfs_parsing_utils import (
     parse_csv_boolean,
     parse_csv_timestamp,
     validate_csv_station_history_row,
+    parse_iso_timestamp
 )
 from data_handler.cycle.models import DublinBikesStationHistory
 from data_handler.db import SessionLocal
@@ -36,7 +37,7 @@ def parse_station_history_csv_row(row: dict) -> dict:
     """
     validate_csv_station_history_row(row)
 
-    timestamp = parse_csv_timestamp(row["last_reported"])
+    timestamp = parse_iso_timestamp(row["last_reported"])
 
     return {
         "station_id": int(row["station_id"]),
