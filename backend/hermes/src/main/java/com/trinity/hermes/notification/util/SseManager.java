@@ -40,7 +40,7 @@ public class SseManager {
   public void push(String userId, Notification notification) {
     SseEmitter emitter = emitters.get(userId);
     if (emitter == null) {
-      log.error("No active SSE emitter for user {}; event dropped", userId);
+      log.info("No active SSE emitter for user {}; event dropped", userId);
       return;
     }
 
