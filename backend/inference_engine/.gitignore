@@ -215,6 +215,18 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-
+## Static Data 
 recommendation/ev_points/data/*
+recommendation/ev_points/geo_data.py 
+recommendation/ev_points/geo_datafilter.py
+recommendation/ev_points/dublin_ev_map.html
+
+
+!recommendation/ev_points/data/Household_data.csv 
+!recommendation/ev_points/data/charging_demand.csv
+!recommendation/ev_points/data/charging_point_location.csv 
+!recommendation/ev_points/data/location_data.geojson 
+
+
+
 
