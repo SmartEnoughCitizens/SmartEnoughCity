@@ -12,6 +12,10 @@ class APISettings(BaseSettings):
     hermes_url: str = Field(..., alias="HERMES_URL")
     gtfs_api_base_url: str = Field(..., alias="GTFS_API_BASE_URL")
     gtfs_api_key: str = Field(..., alias="GTFS_API_KEY")
+    eco_counter_api_base_url: str = Field(..., alias="ECO_COUNTER_API_BASE_URL")
+    eco_counter_api_key: str = Field(..., alias="ECO_COUNTER_API_KEY")
+    jcdecaux_api_base_url: str = Field(..., alias="JCDECAUX_API_BASE_URL")
+    jcdecaux_api_key: str = Field(..., alias="JCDECAUX_API_KEY")
 
     model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 

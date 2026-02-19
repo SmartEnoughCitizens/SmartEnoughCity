@@ -51,10 +51,10 @@ public class NotificationDispatcher {
     }
   }
 
-  public void dispatchSse(Notification notification) {
+  public void dispatchSse(String userId, Notification notification) {
     try {
-      sseManager.push(notification);
-      log.info("SSE pushed for notification {}", notification.getSubject());
+      sseManager.push(userId, notification);
+      log.info("SSE pushed for user {} notification {}", userId, notification.getSubject());
     } catch (Exception ex) {
       log.error(
           "Failed to push SSE notification {} - {}", notification.getSubject(), ex.getMessage());

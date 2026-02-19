@@ -1,0 +1,4 @@
+County,Latitude,Longitude,CCS kWs,CHAdeMO kWs,AC Fast kWs,AC Socket kWs,Open Hours
+Dublin,53.3498,-6.2603,50,50,22,7,24/7
+Dublin,53.3441,-6.2675,150,100,43,7.4,Mon-Fri 9am-5pm
+Cork,51.8969,-8.4863,50,50,22,7,24/7
