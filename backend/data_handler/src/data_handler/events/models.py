@@ -44,6 +44,7 @@ class Event(Base):
     source_id: Mapped[str] = mapped_column(String(255), nullable=False)
     event_name: Mapped[str] = mapped_column(String(500), nullable=False)
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    event_duration: Mapped[float] = mapped_column(Double, nullable=False)
     venue_name: Mapped[str] = mapped_column(String(255), nullable=False)
     latitude: Mapped[float] = mapped_column(Double, nullable=False)
     longitude: Mapped[float] = mapped_column(Double, nullable=False)
