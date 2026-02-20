@@ -30,11 +30,25 @@ def _upsert_events(
         return 0
 
     for event in events:
+        if event.event_type == "Music":
+            event_duration = 4
+        elif event.event_type == "Sports":
+            event_duration = 3
+        elif event.event_type == "Miscellaneous":
+            event_duration = 2
+        elif event.event_type == "Arts & Theatre":
+            event_duration = 2.5
+        elif event.event_type == "Film":
+            event_duration = 2       
+        else:
+            event_duration = 3
+
         stmt = pg_insert(Event).values(
             source=event.source,
             source_id=event.source_id,
             event_name=event.event_name,
             event_type=event.event_type,
+            event_duration = event_duration,
             venue_name=event.venue_name,
             latitude=event.latitude,
             longitude=event.longitude,
@@ -54,6 +68,7 @@ def _upsert_events(
                 "latitude": stmt.excluded.latitude,
                 "longitude": stmt.excluded.longitude,
                 "event_date": stmt.excluded.event_date,
+                "event_duration": stmt.excluded.event_duration,
                 "start_time": stmt.excluded.start_time,
                 "end_time": stmt.excluded.end_time,
                 "is_high_impact": stmt.excluded.is_high_impact,
