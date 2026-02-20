@@ -18,6 +18,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -93,6 +94,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       ),
       path: "/dashboard/notifications",
       label: "Notifications",
+    },
+    {
+      icon: <PersonAddIcon />,
+      path: "/dashboard/users",
+      label: "User Management",
     },
   ];
 
