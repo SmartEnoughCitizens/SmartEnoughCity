@@ -16,7 +16,8 @@ import {
 } from "@mui/material";
 import { isAxiosError } from "axios";
 import { useRegisterUser } from "@/hooks";
-import { ALLOWED_ROLES } from "@/types";
+import { getCreatableRoles } from "@/types";
+import { useAppSelector } from "@/store/hooks";
 
 const getErrorMessage = (error: Error | null): string => {
   if (!error) return "Failed to register user";
@@ -44,6 +45,8 @@ export const AddUserDialog = ({
   const [role, setRole] = useState("");
   const [password, setPassword] = useState("");
 
+  const { roles } = useAppSelector((state) => state.auth);
+  const creatableRoles = getCreatableRoles(roles);
   const registerMutation = useRegisterUser();
 
   const resetForm = () => {
@@ -141,7 +144,7 @@ export const AddUserDialog = ({
             fullWidth
             margin="dense"
           >
-            {ALLOWED_ROLES.map((r) => (
+            {creatableRoles.map((r) => (
               <MenuItem key={r} value={r}>
                 {r.replace("_", " ")}
               </MenuItem>

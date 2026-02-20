@@ -31,6 +31,7 @@ import {
 } from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
+import { getCreatableRoles } from "@/types";
 import sseService from "@/services/sseService";
 
 interface DashboardLayoutProps {
@@ -41,7 +42,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const { username } = useAppSelector((state) => state.auth);
+  const { username, roles } = useAppSelector((state) => state.auth);
+  const canManageUsers = getCreatableRoles(roles).length > 0;
   const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
   const logoutMutation = useLogout();
 
@@ -95,11 +97,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       path: "/dashboard/notifications",
       label: "Notifications",
     },
-    {
-      icon: <PersonAddIcon />,
-      path: "/dashboard/users",
-      label: "User Management",
-    },
+    ...(canManageUsers
+      ? [
+          {
+            icon: <PersonAddIcon />,
+            path: "/dashboard/users",
+            label: "User Management",
+          },
+        ]
+      : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;

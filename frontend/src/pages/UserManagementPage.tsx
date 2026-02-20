@@ -5,15 +5,25 @@
 import { useState } from "react";
 import { Box, Typography, Button, Snackbar, Alert } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import { Navigate } from "react-router-dom";
 import { AddUserDialog } from "@/components/usermanagement/AddUserDialog";
+import { useAppSelector } from "@/store/hooks";
+import { getCreatableRoles } from "@/types";
 
 export const UserManagementPage = () => {
+  const { roles } = useAppSelector((state) => state.auth);
+  const canManageUsers = getCreatableRoles(roles).length > 0;
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
+
+  if (!canManageUsers) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleSuccess = (message: string) => {
     setSnackbar({ open: true, message, severity: "success" });
