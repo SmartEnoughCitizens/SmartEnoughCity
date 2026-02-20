@@ -69,18 +69,26 @@ def _upsert_traffic_events(
     return len(events)
 
 
+# data_handler.py
+
 def fetch_and_store_traffic_data(
     bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
+    session: Session | None = None,  # ← add this
 ) -> int:
     client = TIIApiClient(bounding_box=bounding_box)
-    session = SessionLocal()
-    fetched_at = datetime.now(timezone.utc)  # ← Fixed: use timezone.utc
+    
+    _owns_session = session is None
+    if _owns_session:
+        session = SessionLocal()
+    
+    fetched_at = datetime.now(timezone.utc)
 
     try:
         raw_data = client.fetch_traffic_data()
 
         if raw_data is None:
-            session.commit()
+            if _owns_session:
+                session.commit()
             return 0
 
         events = parse_api_response(raw_data)
@@ -88,10 +96,12 @@ def fetch_and_store_traffic_data(
 
         events_count = _upsert_traffic_events(session, events, fetched_at)
 
-        session.commit()
+        if _owns_session:
+            session.commit()
 
     except Exception:
-        session.rollback()
+        if _owns_session:
+            session.rollback()
         logger.exception("Error fetching/storing traffic data")
         raise
 
@@ -100,4 +110,5 @@ def fetch_and_store_traffic_data(
         return events_count
 
     finally:
-        session.close()
+        if _owns_session:
+            session.close()
