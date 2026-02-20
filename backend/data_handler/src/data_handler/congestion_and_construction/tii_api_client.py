@@ -79,7 +79,7 @@ class TIIApiClient:
         self.zoom = zoom
         self.timeout = timeout
 
-    def _build_query_payload(self) -> list[dict[str, Any]]:
+    def build_query_payload(self) -> list[dict[str, Any]]:
         """Build the GraphQL query payload."""
         return [
             {
@@ -126,7 +126,7 @@ class TIIApiClient:
         try:
             response = requests.post(
                 self.API_URL,
-                json=self._build_query_payload(),
+                json=self.build_query_payload(),
                 headers=self.DEFAULT_HEADERS,
                 timeout=self.timeout,
             )
