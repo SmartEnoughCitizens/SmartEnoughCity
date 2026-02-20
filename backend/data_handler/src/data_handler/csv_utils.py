@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import csv
-from collections.abc import Iterator
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
 
 
 def validate_csv_headers(

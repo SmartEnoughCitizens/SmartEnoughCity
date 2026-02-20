@@ -2,7 +2,7 @@
  * Map-centric dashboard layout with slim icon sidebar
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   IconButton,
@@ -24,9 +24,13 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { toggleTheme } from "@/store/slices/uiSlice";
+import {
+  toggleTheme,
+  incrementNotificationBadge,
+} from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
+import sseService from "@/services/sseService";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -39,6 +43,22 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { username } = useAppSelector((state) => state.auth);
   const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
   const logoutMutation = useLogout();
+
+  // Connect SSE as soon as dashboard loads (user is authenticated)
+  useEffect(() => {
+    if (!username) return;
+
+    sseService.connect(username);
+
+    const unsubscribe = sseService.subscribe(() => {
+      dispatch(incrementNotificationBadge());
+    });
+
+    return () => {
+      unsubscribe();
+      sseService.disconnect();
+    };
+  }, [username, dispatch]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 

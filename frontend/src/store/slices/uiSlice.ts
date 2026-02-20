@@ -43,6 +43,9 @@ const uiSlice = createSlice({
     setNotificationBadgeCount: (state, action: PayloadAction<number>) => {
       state.notificationBadgeCount = action.payload;
     },
+    incrementNotificationBadge: (state) => {
+      state.notificationBadgeCount += 1;
+    },
   },
 });
 
@@ -53,6 +56,7 @@ export const {
   setTheme,
   setSelectedRouteId,
   setNotificationBadgeCount,
+  incrementNotificationBadge,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

@@ -36,5 +36,6 @@ export const API_ENDPOINTS = {
     `/api/v1/recommendation-engine/indicators/${type}`,
 
   // Notifications
-  NOTIFICATIONS: (userId: string) => `/notification/v1/${userId}`,
+  NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
+  NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
 };
