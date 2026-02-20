@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   PUBLIC_HEALTH: "/api/public/health",
 
   // User Management
+  USER_REGISTER: "/api/usermanagement/register",
   TRAINS: "/api/trains",
   BUSES: "/api/buses",
 
