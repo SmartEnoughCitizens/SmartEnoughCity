@@ -1,8 +1,6 @@
-import pytest
 
 from data_handler.congestion_and_construction.models import TrafficEventType
 from data_handler.congestion_and_construction.parsing_utils import (
-    ParsedTrafficEvent,
     determine_event_type,
     extract_coordinates,
     parse_api_response,

@@ -110,7 +110,7 @@ class TestTIIApiClient:
     def test_build_query_payload_structure(self) -> None:
         """Query payload has expected structure."""
         client = TIIApiClient()
-        payload = client._build_query_payload()
+        payload = client.build_query_payload()
 
         assert isinstance(payload, list)
         assert len(payload) == 1

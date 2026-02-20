@@ -8,3 +8,5 @@
 *.njsproj
 *.sln
 *.sw?
+backend/data_handler/.env.development
+backend/data_handler/.env.development

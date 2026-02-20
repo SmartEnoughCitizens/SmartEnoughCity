@@ -1,6 +1,6 @@
 """SQLAlchemy models for traffic and construction data."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import ClassVar
 
@@ -42,7 +42,7 @@ class TrafficEvent(Base):
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),                                 # ← timezone=True
         nullable=False,
-        default=lambda: datetime.now(timezone.utc)              # ← Fixed default
+        default=lambda: datetime.now(UTC)              # ← Fixed default
     )
     source_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True

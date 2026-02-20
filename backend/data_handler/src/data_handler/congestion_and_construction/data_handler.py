@@ -1,7 +1,7 @@
 """Handler for fetching and storing traffic and construction data."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
@@ -76,12 +76,12 @@ def fetch_and_store_traffic_data(
     session: Session | None = None,  # ← add this
 ) -> int:
     client = TIIApiClient(bounding_box=bounding_box)
-    
+
     _owns_session = session is None
     if _owns_session:
         session = SessionLocal()
-    
-    fetched_at = datetime.now(timezone.utc)
+
+    fetched_at = datetime.now(UTC)
 
     try:
         raw_data = client.fetch_traffic_data()
