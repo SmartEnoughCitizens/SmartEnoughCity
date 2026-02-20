@@ -1,0 +1,28 @@
+# PERMISSIVE mTLS Mode
+# Allows both encrypted (mTLS) and plain traffic
+# Use this for development and initial deployment
+
+---
+# Default PERMISSIVE mode for all services in dev namespace
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-permissive
+  namespace: dev
+spec:
+  mtls:
+    mode: PERMISSIVE
+
+---
+# Disable mTLS for PostgreSQL (no Istio sidecar)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: postgresql-disable
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+  mtls:
+    mode: DISABLE

@@ -1,0 +1,12 @@
+# Enable STRICT mTLS for all services in dev namespace
+# This enforces encrypted, mutually authenticated communication
+
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict
+  namespace: dev
+spec:
+  mtls:
+    mode: STRICT
+  # Note: PostgreSQL is excluded via sidecar.istio.io/inject: "false" annotation

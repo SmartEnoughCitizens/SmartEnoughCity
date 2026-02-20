@@ -11,6 +11,9 @@ global:
 postgresql:
   enabled: true
   fullnameOverride: *dbhost
+  # Disable Bitnami's default network policy — we manage our own in infra/network-policies/
+  networkPolicy:
+    enabled: false
   primary:
     persistence:
       enabled: true
@@ -32,6 +35,9 @@ db:
 
 keycloak:
   enabled: true
+  # Disable Bitnami's default network policy — we manage our own in infra/network-policies/
+  networkPolicy:
+    enabled: false
   # Using legacy images from bitnamilegacy repository
   # This is a temporary workaround due to licensing changes with bitnami
   # See https://github.com/bitnami/charts/issues/35164 for details
