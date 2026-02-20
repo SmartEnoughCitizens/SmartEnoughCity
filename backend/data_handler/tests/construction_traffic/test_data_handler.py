@@ -149,9 +149,7 @@ class TestUpsertTrafficEvents:
             ],
         )
 
-    def test_mixed_events_with_and_without_source_id(
-        self, db_session: Session
-    ) -> None:
+    def test_mixed_events_with_and_without_source_id(self, db_session: Session) -> None:
         """Handles mix of events with and without source_id."""
         events = [
             ParsedTrafficEvent(
@@ -194,9 +192,7 @@ class TestUpsertTrafficEvents:
 class TestFetchAndStoreTrafficData:
     """Tests for fetch_and_store_traffic_data."""
 
-    @patch(
-        "data_handler.congestion_and_construction.data_handler.TIIApiClient"
-    )
+    @patch("data_handler.congestion_and_construction.data_handler.TIIApiClient")
     def test_returns_zero_when_api_returns_none(
         self, mock_client_cls: MagicMock
     ) -> None:
@@ -213,7 +209,7 @@ class TestFetchAndStoreTrafficData:
         self, mock_client_cls: MagicMock, db_session: Session
     ) -> None:
         """Processes and stores events from valid API response."""
-        raw_data = [                          # ← real data, not [...]
+        raw_data = [  # ← real data, not [...]
             {
                 "data": {
                     "mapFeaturesQuery": {
@@ -243,9 +239,7 @@ class TestFetchAndStoreTrafficData:
         result = fetch_and_store_traffic_data(session=db_session)
         assert result == 1
 
-    @patch(
-        "data_handler.congestion_and_construction.data_handler.TIIApiClient"
-    )
+    @patch("data_handler.congestion_and_construction.data_handler.TIIApiClient")
     def test_raises_on_api_failure(self, mock_client_cls: MagicMock) -> None:
         """Raises exception when API call fails."""
         mock_client = MagicMock()

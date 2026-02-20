@@ -1,4 +1,3 @@
-
 from data_handler.congestion_and_construction.models import TrafficEventType
 from data_handler.congestion_and_construction.parsing_utils import (
     determine_event_type,
@@ -103,17 +102,13 @@ class TestDetermineEventType:
 
     def test_congestion_takes_priority_over_closure(self) -> None:
         """When both congestion and closure keywords present, congestion wins."""
-        event_type, color = determine_event_type(
-            "Congestion due to crash", None
-        )
+        event_type, color = determine_event_type("Congestion due to crash", None)
         assert event_type == TrafficEventType.CONGESTION
         assert color == "orange"
 
     def test_closure_takes_priority_over_roadworks(self) -> None:
         """When both closure and roadworks keywords present, closure wins."""
-        event_type, color = determine_event_type(
-            "Road closed due to roadworks", None
-        )
+        event_type, color = determine_event_type("Road closed due to roadworks", None)
         assert event_type == TrafficEventType.CLOSURE_INCIDENT
         assert color == "red"
 

@@ -40,9 +40,9 @@ class TrafficEvent(Base):
     lon: Mapped[float] = mapped_column(Double, nullable=False)
     color: Mapped[str] = mapped_column(String(20), nullable=False)
     fetched_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),                                 # ← timezone=True
+        DateTime(timezone=True),  # ← timezone=True
         nullable=False,
-        default=lambda: datetime.now(UTC)              # ← Fixed default
+        default=lambda: datetime.now(UTC),  # ← Fixed default
     )
     source_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True

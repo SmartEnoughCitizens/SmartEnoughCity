@@ -71,6 +71,7 @@ def _upsert_traffic_events(
 
 # data_handler.py
 
+
 def fetch_and_store_traffic_data(
     bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
     session: Session | None = None,  # ← add this

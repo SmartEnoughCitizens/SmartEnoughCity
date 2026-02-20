@@ -100,7 +100,9 @@ class TestTIIApiClient:
     def test_fetch_traffic_data_http_error(self, mock_post: MagicMock) -> None:
         """HTTP error status raises on raise_for_status."""
         mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("500 Server Error")
+        mock_response.raise_for_status.side_effect = requests.HTTPError(
+            "500 Server Error"
+        )
         mock_post.return_value = mock_response
 
         client = TIIApiClient()
