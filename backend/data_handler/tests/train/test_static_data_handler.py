@@ -1,11 +1,8 @@
-import shutil
 from pathlib import Path
 
 import pytest
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.static_data_handler import process_train_static_data
 from tests.utils import assert_row_count, assert_rows
 
@@ -105,15 +102,10 @@ class TestProcessTrainStaticData:
     def test_missing_required_gtfs_file_raises_error(
         self,
         db_session: Session,
-        tmp_path: Path,
+        tests_data_dir: Path,
     ) -> None:
         """Missing a required GTFS file raises FileNotFoundError."""
-        data_dir = tmp_path / "incomplete_train"
-        data_dir.mkdir()
-        (data_dir / "agency.txt").write_text(
-            "agency_id,agency_name,agency_url,agency_timezone\n"
-            "1,Irish Rail,https://irishrail.ie,Europe/Dublin\n"
-        )
+        data_dir = tests_data_dir / "train" / "incomplete"
 
         with pytest.raises(FileNotFoundError, match="Required CSV file not found"):
             process_train_static_data(data_dir)
@@ -125,20 +117,12 @@ class TestProcessTrainStaticData:
     ) -> None:
         """Processing works even without optional calendar_dates.txt."""
         train_data_dir = tests_data_dir / "train" / "no_cal_dates"
-        train_data_dir.mkdir(parents=True, exist_ok=True)
-
-        gtfs_dir = tests_data_dir / "train" / "gtfs"
-        for f in gtfs_dir.iterdir():
-            if f.name != "calendar_dates.txt":
-                shutil.copy2(f, train_data_dir / f.name)
 
         process_train_static_data(train_data_dir)
 
         assert_row_count(db_session, "train_calendar_dates", 0)
         assert_row_count(db_session, "train_agencies", 1)
         assert_row_count(db_session, "train_stops", 4)
-
-        shutil.rmtree(train_data_dir)
 
     def test_idempotent_reprocessing(
         self,
@@ -147,16 +131,9 @@ class TestProcessTrainStaticData:
     ) -> None:
         """Running process twice produces same row counts (delete-then-insert)."""
         train_data_dir = tests_data_dir / "train" / "gtfs"
-        schema = get_db_settings().postgres_schema
 
         process_train_static_data(train_data_dir)
-        first_count = db_session.execute(
-            text(f"SELECT COUNT(*) FROM {schema}.train_stops")
-        ).scalar()
+        assert_row_count(db_session, "train_stops", 4)
 
         process_train_static_data(train_data_dir)
-        second_count = db_session.execute(
-            text(f"SELECT COUNT(*) FROM {schema}.train_stops")
-        ).scalar()
-
-        assert first_count == second_count == 4
+        assert_row_count(db_session, "train_stops", 4)

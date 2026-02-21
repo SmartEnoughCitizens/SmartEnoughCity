@@ -1,3 +1,4 @@
+import enum
 from datetime import date, datetime, time
 from typing import ClassVar
 
@@ -7,6 +8,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Double,
+    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -21,6 +23,58 @@ from data_handler.db import Base
 from data_handler.settings.database_settings import get_db_settings
 
 DB_SCHEMA = get_db_settings().postgres_schema
+
+
+# ── Enums ──────────────────────────────────────────────────────────
+
+
+class RouteType(enum.IntEnum):
+    """GTFS route_type values relevant to Irish Rail."""
+
+    TRAM = 0
+    SUBWAY = 1
+    RAIL = 2
+    BUS = 3
+    FERRY = 4
+
+
+class StationType(str, enum.Enum):
+    """Irish Rail station classification."""
+
+    MAINLINE = "M"
+    SUBURBAN = "S"
+    DART = "D"
+
+
+class TrainStatus(str, enum.Enum):
+    """Running status of a train."""
+
+    NOT_YET_RUNNING = "N"
+    RUNNING = "R"
+
+
+class StationLocationType(str, enum.Enum):
+    """Location type at a station for station data."""
+
+    ORIGIN = "O"
+    DESTINATION = "D"
+    STOP = "S"
+
+
+class MovementLocationType(str, enum.Enum):
+    """Location type for train movement records."""
+
+    ORIGIN = "O"
+    STOP = "S"
+    TIMING_POINT = "T"
+    DESTINATION = "D"
+
+
+class StopType(str, enum.Enum):
+    """Stop type for train movement records."""
+
+    CURRENT = "C"
+    NEXT = "N"
 
 
 # ── GTFS Static Models ─────────────────────────────────────────────
@@ -92,7 +146,9 @@ class TrainRoute(Base):
     )
     short_name: Mapped[str] = mapped_column(String, nullable=False)
     long_name: Mapped[str] = mapped_column(String, nullable=False)
-    route_type: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    route_type: Mapped[RouteType] = mapped_column(
+        Enum(RouteType), nullable=False, default=RouteType.RAIL
+    )
     route_color: Mapped[str | None] = mapped_column(String)
     route_text_color: Mapped[str | None] = mapped_column(String)
 
@@ -214,9 +270,7 @@ class IrishRailStation(Base):
     )
     station_desc: Mapped[str] = mapped_column(String, nullable=False)
     station_alias: Mapped[str | None] = mapped_column(String)
-    station_type: Mapped[str | None] = mapped_column(
-        String
-    )  # M=Mainline, S=Suburban, D=DART
+    station_type: Mapped[StationType | None] = mapped_column(Enum(StationType))
     lat: Mapped[float] = mapped_column(Double, nullable=False)
     lon: Mapped[float] = mapped_column(Double, nullable=False)
 
@@ -234,16 +288,12 @@ class IrishRailCurrentTrain(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     train_code: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    train_date: Mapped[str] = mapped_column(String, nullable=False)
-    train_status: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # N=Not yet running, R=Running
-    train_type: Mapped[str | None] = mapped_column(
-        String
-    )  # DART, Intercity, Commuter, etc.
-    direction: Mapped[str | None] = mapped_column(
-        String
-    )  # Northbound, Southbound, To <Destination>
+    train_date: Mapped[date] = mapped_column(Date, nullable=False)
+    train_status: Mapped[TrainStatus] = mapped_column(
+        Enum(TrainStatus), nullable=False
+    )
+    train_type: Mapped[str | None] = mapped_column(String)
+    direction: Mapped[str | None] = mapped_column(String)
     lat: Mapped[float | None] = mapped_column(Double)
     lon: Mapped[float | None] = mapped_column(Double)
     public_message: Mapped[str | None] = mapped_column(Text)
@@ -263,24 +313,24 @@ class IrishRailStationData(Base):
         index=True,
     )
     train_code: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    train_date: Mapped[str] = mapped_column(String, nullable=False)
+    train_date: Mapped[date] = mapped_column(Date, nullable=False)
     train_type: Mapped[str | None] = mapped_column(String)
     origin: Mapped[str] = mapped_column(String, nullable=False)
     destination: Mapped[str] = mapped_column(String, nullable=False)
-    origin_time: Mapped[str | None] = mapped_column(String)
-    destination_time: Mapped[str | None] = mapped_column(String)
+    origin_time: Mapped[time | None] = mapped_column(Time)
+    destination_time: Mapped[time | None] = mapped_column(Time)
     status: Mapped[str | None] = mapped_column(String)
     last_location: Mapped[str | None] = mapped_column(String)
-    due_in: Mapped[int | None] = mapped_column(Integer)  # Minutes until arrival
-    late: Mapped[int | None] = mapped_column(Integer)  # Minutes late
-    exp_arrival: Mapped[str | None] = mapped_column(String)
-    exp_depart: Mapped[str | None] = mapped_column(String)
-    sch_arrival: Mapped[str | None] = mapped_column(String)
-    sch_depart: Mapped[str | None] = mapped_column(String)
+    due_in_minutes: Mapped[int | None] = mapped_column(Integer)
+    late_minutes: Mapped[int | None] = mapped_column(Integer)
+    exp_arrival: Mapped[time | None] = mapped_column(Time)
+    exp_depart: Mapped[time | None] = mapped_column(Time)
+    sch_arrival: Mapped[time | None] = mapped_column(Time)
+    sch_depart: Mapped[time | None] = mapped_column(Time)
     direction: Mapped[str | None] = mapped_column(String)
-    location_type: Mapped[str | None] = mapped_column(
-        String
-    )  # O=Origin, D=Destination, S=Stop
+    location_type: Mapped[StationLocationType | None] = mapped_column(
+        Enum(StationLocationType)
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     # Relationships
@@ -295,20 +345,20 @@ class IrishRailTrainMovement(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     train_code: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    train_date: Mapped[str] = mapped_column(String, nullable=False)
+    train_date: Mapped[date] = mapped_column(Date, nullable=False)
     location_code: Mapped[str] = mapped_column(String, nullable=False)
     location_full_name: Mapped[str] = mapped_column(String, nullable=False)
     location_order: Mapped[int] = mapped_column(Integer, nullable=False)
-    location_type: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # O=Origin, S=Stop, T=TimingPoint, D=Destination
+    location_type: Mapped[MovementLocationType] = mapped_column(
+        Enum(MovementLocationType), nullable=False
+    )
     train_origin: Mapped[str] = mapped_column(String, nullable=False)
     train_destination: Mapped[str] = mapped_column(String, nullable=False)
-    scheduled_arrival: Mapped[str | None] = mapped_column(String)
-    scheduled_departure: Mapped[str | None] = mapped_column(String)
-    actual_arrival: Mapped[str | None] = mapped_column(String)
-    actual_departure: Mapped[str | None] = mapped_column(String)
+    scheduled_arrival: Mapped[time | None] = mapped_column(Time)
+    scheduled_departure: Mapped[time | None] = mapped_column(Time)
+    actual_arrival: Mapped[time | None] = mapped_column(Time)
+    actual_departure: Mapped[time | None] = mapped_column(Time)
     auto_arrival: Mapped[bool | None] = mapped_column(Boolean)
     auto_depart: Mapped[bool | None] = mapped_column(Boolean)
-    stop_type: Mapped[str | None] = mapped_column(String)  # C=Current, N=Next
+    stop_type: Mapped[StopType | None] = mapped_column(Enum(StopType))
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)

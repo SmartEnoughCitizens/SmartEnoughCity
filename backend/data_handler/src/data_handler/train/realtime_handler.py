@@ -11,24 +11,33 @@ API Documentation: http://api.irishrail.ie/realtime/
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, time, date
+
+import os
 
 import requests
 import xmltodict
-from sqlalchemy import delete, text
+from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.db import SessionLocal
-from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.models import (
     IrishRailCurrentTrain,
     IrishRailStation,
     IrishRailStationData,
     IrishRailTrainMovement,
+    MovementLocationType,
+    StationLocationType,
+    StationType,
+    StopType,
+    TrainStatus,
 )
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "http://api.irishrail.ie/realtime/realtime.asmx"
+BASE_URL = os.environ.get(
+    "IRISH_RAIL_BASE_URL", "http://api.irishrail.ie/realtime/realtime.asmx"
+)
 
 # Station types: A=All, M=Mainline, S=Suburban, D=DART
 STATION_TYPES = {"A": "All", "M": "Mainline", "S": "Suburban", "D": "DART"}
@@ -57,6 +66,30 @@ def _safe_float(val: str | None) -> float | None:
         return None
 
 
+def _safe_time(val: str | None) -> time | None:
+    """Safely parse a time string like '10:35' or '10:35:00' to a time object."""
+    if val is None or val.strip() == "":
+        return None
+    val = val.strip()
+    parts = val.split(":")
+    if len(parts) < 2:
+        return None
+    try:
+        return time(int(parts[0]) % 24, int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_date(val: str | None) -> date | None:
+    """Safely parse a date string like '22 Jan 2026' to a date object."""
+    if val is None or val.strip() == "":
+        return None
+    try:
+        return datetime.strptime(val.strip(), "%d %b %Y").date()
+    except (ValueError, TypeError):
+        return None
+
+
 def _ensure_list(data: object) -> list:
     """Ensure data is always a list (XML parsing returns dict for single item)."""
     if data is None:
@@ -64,6 +97,102 @@ def _ensure_list(data: object) -> list:
     if isinstance(data, dict):
         return [data]
     return list(data)
+
+
+def _safe_enum(enum_cls, val: str | None):
+    """Safely convert a string to an enum member, returning None on failure."""
+    if val is None or val.strip() == "":
+        return None
+    try:
+        return enum_cls(val.strip())
+    except (ValueError, KeyError):
+        return None
+
+
+# ── Parsing Helpers ─────────────────────────────────────────────────
+
+
+def _parse_station_dict(s: dict) -> IrishRailStation:
+    """Parse a station dict from XML into an IrishRailStation object."""
+    return IrishRailStation(
+        station_id=int(s["StationId"]),
+        station_code=s["StationCode"].strip(),
+        station_desc=s["StationDesc"].strip(),
+        station_alias=(s.get("StationAlias") or "").strip() or None,
+        station_type=None,  # Will be set by type-specific fetch
+        lat=float(s["StationLatitude"]),
+        lon=float(s["StationLongitude"]),
+    )
+
+
+def _parse_current_train_dict(t: dict, fetched_at: datetime) -> IrishRailCurrentTrain:
+    """Parse a train dict from XML into an IrishRailCurrentTrain object."""
+    return IrishRailCurrentTrain(
+        train_code=(t.get("TrainCode") or "").strip(),
+        train_date=_safe_date((t.get("TrainDate") or "").strip()),
+        train_status=_safe_enum(TrainStatus, (t.get("TrainStatus") or "").strip()),
+        train_type=(t.get("TrainType") or "").strip() or None,
+        direction=(t.get("Direction") or "").strip() or None,
+        lat=_safe_float(t.get("TrainLatitude")),
+        lon=_safe_float(t.get("TrainLongitude")),
+        public_message=(t.get("PublicMessage") or "").strip() or None,
+        fetched_at=fetched_at,
+    )
+
+
+def _parse_station_data_dict(
+    a: dict, station_code: str, fetched_at: datetime
+) -> IrishRailStationData:
+    """Parse a station data dict from XML into an IrishRailStationData object."""
+    return IrishRailStationData(
+        station_code=station_code,
+        train_code=(a.get("Traincode") or "").strip(),
+        train_date=_safe_date((a.get("Traindate") or "").strip()),
+        train_type=(a.get("Traintype") or "").strip() or None,
+        origin=(a.get("Origin") or "").strip(),
+        destination=(a.get("Destination") or "").strip(),
+        origin_time=_safe_time((a.get("Origintime") or "").strip()),
+        destination_time=_safe_time((a.get("Destinationtime") or "").strip()),
+        status=(a.get("Status") or "").strip() or None,
+        last_location=(a.get("Lastlocation") or "").strip() or None,
+        due_in_minutes=_safe_int(a.get("Duein")),
+        late_minutes=_safe_int(a.get("Late")),
+        exp_arrival=_safe_time((a.get("Exparrival") or "").strip()),
+        exp_depart=_safe_time((a.get("Expdepart") or "").strip()),
+        sch_arrival=_safe_time((a.get("Scharrival") or "").strip()),
+        sch_depart=_safe_time((a.get("Schdepart") or "").strip()),
+        direction=(a.get("Direction") or "").strip() or None,
+        location_type=_safe_enum(StationLocationType, (a.get("Locationtype") or "").strip()),
+        fetched_at=fetched_at,
+    )
+
+
+def _parse_train_movement_dict(
+    m: dict, fetched_at: datetime
+) -> IrishRailTrainMovement:
+    """Parse a movement dict from XML into an IrishRailTrainMovement object."""
+    return IrishRailTrainMovement(
+        train_code=(m.get("TrainCode") or "").strip(),
+        train_date=_safe_date((m.get("TrainDate") or "").strip()),
+        location_code=(m.get("LocationCode") or "").strip(),
+        location_full_name=(m.get("LocationFullName") or "").strip(),
+        location_order=int(m.get("LocationOrder", 0)),
+        location_type=_safe_enum(MovementLocationType, (m.get("LocationType") or "").strip()),
+        train_origin=(m.get("TrainOrigin") or "").strip(),
+        train_destination=(m.get("TrainDestination") or "").strip(),
+        scheduled_arrival=_safe_time((m.get("ScheduledArrival") or "").strip()),
+        scheduled_departure=_safe_time((m.get("ScheduledDeparture") or "").strip()),
+        actual_arrival=_safe_time((m.get("Arrival") or "").strip()),
+        actual_departure=_safe_time((m.get("Departure") or "").strip()),
+        auto_arrival=m.get("AutoArrival") == "1"
+        if m.get("AutoArrival")
+        else None,
+        auto_depart=m.get("AutoDepart") == "1"
+        if m.get("AutoDepart")
+        else None,
+        stop_type=_safe_enum(StopType, (m.get("StopType") or "").strip()),
+        fetched_at=fetched_at,
+    )
 
 
 # ── Station Functions ───────────────────────────────────────────────
@@ -111,51 +240,32 @@ def irish_rail_stations_to_db() -> None:
     session = SessionLocal()
     try:
         # Build station objects
-        stations = []
-        for s in stations_data:
-            station = IrishRailStation(
-                station_id=int(s["StationId"]),
-                station_code=s["StationCode"].strip(),
-                station_desc=s["StationDesc"].strip(),
-                station_alias=(s.get("StationAlias") or "").strip() or None,
-                station_type=None,  # Will be set by type-specific fetch
-                lat=float(s["StationLatitude"]),
-                lon=float(s["StationLongitude"]),
+        stations = [_parse_station_dict(s) for s in stations_data]
+
+        # Upsert using SQLAlchemy's on_conflict_do_update
+        for station in stations:
+            stmt = pg_insert(IrishRailStation).values(
+                station_id=station.station_id,
+                station_code=station.station_code,
+                station_desc=station.station_desc,
+                station_alias=station.station_alias,
+                station_type=station.station_type,
+                lat=station.lat,
+                lon=station.lon,
+            ).on_conflict_do_update(
+                index_elements=["station_id"],
+                set_={
+                    "station_code": station.station_code,
+                    "station_desc": station.station_desc,
+                    "station_alias": station.station_alias,
+                    "lat": station.lat,
+                    "lon": station.lon,
+                },
             )
-            stations.append(station)
+            session.execute(stmt)
 
-        # Upsert using raw SQL for ON CONFLICT
-        schema = get_db_settings().postgres_schema
-        insert_sql = f"""
-        INSERT INTO {schema}.irish_rail_stations
-            (station_id, station_code, station_desc, station_alias, station_type, lat, lon)
-        VALUES
-            (:station_id, :station_code, :station_desc, :station_alias, :station_type, :lat, :lon)
-        ON CONFLICT (station_id)
-        DO UPDATE SET
-            station_code = EXCLUDED.station_code,
-            station_desc = EXCLUDED.station_desc,
-            station_alias = EXCLUDED.station_alias,
-            lat = EXCLUDED.lat,
-            lon = EXCLUDED.lon;
-        """
-
-        records = [
-            {
-                "station_id": s.station_id,
-                "station_code": s.station_code,
-                "station_desc": s.station_desc,
-                "station_alias": s.station_alias,
-                "station_type": s.station_type,
-                "lat": s.lat,
-                "lon": s.lon,
-            }
-            for s in stations
-        ]
-
-        session.execute(text(insert_sql), records)
         session.commit()
-        logger.info("Inserted/updated %d Irish Rail stations.", len(records))
+        logger.info("Inserted/updated %d Irish Rail stations.", len(stations))
 
     except Exception:
         session.rollback()
@@ -171,7 +281,6 @@ def irish_rail_stations_to_db() -> None:
 def _update_station_types() -> None:
     """Update station types by fetching each type separately."""
     session = SessionLocal()
-    schema = get_db_settings().postgres_schema
 
     try:
         for type_code in ["M", "S", "D"]:
@@ -181,16 +290,12 @@ def _update_station_types() -> None:
 
             station_codes = [s["StationCode"].strip() for s in stations]
             if station_codes:
-                # Update type for these stations
-                update_sql = f"""
-                UPDATE {schema}.irish_rail_stations
-                SET station_type = :station_type
-                WHERE station_code = ANY(:codes);
-                """
-                session.execute(
-                    text(update_sql),
-                    {"station_type": type_code, "codes": station_codes},
+                stmt = (
+                    update(IrishRailStation)
+                    .where(IrishRailStation.station_code.in_(station_codes))
+                    .values(station_type=StationType(type_code))
                 )
+                session.execute(stmt)
                 logger.info(
                     "Updated %d stations with type %s.", len(station_codes), type_code
                 )
@@ -256,20 +361,7 @@ def irish_rail_current_trains_to_db() -> None:
             session.commit()
             return
 
-        trains = []
-        for t in trains_data:
-            train = IrishRailCurrentTrain(
-                train_code=(t.get("TrainCode") or "").strip(),
-                train_date=(t.get("TrainDate") or "").strip(),
-                train_status=(t.get("TrainStatus") or "").strip(),
-                train_type=(t.get("TrainType") or "").strip() or None,
-                direction=(t.get("Direction") or "").strip() or None,
-                lat=_safe_float(t.get("TrainLatitude")),
-                lon=_safe_float(t.get("TrainLongitude")),
-                public_message=(t.get("PublicMessage") or "").strip() or None,
-                fetched_at=fetched_at,
-            )
-            trains.append(train)
+        trains = [_parse_current_train_dict(t, fetched_at) for t in trains_data]
 
         session.add_all(trains)
         session.commit()
@@ -317,6 +409,14 @@ def fetch_station_data(station_code: str, num_mins: int = 90) -> list[dict]:
         return []
 
 
+def _fetch_all_station_codes(session) -> list[str]:
+    """Get all station codes from the database."""
+    result = session.execute(
+        select(IrishRailStation.station_code)
+    )
+    return [row[0] for row in result.fetchall()]
+
+
 def irish_rail_station_data_to_db() -> None:
     """Fetch station data for all stations and store to database."""
     logger.info("Loading Irish Rail station data to database...")
@@ -325,12 +425,7 @@ def irish_rail_station_data_to_db() -> None:
     fetched_at = datetime.now()
 
     try:
-        # Get all station codes from database
-        schema = get_db_settings().postgres_schema
-        result = session.execute(
-            text(f"SELECT station_code FROM {schema}.irish_rail_stations")
-        )
-        station_codes = [row[0] for row in result.fetchall()]
+        station_codes = _fetch_all_station_codes(session)
 
         if not station_codes:
             logger.warning(
@@ -345,27 +440,7 @@ def irish_rail_station_data_to_db() -> None:
         for station_code in station_codes:
             arrivals = fetch_station_data(station_code, num_mins=90)
             for a in arrivals:
-                data = IrishRailStationData(
-                    station_code=station_code,
-                    train_code=(a.get("Traincode") or "").strip(),
-                    train_date=(a.get("Traindate") or "").strip(),
-                    train_type=(a.get("Traintype") or "").strip() or None,
-                    origin=(a.get("Origin") or "").strip(),
-                    destination=(a.get("Destination") or "").strip(),
-                    origin_time=(a.get("Origintime") or "").strip() or None,
-                    destination_time=(a.get("Destinationtime") or "").strip() or None,
-                    status=(a.get("Status") or "").strip() or None,
-                    last_location=(a.get("Lastlocation") or "").strip() or None,
-                    due_in=_safe_int(a.get("Duein")),
-                    late=_safe_int(a.get("Late")),
-                    exp_arrival=(a.get("Exparrival") or "").strip() or None,
-                    exp_depart=(a.get("Expdepart") or "").strip() or None,
-                    sch_arrival=(a.get("Scharrival") or "").strip() or None,
-                    sch_depart=(a.get("Schdepart") or "").strip() or None,
-                    direction=(a.get("Direction") or "").strip() or None,
-                    location_type=(a.get("Locationtype") or "").strip() or None,
-                    fetched_at=fetched_at,
-                )
+                data = _parse_station_data_dict(a, station_code, fetched_at)
                 all_data.append(data)
 
         if all_data:
@@ -417,6 +492,14 @@ def fetch_train_movements(train_code: str, train_date: str) -> list[dict]:
         return []
 
 
+def _fetch_current_trains_from_db(session) -> list[tuple[str, str]]:
+    """Get train_code and train_date for all current trains from the database."""
+    result = session.execute(
+        select(IrishRailCurrentTrain.train_code, IrishRailCurrentTrain.train_date)
+    )
+    return [(row[0], row[1].strftime("%d %b %Y") if isinstance(row[1], date) else str(row[1])) for row in result.fetchall()]
+
+
 def irish_rail_train_movements_to_db() -> None:
     """Fetch train movements for all current trains and store to database."""
     logger.info("Loading Irish Rail train movements to database...")
@@ -425,14 +508,7 @@ def irish_rail_train_movements_to_db() -> None:
     fetched_at = datetime.now()
 
     try:
-        # Get current trains from database
-        schema = get_db_settings().postgres_schema
-        result = session.execute(
-            text(
-                f"SELECT train_code, train_date FROM {schema}.irish_rail_current_trains"
-            )
-        )
-        trains = [(row[0], row[1]) for row in result.fetchall()]
+        trains = _fetch_current_trains_from_db(session)
 
         if not trains:
             logger.warning(
@@ -447,29 +523,7 @@ def irish_rail_train_movements_to_db() -> None:
         for train_code, train_date in trains:
             movements = fetch_train_movements(train_code, train_date)
             for m in movements:
-                movement = IrishRailTrainMovement(
-                    train_code=(m.get("TrainCode") or "").strip(),
-                    train_date=(m.get("TrainDate") or "").strip(),
-                    location_code=(m.get("LocationCode") or "").strip(),
-                    location_full_name=(m.get("LocationFullName") or "").strip(),
-                    location_order=int(m.get("LocationOrder", 0)),
-                    location_type=(m.get("LocationType") or "").strip(),
-                    train_origin=(m.get("TrainOrigin") or "").strip(),
-                    train_destination=(m.get("TrainDestination") or "").strip(),
-                    scheduled_arrival=(m.get("ScheduledArrival") or "").strip() or None,
-                    scheduled_departure=(m.get("ScheduledDeparture") or "").strip()
-                    or None,
-                    actual_arrival=(m.get("Arrival") or "").strip() or None,
-                    actual_departure=(m.get("Departure") or "").strip() or None,
-                    auto_arrival=m.get("AutoArrival") == "1"
-                    if m.get("AutoArrival")
-                    else None,
-                    auto_depart=m.get("AutoDepart") == "1"
-                    if m.get("AutoDepart")
-                    else None,
-                    stop_type=(m.get("StopType") or "").strip() or None,
-                    fetched_at=fetched_at,
-                )
+                movement = _parse_train_movement_dict(m, fetched_at)
                 all_movements.append(movement)
 
         if all_movements:

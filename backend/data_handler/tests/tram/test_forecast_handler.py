@@ -11,7 +11,7 @@ from data_handler.tram.forecast_handler import (
     luas_stops_to_db,
 )
 from data_handler.tram.models import TramLuasStop
-from tests.utils import assert_row_count
+from tests.utils import assert_row_count, assert_rows, ANY
 
 # ── Sample XML responses ─────────────────────────────────────────────
 
@@ -199,18 +199,42 @@ class TestLuasStopsToDb:
 
         luas_stops_to_db()
 
-        assert_row_count(db_session, "tram_luas_stops", 3)
-
-        stg = db_session.get(TramLuasStop, "STG")
-        assert stg is not None
-        assert stg.name == "St. Stephen's Green"
-        assert stg.line == "green"
-        assert stg.cycle_ride is True
-
-        tpt = db_session.get(TramLuasStop, "TPT")
-        assert tpt is not None
-        assert tpt.name == "The Point"
-        assert tpt.line == "red"
+        assert_rows(
+            db_session,
+            "tram_luas_stops",
+            [
+                {
+                    "stop_id": "TPT",
+                    "line": "red",
+                    "name": "The Point",
+                    "pronunciation": "The Point",
+                    "park_ride": False,
+                    "cycle_ride": False,
+                    "lat": 53.348056,
+                    "lon": -6.229167,
+                },
+                {
+                    "stop_id": "STG",
+                    "line": "green",
+                    "name": "St. Stephen's Green",
+                    "pronunciation": "Saint Stephens Green",
+                    "park_ride": False,
+                    "cycle_ride": True,
+                    "lat": 53.339428,
+                    "lon": -6.261495,
+                },
+                {
+                    "stop_id": "HAR",
+                    "line": "green",
+                    "name": "Harcourt",
+                    "pronunciation": "Harcourt",
+                    "park_ride": False,
+                    "cycle_ride": False,
+                    "lat": 53.333333,
+                    "lon": -6.262222,
+                },
+            ],
+        )
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_upserts_existing_stops(
