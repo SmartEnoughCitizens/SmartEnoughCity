@@ -7,6 +7,7 @@ from data_handler.csv_utils import read_csv_file
 from data_handler.db import SessionLocal
 from data_handler.tram.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.tram.models import (
+    RouteType,
     TramAgency,
     TramCalendarDate,
     TramCalendarSchedule,
@@ -86,7 +87,7 @@ def parse_route_row(row: dict[str, str]) -> TramRoute:
         agency_id=int(row["agency_id"]),
         short_name=row["route_short_name"].strip(),
         long_name=row["route_long_name"].strip(),
-        route_type=int(row.get("route_type", "0")),
+        route_type=RouteType(int(row.get("route_type", "0"))),
         route_color=row.get("route_color", "").strip() or None,
         route_text_color=row.get("route_text_color", "").strip() or None,
     )

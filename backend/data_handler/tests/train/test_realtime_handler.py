@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, time
 from unittest.mock import Mock, patch
 
 import requests
@@ -9,6 +9,8 @@ from data_handler.train.models import (
     IrishRailStation,
     IrishRailStationData,
     IrishRailTrainMovement,
+    StationType,
+    TrainStatus,
 )
 from data_handler.train.realtime_handler import (
     _ensure_list,
@@ -499,8 +501,8 @@ class TestIrishRailStationDataToDb:
         result = db_session.query(IrishRailStationData).first()
         assert result is not None
         assert result.train_code == "E109"
-        assert result.due_in == 5
-        assert result.late == 1
+        assert result.due_in_minutes == 5
+        assert result.late_minutes == 1
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_no_stations_returns_early(
@@ -563,8 +565,8 @@ class TestIrishRailTrainMovementsToDb:
         db_session.add(
             IrishRailCurrentTrain(
                 train_code="E109",
-                train_date="22 Jan 2026",
-                train_status="R",
+                train_date=date(2026, 1, 22),
+                train_status=TrainStatus.RUNNING,
                 train_type="DART",
                 direction="Northbound",
                 lat=53.352,
@@ -605,8 +607,8 @@ class TestIrishRailTrainMovementsToDb:
         db_session.add(
             IrishRailCurrentTrain(
                 train_code="E109",
-                train_date="22 Jan 2026",
-                train_status="R",
+                train_date=date(2026, 1, 22),
+                train_status=TrainStatus.RUNNING,
                 train_type="DART",
                 direction="Northbound",
                 lat=53.352,

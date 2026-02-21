@@ -1,4 +1,5 @@
 import logging
+import os
 
 import pandas as pd
 import requests
@@ -15,8 +16,11 @@ LUAS_LINES = {
     "green": "Luas Green Line",
 }
 
-LUAS_STOPS_URL = "https://luasforecasts.rpa.ie/xml/get.ashx?action=stops&encrypt=false"
-LUAS_FORECAST_URL = "https://luasforecasts.rpa.ie/xml/get.ashx?action=forecast&stop={stop_id}&encrypt=false"
+_luas_base_url = os.environ.get(
+    "LUAS_FORECAST_BASE_URL", "https://luasforecasts.rpa.ie/xml/get.ashx"
+)
+LUAS_STOPS_URL = f"{_luas_base_url}?action=stops&encrypt=false"
+LUAS_FORECAST_URL = f"{_luas_base_url}?action=forecast&stop={{stop_id}}&encrypt=false"
 
 
 # ── Fetch helpers ────────────────────────────────────────────────

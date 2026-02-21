@@ -1,3 +1,4 @@
+import enum
 from datetime import date, time
 from typing import ClassVar
 
@@ -6,6 +7,7 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     Double,
+    Enum,
     Float,
     ForeignKey,
     Index,
@@ -21,6 +23,19 @@ from data_handler.db import Base
 from data_handler.settings.database_settings import get_db_settings
 
 DB_SCHEMA = get_db_settings().postgres_schema
+
+
+# ── Enums ──────────────────────────────────────────────────────────
+
+
+class RouteType(enum.IntEnum):
+    """GTFS route_type values relevant to Luas tram."""
+
+    TRAM = 0
+    SUBWAY = 1
+    RAIL = 2
+    BUS = 3
+    FERRY = 4
 
 
 # ── GTFS Static Models ─────────────────────────────────────────────
@@ -92,7 +107,9 @@ class TramRoute(Base):
     )
     short_name: Mapped[str] = mapped_column(String, nullable=False)
     long_name: Mapped[str] = mapped_column(String, nullable=False)
-    route_type: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    route_type: Mapped[RouteType] = mapped_column(
+        Enum(RouteType), nullable=False, default=RouteType.TRAM
+    )
     route_color: Mapped[str | None] = mapped_column(String)
     route_text_color: Mapped[str | None] = mapped_column(String)
 
