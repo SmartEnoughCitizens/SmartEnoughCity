@@ -19,6 +19,8 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: postgresql-init
         app.kubernetes.io/part-of: smart-enough-city
+      annotations:
+        sidecar.istio.io/inject: "false"
     spec:
       restartPolicy: OnFailure
       containers:

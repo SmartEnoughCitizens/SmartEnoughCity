@@ -9,6 +9,8 @@ data-handler:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
     pullPolicy: IfNotPresent
+#  cronjob:
+#    suspend: true
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -49,6 +51,9 @@ hermes:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
     tag: latest
     pullPolicy: IfNotPresent
+  # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
+  livenessProbe: null
+  readinessProbe: null
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -69,6 +74,22 @@ inference-engine:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
     tag: latest
     pullPolicy: IfNotPresent
+  livenessProbe:
+    httpGet:
+      path: /docs
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /docs
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -81,6 +102,18 @@ inference-engine:
         - ALL
     readOnlyRootFilesystem: false
     runAsNonRoot: true
+
+# Exclude PostgreSQL from Istio injection - databases need direct network access
+postgresql:
+  primary:
+    podAnnotations:
+      sidecar.istio.io/inject: "false"
+
+# Exclude PostgreSQL init job from Istio - Jobs can't complete with sidecars
+postgresqlInit:
+  podAnnotations:
+    sidecar.istio.io/inject: "false"
+
 ingress:
   enabled: true
   className: nginx
