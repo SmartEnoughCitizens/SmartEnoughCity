@@ -1,0 +1,105 @@
+# Authorization Policies for Strict mTLS Setup
+# These define which services can communicate with each other
+
+---
+# Allow ingress-nginx (with Istio sidecar) to reach all exposed services
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-to-services
+  namespace: dev
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["ingress"]
+        principals: ["cluster.local/ns/ingress/sa/*"]
+  # Applies to all pods in dev namespace
+
+---
+# Allow frontend to reach hermes
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: frontend-to-hermes
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hermes
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["dev"]
+        principals: ["cluster.local/ns/dev/sa/default"]  # Frontend's service account
+    to:
+    - operation:
+        ports: ["8080"]
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+
+---
+# Allow hermes to reach keycloak
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: hermes-to-keycloak
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["dev"]
+        principals: ["cluster.local/ns/dev/sa/default"]  # Hermes's service account
+    to:
+    - operation:
+        ports: ["8080"]
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+
+---
+# Allow inference-engine to reach hermes
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: inference-to-hermes
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hermes
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["dev"]
+        principals: ["cluster.local/ns/dev/sa/default"]  # Inference-engine's service account
+    to:
+    - operation:
+        ports: ["8080"]
+        methods: ["GET", "POST"]
+
+---
+# Allow hermes, keycloak, and data-handler to reach postgresql
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: services-to-postgresql
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["dev"]
+        principals: ["cluster.local/ns/dev/sa/default"]
+    to:
+    - operation:
+        ports: ["5432"]
