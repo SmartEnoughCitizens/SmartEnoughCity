@@ -38,7 +38,7 @@ class RouteType(enum.IntEnum):
     FERRY = 4
 
 
-class StationType(str, enum.Enum):
+class StationType(enum.StrEnum):
     """Irish Rail station classification."""
 
     MAINLINE = "M"
@@ -46,14 +46,14 @@ class StationType(str, enum.Enum):
     DART = "D"
 
 
-class TrainStatus(str, enum.Enum):
+class TrainStatus(enum.StrEnum):
     """Running status of a train."""
 
     NOT_YET_RUNNING = "N"
     RUNNING = "R"
 
 
-class StationLocationType(str, enum.Enum):
+class StationLocationType(enum.StrEnum):
     """Location type at a station for station data."""
 
     ORIGIN = "O"
@@ -61,7 +61,7 @@ class StationLocationType(str, enum.Enum):
     STOP = "S"
 
 
-class MovementLocationType(str, enum.Enum):
+class MovementLocationType(enum.StrEnum):
     """Location type for train movement records."""
 
     ORIGIN = "O"
@@ -70,7 +70,7 @@ class MovementLocationType(str, enum.Enum):
     DESTINATION = "D"
 
 
-class StopType(str, enum.Enum):
+class StopType(enum.StrEnum):
     """Stop type for train movement records."""
 
     CURRENT = "C"

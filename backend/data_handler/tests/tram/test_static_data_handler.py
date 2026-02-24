@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,8 @@ class TestProcessTramStaticData:
         tests_data_dir: Path,
     ) -> None:
         """Processing GTFS + CSO data populates all expected tables."""
-        tram_data_dir = tests_data_dir / "tram" / "combined"
+        tram_gtfs_dir = tests_data_dir / "tram" / "gtfs"
+        tram_cso_dir = tests_data_dir / "tram" / "cso"
 
         # Verify tables are empty before processing
         assert_row_count(db_session, "tram_agencies", 0)
@@ -29,7 +31,7 @@ class TestProcessTramStaticData:
         assert_row_count(db_session, "tram_stop_times", 0)
 
         # Process
-        process_tram_static_data(tram_data_dir)
+        process_tram_static_data(tram_gtfs_dir, cso_dir=tram_cso_dir)
 
         # GTFS tables
         assert_row_count(db_session, "tram_agencies", 1)
@@ -115,11 +117,15 @@ class TestProcessTramStaticData:
         self,
         db_session: Session,
         tests_data_dir: Path,
+        tmp_path: Path,
     ) -> None:
         """Processing works even without optional calendar_dates.txt."""
-        tram_data_dir = tests_data_dir / "tram" / "no_cal_dates"
+        # Copy GTFS dir but remove calendar_dates.txt
+        gtfs_dir = tmp_path / "gtfs"
+        shutil.copytree(tests_data_dir / "tram" / "gtfs", gtfs_dir)
+        (gtfs_dir / "calendar_dates.txt").unlink()
 
-        process_tram_static_data(tram_data_dir)
+        process_tram_static_data(gtfs_dir, cso_dir=tests_data_dir / "tram" / "cso")
 
         assert_row_count(db_session, "tram_calendar_dates", 0)
         assert_row_count(db_session, "tram_agencies", 1)
@@ -131,9 +137,9 @@ class TestProcessTramStaticData:
         tests_data_dir: Path,
     ) -> None:
         """Processing works without any CSO files present."""
-        tram_data_dir = tests_data_dir / "tram" / "gtfs"
+        tram_gtfs_dir = tests_data_dir / "tram" / "gtfs"
 
-        process_tram_static_data(tram_data_dir)
+        process_tram_static_data(tram_gtfs_dir)
 
         assert_row_count(db_session, "tram_agencies", 1)
         assert_row_count(db_session, "tram_trips", 5)
@@ -148,10 +154,10 @@ class TestProcessTramStaticData:
         tests_data_dir: Path,
     ) -> None:
         """Running process twice produces same row counts (delete-then-insert)."""
-        tram_data_dir = tests_data_dir / "tram" / "gtfs"
+        tram_gtfs_dir = tests_data_dir / "tram" / "gtfs"
 
-        process_tram_static_data(tram_data_dir)
+        process_tram_static_data(tram_gtfs_dir)
         assert_row_count(db_session, "tram_stops", 4)
 
-        process_tram_static_data(tram_data_dir)
+        process_tram_static_data(tram_gtfs_dir)
         assert_row_count(db_session, "tram_stops", 4)

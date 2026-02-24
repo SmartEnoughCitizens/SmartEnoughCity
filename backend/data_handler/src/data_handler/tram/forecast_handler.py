@@ -1,5 +1,4 @@
 import logging
-import os
 
 import pandas as pd
 import requests
@@ -7,6 +6,7 @@ import xmltodict
 from sqlalchemy import delete, select
 
 from data_handler.db import SessionLocal
+from data_handler.settings.api_settings import get_api_settings
 from data_handler.tram.models import TramLuasForecast, TramLuasStop
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,17 @@ LUAS_LINES = {
     "green": "Luas Green Line",
 }
 
-_luas_base_url = os.environ.get(
-    "LUAS_FORECAST_BASE_URL", "https://luasforecasts.rpa.ie/xml/get.ashx"
-)
-LUAS_STOPS_URL = f"{_luas_base_url}?action=stops&encrypt=false"
-LUAS_FORECAST_URL = f"{_luas_base_url}?action=forecast&stop={{stop_id}}&encrypt=false"
+
+def _luas_base_url() -> str:
+    return get_api_settings().luas_forecast_base_url
+
+
+def _luas_stops_url() -> str:
+    return f"{_luas_base_url()}?action=stops&encrypt=false"
+
+
+def _luas_forecast_url(stop_id: str) -> str:
+    return f"{_luas_base_url()}?action=forecast&stop={stop_id}&encrypt=false"
 
 
 # ── Fetch helpers ────────────────────────────────────────────────
@@ -28,7 +34,7 @@ LUAS_FORECAST_URL = f"{_luas_base_url}?action=forecast&stop={{stop_id}}&encrypt=
 
 def fetch_luas_stops(line_name: str) -> pd.DataFrame:
     """Fetch stops for a given Luas line from the forecasting API."""
-    res = requests.get(LUAS_STOPS_URL)
+    res = requests.get(_luas_stops_url())
     res.raise_for_status()
 
     doc = xmltodict.parse(res.text)
@@ -65,7 +71,7 @@ def fetch_luas_stops(line_name: str) -> pd.DataFrame:
 
 def fetch_forecast_for_stop(stop_id: str) -> list[dict]:
     """Fetch live forecast entries for a single Luas stop."""
-    url = LUAS_FORECAST_URL.format(stop_id=stop_id)
+    url = _luas_forecast_url(stop_id)
     res = requests.get(url)
     res.raise_for_status()
 

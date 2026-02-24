@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import date, datetime
 from unittest.mock import Mock, patch
 
 import requests
@@ -9,7 +9,6 @@ from data_handler.train.models import (
     IrishRailStation,
     IrishRailStationData,
     IrishRailTrainMovement,
-    StationType,
     TrainStatus,
 )
 from data_handler.train.realtime_handler import (

@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -114,11 +115,15 @@ class TestProcessTrainStaticData:
         self,
         db_session: Session,
         tests_data_dir: Path,
+        tmp_path: Path,
     ) -> None:
         """Processing works even without optional calendar_dates.txt."""
-        train_data_dir = tests_data_dir / "train" / "no_cal_dates"
+        # Copy GTFS dir but remove calendar_dates.txt
+        gtfs_dir = tmp_path / "gtfs"
+        shutil.copytree(tests_data_dir / "train" / "gtfs", gtfs_dir)
+        (gtfs_dir / "calendar_dates.txt").unlink()
 
-        process_train_static_data(train_data_dir)
+        process_train_static_data(gtfs_dir)
 
         assert_row_count(db_session, "train_calendar_dates", 0)
         assert_row_count(db_session, "train_agencies", 1)
