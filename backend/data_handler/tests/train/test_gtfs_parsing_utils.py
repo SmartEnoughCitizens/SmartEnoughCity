@@ -9,8 +9,6 @@ re-export to verify the wiring is correct.
 """
 
 from data_handler.train.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time  # noqa: F401
-
-# Re-run the shared tests against the train module's re-exports
 from tests.bus.test_gtfs_parsing_utils import TestParseGtfsDate as _BaseDateTests
 from tests.bus.test_gtfs_parsing_utils import TestParseGtfsTime as _BaseTimeTests
 
