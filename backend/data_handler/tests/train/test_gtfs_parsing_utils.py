@@ -8,7 +8,7 @@ This module re-imports and runs the same test suite against the train
 re-export to verify the wiring is correct.
 """
 
-from data_handler.train.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
+from data_handler.train.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time  # noqa: F401
 
 # Re-run the shared tests against the train module's re-exports
 from tests.bus.test_gtfs_parsing_utils import TestParseGtfsDate as _BaseDateTests
@@ -18,10 +18,6 @@ from tests.bus.test_gtfs_parsing_utils import TestParseGtfsTime as _BaseTimeTest
 class TestTrainParseGtfsDate(_BaseDateTests):
     """Verify train re-export of parse_gtfs_date works correctly."""
 
-    pass
-
 
 class TestTrainParseGtfsTime(_BaseTimeTests):
     """Verify train re-export of parse_gtfs_time works correctly."""
-
-    pass

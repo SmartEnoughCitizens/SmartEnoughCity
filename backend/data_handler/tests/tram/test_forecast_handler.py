@@ -11,7 +11,7 @@ from data_handler.tram.forecast_handler import (
     luas_stops_to_db,
 )
 from data_handler.tram.models import TramLuasStop
-from tests.utils import assert_row_count, assert_rows, ANY
+from tests.utils import assert_row_count, assert_rows
 
 # ── Sample XML responses ─────────────────────────────────────────────
 

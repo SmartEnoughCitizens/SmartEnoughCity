@@ -10,17 +10,18 @@ Fetches live data from api.irishrail.ie:
 API Documentation: http://api.irishrail.ie/realtime/
 """
 
+import enum
 import logging
-from datetime import datetime, time, date
-
-import os
+from datetime import date, datetime, time
 
 import requests
 import xmltodict
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session
 
 from data_handler.db import SessionLocal
+from data_handler.settings.api_settings import get_api_settings
 from data_handler.train.models import (
     IrishRailCurrentTrain,
     IrishRailStation,
@@ -34,10 +35,6 @@ from data_handler.train.models import (
 )
 
 logger = logging.getLogger(__name__)
-
-BASE_URL = os.environ.get(
-    "IRISH_RAIL_BASE_URL", "http://api.irishrail.ie/realtime/realtime.asmx"
-)
 
 # Station types: A=All, M=Mainline, S=Suburban, D=DART
 STATION_TYPES = {"A": "All", "M": "Mainline", "S": "Suburban", "D": "DART"}
@@ -99,7 +96,7 @@ def _ensure_list(data: object) -> list:
     return list(data)
 
 
-def _safe_enum(enum_cls, val: str | None):
+def _safe_enum(enum_cls: type[enum.Enum], val: str | None) -> enum.Enum | None:
     """Safely convert a string to an enum member, returning None on failure."""
     if val is None or val.strip() == "":
         return None
@@ -209,7 +206,7 @@ def fetch_all_stations(station_type: str = "A") -> list[dict]:
         List of station dicts with keys:
         StationDesc, StationCode, StationId, StationAlias, StationLatitude, StationLongitude
     """
-    url = f"{BASE_URL}/getAllStationsXML_WithStationType?StationType={station_type}"
+    url = f"{get_api_settings().irish_rail_base_url}/getAllStationsXML_WithStationType?StationType={station_type}"
     logger.info("Fetching stations from %s", url)
 
     try:
@@ -325,7 +322,7 @@ def fetch_current_trains(train_type: str = "A") -> list[dict]:
         TrainStatus, TrainLatitude, TrainLongitude, TrainCode, TrainDate,
         PublicMessage, Direction
     """
-    url = f"{BASE_URL}/getCurrentTrainsXML_WithTrainType?TrainType={train_type}"
+    url = f"{get_api_settings().irish_rail_base_url}/getCurrentTrainsXML_WithTrainType?TrainType={train_type}"
     logger.info("Fetching current trains from %s", url)
 
     try:
@@ -390,7 +387,7 @@ def fetch_station_data(station_code: str, num_mins: int = 90) -> list[dict]:
         List of train arrival dicts
     """
     num_mins = max(5, min(90, num_mins))
-    url = f"{BASE_URL}/getStationDataByCodeXML_WithNumMins?StationCode={station_code}&NumMins={num_mins}"
+    url = f"{get_api_settings().irish_rail_base_url}/getStationDataByCodeXML_WithNumMins?StationCode={station_code}&NumMins={num_mins}"
     logger.debug("Fetching station data from %s", url)
 
     try:
@@ -409,7 +406,7 @@ def fetch_station_data(station_code: str, num_mins: int = 90) -> list[dict]:
         return []
 
 
-def _fetch_all_station_codes(session) -> list[str]:
+def _fetch_all_station_codes(session: Session) -> list[str]:
     """Get all station codes from the database."""
     result = session.execute(
         select(IrishRailStation.station_code)
@@ -473,7 +470,7 @@ def fetch_train_movements(train_code: str, train_date: str) -> list[dict]:
     Returns:
         List of movement dicts with stop information
     """
-    url = f"{BASE_URL}/getTrainMovementsXML?TrainId={train_code}&TrainDate={train_date}"
+    url = f"{get_api_settings().irish_rail_base_url}/getTrainMovementsXML?TrainId={train_code}&TrainDate={train_date}"
     logger.debug("Fetching train movements from %s", url)
 
     try:
@@ -492,7 +489,7 @@ def fetch_train_movements(train_code: str, train_date: str) -> list[dict]:
         return []
 
 
-def _fetch_current_trains_from_db(session) -> list[tuple[str, str]]:
+def _fetch_current_trains_from_db(session: Session) -> list[tuple[str, str]]:
     """Get train_code and train_date for all current trains from the database."""
     result = session.execute(
         select(IrishRailCurrentTrain.train_code, IrishRailCurrentTrain.train_date)
