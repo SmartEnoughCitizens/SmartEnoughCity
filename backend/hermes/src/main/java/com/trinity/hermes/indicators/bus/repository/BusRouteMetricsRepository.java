@@ -11,8 +11,12 @@ public interface BusRouteMetricsRepository extends JpaRepository<BusRouteMetrics
 
   Optional<BusRouteMetrics> findByRouteId(String routeId);
 
-  @Query("SELECT AVG(m.utilizationPct) FROM BusRouteMetrics m WHERE m.utilizationPct IS NOT NULL")
-  Double findAverageUtilization();
+  @Query(
+      "SELECT CASE WHEN SUM(m.scheduledTrips) > 0"
+          + " THEN (CAST(SUM(m.activeVehicles) AS double) / SUM(m.scheduledTrips)) * 100.0"
+          + " ELSE 0.0 END"
+          + " FROM BusRouteMetrics m")
+  Double findFleetUtilization();
 
   @Query("SELECT AVG(m.reliabilityPct) FROM BusRouteMetrics m WHERE m.reliabilityPct IS NOT NULL")
   Double findAverageReliability();

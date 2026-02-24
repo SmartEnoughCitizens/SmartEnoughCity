@@ -13,12 +13,11 @@ public interface BusLiveStopTimeUpdateRepository
 
   @Query(
       value =
-          "SELECT COUNT(DISTINCT stu.trip_update_entry_id)"
+          "SELECT COUNT(DISTINCT tu.vehicle_id)"
               + " FROM external_data.bus_live_trip_updates_stop_time_updates stu"
               + " INNER JOIN external_data.bus_live_trip_updates tu"
               + " ON stu.trip_update_entry_id = tu.entry_id"
-              + " WHERE tu.timestamp > NOW() - INTERVAL '30 minutes'"
-              + " AND (stu.arrival_delay > :thresholdSeconds"
+              + " WHERE (stu.arrival_delay > :thresholdSeconds"
               + " OR stu.departure_delay > :thresholdSeconds)",
       nativeQuery = true)
   Long countActiveDelays(@Param("thresholdSeconds") Integer thresholdSeconds);
@@ -27,8 +26,17 @@ public interface BusLiveStopTimeUpdateRepository
       value =
           "SELECT stu.* FROM external_data.bus_live_trip_updates_stop_time_updates stu"
               + " INNER JOIN external_data.bus_live_trip_updates tu"
-              + " ON stu.trip_update_entry_id = tu.entry_id"
-              + " WHERE tu.timestamp > NOW() - INTERVAL '30 minutes'",
+              + " ON stu.trip_update_entry_id = tu.entry_id",
       nativeQuery = true)
   List<BusLiveStopTimeUpdate> findRecentStopTimeUpdates();
+
+  // Returns [vehicle_id, arrival_delay, departure_delay] — used to index delays by vehicle_id
+  @Query(
+      value =
+          "SELECT tu.vehicle_id, stu.arrival_delay, stu.departure_delay"
+              + " FROM external_data.bus_live_trip_updates_stop_time_updates stu"
+              + " INNER JOIN external_data.bus_live_trip_updates tu"
+              + " ON stu.trip_update_entry_id = tu.entry_id",
+      nativeQuery = true)
+  List<Object[]> findDelaysByVehicle();
 }

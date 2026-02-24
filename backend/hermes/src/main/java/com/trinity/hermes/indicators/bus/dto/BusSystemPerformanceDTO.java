@@ -12,6 +12,5 @@ import lombok.NoArgsConstructor;
 public class BusSystemPerformanceDTO {
 
   private double reliabilityPct;
-  private double evAdoptionPct;
   private double lateArrivalPct;
 }

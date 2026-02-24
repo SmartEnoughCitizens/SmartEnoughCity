@@ -12,28 +12,34 @@ public interface BusLiveVehicleRepository extends JpaRepository<BusLiveVehicle, 
 
   @Query(
       value =
-          "SELECT blv.* FROM external_data.bus_live_vehicles blv"
-              + " INNER JOIN (SELECT vehicle_id, MAX(timestamp) as max_ts"
-              + " FROM external_data.bus_live_vehicles GROUP BY vehicle_id) latest"
-              + " ON blv.vehicle_id = latest.vehicle_id AND blv.timestamp = latest.max_ts",
+          "SELECT DISTINCT ON (vehicle_id) *"
+              + " FROM external_data.bus_live_vehicles"
+              + " ORDER BY vehicle_id, timestamp DESC",
       nativeQuery = true)
   List<BusLiveVehicle> findLatestPositionPerVehicle();
 
   @Query(
       value =
-          "SELECT COUNT(DISTINCT vehicle_id) FROM external_data.bus_live_vehicles"
-              + " WHERE timestamp > NOW() - INTERVAL '30 minutes'",
+          "SELECT DISTINCT ON (vehicle_id) *"
+              + " FROM external_data.bus_live_vehicles"
+              + " WHERE timestamp >= NOW() - INTERVAL '5 minutes'"
+              + " ORDER BY vehicle_id, timestamp DESC",
+      nativeQuery = true)
+  List<BusLiveVehicle> findRecentVehicles();
+
+  @Query(
+      value =
+          "SELECT COUNT(DISTINCT vehicle_id) FROM external_data.bus_live_vehicles",
       nativeQuery = true)
   Long countActiveVehicles();
 
   @Query(
       value =
-          "SELECT blv.* FROM external_data.bus_live_vehicles blv"
+          "SELECT DISTINCT ON (blv.vehicle_id) blv.*"
+              + " FROM external_data.bus_live_vehicles blv"
               + " INNER JOIN external_data.bus_trips bt ON blv.trip_id = bt.id"
-              + " INNER JOIN (SELECT vehicle_id, MAX(timestamp) as max_ts"
-              + " FROM external_data.bus_live_vehicles GROUP BY vehicle_id) latest"
-              + " ON blv.vehicle_id = latest.vehicle_id AND blv.timestamp = latest.max_ts"
-              + " WHERE bt.route_id = :routeId",
+              + " WHERE bt.route_id = :routeId"
+              + " ORDER BY blv.vehicle_id, blv.timestamp DESC",
       nativeQuery = true)
   List<BusLiveVehicle> findLatestPositionsByRouteId(@Param("routeId") String routeId);
 }
