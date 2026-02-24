@@ -358,6 +358,31 @@ def _delete_all_tram_data(session: object) -> None:
 # ── Main Processor ──────────────────────────────────────────────────
 
 
+def _process_cso_data(session: object, cso_dir: Path | None, cso_csv_files: dict) -> None:
+    """Process optional CSO dataset files if a directory is provided."""
+    if cso_dir is None:
+        logger.info("No CSO data directory provided, skipping CSO datasets.")
+        return
+
+    for filename, (required_headers, transform_row) in cso_csv_files.items():
+        file_path = cso_dir / filename
+        if file_path.exists():
+            logger.info("Processing CSO dataset %s...", filename)
+            rows = [
+                transform_row(row)
+                for row in read_csv_file(file_path, required_headers)
+            ]
+            session.add_all(rows)
+            logger.info("Loaded %d rows from %s.", len(rows), filename)
+        else:
+            logger.info(
+                "Skipping optional CSO dataset %s (not found). "
+                "Download from data.gov.ie and place in %s to enable.",
+                filename,
+                cso_dir,
+            )
+
+
 def process_tram_static_data(gtfs_dir: Path, cso_dir: Path | None = None) -> None:
     """
     Process tram data from GTFS CSV files and CSO dataset CSV files.
@@ -425,26 +450,7 @@ def process_tram_static_data(gtfs_dir: Path, cso_dir: Path | None = None) -> Non
                 logger.info("Skipping optional %s (not found).", filename)
 
         # Process optional CSO dataset files
-        if cso_dir is not None:
-            for filename, (required_headers, transform_row) in cso_csv_files.items():
-                file_path = cso_dir / filename
-                if file_path.exists():
-                    logger.info("Processing CSO dataset %s...", filename)
-                    rows = [
-                        transform_row(row)
-                        for row in read_csv_file(file_path, required_headers)
-                    ]
-                    session.add_all(rows)
-                    logger.info("Loaded %d rows from %s.", len(rows), filename)
-                else:
-                    logger.info(
-                        "Skipping optional CSO dataset %s (not found). "
-                        "Download from data.gov.ie and place in %s to enable.",
-                        filename,
-                        cso_dir,
-                    )
-        else:
-            logger.info("No CSO data directory provided, skipping CSO datasets.")
+        _process_cso_data(session, cso_dir, cso_csv_files)
 
         logger.info("Committing changes to database...")
         session.commit()
