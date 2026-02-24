@@ -39,8 +39,8 @@ class BusDashboardServiceTest {
   @Test
   void getKpis_returnsAggregatedKpis() {
     when(busLiveVehicleRepository.countActiveVehicles()).thenReturn(25L);
-    when(busLiveStopTimeUpdateRepository.countActiveDelays(60)).thenReturn(3L);
-    //when(busRouteMetricsRepository.findAverageUtilization()).thenReturn(85.5);
+    when(busLiveStopTimeUpdateRepository.countActiveDelays(120)).thenReturn(3L);
+    when(busRouteMetricsRepository.findFleetUtilization()).thenReturn(85.5);
     when(busRouteMetricsRepository.findAverageReliability()).thenReturn(90.0);
 
     BusDashboardKpiDTO kpis = busDashboardService.getKpis();
@@ -54,8 +54,8 @@ class BusDashboardServiceTest {
   @Test
   void getKpis_withNullMetrics_returnsZeroDefaults() {
     when(busLiveVehicleRepository.countActiveVehicles()).thenReturn(0L);
-    when(busLiveStopTimeUpdateRepository.countActiveDelays(60)).thenReturn(0L);
-    //when(busRouteMetricsRepository.findAverageUtilization()).thenReturn(null);
+    when(busLiveStopTimeUpdateRepository.countActiveDelays(120)).thenReturn(0L);
+    when(busRouteMetricsRepository.findFleetUtilization()).thenReturn(null);
     when(busRouteMetricsRepository.findAverageReliability()).thenReturn(null);
 
     BusDashboardKpiDTO kpis = busDashboardService.getKpis();
@@ -126,8 +126,8 @@ class BusDashboardServiceTest {
     List<BusRouteUtilizationDTO> utilization = busDashboardService.getRouteUtilization();
 
     assertThat(utilization).hasSize(2);
-    assertThat(utilization.get(0).getStatus()).isEqualTo("critical");
-    assertThat(utilization.get(1).getStatus()).isEqualTo("low");
+    assertThat(utilization.get(0).getStatus()).isEqualTo("low");
+    assertThat(utilization.get(1).getStatus()).isEqualTo("critical");
   }
 
   @Test
