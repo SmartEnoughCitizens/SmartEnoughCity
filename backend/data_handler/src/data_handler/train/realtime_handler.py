@@ -558,3 +558,4 @@ def irish_rail_realtime_to_db() -> None:
     irish_rail_station_data_to_db()
     irish_rail_train_movements_to_db()
     logger.info("### Completed loading Irish Rail realtime data.")
+    

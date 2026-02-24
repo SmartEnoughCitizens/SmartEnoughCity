@@ -19,3 +19,4 @@ class TestTramParseGtfsDate(_BaseDateTests):
 
 class TestTramParseGtfsTime(_BaseTimeTests):
     """Verify tram re-export of parse_gtfs_time works correctly."""
+    

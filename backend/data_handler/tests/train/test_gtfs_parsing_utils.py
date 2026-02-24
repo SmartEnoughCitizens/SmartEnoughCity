@@ -19,3 +19,4 @@ class TestTrainParseGtfsDate(_BaseDateTests):
 
 class TestTrainParseGtfsTime(_BaseTimeTests):
     """Verify train re-export of parse_gtfs_time works correctly."""
+    

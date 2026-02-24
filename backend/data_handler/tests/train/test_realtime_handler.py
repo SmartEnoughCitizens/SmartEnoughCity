@@ -627,3 +627,4 @@ class TestIrishRailTrainMovementsToDb:
 
         irish_rail_train_movements_to_db()
         assert_row_count(db_session, "irish_rail_train_movements", 2)
+        
