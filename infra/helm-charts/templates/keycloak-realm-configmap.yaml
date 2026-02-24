@@ -19,40 +19,5 @@ metadata:
     app.kubernetes.io/component: realm-config
 data:
   realm-export.json: |
-    {
-      "realm": {{ .Values.keycloak.realm.name | quote }},
-      "enabled": true,
-      "users": [
-        {
-          "username": "testuser",
-          "enabled": true,
-          "emailVerified": true,
-          "email": "testuser@example.com",
-          "firstName": "Test",
-          "lastName": "User",
-          "credentials": [
-            {
-              "type": "password",
-              "value": "testpassword",
-              "temporary": false
-            }
-          ]
-        }
-      ],
-      "clients": [
-        {
-          "clientId": {{ .Values.keycloak.realm.clientId | quote }},
-          "name": "User Service",
-          "enabled": true,
-          "protocol": "openid-connect",
-          "publicClient": false,
-          "secret": {{ $userServiceClientSecret | quote }},
-          "standardFlowEnabled": false,
-          "directAccessGrantsEnabled": true,
-          "serviceAccountsEnabled": false,
-          "redirectUris": [],
-          "webOrigins": []
-        }
-      ]
-    }
+{{ .Files.Get "files/dev-realm-export.json" | indent 4 }}
 {{- end }}
