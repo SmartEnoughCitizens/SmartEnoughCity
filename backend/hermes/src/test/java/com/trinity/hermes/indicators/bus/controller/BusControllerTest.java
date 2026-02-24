@@ -95,7 +95,6 @@ class BusControllerTest {
     BusSystemPerformanceDTO performance =
         BusSystemPerformanceDTO.builder()
             .reliabilityPct(88.0)
-            .evAdoptionPct(0.0)
             .lateArrivalPct(12.0)
             .build();
     when(busFacade.getSystemPerformance()).thenReturn(performance);

@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -28,6 +29,8 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+    http.cors(Customizer.withDefaults());
 
     // For now ignored CSRF only for API endpoints.
     http.csrf(
@@ -60,6 +63,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("api/v1/recommendation-engine/**")
                     .permitAll()
+                    .requestMatchers("/api/v1/bus/**").permitAll()
                     .requestMatchers("/error")
                     .permitAll()
                     .requestMatchers("/api/notification/v1", "/api/notification/v1/**")

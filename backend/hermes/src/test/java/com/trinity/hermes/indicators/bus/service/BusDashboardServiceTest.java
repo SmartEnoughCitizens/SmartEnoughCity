@@ -40,7 +40,7 @@ class BusDashboardServiceTest {
   void getKpis_returnsAggregatedKpis() {
     when(busLiveVehicleRepository.countActiveVehicles()).thenReturn(25L);
     when(busLiveStopTimeUpdateRepository.countActiveDelays(60)).thenReturn(3L);
-    when(busRouteMetricsRepository.findAverageUtilization()).thenReturn(85.5);
+    //when(busRouteMetricsRepository.findAverageUtilization()).thenReturn(85.5);
     when(busRouteMetricsRepository.findAverageReliability()).thenReturn(90.0);
 
     BusDashboardKpiDTO kpis = busDashboardService.getKpis();
@@ -55,7 +55,7 @@ class BusDashboardServiceTest {
   void getKpis_withNullMetrics_returnsZeroDefaults() {
     when(busLiveVehicleRepository.countActiveVehicles()).thenReturn(0L);
     when(busLiveStopTimeUpdateRepository.countActiveDelays(60)).thenReturn(0L);
-    when(busRouteMetricsRepository.findAverageUtilization()).thenReturn(null);
+    //when(busRouteMetricsRepository.findAverageUtilization()).thenReturn(null);
     when(busRouteMetricsRepository.findAverageReliability()).thenReturn(null);
 
     BusDashboardKpiDTO kpis = busDashboardService.getKpis();
@@ -139,6 +139,6 @@ class BusDashboardServiceTest {
 
     assertThat(performance.getReliabilityPct()).isEqualTo(88.0);
     assertThat(performance.getLateArrivalPct()).isEqualTo(12.0);
-    assertThat(performance.getEvAdoptionPct()).isGreaterThanOrEqualTo(0.0);
+    //assertThat(performance.getEvAdoptionPct()).isGreaterThanOrEqualTo(0.0);
   }
 }

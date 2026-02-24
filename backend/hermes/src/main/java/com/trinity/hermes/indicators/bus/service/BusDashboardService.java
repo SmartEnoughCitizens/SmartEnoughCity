@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class BusDashboardService {
 
-  private static final int DELAY_THRESHOLD_SECONDS = 60;
+  private static final int DELAY_THRESHOLD_SECONDS = 120;
 
   private final BusLiveVehicleRepository busLiveVehicleRepository;
   private final BusLiveStopTimeUpdateRepository busLiveStopTimeUpdateRepository;
@@ -37,7 +37,7 @@ public class BusDashboardService {
 
     Long totalBuses = busLiveVehicleRepository.countActiveVehicles();
     Long activeDelays = busLiveStopTimeUpdateRepository.countActiveDelays(DELAY_THRESHOLD_SECONDS);
-    Double avgUtilization = busRouteMetricsRepository.findAverageUtilization();
+    Double avgUtilization = busRouteMetricsRepository.findFleetUtilization();
     Double avgReliability = busRouteMetricsRepository.findAverageReliability();
 
     double sustainabilityScore =
@@ -66,7 +66,10 @@ public class BusDashboardService {
 
     List<BusRouteMetrics> allMetrics = busRouteMetricsRepository.findAll();
 
-    return allMetrics.stream().map(this::mapToRouteUtilizationDTO).collect(Collectors.toList());
+    return allMetrics.stream()
+        .map(this::mapToRouteUtilizationDTO)
+        .sorted(java.util.Comparator.comparingDouble(BusRouteUtilizationDTO::getUtilizationPct))
+        .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
@@ -79,7 +82,6 @@ public class BusDashboardService {
     return BusSystemPerformanceDTO.builder()
         .reliabilityPct(avgReliability != null ? avgReliability : 0.0)
         .lateArrivalPct(avgLateArrival != null ? avgLateArrival : 0.0)
-        .evAdoptionPct(0.0)
         .build();
   }
 

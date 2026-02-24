@@ -17,7 +17,7 @@ public class BusRouteMetrics {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "route_id", nullable = false)
+  @Column(name = "route_id", nullable = false, unique = true)
   private String routeId;
 
   @Column(name = "route_short_name")

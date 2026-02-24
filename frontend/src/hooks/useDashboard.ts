@@ -13,6 +13,10 @@ export const DASHBOARD_KEYS = {
   availableDocks: ["dashboard", "cycle", "available-docks"] as const,
   busRoutes: ["dashboard", "bus", "routes"] as const,
   indicatorTypes: ["dashboard", "indicator-types"] as const,
+  busKpis: ["bus", "kpis"] as const,
+  busLiveVehicles: ["bus", "live-vehicles"] as const,
+  busRouteUtilization: ["bus", "route-utilization"] as const,
+  busSystemPerformance: ["bus", "system-performance"] as const,
 };
 
 /**
@@ -78,5 +82,57 @@ export const useIndicatorTypes = () => {
     queryKey: DASHBOARD_KEYS.indicatorTypes,
     queryFn: () => dashboardApi.getIndicatorTypes(),
     staleTime: 300_000, // 5 minutes
+  });
+};
+
+/**
+ * Get bus dashboard KPIs
+ */
+export const useBusKpis = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busKpis,
+    queryFn: () => dashboardApi.getBusKpis(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get live bus vehicle positions
+ */
+export const useBusLiveVehicles = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busLiveVehicles,
+    queryFn: () => dashboardApi.getBusLiveVehicles(),
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get route utilization data
+ */
+export const useBusRouteUtilization = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busRouteUtilization,
+    queryFn: () => dashboardApi.getBusRouteUtilization(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get system performance metrics
+ */
+export const useBusSystemPerformance = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busSystemPerformance,
+    queryFn: () => dashboardApi.getBusSystemPerformance(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
 };
