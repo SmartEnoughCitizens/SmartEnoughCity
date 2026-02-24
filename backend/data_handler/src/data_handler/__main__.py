@@ -8,7 +8,7 @@ from data_handler.cycle.csv_import_handler import import_all_station_history_csv
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
 from data_handler.db import Base, engine
-from data_handler.events.data_handler import fetch_and_store_events
+from data_handler.events.data_handler import fetch_and_store_events, fetch_and_store_venues
 from data_handler.logging import configure_logging
 from data_handler.settings.data_sources_settings import get_data_sources_settings
 from data_handler.settings.database_settings import get_db_settings
@@ -53,6 +53,12 @@ def main_static() -> None:
         process_station_information()
     else:
         logger.info("Skipping cycle static data processing...")
+
+    if sources_settings.enable_events_data:
+        logger.info("Seeding event venues from Ticketmaster...")
+        fetch_and_store_venues()
+    else:
+        logger.info("Skipping events venue seeding...")
 
     logger.info("Finished processing static data.")
 
