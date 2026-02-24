@@ -358,7 +358,9 @@ def _delete_all_tram_data(session: object) -> None:
 # ── Main Processor ──────────────────────────────────────────────────
 
 
-def _process_cso_data(session: object, cso_dir: Path | None, cso_csv_files: dict) -> None:
+def _process_cso_data(
+    session: object, cso_dir: Path | None, cso_csv_files: dict
+) -> None:
     """Process optional CSO dataset files if a directory is provided."""
     if cso_dir is None:
         logger.info("No CSO data directory provided, skipping CSO datasets.")
@@ -369,8 +371,7 @@ def _process_cso_data(session: object, cso_dir: Path | None, cso_csv_files: dict
         if file_path.exists():
             logger.info("Processing CSO dataset %s...", filename)
             rows = [
-                transform_row(row)
-                for row in read_csv_file(file_path, required_headers)
+                transform_row(row) for row in read_csv_file(file_path, required_headers)
             ]
             session.add_all(rows)
             logger.info("Loaded %d rows from %s.", len(rows), filename)
