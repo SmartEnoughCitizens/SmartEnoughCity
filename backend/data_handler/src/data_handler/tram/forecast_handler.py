@@ -207,3 +207,4 @@ def luas_forecasts_to_db() -> None:
 
     finally:
         session.close()
+        

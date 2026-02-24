@@ -142,3 +142,4 @@ class TestProcessTrainStaticData:
 
         process_train_static_data(train_data_dir)
         assert_row_count(db_session, "train_stops", 4)
+        
