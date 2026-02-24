@@ -1,0 +1,138 @@
+global:
+  imagePullSecrets:
+    - ghcr-secret
+
+data-handler:
+  imagePullSecrets:
+    - ghcr-secret
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
+    tag: latest
+    pullPolicy: IfNotPresent
+#  cronjob:
+#    suspend: true
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+
+frontend:
+  imagePullSecrets:
+    - ghcr-secret
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+
+hermes:
+  imagePullSecrets:
+    - ghcr-secret
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
+    tag: latest
+    pullPolicy: IfNotPresent
+  # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
+  livenessProbe: null
+  readinessProbe: null
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+
+inference-engine:
+  imagePullSecrets:
+    - ghcr-secret
+  image:
+    repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
+    tag: latest
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    httpGet:
+      path: /docs
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /docs
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+
+# Exclude PostgreSQL from Istio injection - databases need direct network access
+postgresql:
+  primary:
+    podAnnotations:
+      sidecar.istio.io/inject: "false"
+
+# Exclude PostgreSQL init job from Istio - Jobs can't complete with sidecars
+postgresqlInit:
+  podAnnotations:
+    sidecar.istio.io/inject: "false"
+
+ingress:
+  enabled: true
+  className: nginx
+
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+  hosts:
+    - host: dev.citycontrol.me
+      frontendPaths:
+        - path: /
+          pathType: Prefix
+      hermesPaths:
+        - path: /api
+          pathType: Prefix
+
+  tls:
+    - secretName: sec-dev-citycontrol-tls
+      hosts:
+        - dev.citycontrol.me

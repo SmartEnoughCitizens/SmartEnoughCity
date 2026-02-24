@@ -2,6 +2,8 @@ server:
   port: 8080
 
 spring:
+  liquibase:
+    enabled: false
   security:
     oauth2:
       resourceserver:
@@ -12,9 +14,9 @@ spring:
     name: hermes
 
   datasource:
-   url: jdbc:postgresql://localhost:55432/smart_enough_city
-   username: backend_user
-   password: dev_backend_user_password
+    url: jdbc:postgresql://localhost:55432/smart_enough_city
+    username: backend_user
+    password: dev_backend_user_password
 
   jpa:
     properties:
