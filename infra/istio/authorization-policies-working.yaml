@@ -1,0 +1,32 @@
+# Working Authorization Policies
+# Simpler approach that actually works with Istio mTLS
+
+---
+# Allow ingress namespace to reach all services
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress
+  namespace: dev
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["ingress"]
+  # Applies to all services - ingress can reach everything it needs
+
+---
+# Allow all internal service-to-service communication in dev namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-internal-dev
+  namespace: dev
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["dev"]
+  # Services in dev can talk to each other

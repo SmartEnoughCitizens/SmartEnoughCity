@@ -1,0 +1,24 @@
+# Enable STRICT mTLS for all services in dev namespace
+# This works because ingress-nginx now has an Istio sidecar
+
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict
+  namespace: dev
+spec:
+  mtls:
+    mode: STRICT
+---
+# Exclude PostgreSQL from mesh (no sidecar = no mTLS enforcement)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: postgresql-disable
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+  mtls:
+    mode: DISABLE

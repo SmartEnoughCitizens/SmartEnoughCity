@@ -1,0 +1,32 @@
+controller:
+  replicaCount: 2
+
+  service:
+    type: LoadBalancer
+    ports:
+      http: 80
+      https: 443
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  metrics:
+    enabled: true
+
+  config:
+    use-proxy-protocol: "false"
+    use-forwarded-headers: "true"
+
+  ingressClassResource:
+    default: true
+
+  # Exclude admission webhook Jobs from Istio injection
+  admissionWebhooks:
+    patch:
+      podAnnotations:
+        sidecar.istio.io/inject: "false"
