@@ -161,4 +161,3 @@ class TestProcessTramStaticData:
 
         process_tram_static_data(tram_gtfs_dir)
         assert_row_count(db_session, "tram_stops", 4)
-        

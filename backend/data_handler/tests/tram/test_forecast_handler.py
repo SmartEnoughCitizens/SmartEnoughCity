@@ -361,4 +361,3 @@ class TestLuasForecastsToDb:
 
         mock_get.assert_not_called()
         assert_row_count(db_session, "tram_luas_forecasts", 0)
-        

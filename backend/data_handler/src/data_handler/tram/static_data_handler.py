@@ -463,4 +463,3 @@ def process_tram_static_data(gtfs_dir: Path, cso_dir: Path | None = None) -> Non
 
     finally:
         session.close()
-        
