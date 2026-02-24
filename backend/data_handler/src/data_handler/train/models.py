@@ -362,4 +362,3 @@ class IrishRailTrainMovement(Base):
     auto_depart: Mapped[bool | None] = mapped_column(Boolean)
     stop_type: Mapped[StopType | None] = mapped_column(Enum(StopType))
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    
