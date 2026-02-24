@@ -19,6 +19,14 @@ export interface RegisterUserResponse {
   message: string;
 }
 
+export interface UserInfo {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 export const ALLOWED_ROLES = [
   "City_Manager",
   "Bus_Admin",
