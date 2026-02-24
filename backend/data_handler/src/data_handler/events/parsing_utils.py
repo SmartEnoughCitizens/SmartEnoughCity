@@ -8,9 +8,21 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-HIGH_IMPACT_VENUES: frozenset[str] = frozenset(
-    {"Aviva Stadium", "Croke Park", "3Arena", "RDS Arena", "Tallaght Stadium"}
-)
+# ---------------------------------------------------------------------------
+# Venue size classification
+# ---------------------------------------------------------------------------
+
+# Thresholds mirror the GENERATED ALWAYS AS logic in the Venue DB model.
+# Larger venues have disproportionate impact on public transport and traffic.
+VENUE_SIZE_TAG_THRESHOLDS: list[tuple[int, str]] = [
+    (50000, "major_stadium"),  # e.g. Croke Park (~82k), Aviva Stadium (~51k)
+    (20000, "stadium"),  # e.g. RDS Arena (~22k)
+    (8000, "arena"),  # e.g. 3Arena (~13k), Tallaght Stadium (~10k)
+    (1000, "theatre"),  # e.g. Olympia Theatre, Vicar Street
+    (0, "venue"),  # small clubs and intimate spaces
+]
+
+HIGH_IMPACT_TAGS: frozenset[str] = frozenset({"arena", "stadium", "major_stadium"})
 
 VENUE_CAPACITY_THRESHOLD: int = 8000
 
@@ -24,6 +36,7 @@ class ParsedEvent:
     event_name: str
     event_type: str
     venue_name: str
+    venue_ticketmaster_id: str
     latitude: float
     longitude: float
     event_date: date
@@ -33,28 +46,45 @@ class ParsedEvent:
     estimated_attendance: int | None
 
 
-def determine_high_impact(venue_name: str, capacity_or_spectators: int | None) -> bool:
-    """
-    Determine if an event is high-impact based on venue name or capacity.
+@dataclass
+class ParsedVenue:
+    """Parsed venue data from Ticketmaster. Capacity is NOT included — set manually in DB."""
 
-    Returns True if the venue is in HIGH_IMPACT_VENUES or if
-    the capacity/spectator count meets or exceeds the threshold.
+    ticketmaster_id: str
+    name: str
+    address: str | None
+    city: str | None
+    latitude: float
+    longitude: float
+
+
+def determine_high_impact(
+    venue_size_tag: str | None,
+    estimated_attendance: int | None,
+) -> bool:
     """
-    if venue_name in HIGH_IMPACT_VENUES:
-        return True
+    Determine if an event is high-impact based on venue size tag or attendance.
+
+    Returns True if the venue tag indicates high capacity (arena or larger),
+    or if estimated_attendance meets the threshold when no tag is available.
+    """
+    if venue_size_tag is not None:
+        return venue_size_tag in HIGH_IMPACT_TAGS
     return (
-        capacity_or_spectators is not None
-        and capacity_or_spectators >= VENUE_CAPACITY_THRESHOLD
+        estimated_attendance is not None
+        and estimated_attendance >= VENUE_CAPACITY_THRESHOLD
     )
 
 
 # ---------------------------------------------------------------------------
-# Ticketmaster parsing
+# Ticketmaster event parsing
 # ---------------------------------------------------------------------------
 
 
-def _extract_ticketmaster_venue(raw: dict[str, Any]) -> tuple[str, float, float] | None:
-    """Extract venue name, latitude, longitude from a Ticketmaster event dict."""
+def _extract_ticketmaster_venue(
+    raw: dict[str, Any],
+) -> tuple[str, str, float, float] | None:
+    """Extract (tm_venue_id, venue_name, latitude, longitude) from a Ticketmaster event dict."""
     embedded = raw.get("_embedded")
     if not embedded:
         return None
@@ -70,6 +100,7 @@ def _extract_ticketmaster_venue(raw: dict[str, Any]) -> tuple[str, float, float]
 
     try:
         return (
+            venue.get("id", ""),
             venue.get("name", ""),
             float(location["latitude"]),
             float(location["longitude"]),
@@ -83,12 +114,15 @@ def parse_ticketmaster_event(raw: dict[str, Any]) -> ParsedEvent | None:
     Parse a single Ticketmaster Discovery API v2 event into a ParsedEvent.
 
     Returns None if the event cannot be parsed (missing venue, coordinates, etc.).
+
+    is_high_impact defaults to False at parse time — it is recomputed from the
+    venue's tag in _upsert_events once venue data is resolved from the database.
     """
     venue_info = _extract_ticketmaster_venue(raw)
     if venue_info is None:
         return None
 
-    venue_name, latitude, longitude = venue_info
+    venue_tm_id, venue_name, latitude, longitude = venue_info
 
     classifications = raw.get("classifications", [])
     event_type = (
@@ -125,12 +159,13 @@ def parse_ticketmaster_event(raw: dict[str, Any]) -> ParsedEvent | None:
         event_name=raw.get("name", ""),
         event_type=event_type,
         venue_name=venue_name,
+        venue_ticketmaster_id=venue_tm_id,
         latitude=latitude,
         longitude=longitude,
         event_date=event_date,
         start_time=start_time,
         end_time=end_time,
-        is_high_impact=determine_high_impact(venue_name, capacity_or_spectators=None),
+        is_high_impact=False,
         estimated_attendance=None,
     )
 
@@ -141,16 +176,68 @@ def parse_ticketmaster_response(raw_data: dict[str, Any]) -> list[ParsedEvent]:
 
     Returns an empty list if the response is empty or malformed.
     """
-    events: list[ParsedEvent] = []
-
     embedded = raw_data.get("_embedded")
     if not embedded:
-        return events
+        return []
 
-    raw_events = embedded.get("events", [])
-    for raw_event in raw_events:
-        parsed = parse_ticketmaster_event(raw_event)
-        if parsed is not None:
-            events.append(parsed)
+    return [
+        parsed
+        for raw_event in embedded.get("events", [])
+        if (parsed := parse_ticketmaster_event(raw_event)) is not None
+    ]
 
-    return events
+
+# ---------------------------------------------------------------------------
+# Ticketmaster venue parsing
+# ---------------------------------------------------------------------------
+
+
+def parse_ticketmaster_venue(raw: dict[str, Any]) -> ParsedVenue | None:
+    """
+    Parse a single Ticketmaster venue dict into a ParsedVenue.
+
+    Returns None if required fields (id, name, latitude, longitude) are missing.
+    """
+    venue_id = raw.get("id")
+    name = raw.get("name")
+    if not venue_id or not name:
+        return None
+
+    location = raw.get("location", {})
+    try:
+        latitude = float(location["latitude"])
+        longitude = float(location["longitude"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    address_block = raw.get("address", {})
+    address = address_block.get("line1") if address_block else None
+
+    city_block = raw.get("city", {})
+    city = city_block.get("name") if city_block else None
+
+    return ParsedVenue(
+        ticketmaster_id=venue_id,
+        name=name,
+        address=address,
+        city=city,
+        latitude=latitude,
+        longitude=longitude,
+    )
+
+
+def parse_ticketmaster_venues_response(raw_data: dict[str, Any]) -> list[ParsedVenue]:
+    """
+    Parse the complete Ticketmaster /venues.json API response.
+
+    Returns an empty list if the response is empty or malformed.
+    """
+    embedded = raw_data.get("_embedded")
+    if not embedded:
+        return []
+
+    return [
+        parsed
+        for raw_venue in embedded.get("venues", [])
+        if (parsed := parse_ticketmaster_venue(raw_venue)) is not None
+    ]
