@@ -8,7 +8,7 @@ data-handler:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 #  cronjob:
 #    suspend: true
   securityContext:
@@ -30,7 +30,7 @@ frontend:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/frontend
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -50,7 +50,7 @@ hermes:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
   livenessProbe: null
   readinessProbe: null
@@ -73,7 +73,7 @@ inference-engine:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   livenessProbe:
     httpGet:
       path: /docs
@@ -113,6 +113,14 @@ postgresql:
 postgresqlInit:
   podAnnotations:
     sidecar.istio.io/inject: "false"
+
+# Enable config-cli to push realm changes, exclude from Istio - Jobs can't complete with sidecars
+keycloak:
+  keycloakConfigCli:
+    enabled: true
+    existingConfigmap: keycloak-realm-import
+    podAnnotations:
+      sidecar.istio.io/inject: "false"
 
 ingress:
   enabled: true

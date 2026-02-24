@@ -45,6 +45,7 @@ keycloak:
     registry: docker.io
     repository: bitnamilegacy/keycloak
   keycloakConfigCli:
+    enabled: false
     image:
       registry: docker.io
       repository: bitnamilegacy/keycloak-config-cli
