@@ -8,7 +8,7 @@ data-handler:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 #  cronjob:
 #    suspend: true
   securityContext:
@@ -30,7 +30,7 @@ frontend:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/frontend
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -50,7 +50,7 @@ hermes:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
   livenessProbe: null
   readinessProbe: null
@@ -73,7 +73,7 @@ inference-engine:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   livenessProbe:
     httpGet:
       path: /docs
