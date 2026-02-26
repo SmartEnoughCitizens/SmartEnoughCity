@@ -1,0 +1,209 @@
+{
+    "realm": "user-management-realm",
+    "enabled": true,
+    "displayName": "Smart Enough City",
+    "registrationAllowed": false,
+    "registrationEmailAsUsername": false,
+    "rememberMe": true,
+    "verifyEmail": false,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": true,
+    "editUsernameAllowed": false,
+
+    "roles": {
+        "realm": [
+            {
+                "name": "Government_Admin",
+                "description": "User Management - add/remove city manager & service providers",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "City_Manager",
+                "description": "Access to all Dashboards",
+                "composite": true,
+                "composites": {
+                    "realm": ["Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"]
+                },
+                "clientRole": false
+            },
+            {
+                "name": "Bus_Admin",
+                "description": "Bus specific data, Manage Bus providers",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "Bus_Provider",
+                "description": "Bus specific data",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "Cycle_Admin",
+                "description": "Cycle specific data, Manage Cycle providers",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "Cycle_Provider",
+                "description": "Cycle specific data",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "Train_Admin",
+                "description": "Train specific data, Manage Train providers",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "Train_Provider",
+                "description": "Train specific data",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "Tram_Admin",
+                "description": "Tram specific data, Manage Tram providers",
+                "composite": false,
+                "clientRole": false
+            },
+            {
+                "name": "Tram_Provider",
+                "description": "Tram specific data",
+                "composite": false,
+                "clientRole": false
+            }
+        ]
+    },
+
+    "users": [
+        {
+            "username": "gov_admin",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "gov.admin@smartcity.com",
+            "firstName": "Government",
+            "lastName": "Admin",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "GovAdmin@123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": ["Government_Admin"],
+            "groups": []
+        },
+        {
+            "username": "city_manager",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "city.manager@smartcity.com",
+            "firstName": "City",
+            "lastName": "Manager",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "CityManager@123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": ["City_Manager"],
+            "groups": []
+        },
+        {
+            "username": "bus_admin",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "bus.admin@smartcity.com",
+            "firstName": "Bus",
+            "lastName": "Admin",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "BusAdmin@123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": ["Bus_Admin"],
+            "groups": []
+        },
+        {
+            "username": "bus_provider_demo",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "bus.provider@transport.com",
+            "firstName": "Demo Bus",
+            "lastName": "Provider",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "BusProvider@123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": ["Bus_Provider"],
+            "groups": []
+        },
+        {
+            "username": "cycle_admin",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "cycle.admin@smartcity.com",
+            "firstName": "Cycle",
+            "lastName": "Admin",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "CycleAdmin@123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": ["Cycle_Admin"],
+            "groups": []
+        }
+    ],
+
+    "clients": [
+        {
+            "clientId": "user-service",
+            "name": "User Service",
+            "description": "Backend user service for authentication",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "clientAuthenticatorType": "client-secret",
+            "secret": "dev-keycloak-user-service-secret",
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true,
+            "authorizationServicesEnabled": false,
+            "redirectUris": ["http://localhost:*"],
+            "webOrigins": ["http://localhost:*"],
+            "attributes": {
+                "access.token.lifespan": "3600"
+            }
+        },
+        {
+            "clientId": "frontend-app",
+            "name": "Frontend Application",
+            "description": "Public client for frontend application",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": true,
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": false,
+            "redirectUris": ["http://localhost:3000/*", "http://localhost:5173/*"],
+            "webOrigins": ["http://localhost:3000", "http://localhost:5173"],
+            "attributes": {}
+        }
+    ],
+
+    "clientScopes": []
+}

@@ -184,7 +184,7 @@ services:
     depends_on:
       - postgres
     volumes:
-      - ./config/keycloak/dev-realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./infra/helm-charts/files/dev-realm-export.json:/opt/keycloak/data/import/realm-export.json
     networks:
       - keycloak-postgres
 

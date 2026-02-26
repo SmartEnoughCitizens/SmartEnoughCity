@@ -1,14 +1,12 @@
 """Handler for fetching and storing traffic and construction data."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from data_handler.congestion_and_construction.models import (
-    TrafficEvent,
-)
+from data_handler.congestion_and_construction.models import TrafficEvent
 from data_handler.congestion_and_construction.parsing_utils import (
     ParsedTrafficEvent,
     parse_api_response,
@@ -26,19 +24,9 @@ logger = logging.getLogger(__name__)
 def _upsert_traffic_events(
     session: Session, events: list[ParsedTrafficEvent], fetched_at: datetime
 ) -> int:
-    """
-    Upsert traffic events into the database.
-
-    Uses PostgreSQL's ON CONFLICT for events with source_id.
-    Events without source_id are always inserted as new.
-
-    Returns:
-        Number of events processed
-    """
     events_with_source_id = [e for e in events if e.source_id]
     events_without_source_id = [e for e in events if not e.source_id]
 
-    # Upsert events with source_id
     if events_with_source_id:
         for event in events_with_source_id:
             stmt = pg_insert(TrafficEvent).values(
@@ -65,7 +53,6 @@ def _upsert_traffic_events(
             )
             session.execute(stmt)
 
-    # Insert events without source_id
     for event in events_without_source_id:
         db_event = TrafficEvent(
             event_type=event.event_type,
@@ -82,35 +69,27 @@ def _upsert_traffic_events(
     return len(events)
 
 
+# data_handler.py
+
+
 def fetch_and_store_traffic_data(
     bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
+    session: Session | None = None,  # ← add this
 ) -> int:
-    """
-    Fetch traffic data from TII API and store in database.
-
-    This function:
-    1. Fetches current traffic data from the TII API
-    2. Parses the response into structured events
-    3. Upserts new events into the database
-
-    Args:
-        bounding_box: Geographic area to query
-
-    Returns:
-        Number of events processed
-
-    Raises:
-        requests.RequestException: If the API request fails
-    """
     client = TIIApiClient(bounding_box=bounding_box)
-    session = SessionLocal()
-    fetched_at = datetime.now(datetime.timezone.utc)
+
+    _owns_session = session is None
+    if _owns_session:
+        session = SessionLocal()
+
+    fetched_at = datetime.now(UTC)
 
     try:
         raw_data = client.fetch_traffic_data()
 
         if raw_data is None:
-            session.commit()
+            if _owns_session:
+                session.commit()
             return 0
 
         events = parse_api_response(raw_data)
@@ -118,9 +97,12 @@ def fetch_and_store_traffic_data(
 
         events_count = _upsert_traffic_events(session, events, fetched_at)
 
-        session.commit()
+        if _owns_session:
+            session.commit()
+
     except Exception:
-        session.rollback()
+        if _owns_session:
+            session.rollback()
         logger.exception("Error fetching/storing traffic data")
         raise
 
@@ -129,4 +111,5 @@ def fetch_and_store_traffic_data(
         return events_count
 
     finally:
-        session.close()
+        if _owns_session:
+            session.close()
