@@ -15,6 +15,7 @@ import {
 import { useLogin } from "@/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { setAuthenticated } from "@/store/slices/authSlice";
+import { getRolesFromToken } from "@/utils/jwt";
 import { useNavigate } from "react-router-dom";
 
 export const LoginForm = () => {
@@ -42,6 +43,7 @@ export const LoginForm = () => {
         setAuthenticated({
           accessToken: response.accessToken,
           username: response.username,
+          roles: getRolesFromToken(response.accessToken),
         }),
       );
 
