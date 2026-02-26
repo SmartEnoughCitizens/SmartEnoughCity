@@ -84,14 +84,14 @@ class BusDashboardServiceTest {
         new BusRidership(
             1, 100, "trip_1", "stop_1", 1, Timestamp.from(Instant.now()), 5, 2, 40, 80);
 
+    com.trinity.hermes.indicators.bus.entity.BusRoute route =
+        new com.trinity.hermes.indicators.bus.entity.BusRoute(
+            "route_1", 1, "42", "City Center - Sandyford");
+
     when(busLiveVehicleRepository.findLatestPositionPerVehicle()).thenReturn(List.of(vehicle));
-    when(busTripRepository.findById("trip_1")).thenReturn(java.util.Optional.of(trip));
-    when(busRouteRepository.findById("route_1"))
-        .thenReturn(
-            java.util.Optional.of(
-                new com.trinity.hermes.indicators.bus.entity.BusRoute(
-                    "route_1", 1, "42", "City Center - Sandyford")));
-    when(busRidershipRepository.findLatestByVehicleId(100)).thenReturn(ridership);
+    when(busTripRepository.findAllById(java.util.Set.of("trip_1"))).thenReturn(List.of(trip));
+    when(busRouteRepository.findAllById(java.util.Set.of("route_1"))).thenReturn(List.of(route));
+    when(busRidershipRepository.findLatestPerVehicle()).thenReturn(List.of(ridership));
 
     List<BusLiveVehicleDTO> vehicles = busDashboardService.getLiveVehiclePositions();
 

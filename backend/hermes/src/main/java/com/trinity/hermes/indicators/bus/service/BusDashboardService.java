@@ -11,6 +11,9 @@ import com.trinity.hermes.indicators.bus.entity.BusRouteMetrics;
 import com.trinity.hermes.indicators.bus.entity.BusTrip;
 import com.trinity.hermes.indicators.bus.repository.*;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,8 +59,29 @@ public class BusDashboardService {
     log.info("Fetching live vehicle positions");
 
     List<BusLiveVehicle> vehicles = busLiveVehicleRepository.findLatestPositionPerVehicle();
+    if (vehicles.isEmpty()) {
+      return List.of();
+    }
 
-    return vehicles.stream().map(this::mapToLiveVehicleDTO).collect(Collectors.toList());
+    Set<String> tripIds =
+        vehicles.stream().map(BusLiveVehicle::getTripId).collect(Collectors.toSet());
+    Map<String, BusTrip> tripsById =
+        busTripRepository.findAllById(tripIds).stream()
+            .collect(Collectors.toMap(BusTrip::getId, Function.identity()));
+
+    Set<String> routeIds =
+        tripsById.values().stream().map(BusTrip::getRouteId).collect(Collectors.toSet());
+    Map<String, BusRoute> routesById =
+        busRouteRepository.findAllById(routeIds).stream()
+            .collect(Collectors.toMap(BusRoute::getId, Function.identity()));
+
+    Map<Integer, BusRidership> ridershipByVehicleId =
+        busRidershipRepository.findLatestPerVehicle().stream()
+            .collect(Collectors.toMap(BusRidership::getVehicleId, Function.identity()));
+
+    return vehicles.stream()
+        .map(v -> mapToLiveVehicleDTO(v, tripsById, routesById, ridershipByVehicleId))
+        .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
@@ -85,17 +109,21 @@ public class BusDashboardService {
         .build();
   }
 
-  private BusLiveVehicleDTO mapToLiveVehicleDTO(BusLiveVehicle vehicle) {
+  private BusLiveVehicleDTO mapToLiveVehicleDTO(
+      BusLiveVehicle vehicle,
+      Map<String, BusTrip> tripsById,
+      Map<String, BusRoute> routesById,
+      Map<Integer, BusRidership> ridershipByVehicleId) {
     String routeShortName = "";
-    BusTrip trip = busTripRepository.findById(vehicle.getTripId()).orElse(null);
+    BusTrip trip = tripsById.get(vehicle.getTripId());
     if (trip != null) {
-      BusRoute route = busRouteRepository.findById(trip.getRouteId()).orElse(null);
+      BusRoute route = routesById.get(trip.getRouteId());
       if (route != null) {
         routeShortName = route.getShortName();
       }
     }
 
-    BusRidership ridership = busRidershipRepository.findLatestByVehicleId(vehicle.getVehicleId());
+    BusRidership ridership = ridershipByVehicleId.get(vehicle.getVehicleId());
 
     double occupancyPct = 0.0;
     if (ridership != null && ridership.getVehicleCapacity() > 0) {
