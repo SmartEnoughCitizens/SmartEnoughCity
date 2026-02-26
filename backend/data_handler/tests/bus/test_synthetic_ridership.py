@@ -77,9 +77,7 @@ def test_generate_ridership_peak_hours(
         assert onboard <= capacity
 
 
-def test_generate_ridership_off_peak(
-    db_session: Session, tests_data_dir: Path
-) -> None:
+def test_generate_ridership_off_peak(db_session: Session, tests_data_dir: Path) -> None:
     """Off-peak ridership should be lower than capacity thresholds."""
     _load_static_and_live_data(tests_data_dir)
 
@@ -87,9 +85,7 @@ def test_generate_ridership_off_peak(
 
     schema = get_db_settings().postgres_schema
     result = db_session.execute(
-        text(
-            f"SELECT passengers_onboard, vehicle_capacity FROM {schema}.bus_ridership"
-        )
+        text(f"SELECT passengers_onboard, vehicle_capacity FROM {schema}.bus_ridership")
     )
     rows = result.fetchall()
     for row in rows:
@@ -108,9 +104,7 @@ def test_passengers_onboard_never_exceeds_capacity(
 
     schema = get_db_settings().postgres_schema
     result = db_session.execute(
-        text(
-            f"SELECT passengers_onboard, vehicle_capacity FROM {schema}.bus_ridership"
-        )
+        text(f"SELECT passengers_onboard, vehicle_capacity FROM {schema}.bus_ridership")
     )
     for row in result.fetchall():
         assert row[0] <= row[1], (

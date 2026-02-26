@@ -125,7 +125,9 @@ class BusStop(Base):
     live_stop_time_updates: Mapped[list["BusLiveTripStopTimeUpdate"]] = relationship(
         back_populates="stop"
     )
-    ridership_records: Mapped[list["BusRidership"]] = relationship(back_populates="stop")
+    ridership_records: Mapped[list["BusRidership"]] = relationship(
+        back_populates="stop"
+    )
 
 
 class BusTrip(Base):
@@ -152,7 +154,9 @@ class BusTrip(Base):
     live_trip_updates: Mapped[list["BusLiveTripUpdate"]] = relationship(
         back_populates="trip"
     )
-    ridership_records: Mapped[list["BusRidership"]] = relationship(back_populates="trip")
+    ridership_records: Mapped[list["BusRidership"]] = relationship(
+        back_populates="trip"
+    )
 
     service: Mapped["BusCalendarSchedule"] = relationship(
         primaryjoin="foreign(BusTrip.service_id) == BusCalendarSchedule.service_id",
@@ -326,7 +330,9 @@ class BusRidership(Base):
     stop_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     passengers_boarding: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    passengers_alighting: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    passengers_alighting: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
     passengers_onboard: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     vehicle_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=80)
 
