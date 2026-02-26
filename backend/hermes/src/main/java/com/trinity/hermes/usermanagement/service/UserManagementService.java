@@ -99,7 +99,7 @@ public class UserManagementService {
       credential.setTemporary(false);
     } else {
       credential.setValue("ChangeMe@123");
-      credential.setTemporary(false);
+      credential.setTemporary(true);
     }
 
     getUsersResource().get(userId).resetPassword(credential);
