@@ -169,7 +169,7 @@ def _upsert_events(
             event.end_time = _estimate_end_time(event)
 
         venue_entry = venue_id_map.get(event.venue_ticketmaster_id)
-        venue_db_id, venue_tag = venue_entry if venue_entry else (None, None)
+        venue_db_id, venue_tag = venue_entry or (None, None)
         is_high_impact = determine_high_impact(venue_tag, event.estimated_attendance)
 
         stmt = pg_insert(Event).values(
