@@ -52,10 +52,9 @@ export const UserManagementPage = () => {
       setSnackbar({ open: true, message: result.message, severity: "success" });
       setDeleteTarget(null);
     } catch (error) {
-      const message =
-        isAxiosError<{ message?: string }>(error)
-          ? (error.response?.data?.message ?? error.message)
-          : "Failed to delete user";
+      const message = isAxiosError<{ message?: string }>(error)
+        ? (error.response?.data?.message ?? error.message)
+        : "Failed to delete user";
       setSnackbar({ open: true, message, severity: "error" });
     }
   };

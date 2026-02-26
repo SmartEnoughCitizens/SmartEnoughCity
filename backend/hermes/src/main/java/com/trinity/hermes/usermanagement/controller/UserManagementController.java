@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Endpoints: POST /api/usermanagement/register -- create a new user DELETE
- * /api/usermanagement/delete?username={username} -- delete a user GET
- * /api/usermanagement/users -- list manageable users
+ * /api/usermanagement/delete?username={username} -- delete a user GET /api/usermanagement/users --
+ * list manageable users
  *
  * <p>How security works here: - @AuthenticationPrincipal Jwt jwt --> Spring injects the decoded JWT
  * token that the frontend sent in the Authorization header. - We extract "realm_access.roles" from
