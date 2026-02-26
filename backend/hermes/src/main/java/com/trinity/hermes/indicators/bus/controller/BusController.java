@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/bus")
 @RequiredArgsConstructor
-
 @Slf4j
 @CrossOrigin(origins = "*")
 public class BusController {

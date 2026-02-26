@@ -1,6 +1,5 @@
 package com.trinity.hermes.indicators.bus.service;
 
-import com.trinity.hermes.indicators.bus.entity.BusLiveStopTimeUpdate;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
 import com.trinity.hermes.indicators.bus.entity.BusRoute;
@@ -42,23 +41,20 @@ public class BusMetricsComputeService {
       busRouteMetricsRepository.deleteAll();
 
       List<BusRoute> routes = busRouteRepository.findAllOrderByShortName();
-      List<BusLiveVehicle> recentVehicles =
-          busLiveVehicleRepository.findLatestPositionPerVehicle();
-      List<Object[]> delayRows =
-          busLiveStopTimeUpdateRepository.findDelaysByVehicle();
+      List<BusLiveVehicle> recentVehicles = busLiveVehicleRepository.findLatestPositionPerVehicle();
+      List<Object[]> delayRows = busLiveStopTimeUpdateRepository.findDelaysByVehicle();
 
       // All trips grouped by route_id — used for scheduled trip count
       List<BusTrip> allTrips = busTripRepository.findAll();
       Map<String, Set<String>> allTripIdsByRouteId =
-          allTrips.stream().collect(
-              Collectors.groupingBy(
-                  BusTrip::getRouteId,
-                  Collectors.mapping(BusTrip::getId, Collectors.toSet())));
+          allTrips.stream()
+              .collect(
+                  Collectors.groupingBy(
+                      BusTrip::getRouteId, Collectors.mapping(BusTrip::getId, Collectors.toSet())));
 
       // Find ALL trips whose stop_time window covers the current Dublin time
       // (no IN clause — no service_id filtering — purely time-based)
-      java.time.LocalTime nowTime =
-          java.time.LocalTime.now(java.time.ZoneId.of("Europe/Dublin"));
+      java.time.LocalTime nowTime = java.time.LocalTime.now(java.time.ZoneId.of("Europe/Dublin"));
       java.sql.Time sqlNow = java.sql.Time.valueOf(nowTime);
       Set<String> currentlyActiveTrips =
           new java.util.HashSet<>(busStopTimeRepository.findAllActiveTripsAtTime(sqlNow));
@@ -72,8 +68,9 @@ public class BusMetricsComputeService {
         int vehicleId = ((Number) row[0]).intValue();
         int arrivalDelay = row[1] != null ? ((Number) row[1]).intValue() : 0;
         int departureDelay = row[2] != null ? ((Number) row[2]).intValue() : 0;
-        delaysByVehicleId.computeIfAbsent(vehicleId, k -> new java.util.ArrayList<>())
-            .add(new int[]{arrivalDelay, departureDelay});
+        delaysByVehicleId
+            .computeIfAbsent(vehicleId, k -> new java.util.ArrayList<>())
+            .add(new int[] {arrivalDelay, departureDelay});
       }
 
       // Bulk-load latest ridership per vehicle
@@ -84,8 +81,7 @@ public class BusMetricsComputeService {
                   Collectors.toMap(
                       BusRidership::getVehicleId,
                       r -> r,
-                      (r1, r2) ->
-                          r1.getTimestamp().after(r2.getTimestamp()) ? r1 : r2));
+                      (r1, r2) -> r1.getTimestamp().after(r2.getTimestamp()) ? r1 : r2));
 
       List<BusRouteMetrics> toSave = new ArrayList<>();
 
@@ -121,9 +117,8 @@ public class BusMetricsComputeService {
     Set<String> allRouteTripIds = allTripIdsByRouteId.getOrDefault(route.getId(), Set.of());
 
     // Scheduled buses = trips whose stop_time window covers right now
-    int scheduledTrips = (int) allRouteTripIds.stream()
-        .filter(currentlyActiveTrips::contains)
-        .count();
+    int scheduledTrips =
+        (int) allRouteTripIds.stream().filter(currentlyActiveTrips::contains).count();
 
     // Active buses = recent live vehicles reporting for this route
     Set<String> vehicleActiveIds =
@@ -134,7 +129,9 @@ public class BusMetricsComputeService {
 
     // Utilization = (active buses / scheduled buses) × 100, capped at 100%
     double utilizationPct =
-        scheduledTrips > 0 ? Math.min((double) activeVehicles / scheduledTrips * 100.0, 100.0) : 0.0;
+        scheduledTrips > 0
+            ? Math.min((double) activeVehicles / scheduledTrips * 100.0, 100.0)
+            : 0.0;
 
     // Use recent vehicles for occupancy/delay calculation
     List<BusLiveVehicle> routeVehicles =
@@ -174,21 +171,11 @@ public class BusMetricsComputeService {
             .toList();
 
     double avgDelaySeconds =
-        routeDelays.stream()
-            .mapToInt(d -> Math.max(d[0], d[1]))
-            .average()
-            .orElse(0.0);
+        routeDelays.stream().mapToInt(d -> Math.max(d[0], d[1])).average().orElse(0.0);
 
-    int maxDelaySeconds =
-        routeDelays.stream()
-            .mapToInt(d -> Math.max(d[0], d[1]))
-            .max()
-            .orElse(0);
+    int maxDelaySeconds = routeDelays.stream().mapToInt(d -> Math.max(d[0], d[1])).max().orElse(0);
 
-    long lateCount =
-        routeDelays.stream()
-            .filter(d -> d[0] > 60 || d[1] > 60)
-            .count();
+    long lateCount = routeDelays.stream().filter(d -> d[0] > 60 || d[1] > 60).count();
     double lateArrivalPct =
         routeDelays.isEmpty() ? 0.0 : (double) lateCount / routeDelays.size() * 100.0;
 

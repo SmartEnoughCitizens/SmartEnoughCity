@@ -18,9 +18,7 @@ public class BackendSchemaFilter implements SchemaFilter {
   @Override
   public boolean includeNamespace(Namespace namespace) {
     String schema =
-        namespace.getName().getSchema() != null
-            ? namespace.getName().getSchema().getText()
-            : "";
+        namespace.getName().getSchema() != null ? namespace.getName().getSchema().getText() : "";
     return schema.isEmpty() || BACKEND_SCHEMA.equalsIgnoreCase(schema);
   }
 
