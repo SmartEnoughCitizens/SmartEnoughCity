@@ -245,59 +245,5 @@
                 "email"
             ]
         }
-    ],
-    "clientScopes": [
-        {
-            "name": "roles",
-            "description": "OpenID Connect scope for add user roles to the access token",
-            "protocol": "openid-connect",
-            "attributes": {
-                "include.in.token.scope": "false",
-                "display.on.consent.screen": "true"
-            },
-            "protocolMappers": [
-                {
-                    "name": "realm roles",
-                    "protocol": "openid-connect",
-                    "protocolMapper": "oidc-usermodel-realm-role-mapper",
-                    "consentRequired": false,
-                    "config": {
-                        "multivalued": "true",
-                        "userinfo.token.claim": "true",
-                        "id.token.claim": "true",
-                        "access.token.claim": "true",
-                        "claim.name": "realm_access.roles",
-                        "jsonType.label": "String"
-                    }
-                },
-                {
-                    "name": "client roles",
-                    "protocol": "openid-connect",
-                    "protocolMapper": "oidc-usermodel-client-role-mapper",
-                    "consentRequired": false,
-                    "config": {
-                        "multivalued": "true",
-                        "userinfo.token.claim": "true",
-                        "id.token.claim": "true",
-                        "access.token.claim": "true",
-                        "claim.name": "resource_access.${client_id}.roles",
-                        "jsonType.label": "String"
-                    }
-                }
-            ]
-        }
-    ],
-    "defaultDefaultClientScopes": [
-        "web-origins",
-        "acr",
-        "profile",
-        "roles",
-        "email"
-    ],
-    "defaultOptionalClientScopes": [
-        "address",
-        "phone",
-        "offline_access",
-        "microprofile-jwt"
     ]
 }
