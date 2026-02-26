@@ -4,7 +4,6 @@ from datetime import date, datetime
 from typing import ClassVar
 
 from sqlalchemy import (
-    Boolean,
     Computed,
     Date,
     DateTime,
@@ -44,8 +43,6 @@ class Venue(Base):
         capacity IS NOT NULL → "venue"            (small clubs and intimate spaces)
         capacity IS NULL    →  NULL               (unknown — capacity not yet set)
 
-    Events with venue tag in ("arena", "stadium", "major_stadium")
-    are classified as high-impact (capacity >= 8,000).
     """
 
     __tablename__ = "venues"
@@ -87,14 +84,20 @@ class Event(Base):
     Model for events from Ticketmaster and TheSportsDB.
 
     Stores upcoming Dublin events including concerts, sports fixtures,
-    and arts/theatre events with location and impact data.
+    and arts/theatre events with location and venue classification data.
+
+    venue_size_tag mirrors the linked Venue's DB-computed tag (e.g. "arena",
+    "stadium", "major_stadium", "theatre", "venue", or NULL when the venue is
+    unknown or its capacity has not been set). It is populated at upsert time
+    from the venue map. Downstream consumers (API/middleware) decide what
+    constitutes "high impact" based on this tag.
     """
 
     __tablename__ = "events"
     __table_args__: ClassVar[dict] = (
         UniqueConstraint("source", "source_id", name="uq_event_source"),
         Index("ix_events_event_date", "event_date"),
-        Index("ix_events_is_high_impact", "is_high_impact"),
+        Index("ix_events_venue_size_tag", "venue_size_tag"),
         Index("ix_events_location", "latitude", "longitude"),
         Index("ix_events_source", "source"),
         {"schema": DB_SCHEMA},
@@ -111,12 +114,12 @@ class Event(Base):
         nullable=True,
         index=True,
     )
+    venue_size_tag: Mapped[str | None] = mapped_column(String(50), nullable=True)
     latitude: Mapped[float] = mapped_column(Double, nullable=False)
     longitude: Mapped[float] = mapped_column(Double, nullable=False)
     event_date: Mapped[date] = mapped_column(Date, nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    is_high_impact: Mapped[bool] = mapped_column(Boolean, nullable=False)
     estimated_attendance: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 

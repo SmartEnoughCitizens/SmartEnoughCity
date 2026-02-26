@@ -5,9 +5,7 @@ from datetime import UTC, date, datetime
 import pytest
 
 from data_handler.events.parsing_utils import (
-    HIGH_IMPACT_TAGS,
     VENUE_SIZE_TAG_THRESHOLDS,
-    determine_high_impact,
     parse_ticketmaster_event,
     parse_ticketmaster_response,
     parse_ticketmaster_venue,
@@ -85,42 +83,11 @@ def _make_raw_venue(  # noqa: PLR0913
 
 
 # ---------------------------------------------------------------------------
-# determine_high_impact
+# VENUE_SIZE_TAG_THRESHOLDS
 # ---------------------------------------------------------------------------
 
 
-class TestDetermineHighImpact:
-    """Tests for determine_high_impact."""
-
-    @pytest.mark.parametrize("tag", sorted(HIGH_IMPACT_TAGS))
-    def test_high_impact_tag_returns_true(self, tag: str) -> None:
-        """Every tag in HIGH_IMPACT_TAGS is high-impact regardless of attendance."""
-        assert determine_high_impact(tag, estimated_attendance=None) is True
-
-    def test_theatre_tag_returns_false(self) -> None:
-        """Theatre-sized venues are not high-impact."""
-        assert determine_high_impact("theatre", estimated_attendance=None) is False
-
-    def test_venue_tag_returns_false(self) -> None:
-        """Small venues are not high-impact."""
-        assert determine_high_impact("venue", estimated_attendance=None) is False
-
-    def test_none_tag_with_large_attendance_returns_true(self) -> None:
-        """Unknown venue with attendance above threshold is high-impact."""
-        assert determine_high_impact(None, estimated_attendance=10000) is True
-
-    def test_none_tag_with_small_attendance_returns_false(self) -> None:
-        """Unknown venue with attendance below threshold is not high-impact."""
-        assert determine_high_impact(None, estimated_attendance=500) is False
-
-    def test_none_tag_with_no_attendance_returns_false(self) -> None:
-        """Unknown venue with no attendance info is not high-impact."""
-        assert determine_high_impact(None, estimated_attendance=None) is False
-
-    def test_none_tag_at_exact_threshold_returns_true(self) -> None:
-        """Attendance exactly at threshold is high-impact."""
-        assert determine_high_impact(None, estimated_attendance=8000) is True
-
+class TestVenueSizeTagThresholds:
     def test_venue_size_tag_thresholds_are_documented(self) -> None:
         """VENUE_SIZE_TAG_THRESHOLDS lists all size categories in descending order."""
         tags = [tag for _, tag in VENUE_SIZE_TAG_THRESHOLDS]
@@ -159,8 +126,6 @@ class TestParseTicketmasterEvent:
         assert result.event_date == date(2026, 2, 15)
         assert result.start_time == datetime(2026, 2, 15, 19, 0, 0, tzinfo=UTC)
         assert result.end_time == datetime(2026, 2, 15, 22, 30, 0, tzinfo=UTC)
-        # is_high_impact is False at parse time — recomputed in _upsert_events from venue tag
-        assert result.is_high_impact is False
 
     def test_event_without_end_time(self) -> None:
         """An event with no end time has end_time = None."""
@@ -224,8 +189,6 @@ class TestParseTicketmasterEvent:
 
         assert result is not None
         assert result.event_type == "Sports"
-        # is_high_impact is False at parse time — recomputed from venue tag in _upsert_events
-        assert result.is_high_impact is False
 
 
 # ---------------------------------------------------------------------------

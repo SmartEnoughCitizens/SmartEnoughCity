@@ -34,7 +34,6 @@ def _make_parsed_event(  # noqa: PLR0913
     event_date: date = date(2026, 3, 1),
     start_time: datetime = datetime(2026, 3, 1, 20, 0, 0, tzinfo=UTC),
     end_time: datetime | None = datetime(2026, 3, 1, 23, 0, 0, tzinfo=UTC),
-    is_high_impact: bool = False,
     estimated_attendance: int | None = None,
 ) -> ParsedEvent:
     return ParsedEvent(
@@ -49,7 +48,6 @@ def _make_parsed_event(  # noqa: PLR0913
         event_date=event_date,
         start_time=start_time,
         end_time=end_time,
-        is_high_impact=is_high_impact,
         estimated_attendance=estimated_attendance,
     )
 
@@ -229,7 +227,7 @@ class TestUpsertEvents:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "is_high_impact": False,
+                    "venue_size_tag": None,
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
@@ -282,7 +280,7 @@ class TestUpsertEvents:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "is_high_impact": False,
+                    "venue_size_tag": None,
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
@@ -304,10 +302,10 @@ class TestUpsertEvents:
 
 
 class TestUpsertEventsWithVenueFK:
-    """Tests for venue FK resolution and is_high_impact computation in _upsert_events."""
+    """Tests for venue FK resolution and venue_size_tag mirroring in _upsert_events."""
 
-    def test_venue_id_and_impact_resolved_for_arena(self, db_session: Session) -> None:
-        """Events linked to an arena-tagged venue get venue_id set and is_high_impact=True."""
+    def test_venue_id_and_tag_resolved_for_arena(self, db_session: Session) -> None:
+        """Arena-tagged venue: venue_id is set and venue_size_tag='arena'."""
         venue = _make_parsed_venue(name="3Arena")
         id_map_initial = _upsert_venues(db_session, [venue])
         db_session.commit()
@@ -340,17 +338,17 @@ class TestUpsertEventsWithVenueFK:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "is_high_impact": True,
+                    "venue_size_tag": "arena",
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
             ],
         )
 
-    def test_venue_id_null_and_impact_false_when_not_in_map(
+    def test_venue_id_null_and_tag_none_when_not_in_map(
         self, db_session: Session
     ) -> None:
-        """Events whose venue_ticketmaster_id is not in the map get venue_id=None and is_high_impact=False."""
+        """Unknown venue_ticketmaster_id: venue_id=None and venue_size_tag=None."""
         event = _make_parsed_event(venue_ticketmaster_id="nonexistent_id")
         _upsert_events(db_session, [event], FETCHED_AT, venue_id_map={})
         db_session.commit()
@@ -372,15 +370,15 @@ class TestUpsertEventsWithVenueFK:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "is_high_impact": False,
+                    "venue_size_tag": None,
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
             ],
         )
 
-    def test_major_stadium_tag_is_high_impact(self, db_session: Session) -> None:
-        """Events at a major_stadium-tagged venue are also high-impact."""
+    def test_major_stadium_tag_mirrored(self, db_session: Session) -> None:
+        """Major-stadium-tagged venue: venue_size_tag='major_stadium'."""
         venue = _make_parsed_venue(name="Croke Park", ticketmaster_id="croke_tm")
         id_map_initial = _upsert_venues(db_session, [venue])
         db_session.commit()
@@ -415,15 +413,15 @@ class TestUpsertEventsWithVenueFK:
                     "event_date": ANY,
                     "start_time": ANY,
                     "end_time": ANY,
-                    "is_high_impact": True,
+                    "venue_size_tag": "major_stadium",
                     "estimated_attendance": ANY,
                     "fetched_at": ANY,
                 }
             ],
         )
 
-    def test_theatre_tag_is_not_high_impact(self, db_session: Session) -> None:
-        """Events at a theatre-tagged venue are not high-impact."""
+    def test_theatre_tag_mirrored(self, db_session: Session) -> None:
+        """Theatre-tagged venue: venue_size_tag='theatre'."""
         venue = _make_parsed_venue(name="Olympia Theatre", ticketmaster_id="olympia_tm")
         id_map_initial = _upsert_venues(db_session, [venue])
         db_session.commit()
@@ -458,7 +456,7 @@ class TestUpsertEventsWithVenueFK:
                     "event_date": ANY,
                     "start_time": ANY,
                     "end_time": ANY,
-                    "is_high_impact": False,
+                    "venue_size_tag": "theatre",
                     "estimated_attendance": ANY,
                     "fetched_at": ANY,
                 }
