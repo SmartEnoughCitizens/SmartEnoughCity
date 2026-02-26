@@ -87,9 +87,7 @@ export const dashboardApi = {
    * Get bus dashboard KPIs
    */
   getBusKpis: async (): Promise<BusKpis> => {
-    const { data } = await axiosInstance.get<BusKpis>(
-      API_ENDPOINTS.BUS_KPIS,
-    );
+    const { data } = await axiosInstance.get<BusKpis>(API_ENDPOINTS.BUS_KPIS);
     return data;
   },
 

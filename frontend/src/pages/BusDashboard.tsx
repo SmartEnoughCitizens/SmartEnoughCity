@@ -93,13 +93,11 @@ const PerformanceGauge = ({
   color: string;
 }) => {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <Box
+      sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+    >
       <Box sx={{ position: "relative", width: 80, height: 80, mb: 0.5 }}>
-        <svg
-          width="80"
-          height="80"
-          style={{ transform: "rotate(-90deg)" }}
-        >
+        <svg width="80" height="80" style={{ transform: "rotate(-90deg)" }}>
           <circle
             cx="40"
             cy="40"
@@ -140,7 +138,12 @@ const PerformanceGauge = ({
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ textTransform: "uppercase", fontWeight: 600, fontSize: 9, letterSpacing: 1 }}
+        sx={{
+          textTransform: "uppercase",
+          fontWeight: 600,
+          fontSize: 9,
+          letterSpacing: 1,
+        }}
       >
         {label}
       </Typography>
@@ -160,13 +163,15 @@ export const BusDashboard = () => {
   // Build unique route list sorted by short name for the dropdown
   const routes = routeUtilization
     ? routeUtilization.toSorted((a, b) =>
-        a.routeShortName.localeCompare(b.routeShortName, undefined, { numeric: true })
+        a.routeShortName.localeCompare(b.routeShortName, undefined, {
+          numeric: true,
+        }),
       )
     : [];
 
   // Filter live vehicles by selected route
   const filteredVehicles = liveVehicles?.filter(
-    (v) => !selectedRoute || v.routeShortName === selectedRoute
+    (v) => !selectedRoute || v.routeShortName === selectedRoute,
   );
 
   // Dublin center
@@ -231,8 +236,6 @@ export const BusDashboard = () => {
           ))}
         </MapContainer>
       </Box>
-
-
 
       {/* KPI cards — top left */}
       {kpis && (
@@ -309,7 +312,12 @@ export const BusDashboard = () => {
                       mb: 0.25,
                     }}
                   >
-                    <Typography variant="caption" fontWeight={500} noWrap sx={{ maxWidth: 220 }}>
+                    <Typography
+                      variant="caption"
+                      fontWeight={500}
+                      noWrap
+                      sx={{ maxWidth: 220 }}
+                    >
                       Route {route.routeShortName} ({route.routeLongName})
                     </Typography>
                     <Typography
@@ -382,7 +390,7 @@ export const BusDashboard = () => {
           getOptionLabel={(r) => `${r.routeShortName} — ${r.routeLongName}`}
           filterOptions={(options, { inputValue }) =>
             options.filter((r) =>
-              r.routeShortName.toLowerCase().includes(inputValue.toLowerCase())
+              r.routeShortName.toLowerCase().includes(inputValue.toLowerCase()),
             )
           }
           value={routes.find((r) => r.routeShortName === selectedRoute) ?? null}
