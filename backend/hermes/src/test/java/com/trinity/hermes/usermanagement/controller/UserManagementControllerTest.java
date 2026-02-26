@@ -66,8 +66,8 @@ public class UserManagementControllerTest {
   }
 
   @BeforeEach
-  void clearInvocations() {
-    Mockito.clearInvocations(userManagementService);
+  void resetMocks() {
+    Mockito.reset(userManagementService);
   }
 
   private Jwt buildJwt(String preferredUsername, String... realmRoles) {
@@ -453,8 +453,8 @@ public class UserManagementControllerTest {
     }
 
     @Test
-    @DisplayName("200 returns empty list when getUsersByRole throws exception")
-    void listUsers_getUsersByRoleThrows_returnsEmptyList() throws Exception {
+    @DisplayName("500 returns error when getUsersByRole throws exception")
+    void listUsers_getUsersByRoleThrows_returnsInternalServerError() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
       Jwt caller = buildJwt("busadmin", "Bus_Admin");
@@ -464,8 +464,8 @@ public class UserManagementControllerTest {
 
       mockMvc
           .perform(get("/api/usermanagement/users").with(jwt().jwt(caller)))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$").isEmpty());
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.message").value("Failed to fetch users for role: Bus_Provider"));
     }
   }
 }
