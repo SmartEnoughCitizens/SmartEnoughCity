@@ -139,6 +139,6 @@ class BusDashboardServiceTest {
 
     assertThat(performance.getReliabilityPct()).isEqualTo(88.0);
     assertThat(performance.getLateArrivalPct()).isEqualTo(12.0);
-    //assertThat(performance.getEvAdoptionPct()).isGreaterThanOrEqualTo(0.0);
+    // assertThat(performance.getEvAdoptionPct()).isGreaterThanOrEqualTo(0.0);
   }
 }

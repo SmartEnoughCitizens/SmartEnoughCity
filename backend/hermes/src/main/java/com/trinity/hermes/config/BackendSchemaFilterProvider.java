@@ -4,9 +4,9 @@ import org.hibernate.tool.schema.spi.SchemaFilter;
 import org.hibernate.tool.schema.spi.SchemaFilterProvider;
 
 /**
- * Restricts Hibernate DDL operations (ddl-auto: update) to the "backend" schema only,
- * preventing modifications to the "external_data" schema which is managed by the data-handler
- * service and for which the backend_user has no DDL permissions.
+ * Restricts Hibernate DDL operations (ddl-auto: update) to the "backend" schema only, preventing
+ * modifications to the "external_data" schema which is managed by the data-handler service and for
+ * which the backend_user has no DDL permissions.
  */
 public class BackendSchemaFilterProvider implements SchemaFilterProvider {
 

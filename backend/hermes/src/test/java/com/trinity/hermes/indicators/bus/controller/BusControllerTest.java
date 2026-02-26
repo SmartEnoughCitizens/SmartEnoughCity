@@ -93,10 +93,7 @@ class BusControllerTest {
   @Test
   void getSystemPerformance_returnsOkWithPerformanceData() throws Exception {
     BusSystemPerformanceDTO performance =
-        BusSystemPerformanceDTO.builder()
-            .reliabilityPct(88.0)
-            .lateArrivalPct(12.0)
-            .build();
+        BusSystemPerformanceDTO.builder().reliabilityPct(88.0).lateArrivalPct(12.0).build();
     when(busFacade.getSystemPerformance()).thenReturn(performance);
 
     mockMvc
