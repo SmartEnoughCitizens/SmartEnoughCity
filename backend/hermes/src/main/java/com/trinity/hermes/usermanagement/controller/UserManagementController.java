@@ -199,7 +199,9 @@ public class UserManagementController {
       try {
         users.addAll(userManagementService.getUsersByRole(role));
       } catch (RuntimeException e) {
-        log.warn("Could not fetch users for role {}: {}", role, e.getMessage());
+        log.error("Could not fetch users for role {}: {}", role, e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("message", "Failed to fetch users for role: " + role));
       }
     }
     return ResponseEntity.ok(users);
