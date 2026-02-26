@@ -13,8 +13,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @RestController
-@RequestMapping("/notification/v1")
+@RequestMapping("/api/notification/v1")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class NotificationController {
   private final NotificationFacade notificationFacade;
 
@@ -26,7 +27,7 @@ public class NotificationController {
   @PostMapping
   public ResponseEntity<?> receiveBackendNotification(
       @RequestBody BackendNotificationRequestDTO request) {
-    log.info("Received backend notification: userId={},", request.getUserId());
+    log.info(" Received backend notification: userId={}", request.getUserId());
 
     notificationFacade.handleBackendNotification(request);
 
@@ -34,15 +35,14 @@ public class NotificationController {
   }
 
   /** Endpoint to establish an SSE connection for streaming notifications. */
-  // TODO :  Make a seperate class for streams .. maybe?
   @GetMapping("/notifications/stream")
-  public SseEmitter stream() {
-    return sseManager.register();
+  public SseEmitter stream(@RequestParam String userId) {
+    return sseManager.register(userId);
   }
 
-  // TODO: Remove this endpoint after DEMO
+  // TODO: Filter by userId when persistence is added
   @GetMapping("/{userId}")
-  public ResponseEntity<?> getLatestNotification(@PathVariable String userId) {
-    return ResponseEntity.ok(notificationFacade.getAll());
+  public ResponseEntity<?> getUserNotifications(@PathVariable String userId) {
+    return ResponseEntity.ok(notificationFacade.getAll(userId));
   }
 }

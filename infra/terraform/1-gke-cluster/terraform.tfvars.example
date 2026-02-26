@@ -1,0 +1,17 @@
+# GCP Project Configuration
+project_id = "your-gcp-project-id"
+
+# Cluster Configuration
+cluster_name = "smart-enough-city"
+region       = "europe-west1"
+zone         = "europe-west1-b"
+
+# Node Configuration
+machine_type = "e2-standard-4"  # 4 cores, 16GB RAM
+
+# Environment
+environment = "dev"
+
+# Cost Optimization
+# Set to true for dev environments to save costs (not recommended for production)
+use_preemptible = false
