@@ -284,12 +284,10 @@ public class UserManagementControllerTest {
       Jwt caller = buildJwt("busadmin", "Bus_Admin");
 
       // Mock findUserIdByUsername
-      when(userManagementService.findUserIdByUsername("bus_provider_1"))
-          .thenReturn("user-id-123");
+      when(userManagementService.findUserIdByUsername("bus_provider_1")).thenReturn("user-id-123");
 
       // Mock getUserRoles to return Bus_Provider role
-      when(userManagementService.getUserRoles("user-id-123"))
-          .thenReturn(Set.of("Bus_Provider"));
+      when(userManagementService.getUserRoles("user-id-123")).thenReturn(Set.of("Bus_Provider"));
 
       // Mock deleteUser
       doNothing().when(userManagementService).deleteUser("bus_provider_1");
@@ -320,8 +318,7 @@ public class UserManagementControllerTest {
           .thenReturn("user-id-456");
 
       // Mock getUserRoles to return Cycle_Provider role (not manageable by Bus_Admin)
-      when(userManagementService.getUserRoles("user-id-456"))
-          .thenReturn(Set.of("Cycle_Provider"));
+      when(userManagementService.getUserRoles("user-id-456")).thenReturn(Set.of("Cycle_Provider"));
 
       mockMvc
           .perform(
@@ -445,7 +442,9 @@ public class UserManagementControllerTest {
           .perform(get("/api/usermanagement/users").with(jwt().jwt(caller)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
-          .andExpect(jsonPath("$[*].username").value(org.hamcrest.Matchers.hasItems("bus_admin_1", "cycle_admin_1")));
+          .andExpect(
+              jsonPath("$[*].username")
+                  .value(org.hamcrest.Matchers.hasItems("bus_admin_1", "cycle_admin_1")));
 
       verify(userManagementService).getUsersByRole("Bus_Admin");
       verify(userManagementService).getUsersByRole("Cycle_Admin");

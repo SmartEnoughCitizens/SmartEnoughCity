@@ -84,13 +84,19 @@ export const AddUserDialog = ({
   };
 
   const isFormValid =
-    username.trim() && email.trim() && firstName.trim() && lastName.trim() && role;
+    username.trim() &&
+    email.trim() &&
+    firstName.trim() &&
+    lastName.trim() &&
+    role;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
         <DialogTitle>Add New User</DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+        <DialogContent
+          sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+        >
           {registerMutation.isError && (
             <Alert severity="error" sx={{ mt: 1 }}>
               {getErrorMessage(registerMutation.error)}

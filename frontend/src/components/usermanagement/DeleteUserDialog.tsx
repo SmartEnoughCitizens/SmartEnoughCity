@@ -46,7 +46,11 @@ export const DeleteUserDialog = ({
           color="error"
           disabled={isPending}
         >
-          {isPending ? <CircularProgress size={24} color="inherit" /> : "Delete"}
+          {isPending ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : (
+            "Delete"
+          )}
         </Button>
       </DialogActions>
     </Dialog>
