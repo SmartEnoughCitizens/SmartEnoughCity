@@ -105,8 +105,8 @@ export const useBusLiveVehicles = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.busLiveVehicles,
     queryFn: () => dashboardApi.getBusLiveVehicles(),
-    staleTime: 15_000,
-    refetchInterval: 15_000,
+    staleTime: 10_000,
+    refetchInterval: 10_000,
     refetchIntervalInBackground: true,
   });
 };
