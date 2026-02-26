@@ -115,23 +115,58 @@ public class UserManagementService {
         "User registered successfully");
   }
 
+  /**
+   * Finds a user's Keycloak ID by username.
+   *
+   * @param username the username to search for
+   * @return the Keycloak user ID
+   * @throws RuntimeException if the user is not found
+   */
+  public String findUserIdByUsername(String username) {
+    List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
+    return users.stream()
+        .filter(u -> u.getUsername().equalsIgnoreCase(username))
+        .findFirst()
+        .map(UserRepresentation::getId)
+        .orElseThrow(() -> new RuntimeException("User not found: " + username));
+  }
+
   public void deleteUser(String username) {
 
-    List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
-
-    UserRepresentation targetUser =
-        users.stream()
-            .filter(u -> u.getUsername().equalsIgnoreCase(username))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("User not found: " + username));
-
-    getUsersResource().get(targetUser.getId()).remove();
+    String userId = findUserIdByUsername(username);
+    getUsersResource().get(userId).remove();
 
     log.info("User deleted: {}", LogSanitizer.sanitizeLog(username));
   }
 
   public List<UserRepresentation> getAllUsers() {
     return getUsersResource().search("", 0, 100);
+  }
+
+  /**
+   * Returns all users that have the given realm role.
+   *
+   * @param roleName the Keycloak realm role name
+   * @return list of users with that role
+   */
+  public List<UserRepresentation> getUsersByRole(String roleName) {
+    return getRealmResource().roles().get(roleName).getUserMembers(0, 100);
+  }
+
+  /**
+   * Returns the realm-level role names assigned to a user.
+   *
+   * @param userId the Keycloak user ID
+   * @return set of role names
+   */
+  public Set<String> getUserRoles(String userId) {
+    List<RoleRepresentation> roles =
+        getUsersResource().get(userId).roles().realmLevel().listEffective();
+    Set<String> roleNames = new HashSet<>();
+    for (RoleRepresentation role : roles) {
+      roleNames.add(role.getName());
+    }
+    return roleNames;
   }
 
   private void assignRole(String userId, String roleName) {
