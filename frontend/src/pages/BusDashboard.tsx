@@ -92,8 +92,6 @@ const PerformanceGauge = ({
   value: number;
   color: string;
 }) => {
-  const circumference = 2 * Math.PI * 40;
-  const offset = circumference - (value / 100) * circumference;
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <Box sx={{ position: "relative", width: 80, height: 80, mb: 0.5 }}>
