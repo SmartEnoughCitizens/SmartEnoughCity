@@ -22,10 +22,6 @@ VENUE_SIZE_TAG_THRESHOLDS: list[tuple[int, str]] = [
     (0, "venue"),  # small clubs and intimate spaces
 ]
 
-HIGH_IMPACT_TAGS: frozenset[str] = frozenset({"arena", "stadium", "major_stadium"})
-
-VENUE_CAPACITY_THRESHOLD: int = 8000
-
 
 @dataclass
 class ParsedEvent:
@@ -42,7 +38,6 @@ class ParsedEvent:
     event_date: date
     start_time: datetime
     end_time: datetime | None
-    is_high_impact: bool
     estimated_attendance: int | None
 
 
@@ -56,24 +51,6 @@ class ParsedVenue:
     city: str | None
     latitude: float
     longitude: float
-
-
-def determine_high_impact(
-    venue_size_tag: str | None,
-    estimated_attendance: int | None,
-) -> bool:
-    """
-    Determine if an event is high-impact based on venue size tag or attendance.
-
-    Returns True if the venue tag indicates high capacity (arena or larger),
-    or if estimated_attendance meets the threshold when no tag is available.
-    """
-    if venue_size_tag is not None:
-        return venue_size_tag in HIGH_IMPACT_TAGS
-    return (
-        estimated_attendance is not None
-        and estimated_attendance >= VENUE_CAPACITY_THRESHOLD
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -114,9 +91,8 @@ def parse_ticketmaster_event(raw: dict[str, Any]) -> ParsedEvent | None:
     Parse a single Ticketmaster Discovery API v2 event into a ParsedEvent.
 
     Returns None if the event cannot be parsed (missing venue, coordinates, etc.).
-
-    is_high_impact defaults to False at parse time — it is recomputed from the
-    venue's tag in _upsert_events once venue data is resolved from the database.
+    venue_size_tag is not set at parse time — it is resolved from the venues
+    table in _upsert_events once the venue FK is known.
     """
     venue_info = _extract_ticketmaster_venue(raw)
     if venue_info is None:
@@ -165,7 +141,6 @@ def parse_ticketmaster_event(raw: dict[str, Any]) -> ParsedEvent | None:
         event_date=event_date,
         start_time=start_time,
         end_time=end_time,
-        is_high_impact=False,
         estimated_attendance=None,
     )
 

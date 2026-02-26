@@ -13,7 +13,6 @@ from data_handler.events.models import Event, Venue
 from data_handler.events.parsing_utils import (
     ParsedEvent,
     ParsedVenue,
-    determine_high_impact,
     parse_ticketmaster_response,
     parse_ticketmaster_venues_response,
 )
@@ -52,8 +51,8 @@ def _upsert_venues(
     - venue_size_tag is a DB-computed column and is never set directly.
 
     Returns:
-        Mapping of ticketmaster_id -> (db_id, venue_size_tag) for FK and
-        is_high_impact resolution in _upsert_events.
+        Mapping of ticketmaster_id -> (db_id, venue_size_tag) for FK
+        resolution in _upsert_events.
     """
     if not venues:
         return {}
@@ -152,8 +151,8 @@ def _upsert_events(
 
     Args:
         venue_id_map: Optional mapping of ticketmaster_id -> (db_id, venue_size_tag).
-                      When provided, sets venue_id FK and computes is_high_impact
-                      from the venue's tag.
+                      When provided, sets the venue_id FK and mirrors the
+                      venue's size tag onto the event row.
 
     Returns:
         Number of events processed.
@@ -169,8 +168,7 @@ def _upsert_events(
             event.end_time = _estimate_end_time(event)
 
         venue_entry = venue_id_map.get(event.venue_ticketmaster_id)
-        venue_db_id, venue_tag = venue_entry or (None, None)
-        is_high_impact = determine_high_impact(venue_tag, event.estimated_attendance)
+        venue_db_id, venue_size_tag = venue_entry or (None, None)
 
         stmt = pg_insert(Event).values(
             source=event.source,
@@ -179,12 +177,12 @@ def _upsert_events(
             event_type=event.event_type,
             venue_name=event.venue_name,
             venue_id=venue_db_id,
+            venue_size_tag=venue_size_tag,
             latitude=event.latitude,
             longitude=event.longitude,
             event_date=event.event_date,
             start_time=event.start_time,
             end_time=event.end_time,
-            is_high_impact=is_high_impact,
             estimated_attendance=event.estimated_attendance,
             fetched_at=fetched_at,
         )
@@ -195,12 +193,12 @@ def _upsert_events(
                 "event_type": stmt.excluded.event_type,
                 "venue_name": stmt.excluded.venue_name,
                 "venue_id": stmt.excluded.venue_id,
+                "venue_size_tag": stmt.excluded.venue_size_tag,
                 "latitude": stmt.excluded.latitude,
                 "longitude": stmt.excluded.longitude,
                 "event_date": stmt.excluded.event_date,
                 "start_time": stmt.excluded.start_time,
                 "end_time": stmt.excluded.end_time,
-                "is_high_impact": stmt.excluded.is_high_impact,
                 "estimated_attendance": stmt.excluded.estimated_attendance,
                 "fetched_at": stmt.excluded.fetched_at,
             },
@@ -264,7 +262,7 @@ def fetch_and_store_events(session: Session | None = None) -> int:
     1. Fetches events from Ticketmaster
     2. Parses the responses into structured events
     3. Upserts venues extracted from event payloads (for FK + impact resolution)
-    4. Upserts all events with venue_id FKs and is_high_impact set from venue tag
+    4. Upserts all events with venue_id FKs and venue_size_tag mirrored from venue
 
     Args:
         session: Optional SQLAlchemy session (for testing). If None, creates one.
