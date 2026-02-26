@@ -1,0 +1,23 @@
+{{- if .Values.keycloak.realm.enabled }}
+{{- $existingRealmSecret := lookup "v1" "Secret" .Release.Namespace "sec-keycloak-realm" -}}
+{{- $existingUserServiceClientSecret := "" -}}
+{{- if and $existingRealmSecret $existingRealmSecret.data (index $existingRealmSecret.data "USER_SERVICE_CLIENT_SECRET") -}}
+  {{- $existingUserServiceClientSecret = index $existingRealmSecret.data "USER_SERVICE_CLIENT_SECRET" | b64dec -}}
+{{- end -}}
+{{- $userServiceClientSecret := .Values.keycloak.realm.userServiceClientSecret | default $existingUserServiceClientSecret -}}
+{{- if not $userServiceClientSecret -}}
+  {{- fail "keycloak.realm.userServiceClientSecret must be set in values.yaml" -}}
+{{- end -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.keycloak.realm.configMapName }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: realm-config
+data:
+  realm-export.json: |
+{{ .Files.Get "files/dev-realm-export.json" | indent 4 }}
+{{- end }}
