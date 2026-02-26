@@ -159,7 +159,7 @@ export const BusDashboard = () => {
 
   // Build unique route list sorted by short name for the dropdown
   const routes = routeUtilization
-    ? [...routeUtilization].sort((a, b) =>
+    ? routeUtilization.toSorted((a, b) =>
         a.routeShortName.localeCompare(b.routeShortName, undefined, { numeric: true })
       )
     : [];
@@ -184,9 +184,9 @@ export const BusDashboard = () => {
 
   // Sort route utilization ascending (worst-performing routes first)
   const sortedUtilization = routeUtilization
-    ? [...routeUtilization]
+    ? routeUtilization
         .filter((r) => r.utilizationPct > 0)
-        .sort((a, b) => a.utilizationPct - b.utilizationPct)
+        .toSorted((a, b) => a.utilizationPct - b.utilizationPct)
     : [];
 
   return (
