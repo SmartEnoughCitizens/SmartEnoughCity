@@ -186,20 +186,7 @@
             "webOrigins": ["http://localhost:*"],
             "attributes": {
                 "access.token.lifespan": "3600"
-            },
-            "defaultClientScopes": [
-                "web-origins",
-                "acr",
-                "profile",
-                "roles",
-                "email"
-            ],
-            "optionalClientScopes": [
-                "address",
-                "phone",
-                "offline_access",
-                "microprofile-jwt"
-            ]
+            }
         },
         {
             "clientId": "frontend-app",
@@ -214,14 +201,7 @@
             "serviceAccountsEnabled": false,
             "redirectUris": ["http://localhost:3000/*", "http://localhost:5173/*"],
             "webOrigins": ["http://localhost:3000", "http://localhost:5173"],
-            "attributes": {},
-            "defaultClientScopes": [
-                "web-origins",
-                "acr",
-                "profile",
-                "roles",
-                "email"
-            ]
+            "attributes": {}
         }
     ],
 
