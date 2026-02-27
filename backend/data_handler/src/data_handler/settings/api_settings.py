@@ -14,14 +14,10 @@ class APISettings(BaseSettings):
     gtfs_api_key: str = Field(..., alias="GTFS_API_KEY")
     eco_counter_api_base_url: str = Field(..., alias="ECO_COUNTER_API_BASE_URL")
     eco_counter_api_key: str = Field(..., alias="ECO_COUNTER_API_KEY")
-    irish_rail_base_url: str = Field(
-        default="http://api.irishrail.ie/realtime/realtime.asmx",
-        alias="IRISH_RAIL_BASE_URL",
-    )
-    luas_forecast_base_url: str = Field(
-        default="https://luasforecasts.rpa.ie/xml/get.ashx",
-        alias="LUAS_FORECAST_BASE_URL",
-    )
+    jcdecaux_api_base_url: str = Field(..., alias="JCDECAUX_API_BASE_URL")
+    jcdecaux_api_key: str = Field(..., alias="JCDECAUX_API_KEY")
+    irish_rail_base_url: str = Field(..., alias="IRISH_RAIL_BASE_URL")
+    luas_forecast_base_url: str = Field(..., alias="LUAS_FORECAST_BASE_URL")
 
     model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
