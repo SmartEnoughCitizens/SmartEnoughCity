@@ -125,6 +125,9 @@ class BusStop(Base):
     live_stop_time_updates: Mapped[list["BusLiveTripStopTimeUpdate"]] = relationship(
         back_populates="stop"
     )
+    ridership_records: Mapped[list["BusRidership"]] = relationship(
+        back_populates="stop"
+    )
 
 
 class BusTrip(Base):
@@ -149,6 +152,9 @@ class BusTrip(Base):
     stop_times: Mapped[list["BusStopTime"]] = relationship(back_populates="trip")
     live_vehicles: Mapped[list["BusLiveVehicle"]] = relationship(back_populates="trip")
     live_trip_updates: Mapped[list["BusLiveTripUpdate"]] = relationship(
+        back_populates="trip"
+    )
+    ridership_records: Mapped[list["BusRidership"]] = relationship(
         back_populates="trip"
     )
 
@@ -301,3 +307,35 @@ class BusLiveTripStopTimeUpdate(Base):
         back_populates="stop_time_updates"
     )
     stop: Mapped["BusStop"] = relationship(back_populates="live_stop_time_updates")
+
+
+class BusRidership(Base):
+    __tablename__ = "bus_ridership"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_bus_ridership_vehicle_id", "vehicle_id"),
+        Index("ix_bus_ridership_trip_id", "trip_id"),
+        Index("ix_bus_ridership_nearest_stop_id", "nearest_stop_id"),
+        Index("ix_bus_ridership_timestamp", "timestamp"),
+        {"schema": DB_SCHEMA},
+    )
+
+    entry_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    trip_id: Mapped[str] = mapped_column(
+        String, ForeignKey(f"{DB_SCHEMA}.bus_trips.id"), nullable=False
+    )
+    nearest_stop_id: Mapped[str] = mapped_column(
+        String, ForeignKey(f"{DB_SCHEMA}.bus_stops.id"), nullable=False
+    )
+    stop_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    passengers_boarding: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    passengers_alighting: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    passengers_onboard: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    vehicle_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=80)
+
+    # Relationships
+    trip: Mapped["BusTrip"] = relationship(back_populates="ridership_records")
+    stop: Mapped["BusStop"] = relationship(back_populates="ridership_records")
