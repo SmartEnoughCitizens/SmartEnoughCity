@@ -7,7 +7,6 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     Double,
-    Enum,
     Float,
     ForeignKey,
     Index,
@@ -16,6 +15,9 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+)
+from sqlalchemy import (
+    Enum as SQLEnum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -108,7 +110,7 @@ class TramRoute(Base):
     short_name: Mapped[str] = mapped_column(String, nullable=False)
     long_name: Mapped[str] = mapped_column(String, nullable=False)
     route_type: Mapped[RouteType] = mapped_column(
-        Enum(RouteType), nullable=False, default=RouteType.TRAM
+        SQLEnum(RouteType, schema=DB_SCHEMA), nullable=False, default=RouteType.TRAM
     )
     route_color: Mapped[str | None] = mapped_column(String)
     route_text_color: Mapped[str | None] = mapped_column(String)

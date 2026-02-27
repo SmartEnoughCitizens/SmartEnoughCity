@@ -8,7 +8,6 @@ from sqlalchemy import (
     Date,
     DateTime,
     Double,
-    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -16,6 +15,9 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+)
+from sqlalchemy import (
+    Enum as SQLEnum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -147,7 +149,7 @@ class TrainRoute(Base):
     short_name: Mapped[str] = mapped_column(String, nullable=False)
     long_name: Mapped[str] = mapped_column(String, nullable=False)
     route_type: Mapped[RouteType] = mapped_column(
-        Enum(RouteType), nullable=False, default=RouteType.RAIL
+        SQLEnum(RouteType, schema=DB_SCHEMA), nullable=False, default=RouteType.RAIL
     )
     route_color: Mapped[str | None] = mapped_column(String)
     route_text_color: Mapped[str | None] = mapped_column(String)
@@ -270,7 +272,9 @@ class IrishRailStation(Base):
     )
     station_desc: Mapped[str] = mapped_column(String, nullable=False)
     station_alias: Mapped[str | None] = mapped_column(String)
-    station_type: Mapped[StationType | None] = mapped_column(Enum(StationType))
+    station_type: Mapped[StationType | None] = mapped_column(
+        SQLEnum(StationType, schema=DB_SCHEMA)
+    )
     lat: Mapped[float] = mapped_column(Double, nullable=False)
     lon: Mapped[float] = mapped_column(Double, nullable=False)
 
@@ -289,7 +293,9 @@ class IrishRailCurrentTrain(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     train_code: Mapped[str] = mapped_column(String, nullable=False, index=True)
     train_date: Mapped[date] = mapped_column(Date, nullable=False)
-    train_status: Mapped[TrainStatus] = mapped_column(Enum(TrainStatus), nullable=False)
+    train_status: Mapped[TrainStatus] = mapped_column(
+        SQLEnum(TrainStatus, schema=DB_SCHEMA), nullable=False
+    )
     train_type: Mapped[str | None] = mapped_column(String)
     direction: Mapped[str | None] = mapped_column(String)
     lat: Mapped[float | None] = mapped_column(Double)
@@ -327,7 +333,7 @@ class IrishRailStationData(Base):
     sch_depart: Mapped[time | None] = mapped_column(Time)
     direction: Mapped[str | None] = mapped_column(String)
     location_type: Mapped[StationLocationType | None] = mapped_column(
-        Enum(StationLocationType)
+        SQLEnum(StationLocationType, schema=DB_SCHEMA)
     )
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
@@ -348,7 +354,7 @@ class IrishRailTrainMovement(Base):
     location_full_name: Mapped[str] = mapped_column(String, nullable=False)
     location_order: Mapped[int] = mapped_column(Integer, nullable=False)
     location_type: Mapped[MovementLocationType] = mapped_column(
-        Enum(MovementLocationType), nullable=False
+        SQLEnum(MovementLocationType, schema=DB_SCHEMA), nullable=False
     )
     train_origin: Mapped[str] = mapped_column(String, nullable=False)
     train_destination: Mapped[str] = mapped_column(String, nullable=False)
@@ -358,5 +364,7 @@ class IrishRailTrainMovement(Base):
     actual_departure: Mapped[time | None] = mapped_column(Time)
     auto_arrival: Mapped[bool | None] = mapped_column(Boolean)
     auto_depart: Mapped[bool | None] = mapped_column(Boolean)
-    stop_type: Mapped[StopType | None] = mapped_column(Enum(StopType))
+    stop_type: Mapped[StopType | None] = mapped_column(
+        SQLEnum(StopType, schema=DB_SCHEMA)
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
