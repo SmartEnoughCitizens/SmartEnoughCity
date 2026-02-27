@@ -3,24 +3,29 @@ from pathlib import Path
 
 from sqlalchemy import delete
 
-from data_handler.bus.models import (
-    BusAgency,
-    BusCalendarSchedule,
-    BusRoute,
-    BusStop,
-    BusStopTime,
-    BusTrip,
-    BusTripShape,
-)
 from data_handler.common.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.csv_utils import read_csv_file
 from data_handler.db import SessionLocal
+from data_handler.train.models import (
+    RouteType,
+    TrainAgency,
+    TrainCalendarDate,
+    TrainCalendarSchedule,
+    TrainRoute,
+    TrainStop,
+    TrainStopTime,
+    TrainTrip,
+    TrainTripShape,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def parse_agency_row(row: dict[str, str]) -> BusAgency:
-    return BusAgency(
+# ── GTFS Row Parsers ────────────────────────────────────────────────
+
+
+def parse_agency_row(row: dict[str, str]) -> TrainAgency:
+    return TrainAgency(
         id=int(row["agency_id"]),
         name=row["agency_name"].strip(),
         url=row["agency_url"].strip(),
@@ -28,8 +33,8 @@ def parse_agency_row(row: dict[str, str]) -> BusAgency:
     )
 
 
-def parse_calendar_row(row: dict[str, str]) -> BusCalendarSchedule:
-    return BusCalendarSchedule(
+def parse_calendar_row(row: dict[str, str]) -> TrainCalendarSchedule:
+    return TrainCalendarSchedule(
         service_id=int(row["service_id"]),
         monday=bool(int(row["monday"])),
         tuesday=bool(int(row["tuesday"])),
@@ -43,18 +48,29 @@ def parse_calendar_row(row: dict[str, str]) -> BusCalendarSchedule:
     )
 
 
-def parse_route_row(row: dict[str, str]) -> BusRoute:
-    return BusRoute(
+def parse_calendar_date_row(row: dict[str, str]) -> TrainCalendarDate:
+    return TrainCalendarDate(
+        service_id=int(row["service_id"]),
+        date=parse_gtfs_date(row["date"]),
+        exception_type=int(row["exception_type"]),
+    )
+
+
+def parse_route_row(row: dict[str, str]) -> TrainRoute:
+    return TrainRoute(
         id=row["route_id"].strip(),
         agency_id=int(row["agency_id"]),
         short_name=row["route_short_name"].strip(),
         long_name=row["route_long_name"].strip(),
+        route_type=RouteType(int(row.get("route_type", "2"))),
+        route_color=row.get("route_color", "").strip() or None,
+        route_text_color=row.get("route_text_color", "").strip() or None,
     )
 
 
-def parse_stop_row(row: dict[str, str]) -> BusStop:
+def parse_stop_row(row: dict[str, str]) -> TrainStop:
     description = row.get("stop_desc")
-    return BusStop(
+    return TrainStop(
         id=row["stop_id"].strip(),
         code=int(row["stop_code"]),
         name=row["stop_name"].strip(),
@@ -66,8 +82,8 @@ def parse_stop_row(row: dict[str, str]) -> BusStop:
     )
 
 
-def parse_shape_row(row: dict[str, str]) -> BusTripShape:
-    return BusTripShape(
+def parse_shape_row(row: dict[str, str]) -> TrainTripShape:
+    return TrainTripShape(
         shape_id=row["shape_id"].strip(),
         pt_sequence=int(row["shape_pt_sequence"]),
         pt_lat=float(row["shape_pt_lat"]),
@@ -76,21 +92,23 @@ def parse_shape_row(row: dict[str, str]) -> BusTripShape:
     )
 
 
-def parse_trip_row(row: dict[str, str]) -> BusTrip:
-    return BusTrip(
+def parse_trip_row(row: dict[str, str]) -> TrainTrip:
+    block_id = row.get("block_id", "").strip() or None
+    return TrainTrip(
         id=row["trip_id"].strip(),
         route_id=row["route_id"].strip(),
         service_id=int(row["service_id"]),
         headsign=row["trip_headsign"].strip(),
         short_name=row["trip_short_name"].strip(),
         direction_id=int(row["direction_id"]),
+        block_id=block_id,
         shape_id=row["shape_id"].strip(),
     )
 
 
-def parse_stop_time_row(row: dict[str, str]) -> BusStopTime:
+def parse_stop_time_row(row: dict[str, str]) -> TrainStopTime:
     headsign = row.get("stop_headsign")
-    return BusStopTime(
+    return TrainStopTime(
         trip_id=row["trip_id"],
         stop_id=row["stop_id"],
         arrival_time=parse_gtfs_time(row["arrival_time"]),
@@ -100,9 +118,17 @@ def parse_stop_time_row(row: dict[str, str]) -> BusStopTime:
     )
 
 
-def process_bus_static_data(gtfs_dir: Path) -> None:
+# ── Main Processor ──────────────────────────────────────────────────
+
+
+def process_train_static_data(gtfs_dir: Path) -> None:
     """
-    Process bus static data from GTFS CSV files.
+    Process train static data from GTFS CSV files.
+
+    Expects a directory containing:
+      Required: agency.txt, calendar.txt, routes.txt, shapes.txt,
+                stop_times.txt, stops.txt, trips.txt
+      Optional: calendar_dates.txt
 
     This function:
     1. Deletes all existing data from relevant tables
@@ -115,11 +141,11 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
 
     Raises:
         FileNotFoundError: If any required CSV file is missing
-        ValueError: If any CSV file is missing required headers or the row data is invalid
+        ValueError: If any CSV file is missing required headers
     """
 
-    # csv file name -> (required headers, transform row function)
-    csv_files = {
+    # ── Required GTFS files ──────────────────────────────────────
+    gtfs_csv_files = {
         "agency.txt": (
             ["agency_id", "agency_name", "agency_url", "agency_timezone"],
             parse_agency_row,
@@ -175,28 +201,38 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
         ),
     }
 
-    for filename in csv_files:
+    # ── Optional GTFS files ──────────────────────────────────────
+    optional_gtfs_files = {
+        "calendar_dates.txt": (
+            ["service_id", "date", "exception_type"],
+            parse_calendar_date_row,
+        ),
+    }
+
+    for filename in gtfs_csv_files:
         file_path = gtfs_dir / filename
         if not file_path.exists():
             msg = f"Required CSV file not found: {file_path}"
             raise FileNotFoundError(msg)
 
-    logger.info("Processing static bus data...")
+    logger.info("Processing static train data from %s ...", gtfs_dir)
 
     session = SessionLocal()
 
     try:
         # Delete existing data in reverse dependency order
-        logger.info("Deleting existing data...")
-        session.execute(delete(BusStopTime))
-        session.execute(delete(BusTrip))
-        session.execute(delete(BusTripShape))
-        session.execute(delete(BusRoute))
-        session.execute(delete(BusStop))
-        session.execute(delete(BusCalendarSchedule))
-        session.execute(delete(BusAgency))
+        logger.info("Deleting existing train data...")
+        session.execute(delete(TrainStopTime))
+        session.execute(delete(TrainTrip))
+        session.execute(delete(TrainTripShape))
+        session.execute(delete(TrainRoute))
+        session.execute(delete(TrainStop))
+        session.execute(delete(TrainCalendarDate))
+        session.execute(delete(TrainCalendarSchedule))
+        session.execute(delete(TrainAgency))
 
-        for filename, (required_headers, transform_row) in csv_files.items():
+        # Process required GTFS files
+        for filename, (required_headers, transform_row) in gtfs_csv_files.items():
             logger.info("Processing %s...", filename)
             file_path = gtfs_dir / filename
             rows = [
@@ -204,13 +240,26 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
             ]
             session.add_all(rows)
 
+        # Process optional GTFS files
+        for filename, (required_headers, transform_row) in optional_gtfs_files.items():
+            file_path = gtfs_dir / filename
+            if file_path.exists():
+                logger.info("Processing optional %s...", filename)
+                rows = [
+                    transform_row(row)
+                    for row in read_csv_file(file_path, required_headers)
+                ]
+                session.add_all(rows)
+            else:
+                logger.info("Skipping optional %s (not found).", filename)
+
         logger.info("Committing changes to database...")
         session.commit()
-        logger.info("Successfully processed static bus data.")
+        logger.info("Successfully processed static train data.")
 
     except Exception:
         session.rollback()
-        logger.exception("Error processing static bus data")
+        logger.exception("Error processing static train data")
         raise
 
     finally:

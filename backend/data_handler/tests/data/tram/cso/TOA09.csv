@@ -1,0 +1,3 @@
+STATISTIC,Statistic Label,TLIST(A1),Year,C03132V03784,Luas Line,C03841V04591,Time of day,UNIT,VALUE
+TOA09,Percentage of daily Luas passengers by hour and by line,2024,2024,10,Green Line,08,08:00-08:59,%,12.5
+TOA09,Percentage of daily Luas passengers by hour and by line,2024,2024,20,Red Line,08,08:00-08:59,%,11.3
