@@ -35,7 +35,7 @@ def assert_row_count(session: Session, table_name: str, expected_count: int) -> 
     """
 
     schema = get_db_settings().postgres_schema
-    result = session.execute(text(f"SELECT COUNT(*) FROM {schema}.{table_name}"))
+    result = session.execute(text(f"SELECT COUNT(*) FROM {schema}.{table_name}"))  # noqa: S608
     row = result.fetchone()
     assert row is not None
     assert row[0] == expected_count
@@ -55,7 +55,7 @@ def assert_rows(session: Session, table_name: str, expected_rows: list[dict]) ->
     """
 
     schema = get_db_settings().postgres_schema
-    result = session.execute(text(f"SELECT * FROM {schema}.{table_name}"))
+    result = session.execute(text(f"SELECT * FROM {schema}.{table_name}"))  # noqa: S608
     actual_rows = [dict(row) for row in result.mappings()]
 
     assert len(actual_rows) == len(expected_rows)

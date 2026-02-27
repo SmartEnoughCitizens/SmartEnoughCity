@@ -1,0 +1,6 @@
+route_id,service_id,trip_id,trip_headsign,trip_short_name,direction_id,block_id,shape_id
+DART-NORTH,200,TRIP_D1,Howth,D1-AM,0,BLK_D1,SHAPE_DART_1
+DART-NORTH,200,TRIP_D2,Greystones,D2-AM,1,BLK_D2,SHAPE_DART_1
+DART-NORTH,201,TRIP_D3,Howth,D3-SAT,0,,SHAPE_DART_1
+INTERCITY-CK,200,TRIP_IC1,Cork,IC1-AM,0,BLK_IC1,SHAPE_IC_1
+INTERCITY-CK,202,TRIP_IC2,Dublin Heuston,IC2-SUN,1,,SHAPE_IC_1

@@ -1,0 +1,5 @@
+trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,timepoint
+TRIP_D1,06:30:00,06:30:00,CNLLY,1,Howth,0,1,1
+TRIP_D1,06:33:00,06:33:00,TARA,2,,0,0,0
+TRIP_D1,06:36:00,06:36:00,PEARSE,3,,0,0,1
+TRIP_IC1,07:00:00,07:05:00,CNLLY,1,,0,1,1

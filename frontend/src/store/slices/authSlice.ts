@@ -4,17 +4,22 @@
  */
 
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { getRolesFromToken } from "@/utils/jwt";
 
 interface AuthState {
   isAuthenticated: boolean;
   username: string | null;
   accessToken: string | null;
+  roles: string[];
 }
 
+const storedToken = localStorage.getItem("accessToken");
+
 const initialState: AuthState = {
-  isAuthenticated: !!localStorage.getItem("accessToken"),
+  isAuthenticated: !!storedToken,
   username: localStorage.getItem("username"),
-  accessToken: localStorage.getItem("accessToken"),
+  accessToken: storedToken,
+  roles: storedToken ? getRolesFromToken(storedToken) : [],
 };
 
 const authSlice = createSlice({
@@ -26,16 +31,19 @@ const authSlice = createSlice({
       action: PayloadAction<{
         accessToken: string;
         username: string;
+        roles: string[];
       }>,
     ) => {
       state.isAuthenticated = true;
       state.accessToken = action.payload.accessToken;
       state.username = action.payload.username;
+      state.roles = action.payload.roles;
     },
     clearAuthentication: (state) => {
       state.isAuthenticated = false;
       state.accessToken = null;
       state.username = null;
+      state.roles = [];
     },
   },
 });

@@ -18,6 +18,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -30,6 +31,7 @@ import {
 } from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
+import { getCreatableRoles } from "@/types";
 import sseService from "@/services/sseService";
 
 interface DashboardLayoutProps {
@@ -40,7 +42,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const { username } = useAppSelector((state) => state.auth);
+  const { username, roles } = useAppSelector((state) => state.auth);
+  const canManageUsers = getCreatableRoles(roles).length > 0;
   const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
   const logoutMutation = useLogout();
 
@@ -94,6 +97,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       path: "/dashboard/notifications",
       label: "Notifications",
     },
+    ...(canManageUsers
+      ? [
+          {
+            icon: <PersonAddIcon />,
+            path: "/dashboard/users",
+            label: "User Management",
+          },
+        ]
+      : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
