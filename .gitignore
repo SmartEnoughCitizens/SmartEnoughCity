@@ -1,3 +1,6 @@
+# Axon code index
+.axon/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
