@@ -2,7 +2,7 @@ from datetime import date, time
 
 import pytest
 
-from data_handler.bus.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
+from data_handler.common.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 
 
 class TestParseGtfsDate:

@@ -1,0 +1,5 @@
+stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon
+LUAS1,8001,St. Stephen's Green,Green Line terminus,53.339428,-6.261495
+LUAS2,8002,Harcourt,,53.333333,-6.262222
+LUAS3,8003,Charlemont,,53.330556,-6.258889
+LUAS4,8004,The Point,Red Line stop,53.348056,-6.229167

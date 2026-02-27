@@ -15,6 +15,7 @@ import com.trinity.hermes.usermanagement.service.UserManagementService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -65,8 +66,8 @@ public class UserManagementControllerTest {
   }
 
   @BeforeEach
-  void clearInvocations() {
-    Mockito.clearInvocations(userManagementService);
+  void resetMocks() {
+    Mockito.reset(userManagementService);
   }
 
   private Jwt buildJwt(String preferredUsername, String... realmRoles) {
@@ -260,11 +261,11 @@ public class UserManagementControllerTest {
   class DeleteTests {
 
     @Test
-    @DisplayName("403 when non-Government_Admin tries to delete")
-    void delete_nonGovAdmin_forbidden() throws Exception {
+    @DisplayName("403 when Bus_Provider (no manage permissions) tries to delete")
+    void delete_busProvider_forbidden() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
-      Jwt caller = buildJwt("cycleadmin", "Cycle_Admin");
+      Jwt caller = buildJwt("provider1", "Bus_Provider");
 
       mockMvc
           .perform(
@@ -272,38 +273,97 @@ public class UserManagementControllerTest {
                   .with(jwt().jwt(caller))
                   .param("username", "someone"))
           .andExpect(status().isForbidden())
-          .andExpect(jsonPath("$.message", containsString("Only Government_Admin")));
+          .andExpect(jsonPath("$.message", containsString("do not have permission to delete")));
     }
 
     @Test
-    @DisplayName("200 when Government_Admin deletes another user")
-    void delete_govAdmin_success() throws Exception {
+    @DisplayName("200 when Bus_Admin deletes Bus_Provider (allowed)")
+    void delete_busProvider_byBusAdmin_success() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
-      Jwt caller = buildJwt("gov", "Government_Admin");
+      Jwt caller = buildJwt("busadmin", "Bus_Admin");
 
-      doNothing().when(userManagementService).deleteUser("u1");
+      // Mock findUserIdByUsername
+      when(userManagementService.findUserIdByUsername("bus_provider_1")).thenReturn("user-id-123");
+
+      // Mock getUserRoles to return Bus_Provider role
+      when(userManagementService.getUserRoles("user-id-123")).thenReturn(Set.of("Bus_Provider"));
+
+      // Mock deleteUser
+      doNothing().when(userManagementService).deleteUser("bus_provider_1");
 
       mockMvc
           .perform(
-              delete("/api/usermanagement/delete").with(jwt().jwt(caller)).param("username", "u1"))
+              delete("/api/usermanagement/delete")
+                  .with(jwt().jwt(caller))
+                  .param("username", "bus_provider_1"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value("User deleted successfully"))
-          .andExpect(jsonPath("$.username").value("u1"));
+          .andExpect(jsonPath("$.username").value("bus_provider_1"));
 
-      verify(userManagementService).deleteUser("u1");
+      verify(userManagementService).findUserIdByUsername("bus_provider_1");
+      verify(userManagementService).getUserRoles("user-id-123");
+      verify(userManagementService).deleteUser("bus_provider_1");
     }
 
     @Test
-    @DisplayName("400 when delete service throws exception")
-    void delete_serviceThrows_returns400() throws Exception {
+    @DisplayName("403 when Bus_Admin tries to delete Cycle_Provider (not allowed)")
+    void delete_cycleProvider_byBusAdmin_forbidden() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
-      Jwt caller = buildJwt("gov", "Government_Admin");
+      Jwt caller = buildJwt("busadmin", "Bus_Admin");
 
-      doThrow(new RuntimeException("User not found"))
-          .when(userManagementService)
-          .deleteUser("missing");
+      // Mock findUserIdByUsername
+      when(userManagementService.findUserIdByUsername("cycle_provider_1"))
+          .thenReturn("user-id-456");
+
+      // Mock getUserRoles to return Cycle_Provider role (not manageable by Bus_Admin)
+      when(userManagementService.getUserRoles("user-id-456")).thenReturn(Set.of("Cycle_Provider"));
+
+      mockMvc
+          .perform(
+              delete("/api/usermanagement/delete")
+                  .with(jwt().jwt(caller))
+                  .param("username", "cycle_provider_1"))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.message", containsString("You cannot delete this user")));
+
+      verify(userManagementService).findUserIdByUsername("cycle_provider_1");
+      verify(userManagementService).getUserRoles("user-id-456");
+      verify(userManagementService, never()).deleteUser(anyString());
+    }
+
+    @Test
+    @DisplayName("200 when City_Manager deletes Bus_Admin (allowed)")
+    void delete_busAdmin_byCityManager_success() throws Exception {
+      mockHasRoleBasedOnJwtClaims();
+
+      Jwt caller = buildJwt("citymgr", "City_Manager");
+
+      when(userManagementService.findUserIdByUsername("bus_admin_1")).thenReturn("user-id-789");
+      when(userManagementService.getUserRoles("user-id-789")).thenReturn(Set.of("Bus_Admin"));
+      doNothing().when(userManagementService).deleteUser("bus_admin_1");
+
+      mockMvc
+          .perform(
+              delete("/api/usermanagement/delete")
+                  .with(jwt().jwt(caller))
+                  .param("username", "bus_admin_1"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.message").value("User deleted successfully"));
+
+      verify(userManagementService).deleteUser("bus_admin_1");
+    }
+
+    @Test
+    @DisplayName("400 when findUserIdByUsername throws exception (user not found)")
+    void delete_userNotFound_returns400() throws Exception {
+      mockHasRoleBasedOnJwtClaims();
+
+      Jwt caller = buildJwt("busadmin", "Bus_Admin");
+
+      when(userManagementService.findUserIdByUsername("missing"))
+          .thenThrow(new RuntimeException("User not found: missing"));
 
       mockMvc
           .perform(
@@ -311,7 +371,9 @@ public class UserManagementControllerTest {
                   .with(jwt().jwt(caller))
                   .param("username", "missing"))
           .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.message").value("User not found"));
+          .andExpect(jsonPath("$.message").value("User not found: missing"));
+
+      verify(userManagementService, never()).deleteUser(anyString());
     }
   }
 
@@ -320,37 +382,90 @@ public class UserManagementControllerTest {
   class ListUsersTests {
 
     @Test
-    @DisplayName("403 when non-Government_Admin tries to list users")
-    void listUsers_nonGovAdmin_forbidden() throws Exception {
+    @DisplayName("403 when Bus_Provider (no manage permissions) tries to list users")
+    void listUsers_busProvider_forbidden() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
-      Jwt caller = buildJwt("citymgr", "City_Manager");
+      Jwt caller = buildJwt("provider1", "Bus_Provider");
 
       mockMvc
           .perform(get("/api/usermanagement/users").with(jwt().jwt(caller)))
           .andExpect(status().isForbidden())
-          .andExpect(jsonPath("$.message", containsString("Only Government_Admin")));
+          .andExpect(jsonPath("$.message", containsString("do not have permission to manage")));
     }
 
     @Test
-    @DisplayName("200 when Government_Admin lists users")
-    void listUsers_govAdmin_ok() throws Exception {
+    @DisplayName("200 when Bus_Admin lists users (returns Bus_Providers)")
+    void listUsers_busAdmin_returnsBusProviders() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
-      Jwt caller = buildJwt("gov", "Government_Admin");
+      Jwt caller = buildJwt("busadmin", "Bus_Admin");
 
       UserRepresentation u1 = new UserRepresentation();
-      u1.setUsername("user1");
-      UserRepresentation u2 = new UserRepresentation();
-      u2.setUsername("user2");
+      u1.setUsername("bus_provider_1");
+      u1.setEmail("bp1@example.com");
 
-      when(userManagementService.getAllUsers()).thenReturn(List.of(u1, u2));
+      UserRepresentation u2 = new UserRepresentation();
+      u2.setUsername("bus_provider_2");
+      u2.setEmail("bp2@example.com");
+
+      when(userManagementService.getUsersByRole("Bus_Provider")).thenReturn(List.of(u1, u2));
 
       mockMvc
           .perform(get("/api/usermanagement/users").with(jwt().jwt(caller)))
           .andExpect(status().isOk())
-          .andExpect(jsonPath("$[0].username").value("user1"))
-          .andExpect(jsonPath("$[1].username").value("user2"));
+          .andExpect(jsonPath("$[0].username").value("bus_provider_1"))
+          .andExpect(jsonPath("$[1].username").value("bus_provider_2"));
+
+      verify(userManagementService).getUsersByRole("Bus_Provider");
+    }
+
+    @Test
+    @DisplayName("200 when City_Manager lists users (returns all admins)")
+    void listUsers_cityManager_returnsAdmins() throws Exception {
+      mockHasRoleBasedOnJwtClaims();
+
+      Jwt caller = buildJwt("citymgr", "City_Manager");
+
+      UserRepresentation busAdmin = new UserRepresentation();
+      busAdmin.setUsername("bus_admin_1");
+
+      UserRepresentation cycleAdmin = new UserRepresentation();
+      cycleAdmin.setUsername("cycle_admin_1");
+
+      when(userManagementService.getUsersByRole("Bus_Admin")).thenReturn(List.of(busAdmin));
+      when(userManagementService.getUsersByRole("Cycle_Admin")).thenReturn(List.of(cycleAdmin));
+      when(userManagementService.getUsersByRole("Train_Admin")).thenReturn(List.of());
+      when(userManagementService.getUsersByRole("Tram_Admin")).thenReturn(List.of());
+
+      mockMvc
+          .perform(get("/api/usermanagement/users").with(jwt().jwt(caller)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.length()").value(2))
+          .andExpect(
+              jsonPath("$[*].username")
+                  .value(org.hamcrest.Matchers.hasItems("bus_admin_1", "cycle_admin_1")));
+
+      verify(userManagementService).getUsersByRole("Bus_Admin");
+      verify(userManagementService).getUsersByRole("Cycle_Admin");
+      verify(userManagementService).getUsersByRole("Train_Admin");
+      verify(userManagementService).getUsersByRole("Tram_Admin");
+    }
+
+    @Test
+    @DisplayName("500 returns error when getUsersByRole throws exception")
+    void listUsers_getUsersByRoleThrows_returnsInternalServerError() throws Exception {
+      mockHasRoleBasedOnJwtClaims();
+
+      Jwt caller = buildJwt("busadmin", "Bus_Admin");
+
+      when(userManagementService.getUsersByRole("Bus_Provider"))
+          .thenThrow(new RuntimeException("Role not found"));
+
+      mockMvc
+          .perform(get("/api/usermanagement/users").with(jwt().jwt(caller)))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.message").value("Failed to fetch users for role: Bus_Provider"));
     }
   }
 }
