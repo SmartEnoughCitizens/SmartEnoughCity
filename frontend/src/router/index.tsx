@@ -26,6 +26,11 @@ const NotificationsPage = lazy(() =>
     default: m.NotificationsPage,
   })),
 );
+const UserManagementPage = lazy(() =>
+  import("@/pages/UserManagementPage").then((m) => ({
+    default: m.UserManagementPage,
+  })),
+);
 
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
@@ -100,6 +105,18 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <LazyWrapper>
             <NotificationsPage />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/users",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <UserManagementPage />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>
