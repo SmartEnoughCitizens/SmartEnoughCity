@@ -3,9 +3,9 @@ from pathlib import Path
 
 from sqlalchemy import delete
 
+from data_handler.common.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.csv_utils import read_csv_file
 from data_handler.db import SessionLocal
-from data_handler.train.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.train.models import (
     RouteType,
     TrainAgency,
