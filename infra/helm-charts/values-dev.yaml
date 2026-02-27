@@ -114,6 +114,14 @@ postgresqlInit:
   podAnnotations:
     sidecar.istio.io/inject: "false"
 
+# Enable config-cli to push realm changes, exclude from Istio - Jobs can't complete with sidecars
+keycloak:
+  keycloakConfigCli:
+    enabled: true
+    existingConfigmap: keycloak-realm-import
+    podAnnotations:
+      sidecar.istio.io/inject: "false"
+
 ingress:
   enabled: true
   className: nginx
