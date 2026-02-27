@@ -16,6 +16,8 @@ class APISettings(BaseSettings):
     eco_counter_api_key: str = Field(..., alias="ECO_COUNTER_API_KEY")
     jcdecaux_api_base_url: str = Field(..., alias="JCDECAUX_API_BASE_URL")
     jcdecaux_api_key: str = Field(..., alias="JCDECAUX_API_KEY")
+    irish_rail_base_url: str = Field(..., alias="IRISH_RAIL_BASE_URL")
+    luas_forecast_base_url: str = Field(..., alias="LUAS_FORECAST_BASE_URL")
     ticketmaster_api_base_url: str = Field(..., alias="TICKETMASTER_API_BASE_URL")
     ticketmaster_api_key: str = Field(..., alias="TICKETMASTER_API_KEY")
 
