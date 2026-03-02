@@ -25,7 +25,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: postgresql-init
-          image: postgres:18-alpine
+          image: postgis/postgis:18-3.6-alpine
           command:
             - /bin/sh
             - -c
@@ -209,7 +209,7 @@ spec:
             - name: DB_NAME
               value: {{ .Values.global.db.name | quote }}
             - name: APP_OWNER_USER
-              value: {{ .Values.postgresql.auth.username | quote }}
+              value: {{ .Values.postgres.userDatabase.user.value | quote }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
