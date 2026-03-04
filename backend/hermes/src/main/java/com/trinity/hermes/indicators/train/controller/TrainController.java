@@ -23,10 +23,7 @@ public class TrainController {
 
   private final TrainFacade trainFacade;
 
-  /**
-   * Station list — keeps existing URL under /api/v1/dashboard for frontend
-   * compatibility.
-   */
+  /** Station list — keeps existing URL under /api/v1/dashboard for frontend compatibility. */
   @GetMapping("/api/v1/dashboard/train")
   public ResponseEntity<Map<String, Object>> getTrainData(
       @RequestParam(defaultValue = "200") Integer limit) {

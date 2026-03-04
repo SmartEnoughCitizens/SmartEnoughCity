@@ -16,34 +16,34 @@ import org.hibernate.annotations.Immutable;
 @AllArgsConstructor
 public class TrainCurrentTrain {
 
-    @Id
-    @Column(name = "id")
-    private Integer id;
+  @Id
+  @Column(name = "id")
+  private Integer id;
 
-    @Column(name = "train_code")
-    private String trainCode;
+  @Column(name = "train_code")
+  private String trainCode;
 
-    @Column(name = "train_date")
-    private LocalDate trainDate;
+  @Column(name = "train_date")
+  private LocalDate trainDate;
 
-    @Column(name = "train_status")
-    private String trainStatus;
+  @Column(name = "train_status")
+  private String trainStatus;
 
-    @Column(name = "train_type")
-    private String trainType;
+  @Column(name = "train_type")
+  private String trainType;
 
-    @Column(name = "direction")
-    private String direction;
+  @Column(name = "direction")
+  private String direction;
 
-    @Column(name = "lat")
-    private Double lat;
+  @Column(name = "lat")
+  private Double lat;
 
-    @Column(name = "lon")
-    private Double lon;
+  @Column(name = "lon")
+  private Double lon;
 
-    @Column(name = "public_message")
-    private String publicMessage;
+  @Column(name = "public_message")
+  private String publicMessage;
 
-    @Column(name = "fetched_at")
-    private LocalDateTime fetchedAt;
+  @Column(name = "fetched_at")
+  private LocalDateTime fetchedAt;
 }

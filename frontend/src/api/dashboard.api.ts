@@ -142,7 +142,9 @@ export const dashboardApi = {
    * Get train dashboard KPIs
    */
   getTrainKpis: async (): Promise<TrainKpis> => {
-    const { data } = await axiosInstance.get<TrainKpis>(API_ENDPOINTS.TRAIN_KPIS);
+    const { data } = await axiosInstance.get<TrainKpis>(
+      API_ENDPOINTS.TRAIN_KPIS,
+    );
     return data;
   },
 
