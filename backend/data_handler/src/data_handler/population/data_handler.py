@@ -25,7 +25,10 @@ def to_wkt_geom(geometry: dict) -> str:
 
 
 def process_population_static_data(data_dir: Path) -> None:
-    required_files = ["population_census_2022.csv", "small_area_boundaries_2022.geojson"]
+    required_files = [
+        "population_census_2022.csv",
+        "small_area_boundaries_2022.geojson",
+    ]
     for filename in required_files:
         file_path = data_dir / filename
         if not file_path.exists():
@@ -44,14 +47,17 @@ def process_population_static_data(data_dir: Path) -> None:
         with geojson_path.open(encoding="utf-8") as f:
             geo_data = json.load(f)
 
-        geo_df = pd.DataFrame([
-            {
-                "sa_code": feature["properties"]["SA_PUB2022"],
-                "county_name": feature["properties"]["COUNTY_ENGLISH"],
-                "geometry": feature["geometry"]
-            }
-            for feature in geo_data["features"] if is_relevant_area(feature)
-        ])
+        geo_df = pd.DataFrame(
+            [
+                {
+                    "sa_code": feature["properties"]["SA_PUB2022"],
+                    "county_name": feature["properties"]["COUNTY_ENGLISH"],
+                    "geometry": feature["geometry"],
+                }
+                for feature in geo_data["features"]
+                if is_relevant_area(feature)
+            ]
+        )
         geo_df["sa_code"] = geo_df["sa_code"].astype(str)
 
         csv_df = pd.read_csv(data_dir / "population_census_2022.csv")
@@ -66,7 +72,7 @@ def process_population_static_data(data_dir: Path) -> None:
                 sa_code=row["sa_code"],
                 county_name=row["county_name"],
                 population=int(row["total_population"]),
-                geom=to_wkt_geom(row["geometry"])
+                geom=to_wkt_geom(row["geometry"]),
             )
             for _, row in merged_df.iterrows()
         ]
@@ -79,7 +85,10 @@ def process_population_static_data(data_dir: Path) -> None:
 
         logger.info("Committing changes to database...")
         session.commit()
-        logger.info("Successfully processed population static data (%d records).", len(small_areas))
+        logger.info(
+            "Successfully processed population static data (%d records).",
+            len(small_areas),
+        )
 
     except Exception:
         session.rollback()
