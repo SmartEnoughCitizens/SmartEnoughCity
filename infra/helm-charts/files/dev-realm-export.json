@@ -10,7 +10,6 @@
     "duplicateEmailsAllowed": false,
     "resetPasswordAllowed": true,
     "editUsernameAllowed": false,
-
     "roles": {
         "realm": [
             {
@@ -24,7 +23,12 @@
                 "description": "Access to all Dashboards",
                 "composite": true,
                 "composites": {
-                    "realm": ["Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"]
+                    "realm": [
+                        "Bus_Admin",
+                        "Cycle_Admin",
+                        "Train_Admin",
+                        "Tram_Admin"
+                    ]
                 },
                 "clientRole": false
             },
@@ -78,7 +82,6 @@
             }
         ]
     },
-
     "users": [
         {
             "username": "gov_admin",
@@ -94,7 +97,9 @@
                     "temporary": false
                 }
             ],
-            "realmRoles": ["Government_Admin"],
+            "realmRoles": [
+                "Government_Admin"
+            ],
             "groups": []
         },
         {
@@ -111,7 +116,9 @@
                     "temporary": false
                 }
             ],
-            "realmRoles": ["City_Manager"],
+            "realmRoles": [
+                "City_Manager"
+            ],
             "groups": []
         },
         {
@@ -128,7 +135,9 @@
                     "temporary": false
                 }
             ],
-            "realmRoles": ["Bus_Admin"],
+            "realmRoles": [
+                "Bus_Admin"
+            ],
             "groups": []
         },
         {
@@ -145,7 +154,9 @@
                     "temporary": false
                 }
             ],
-            "realmRoles": ["Bus_Provider"],
+            "realmRoles": [
+                "Bus_Provider"
+            ],
             "groups": []
         },
         {
@@ -162,11 +173,25 @@
                     "temporary": false
                 }
             ],
-            "realmRoles": ["Cycle_Admin"],
+            "realmRoles": [
+                "Cycle_Admin"
+            ],
             "groups": []
+        },
+        {
+            "username": "service-account-user-service",
+            "enabled": true,
+            "serviceAccountClientId": "user-service",
+            "clientRoles": {
+                "realm-management": [
+                    "manage-users",
+                    "view-users",
+                    "manage-realm",
+                    "view-realm"
+                ]
+            }
         }
     ],
-
     "clients": [
         {
             "clientId": "user-service",
@@ -182,8 +207,12 @@
             "directAccessGrantsEnabled": true,
             "serviceAccountsEnabled": true,
             "authorizationServicesEnabled": false,
-            "redirectUris": ["http://localhost:*"],
-            "webOrigins": ["http://localhost:*"],
+            "redirectUris": [
+                "http://localhost:*"
+            ],
+            "webOrigins": [
+                "http://localhost:*"
+            ],
             "attributes": {
                 "access.token.lifespan": "3600"
             }
@@ -199,11 +228,15 @@
             "implicitFlowEnabled": false,
             "directAccessGrantsEnabled": true,
             "serviceAccountsEnabled": false,
-            "redirectUris": ["http://localhost:3000/*", "http://localhost:5173/*"],
-            "webOrigins": ["http://localhost:3000", "http://localhost:5173"],
+            "redirectUris": [
+                "http://localhost:3000/*",
+                "http://localhost:5173/*"
+            ],
+            "webOrigins": [
+                "http://localhost:3000",
+                "http://localhost:5173"
+            ],
             "attributes": {}
         }
-    ],
-
-    "clientScopes": []
+    ]
 }

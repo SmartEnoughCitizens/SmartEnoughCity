@@ -1,0 +1,6 @@
+route_id,service_id,trip_id,trip_headsign,trip_short_name,direction_id,block_id,shape_id
+LUAS-GREEN,100,TRIP_G1,Bride's Glen,G1-AM,0,BLK_G1,SHAPE_GREEN_1
+LUAS-GREEN,100,TRIP_G2,Broombridge,G2-AM,1,BLK_G2,SHAPE_GREEN_1
+LUAS-GREEN,101,TRIP_G3,Bride's Glen,G3-SAT,0,,SHAPE_GREEN_1
+LUAS-RED,100,TRIP_R1,Saggart,R1-AM,0,BLK_R1,SHAPE_RED_1
+LUAS-RED,102,TRIP_R2,The Point,R2-SUN,1,,SHAPE_RED_1
