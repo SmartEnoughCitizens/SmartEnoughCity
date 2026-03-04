@@ -26,7 +26,7 @@ class SmallArea(Base):
     # spatial_index=False here because we defined it explicitly in __table_args__
     geom: Mapped[Geometry] = mapped_column(
         Geometry(geometry_type="MULTIPOLYGON", srid=4326, spatial_index=False),
-        nullable=False
+        nullable=False,
     )
 
     def __repr__(self) -> str:
