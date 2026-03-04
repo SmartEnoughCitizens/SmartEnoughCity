@@ -106,7 +106,9 @@ public class UserManagementService {
     credential.setTemporary(false);
 
     getUsersResource().get(userId).resetPassword(credential);
-    log.info("Temporary password set for user: {} | temp password: {}", request.getUsername(), tempPassword);
+    // log.info("Temporary password set for user: {} | temp password: {}", request.getUsername(), tempPassword);
+      log.info("Temporary password set for user: {} ", request.getUsername());
+
 
     assignRole(userId, request.getRole());
 
