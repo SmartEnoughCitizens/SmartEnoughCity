@@ -15,7 +15,7 @@ def _start_postgres_and_configure_env() -> None:
     global _postgres_container  # noqa: PLW0603
 
     _postgres_container = PostgresContainer(
-        image="postgres:18-alpine",
+        image="postgis/postgis:18-3.6-alpine",
         username="postgres",
         password="postgres",  # noqa: S106
         dbname="test",
