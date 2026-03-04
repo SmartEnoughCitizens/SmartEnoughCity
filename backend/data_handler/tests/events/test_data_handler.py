@@ -146,7 +146,7 @@ class TestUpsertVenues:
         schema = get_db_settings().postgres_schema
         db_session.execute(
             text(
-                f"UPDATE {schema}.venues SET capacity = 13000"
+                f"UPDATE {schema}.venues SET capacity = 13000"  # noqa: S608
                 " WHERE ticketmaster_id = 'KovZpZAEdFtA'"
             )
         )
