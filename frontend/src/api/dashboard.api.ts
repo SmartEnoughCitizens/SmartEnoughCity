@@ -14,6 +14,9 @@ import type {
   CycleStation,
   IndicatorType,
   TrainDashboardResponse,
+  TrainKpis,
+  TrainLiveTrain,
+  TrainServiceStats,
 } from "@/types";
 
 export const dashboardApi = {
@@ -131,6 +134,34 @@ export const dashboardApi = {
   getBusSystemPerformance: async (): Promise<BusSystemPerformance> => {
     const { data } = await axiosInstance.get<BusSystemPerformance>(
       API_ENDPOINTS.BUS_SYSTEM_PERFORMANCE,
+    );
+    return data;
+  },
+
+  /**
+   * Get train dashboard KPIs
+   */
+  getTrainKpis: async (): Promise<TrainKpis> => {
+    const { data } = await axiosInstance.get<TrainKpis>(API_ENDPOINTS.TRAIN_KPIS);
+    return data;
+  },
+
+  /**
+   * Get live train positions
+   */
+  getTrainLiveTrains: async (): Promise<TrainLiveTrain[]> => {
+    const { data } = await axiosInstance.get<TrainLiveTrain[]>(
+      API_ENDPOINTS.TRAIN_LIVE_TRAINS,
+    );
+    return data;
+  },
+
+  /**
+   * Get train service reliability stats
+   */
+  getTrainServiceStats: async (): Promise<TrainServiceStats> => {
+    const { data } = await axiosInstance.get<TrainServiceStats>(
+      API_ENDPOINTS.TRAIN_SERVICE_STATS,
     );
     return data;
   },

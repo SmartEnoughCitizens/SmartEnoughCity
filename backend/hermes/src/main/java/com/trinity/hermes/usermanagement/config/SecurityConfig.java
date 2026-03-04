@@ -34,52 +34,50 @@ public class SecurityConfig {
 
     // For now ignored CSRF only for API endpoints.
     http.csrf(
-            csrf ->
-                csrf.ignoringRequestMatchers(
-                    "/api/**",
-                    "/notification/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger/**"))
+        csrf -> csrf.ignoringRequestMatchers(
+            "/api/**",
+            "/notification/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger/**"))
         .exceptionHandling(
-            ex ->
-                ex.accessDeniedHandler(
-                    (request, response, accessDeniedException) -> {
-                      response.setStatus(HttpStatus.FORBIDDEN.value());
-                      response.setContentType("application/json");
-                      response
-                          .getWriter()
-                          .write("{\"message\": \"You do not have access to this resource\"}");
-                    }))
+            ex -> ex.accessDeniedHandler(
+                (request, response, accessDeniedException) -> {
+                  response.setStatus(HttpStatus.FORBIDDEN.value());
+                  response.setContentType("application/json");
+                  response
+                      .getWriter()
+                      .write("{\"message\": \"You do not have access to this resource\"}");
+                }))
         .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/v3/api-docs/**", "/swagger/**", "/swagger-ui/**")
-                    .permitAll()
-                    .requestMatchers("/api/public/**")
-                    .permitAll()
-                    .requestMatchers("/api/auth/**")
-                    .permitAll()
-                    .requestMatchers("/api/v1/dashboard/**")
-                    .permitAll()
-                    .requestMatchers("api/v1/recommendation-engine/**")
-                    .permitAll()
-                    .requestMatchers("/api/v1/bus/**")
-                    .permitAll()
-                    .requestMatchers("/error")
-                    .permitAll()
-                    .requestMatchers("/api/notification/v1", "/api/notification/v1/**")
-                    .permitAll()
-                    .requestMatchers("/api/usermanagement/**")
-                    .permitAll()
-                    .requestMatchers("/api/trains")
-                    .hasRole("City_Manager")
-                    .requestMatchers("/api/buses")
-                    .hasAnyRole("City_Manager", "Bus_Provider")
-                    .anyRequest()
-                    .authenticated())
+            auth -> auth.requestMatchers("/v3/api-docs/**", "/swagger/**", "/swagger-ui/**")
+                .permitAll()
+                .requestMatchers("/api/public/**")
+                .permitAll()
+                .requestMatchers("/api/auth/**")
+                .permitAll()
+                .requestMatchers("/api/v1/dashboard/**")
+                .permitAll()
+                .requestMatchers("api/v1/recommendation-engine/**")
+                .permitAll()
+                .requestMatchers("/api/v1/bus/**")
+                .permitAll()
+                .requestMatchers("/api/v1/train/**")
+                .permitAll()
+                .requestMatchers("/error")
+                .permitAll()
+                .requestMatchers("/api/notification/v1", "/api/notification/v1/**")
+                .permitAll()
+                .requestMatchers("/api/usermanagement/**")
+                .permitAll()
+                .requestMatchers("/api/trains")
+                .hasRole("City_Manager")
+                .requestMatchers("/api/buses")
+                .hasAnyRole("City_Manager", "Bus_Provider")
+                .anyRequest()
+                .authenticated())
         .oauth2ResourceServer(
-            oauth2 ->
-                oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+            oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
