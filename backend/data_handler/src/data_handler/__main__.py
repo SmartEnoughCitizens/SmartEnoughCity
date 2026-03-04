@@ -15,6 +15,7 @@ from data_handler.events.data_handler import (
 from data_handler.logging import configure_logging
 from data_handler.settings.data_sources_settings import get_data_sources_settings
 from data_handler.settings.database_settings import get_db_settings
+from data_handler.train.realtime_handler import irish_rail_realtime_to_db
 
 
 def get_args() -> argparse.Namespace:
@@ -87,6 +88,7 @@ def main_dynamic() -> None:
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
         print("Processing train data...")
+        irish_rail_realtime_to_db()
 
     if sources_settings.enable_cycle_data:
         print("Processing cycle data...")
