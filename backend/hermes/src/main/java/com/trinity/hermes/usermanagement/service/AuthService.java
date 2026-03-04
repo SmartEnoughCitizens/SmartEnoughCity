@@ -36,9 +36,11 @@ public class AuthService {
   private String adminPassword;
 
   private final RestTemplate restTemplate;
+  private final UserManagementService userManagementService;
 
-  public AuthService() {
+  public AuthService(UserManagementService userManagementService) {
     this.restTemplate = new RestTemplate();
+    this.userManagementService = userManagementService;
   }
 
   public LoginResponse login(LoginRequest loginRequest) {
@@ -89,6 +91,9 @@ public class AuthService {
           throw new RuntimeException("Invalid token response from Keycloak");
         }
 
+        boolean passwordChangeRequired =
+            userManagementService.isPasswordChangeRequired(loginRequest.getUsername());
+
         LoginResponse loginResponse = new LoginResponse();
         loginResponse.setAccessToken(accessToken);
         loginResponse.setTokenType(tokenType);
@@ -96,6 +101,7 @@ public class AuthService {
         loginResponse.setRefreshToken(refreshToken);
         loginResponse.setUsername(loginRequest.getUsername());
         loginResponse.setMessage("Login successful");
+        loginResponse.setPasswordChangeRequired(passwordChangeRequired);
 
         log.info("User {} authenticated successfully", loginRequest.getUsername());
         return loginResponse;

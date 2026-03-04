@@ -48,3 +48,12 @@ export const useDeleteUser = () => {
     },
   });
 };
+
+/**
+ * Change password mutation (first-login flow)
+ */
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: (newPassword: string) => userManagementApi.changePassword(newPassword),
+  });
+};

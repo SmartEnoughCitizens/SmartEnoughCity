@@ -31,6 +31,11 @@ const UserManagementPage = lazy(() =>
     default: m.UserManagementPage,
   })),
 );
+const ChangePasswordPage = lazy(() =>
+  import("@/pages/ChangePasswordPage").then((m) => ({
+    default: m.ChangePasswordPage,
+  })),
+);
 
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
@@ -119,6 +124,16 @@ export const router = createBrowserRouter([
             <UserManagementPage />
           </LazyWrapper>
         </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/change-password",
+    element: (
+      <ProtectedRoute>
+        <LazyWrapper>
+          <ChangePasswordPage />
+        </LazyWrapper>
       </ProtectedRoute>
     ),
   },
