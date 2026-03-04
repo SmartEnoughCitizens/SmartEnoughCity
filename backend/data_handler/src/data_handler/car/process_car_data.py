@@ -418,7 +418,9 @@ def process_car_static_data(data_dir: Path) -> None:
         _clear_existing_data(session)
 
         for filename, (required_headers, transform_row) in _CSV_FILES.items():
-            _process_csv_file(session, data_dir, filename, required_headers, transform_row)
+            _process_csv_file(
+                session, data_dir, filename, required_headers, transform_row
+            )
 
         _process_emission_files(session, data_dir)
         _process_ev_charging_points(session, xlsx_path)
