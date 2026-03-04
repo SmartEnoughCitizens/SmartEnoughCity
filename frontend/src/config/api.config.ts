@@ -33,6 +33,13 @@ export const API_ENDPOINTS = {
   DASHBOARD_BUS_ROUTES: "/api/v1/dashboard/bus/routes",
   DASHBOARD_INDICATOR_TYPES: "/api/v1/dashboard/indicators/types",
 
+  // Bus Indicators
+  BUS_KPIS: "/api/v1/bus/kpis",
+  BUS_LIVE_VEHICLES: "/api/v1/bus/live-vehicles",
+  BUS_ROUTE_UTILIZATION: "/api/v1/bus/route-utilization",
+  BUS_SYSTEM_PERFORMANCE: "/api/v1/bus/system-performance",
+  BUS_METRICS_REFRESH: "/api/v1/bus/metrics/refresh",
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>

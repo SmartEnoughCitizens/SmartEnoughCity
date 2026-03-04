@@ -1,0 +1,27 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/realms/test
+
+  jpa:
+    properties:
+      hibernate:
+        default_schema: backend
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
+
+keycloak:
+  server-url: http://localhost:8081
+  realm: test
+  client-id: test
+  client-secret: test
+  admin-username: admin
+  admin-password: admin
