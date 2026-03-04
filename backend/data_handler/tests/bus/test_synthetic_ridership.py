@@ -117,9 +117,7 @@ def test_passengers_onboard_never_negative(
 
     generate_ridership_for_vehicles(db_session)
 
-    result = db_session.execute(
-        select(BusRidership.passengers_onboard)
-    )
+    result = db_session.execute(select(BusRidership.passengers_onboard))
     for row in result.fetchall():
         assert row[0] >= 0, f"passengers_onboard ({row[0]}) is negative"
 
@@ -137,9 +135,7 @@ def test_ridership_linked_to_live_vehicle_record(
     assert_row_count(db_session, "bus_ridership", 1)
 
     # Verify the record matches vehicle 1112 on trip 5332_14104
-    result = db_session.execute(
-        select(BusRidership.vehicle_id, BusRidership.trip_id)
-    )
+    result = db_session.execute(select(BusRidership.vehicle_id, BusRidership.trip_id))
     rows = result.fetchall()
     assert len(rows) == 1
     assert rows[0][0] == 1112

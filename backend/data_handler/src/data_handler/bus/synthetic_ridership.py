@@ -178,11 +178,14 @@ def generate_ridership_for_vehicles(session: Session | None = None) -> None:
 
         for vehicle_id, trip_id, lat, lon, ts in vehicles:
             # Get total stops for this trip
-            total_stops = session.scalar(
-                select(func.count())
-                .select_from(BusStopTime)
-                .where(BusStopTime.trip_id == trip_id)
-            ) or 0
+            total_stops = (
+                session.scalar(
+                    select(func.count())
+                    .select_from(BusStopTime)
+                    .where(BusStopTime.trip_id == trip_id)
+                )
+                or 0
+            )
 
             if total_stops == 0:
                 logger.warning(
