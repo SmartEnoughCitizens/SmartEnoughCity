@@ -33,6 +33,9 @@ import L from "leaflet";
 const isRunning = (status?: string) =>
   status?.toUpperCase().includes("RUNNING") ?? false;
 
+const liveColor = (status?: string) =>
+  isRunning(status) ? "#4caf50" : "#ff9800";
+
 const stationIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl:
@@ -113,9 +116,6 @@ export const TrainDashboard = () => {
       : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
   const panelWidth = 400;
-
-  const liveColor = (status?: string) =>
-    isRunning(status) ? "#4caf50" : "#ff9800";
 
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
