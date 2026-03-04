@@ -36,3 +36,34 @@ export interface BusDashboardResponse {
   data: BusTripUpdate[];
   statistics?: DelayStatistics;
 }
+
+export interface BusKpis {
+  totalBusesRunning: number;
+  activeDelays: number;
+  fleetUtilizationPct: number;
+  sustainabilityScore: number;
+}
+
+export interface BusLiveVehicle {
+  vehicleId: number;
+  routeShortName: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  occupancyPct: number;
+  delaySeconds: number;
+}
+
+export interface BusRouteUtilization {
+  routeId: string;
+  routeShortName: string;
+  routeLongName: string;
+  utilizationPct: number;
+  activeVehicles: number;
+  status: string;
+}
+
+export interface BusSystemPerformance {
+  reliabilityPct: number;
+  lateArrivalPct: number;
+}
