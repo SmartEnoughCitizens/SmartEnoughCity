@@ -22,8 +22,9 @@ spring:
     properties:
       hibernate:
         default_schema: backend
+        hbm2ddl.schema_filter_provider: com.trinity.hermes.config.BackendSchemaFilterProvider
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     open-in-view: false
 
 keycloak:
