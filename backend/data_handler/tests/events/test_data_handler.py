@@ -3,7 +3,6 @@
 from datetime import UTC, date, datetime
 from unittest.mock import MagicMock, patch
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from data_handler.events.data_handler import (
@@ -13,7 +12,6 @@ from data_handler.events.data_handler import (
     fetch_and_store_venues,
 )
 from data_handler.events.parsing_utils import ParsedEvent, ParsedVenue
-from data_handler.settings.database_settings import get_db_settings
 from tests.utils import ANY, assert_row_count, assert_rows
 
 # ---------------------------------------------------------------------------
@@ -103,7 +101,6 @@ class TestUpsertVenues:
                     "latitude": 53.3478,
                     "longitude": -6.2297,
                     "capacity": None,
-                    "venue_size_tag": None,
                 }
             ],
         )
@@ -132,40 +129,6 @@ class TestUpsertVenues:
                     "latitude": 53.3478,
                     "longitude": -6.2297,
                     "capacity": None,
-                    "venue_size_tag": None,
-                }
-            ],
-        )
-
-    def test_capacity_sets_venue_size_tag(self, db_session: Session) -> None:
-        """Setting capacity on a venue auto-computes venue_size_tag via DB generated column."""
-        venue = _make_parsed_venue(name="3Arena")
-        _upsert_venues(db_session, [venue])
-        db_session.commit()
-
-        schema = get_db_settings().postgres_schema
-        db_session.execute(
-            text(
-                f"UPDATE {schema}.venues SET capacity = 13000"  # noqa: S608
-                " WHERE ticketmaster_id = 'KovZpZAEdFtA'"
-            )
-        )
-        db_session.commit()
-
-        assert_rows(
-            db_session,
-            "venues",
-            [
-                {
-                    "id": ANY,
-                    "ticketmaster_id": "KovZpZAEdFtA",
-                    "name": "3Arena",
-                    "address": "North Wall Quay",
-                    "city": "Dublin",
-                    "latitude": 53.3478,
-                    "longitude": -6.2297,
-                    "capacity": 13000,
-                    "venue_size_tag": "arena",
                 }
             ],
         )
@@ -178,8 +141,8 @@ class TestUpsertVenues:
         assert id_map == {}
         assert_row_count(db_session, "venues", 0)
 
-    def test_returns_id_and_tag_map(self, db_session: Session) -> None:
-        """_upsert_venues returns a dict mapping ticketmaster_id to (db_id, venue_size_tag)."""
+    def test_returns_id_map(self, db_session: Session) -> None:
+        """_upsert_venues returns a dict mapping ticketmaster_id to db_id."""
         venues = [
             _make_parsed_venue(ticketmaster_id="v1", name="Venue A"),
             _make_parsed_venue(ticketmaster_id="v2", name="Venue B"),
@@ -188,9 +151,8 @@ class TestUpsertVenues:
         db_session.commit()
 
         assert set(id_map.keys()) == {"v1", "v2"}
-        for db_id, tag in id_map.values():
+        for db_id in id_map.values():
             assert isinstance(db_id, int)
-            assert tag is None  # no capacity set yet
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +189,7 @@ class TestUpsertEvents:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "venue_size_tag": None,
+
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
@@ -280,7 +242,7 @@ class TestUpsertEvents:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "venue_size_tag": None,
+
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
@@ -302,23 +264,19 @@ class TestUpsertEvents:
 
 
 class TestUpsertEventsWithVenueFK:
-    """Tests for venue FK resolution and venue_size_tag mirroring in _upsert_events."""
+    """Tests for venue FK resolution in _upsert_events."""
 
-    def test_venue_id_and_tag_resolved_for_arena(self, db_session: Session) -> None:
-        """Arena-tagged venue: venue_id is set and venue_size_tag='arena'."""
+    def test_venue_id_resolved(self, db_session: Session) -> None:
+        """venue_id FK is set correctly when venue is in the map."""
         venue = _make_parsed_venue(name="3Arena")
-        id_map_initial = _upsert_venues(db_session, [venue])
+        id_map = _upsert_venues(db_session, [venue])
         db_session.commit()
 
-        venue_db_id = id_map_initial["KovZpZAEdFtA"][0]
-
-        # Construct the id_map as if the venue had capacity=13000 (arena tag)
-        venue_id_map: dict[str, tuple[int, str | None]] = {
-            "KovZpZAEdFtA": (venue_db_id, "arena")
-        }
-
+        venue_db_id = id_map["KovZpZAEdFtA"]
         event = _make_parsed_event(venue_ticketmaster_id="KovZpZAEdFtA")
-        _upsert_events(db_session, [event], FETCHED_AT, venue_id_map=venue_id_map)
+        _upsert_events(
+            db_session, [event], FETCHED_AT, venue_id_map={"KovZpZAEdFtA": venue_db_id}
+        )
         db_session.commit()
 
         assert_rows(
@@ -338,17 +296,14 @@ class TestUpsertEventsWithVenueFK:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "venue_size_tag": "arena",
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
             ],
         )
 
-    def test_venue_id_null_and_tag_none_when_not_in_map(
-        self, db_session: Session
-    ) -> None:
-        """Unknown venue_ticketmaster_id: venue_id=None and venue_size_tag=None."""
+    def test_venue_id_null_when_not_in_map(self, db_session: Session) -> None:
+        """Unknown venue_ticketmaster_id: venue_id=None."""
         event = _make_parsed_event(venue_ticketmaster_id="nonexistent_id")
         _upsert_events(db_session, [event], FETCHED_AT, venue_id_map={})
         db_session.commit()
@@ -370,94 +325,7 @@ class TestUpsertEventsWithVenueFK:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-                    "venue_size_tag": None,
                     "estimated_attendance": None,
-                    "fetched_at": ANY,
-                }
-            ],
-        )
-
-    def test_major_stadium_tag_mirrored(self, db_session: Session) -> None:
-        """Major-stadium-tagged venue: venue_size_tag='major_stadium'."""
-        venue = _make_parsed_venue(name="Croke Park", ticketmaster_id="croke_tm")
-        id_map_initial = _upsert_venues(db_session, [venue])
-        db_session.commit()
-
-        venue_db_id = id_map_initial["croke_tm"][0]
-        venue_id_map: dict[str, tuple[int, str | None]] = {
-            "croke_tm": (venue_db_id, "major_stadium")
-        }
-
-        event = _make_parsed_event(
-            source_id="tm_croke",
-            venue_name="Croke Park",
-            venue_ticketmaster_id="croke_tm",
-        )
-        _upsert_events(db_session, [event], FETCHED_AT, venue_id_map=venue_id_map)
-        db_session.commit()
-
-        assert_rows(
-            db_session,
-            "events",
-            [
-                {
-                    "id": ANY,
-                    "source": ANY,
-                    "source_id": "tm_croke",
-                    "event_name": ANY,
-                    "event_type": ANY,
-                    "venue_name": ANY,
-                    "venue_id": venue_db_id,
-                    "latitude": ANY,
-                    "longitude": ANY,
-                    "event_date": ANY,
-                    "start_time": ANY,
-                    "end_time": ANY,
-                    "venue_size_tag": "major_stadium",
-                    "estimated_attendance": ANY,
-                    "fetched_at": ANY,
-                }
-            ],
-        )
-
-    def test_theatre_tag_mirrored(self, db_session: Session) -> None:
-        """Theatre-tagged venue: venue_size_tag='theatre'."""
-        venue = _make_parsed_venue(name="Olympia Theatre", ticketmaster_id="olympia_tm")
-        id_map_initial = _upsert_venues(db_session, [venue])
-        db_session.commit()
-
-        venue_db_id = id_map_initial["olympia_tm"][0]
-        venue_id_map: dict[str, tuple[int, str | None]] = {
-            "olympia_tm": (venue_db_id, "theatre")
-        }
-
-        event = _make_parsed_event(
-            source_id="tm_olympia",
-            venue_name="Olympia Theatre",
-            venue_ticketmaster_id="olympia_tm",
-        )
-        _upsert_events(db_session, [event], FETCHED_AT, venue_id_map=venue_id_map)
-        db_session.commit()
-
-        assert_rows(
-            db_session,
-            "events",
-            [
-                {
-                    "id": ANY,
-                    "source": ANY,
-                    "source_id": "tm_olympia",
-                    "event_name": ANY,
-                    "event_type": ANY,
-                    "venue_name": ANY,
-                    "venue_id": venue_db_id,
-                    "latitude": ANY,
-                    "longitude": ANY,
-                    "event_date": ANY,
-                    "start_time": ANY,
-                    "end_time": ANY,
-                    "venue_size_tag": "theatre",
-                    "estimated_attendance": ANY,
                     "fetched_at": ANY,
                 }
             ],

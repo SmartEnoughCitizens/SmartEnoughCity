@@ -41,18 +41,16 @@ def _estimate_end_time(event: ParsedEvent) -> datetime:
 def _upsert_venues(
     session: Session,
     venues: list[ParsedVenue],
-) -> dict[str, tuple[int, str | None]]:
+) -> dict[str, int]:
     """
     Upsert venues into the database.
 
     ON CONFLICT on ticketmaster_id:
     - Updates name, address, city, latitude, longitude.
     - Does NOT update capacity -- preserves manual DB edits.
-    - venue_size_tag is a DB-computed column and is never set directly.
 
     Returns:
-        Mapping of ticketmaster_id -> (db_id, venue_size_tag) for FK
-        resolution in _upsert_events.
+        Mapping of ticketmaster_id -> db_id for FK resolution in _upsert_events.
     """
     if not venues:
         return {}
@@ -83,12 +81,12 @@ def _upsert_venues(
 
     tm_ids = [v.ticketmaster_id for v in venues]
     rows = session.execute(
-        select(Venue.ticketmaster_id, Venue.id, Venue.venue_size_tag).where(
+        select(Venue.ticketmaster_id, Venue.id).where(
             Venue.ticketmaster_id.in_(tm_ids)
         )
     ).all()
 
-    return {row.ticketmaster_id: (row.id, row.venue_size_tag) for row in rows}
+    return {row.ticketmaster_id: row.id for row in rows}
 
 
 def _extract_venues_from_events(raw_data: dict[str, Any]) -> list[ParsedVenue]:
@@ -141,7 +139,7 @@ def _upsert_events(
     session: Session,
     events: list[ParsedEvent],
     fetched_at: datetime,
-    venue_id_map: dict[str, tuple[int, str | None]] | None = None,
+    venue_id_map: dict[str, int] | None = None,
 ) -> int:
     """
     Upsert events into the database.
@@ -150,9 +148,8 @@ def _upsert_events(
     existing events or insert new ones.
 
     Args:
-        venue_id_map: Optional mapping of ticketmaster_id -> (db_id, venue_size_tag).
-                      When provided, sets the venue_id FK and mirrors the
-                      venue's size tag onto the event row.
+        venue_id_map: Optional mapping of ticketmaster_id -> db_id.
+                      When provided, sets the venue_id FK on the event row.
 
     Returns:
         Number of events processed.
@@ -167,8 +164,7 @@ def _upsert_events(
         if event.end_time is None:
             event.end_time = _estimate_end_time(event)
 
-        venue_entry = venue_id_map.get(event.venue_ticketmaster_id)
-        venue_db_id, venue_size_tag = venue_entry or (None, None)
+        venue_db_id = venue_id_map.get(event.venue_ticketmaster_id)
 
         stmt = pg_insert(Event).values(
             source=event.source,
@@ -177,7 +173,6 @@ def _upsert_events(
             event_type=event.event_type,
             venue_name=event.venue_name,
             venue_id=venue_db_id,
-            venue_size_tag=venue_size_tag,
             latitude=event.latitude,
             longitude=event.longitude,
             event_date=event.event_date,
@@ -193,7 +188,6 @@ def _upsert_events(
                 "event_type": stmt.excluded.event_type,
                 "venue_name": stmt.excluded.venue_name,
                 "venue_id": stmt.excluded.venue_id,
-                "venue_size_tag": stmt.excluded.venue_size_tag,
                 "latitude": stmt.excluded.latitude,
                 "longitude": stmt.excluded.longitude,
                 "event_date": stmt.excluded.event_date,
@@ -261,8 +255,8 @@ def fetch_and_store_events(session: Session | None = None) -> int:
     This function:
     1. Fetches events from Ticketmaster
     2. Parses the responses into structured events
-    3. Upserts venues extracted from event payloads (for FK + impact resolution)
-    4. Upserts all events with venue_id FKs and venue_size_tag mirrored from venue
+    3. Upserts venues extracted from event payloads (for FK resolution)
+    4. Upserts all events with venue_id FKs
 
     Args:
         session: Optional SQLAlchemy session (for testing). If None, creates one.
