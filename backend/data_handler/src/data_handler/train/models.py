@@ -293,8 +293,8 @@ class IrishRailCurrentTrain(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     train_code: Mapped[str] = mapped_column(String, nullable=False, index=True)
     train_date: Mapped[date] = mapped_column(Date, nullable=False)
-    train_status: Mapped[TrainStatus] = mapped_column(
-        SQLEnum(TrainStatus, schema=DB_SCHEMA), nullable=False
+    train_status: Mapped[TrainStatus | None] = mapped_column(
+        SQLEnum(TrainStatus, schema=DB_SCHEMA)
     )
     train_type: Mapped[str | None] = mapped_column(String)
     direction: Mapped[str | None] = mapped_column(String)

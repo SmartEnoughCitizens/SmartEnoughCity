@@ -9,6 +9,7 @@ export const DASHBOARD_KEYS = {
   bus: (routeId?: string, limit?: number) =>
     ["dashboard", "bus", { routeId, limit }] as const,
   cycle: (limit?: number) => ["dashboard", "cycle", { limit }] as const,
+  train: (limit?: number) => ["dashboard", "train", { limit }] as const,
   availableBikes: ["dashboard", "cycle", "available-bikes"] as const,
   availableDocks: ["dashboard", "cycle", "available-docks"] as const,
   busRoutes: ["dashboard", "bus", "routes"] as const,
@@ -37,6 +38,17 @@ export const useCycleData = (limit: number = 100) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycle(limit),
     queryFn: () => dashboardApi.getCycleData({ limit }),
+    staleTime: 30_000, // 30 seconds
+  });
+};
+
+/**
+ * Get train station data
+ */
+export const useTrainData = (limit: number = 200) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.train(limit),
+    queryFn: () => dashboardApi.getTrainData({ limit }),
     staleTime: 30_000, // 30 seconds
   });
 };

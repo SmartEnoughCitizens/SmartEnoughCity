@@ -95,3 +95,7 @@ build/
 *.key
 credentials*.json
 *-key.json
+backend/data_handler/.env.test
+backend/data_handler/.env.development
+backend/data_handler/.env.test
+backend/data_handler/.env.development
