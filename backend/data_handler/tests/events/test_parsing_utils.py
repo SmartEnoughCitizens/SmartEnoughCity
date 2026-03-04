@@ -5,7 +5,6 @@ from datetime import UTC, date, datetime
 import pytest
 
 from data_handler.events.parsing_utils import (
-    VENUE_SIZE_TAG_THRESHOLDS,
     parse_ticketmaster_event,
     parse_ticketmaster_response,
     parse_ticketmaster_venue,
@@ -80,25 +79,6 @@ def _make_raw_venue(  # noqa: PLR0913
     if city_name is not None:
         v["city"] = {"name": city_name}
     return v
-
-
-# ---------------------------------------------------------------------------
-# VENUE_SIZE_TAG_THRESHOLDS
-# ---------------------------------------------------------------------------
-
-
-class TestVenueSizeTagThresholds:
-    def test_venue_size_tag_thresholds_are_documented(self) -> None:
-        """VENUE_SIZE_TAG_THRESHOLDS lists all size categories in descending order."""
-        tags = [tag for _, tag in VENUE_SIZE_TAG_THRESHOLDS]
-        assert "major_stadium" in tags
-        assert "stadium" in tags
-        assert "arena" in tags
-        assert "theatre" in tags
-        assert "venue" in tags
-        # Thresholds should be in descending order
-        thresholds = [t for t, _ in VENUE_SIZE_TAG_THRESHOLDS]
-        assert thresholds == sorted(thresholds, reverse=True)
 
 
 # ---------------------------------------------------------------------------

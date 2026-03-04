@@ -8,21 +8,6 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Venue size classification
-# ---------------------------------------------------------------------------
-
-# Thresholds mirror the GENERATED ALWAYS AS logic in the Venue DB model.
-# Larger venues have disproportionate impact on public transport and traffic.
-VENUE_SIZE_TAG_THRESHOLDS: list[tuple[int, str]] = [
-    (50000, "major_stadium"),  # e.g. Croke Park (~82k), Aviva Stadium (~51k)
-    (20000, "stadium"),  # e.g. RDS Arena (~22k)
-    (8000, "arena"),  # e.g. 3Arena (~13k), Tallaght Stadium (~10k)
-    (1000, "theatre"),  # e.g. Olympia Theatre, Vicar Street
-    (0, "venue"),  # small clubs and intimate spaces
-]
-
-
 @dataclass
 class ParsedEvent:
     """Parsed event data before database insertion."""
@@ -91,8 +76,6 @@ def parse_ticketmaster_event(raw: dict[str, Any]) -> ParsedEvent | None:
     Parse a single Ticketmaster Discovery API v2 event into a ParsedEvent.
 
     Returns None if the event cannot be parsed (missing venue, coordinates, etc.).
-    venue_size_tag is not set at parse time — it is resolved from the venues
-    table in _upsert_events once the venue FK is known.
     """
     venue_info = _extract_ticketmaster_venue(raw)
     if venue_info is None:
