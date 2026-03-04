@@ -29,6 +29,7 @@ class DataSourcesSettings(BaseSettings):
     enable_train_data: bool = Field(True, alias="ENABLE_TRAIN_DATA")
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
+    enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
 
     bus_gtfs_static_data_dir: Path | None = Field(
         None,
