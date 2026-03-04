@@ -1,0 +1,4 @@
+SiteID,Site_Description_Cap,Site_Description_Lower,Region,Lat,Long,Site_Type
+123,O'Connell Street,o'connell street,Dublin,53.3498,-6.2603,SCATS Site
+456,Dame Street,dame street,Dublin,53.3441,-6.2675,SCATS Site
+789,Grafton Street,grafton street,Dublin,53.3428,-6.2597,SCATS Site
