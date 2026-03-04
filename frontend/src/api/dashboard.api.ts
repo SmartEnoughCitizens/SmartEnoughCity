@@ -13,6 +13,7 @@ import type {
   CycleDashboardResponse,
   CycleStation,
   IndicatorType,
+  TrainDashboardResponse,
 } from "@/types";
 
 export const dashboardApi = {
@@ -38,6 +39,19 @@ export const dashboardApi = {
   }): Promise<CycleDashboardResponse> => {
     const { data } = await axiosInstance.get<CycleDashboardResponse>(
       API_ENDPOINTS.DASHBOARD_CYCLE,
+      { params },
+    );
+    return data;
+  },
+
+  /**
+   * Get train station data for dashboard
+   */
+  getTrainData: async (params?: {
+    limit?: number;
+  }): Promise<TrainDashboardResponse> => {
+    const { data } = await axiosInstance.get<TrainDashboardResponse>(
+      API_ENDPOINTS.DASHBOARD_TRAIN,
       { params },
     );
     return data;

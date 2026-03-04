@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   // Dashboard
   DASHBOARD_BUS: "/api/v1/dashboard/bus",
   DASHBOARD_CYCLE: "/api/v1/dashboard/cycle",
+  DASHBOARD_TRAIN: "/api/v1/dashboard/train",
   DASHBOARD_CYCLE_AVAILABLE_BIKES: "/api/v1/dashboard/cycle/available-bikes",
   DASHBOARD_CYCLE_AVAILABLE_DOCKS: "/api/v1/dashboard/cycle/available-docks",
   DASHBOARD_BUS_ROUTES: "/api/v1/dashboard/bus/routes",
