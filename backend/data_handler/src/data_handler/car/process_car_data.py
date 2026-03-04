@@ -1,11 +1,13 @@
 # data_handler/car/process_car_data.py
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 from sqlalchemy import delete
+from sqlalchemy.orm import Session
 
 from data_handler.car.car_parsing_utils import (
     parse_kw_value,
@@ -223,9 +225,7 @@ def parse_and_filter_ev_charging_point_row(
         county="Dublin",  # Hardcoded for consistency
         lat=float(row["Latitude"]),
         lon=float(row["Longitude"]),
-        power_rating_of_ccs_connectors_kw=parse_kw_value(
-            str(row.get("CCS kWs", ""))
-        ),
+        power_rating_of_ccs_connectors_kw=parse_kw_value(str(row.get("CCS kWs", ""))),
         power_rating_of_chademo_connectors_kw=parse_kw_value(
             str(row.get("CHAdeMO kWs", ""))
         ),
@@ -240,6 +240,152 @@ def parse_and_filter_ev_charging_point_row(
 # ============================================================================
 # MAIN PROCESSING FUNCTION
 # ============================================================================
+
+_CsvTransformFn = Callable[[dict[str, str]], object]
+
+_CSV_FILES: dict[str, tuple[list[str], _CsvTransformFn]] = {
+    "dcc_traffic_signals_20221130.csv": (
+        [
+            "SiteID",
+            "Site_Description_Cap",
+            "Site_Description_Lower",
+            "Region",
+            "Lat",
+            "Long",
+        ],
+        parse_scats_site_row,
+    ),
+    "Vehicles Licensed for the first time.csv": (
+        ["Month", "Taxation Class", "VALUE"],
+        parse_vehicle_first_time_row,
+    ),
+    "New and second hand car by licensing area.csv": (
+        ["Month", "Licensing Authority", "Type of Fuel", "VALUE"],
+        parse_vehicle_licensing_area_row,
+    ),
+    "New Vehicles licensed for first time.csv": (
+        ["Year", "Type of Vehicle Registration", "Type of Fuel", "VALUE"],
+        parse_vehicle_new_licensed_row,
+    ),
+    "New and Second Hand Vehicles.csv": (
+        ["Year", "Taxation Class", "Type of Fuel", "VALUE"],
+        parse_vehicle_yearly_row,
+    ),
+}
+
+_EMISSION_FILES = [
+    "Private Cars Licensed for the First Time - 1998-2013.csv",
+    "Private Cars Licensed for the First Time - 2014-15.csv",
+    "Private Cars Licensed for the First Time - 2017-2025.csv",
+]
+
+_EMISSION_REQUIRED_HEADERS = [
+    "Engine Capacity cc",
+    "Car Make",
+    "Emission Band",
+    "Licensing Authority",
+    "Year",
+    "VALUE",
+]
+
+_XLSX_FILE = "ESB- EV-charge-point-locations.xlsx"
+
+
+def _validate_files(data_dir: Path, xlsx_path: Path) -> None:
+    """Raise if data_dir is None or any required file is missing."""
+    if data_dir is None:
+        msg = "data_dir cannot be None"
+        raise ValueError(msg)
+
+    for filename in list(_CSV_FILES) + _EMISSION_FILES:
+        file_path = data_dir / filename
+        if not file_path.exists():
+            msg = f"Required file not found: {file_path}"
+            raise FileNotFoundError(msg)
+
+    if not xlsx_path.exists():
+        msg = f"Required file not found: {xlsx_path}"
+        raise FileNotFoundError(msg)
+
+
+def _clear_existing_data(session: Session) -> None:
+    """Delete all existing car data in dependency order."""
+    logger.info("Deleting existing data...")
+    for model in (
+        TrafficVolume,
+        VehicleFirstTime,
+        VehicleLicensingArea,
+        VehicleNewLicensed,
+        VehicleYearly,
+        PrivateCarEmission,
+        EVChargingPoint,
+        ScatsSite,
+    ):
+        session.execute(delete(model))
+    session.commit()
+
+
+def _process_csv_file(
+    session: Session,
+    data_dir: Path,
+    filename: str,
+    required_headers: list[str],
+    transform_row: _CsvTransformFn,
+) -> None:
+    """Parse one CSV file and bulk-add rows to *session*."""
+    logger.info("Processing %s...", filename)
+    file_path = data_dir / filename
+
+    rows = []
+    for csv_row in read_csv_file(file_path, required_headers):
+        parsed_row = transform_row(csv_row)
+        if parsed_row is not None:
+            rows.append(parsed_row)
+
+    # Deduplicate scats_sites by site_id — source CSV has some Signal Site
+    # entries followed by the proper SCATS Site entry for the same ID.
+    # Keep the last occurrence (the SCATS Site with a valid region).
+    if filename == "dcc_traffic_signals_20221130.csv":
+        deduped: dict[int, ScatsSite] = {}
+        for site in rows:
+            deduped[site.site_id] = site
+        rows = list(deduped.values())
+
+    session.add_all(rows)
+    logger.info("  Added %d rows from %s", len(rows), filename)
+
+
+def _process_emission_files(session: Session, data_dir: Path) -> None:
+    """Combine all emission CSVs and bulk-add rows to *session*."""
+    logger.info("Processing private car emission files...")
+    emission_rows = []
+    for filename in _EMISSION_FILES:
+        file_path = data_dir / filename
+        for csv_row in read_csv_file(file_path, _EMISSION_REQUIRED_HEADERS):
+            parsed_row = parse_private_car_emission_row(csv_row)
+            if parsed_row is not None:
+                emission_rows.append(parsed_row)
+
+    session.add_all(emission_rows)
+    logger.info(
+        "  Added %d emission rows from %d files",
+        len(emission_rows),
+        len(_EMISSION_FILES),
+    )
+
+
+def _process_ev_charging_points(session: Session, xlsx_path: Path) -> None:
+    """Read XLSX and bulk-add Dublin EV charging point rows to *session*."""
+    logger.info("Processing %s...", xlsx_path.name)
+    df = pd.read_excel(xlsx_path, dtype=str, keep_default_na=False)
+    ev_rows = []
+    for _, row_data in df.iterrows():
+        parsed_row = parse_and_filter_ev_charging_point_row(dict(row_data))
+        if parsed_row is not None:
+            ev_rows.append(parsed_row)
+
+    session.add_all(ev_rows)
+    logger.info("  Added %d EV charging point rows", len(ev_rows))
 
 
 def process_car_static_data(data_dir: Path) -> None:
@@ -260,128 +406,22 @@ def process_car_static_data(data_dir: Path) -> None:
         FileNotFoundError: If any required file is missing
         ValueError: If any CSV file is missing required headers or row data is invalid
     """
-    # CSV file name -> (required headers, parse row function)
-    csv_files: dict[str, tuple[list[str], object]] = {
-        "dcc_traffic_signals_20221130.csv": (
-            ["SiteID", "Site_Description_Cap", "Site_Description_Lower", "Region", "Lat", "Long"],
-            parse_scats_site_row,
-        ),
-        "Vehicles Licensed for the first time.csv": (
-            ["Month", "Taxation Class", "VALUE"],
-            parse_vehicle_first_time_row,
-        ),
-        "New and second hand car by licensing area.csv": (
-            ["Month", "Licensing Authority", "Type of Fuel", "VALUE"],
-            parse_vehicle_licensing_area_row,
-        ),
-        "New Vehicles licensed for first time.csv": (
-            ["Year", "Type of Vehicle Registration", "Type of Fuel", "VALUE"],
-            parse_vehicle_new_licensed_row,
-        ),
-        "New and Second Hand Vehicles.csv": (
-            ["Year", "Taxation Class", "Type of Fuel", "VALUE"],
-            parse_vehicle_yearly_row,
-        ),
-    }
+    xlsx_path = data_dir / _XLSX_FILE if data_dir is not None else Path(_XLSX_FILE)
 
-    # Private car emission files (processed together)
-    emission_files = [
-        "Private Cars Licensed for the First Time - 1998-2013.csv",
-        "Private Cars Licensed for the First Time - 2014-15.csv",
-        "Private Cars Licensed for the First Time - 2017-2025.csv",
-    ]
-    emission_required_headers = [
-        "Engine Capacity cc",
-        "Car Make",
-        "Emission Band",
-        "Licensing Authority",
-        "Year",
-        "VALUE",
-    ]
-
-    xlsx_file = "ESB- EV-charge-point-locations.xlsx"
-
-    # Validate all files exist before processing
     logger.info("Validating data files...")
-    if data_dir is None:
-        msg = "data_dir cannot be None"
-        raise ValueError(msg)
-
-    for filename in list(csv_files) + emission_files:
-        file_path = data_dir / filename
-        if not file_path.exists():
-            msg = f"Required file not found: {file_path}"
-            raise FileNotFoundError(msg)
-
-    xlsx_path = data_dir / xlsx_file
-    if not xlsx_path.exists():
-        msg = f"Required file not found: {xlsx_path}"
-        raise FileNotFoundError(msg)
+    _validate_files(data_dir, xlsx_path)
 
     logger.info("Processing static car data...")
 
     session = SessionLocal()
-
     try:
-        # Delete existing data in reverse dependency order
-        logger.info("Deleting existing data...")
-        session.execute(delete(TrafficVolume))
-        session.execute(delete(VehicleFirstTime))
-        session.execute(delete(VehicleLicensingArea))
-        session.execute(delete(VehicleNewLicensed))
-        session.execute(delete(VehicleYearly))
-        session.execute(delete(PrivateCarEmission))
-        session.execute(delete(EVChargingPoint))
-        session.execute(delete(ScatsSite))
-        session.commit()
+        _clear_existing_data(session)
 
-        # Process CSV files
-        for filename, (required_headers, transform_row) in csv_files.items():
-            logger.info("Processing %s...", filename)
-            file_path = data_dir / filename
+        for filename, (required_headers, transform_row) in _CSV_FILES.items():
+            _process_csv_file(session, data_dir, filename, required_headers, transform_row)
 
-            rows = []
-            for csv_row in read_csv_file(file_path, required_headers):
-                parsed_row = transform_row(csv_row)
-                if parsed_row is not None:
-                    rows.append(parsed_row)
-
-            # Deduplicate scats_sites by site_id — source CSV has some Signal Site
-            # entries followed by the proper SCATS Site entry for the same ID.
-            # Keep the last occurrence (the SCATS Site with a valid region).
-            if filename == "dcc_traffic_signals_20221130.csv":
-                deduped: dict[int, ScatsSite] = {}
-                for site in rows:
-                    deduped[site.site_id] = site
-                rows = list(deduped.values())
-
-            session.add_all(rows)
-            logger.info("  Added %d rows from %s", len(rows), filename)
-
-        # Process private car emission files (combined)
-        logger.info("Processing private car emission files...")
-        emission_rows = []
-        for filename in emission_files:
-            file_path = data_dir / filename
-            for csv_row in read_csv_file(file_path, emission_required_headers):
-                parsed_row = parse_private_car_emission_row(csv_row)
-                if parsed_row is not None:
-                    emission_rows.append(parsed_row)
-
-        session.add_all(emission_rows)
-        logger.info("  Added %d emission rows from %d files", len(emission_rows), len(emission_files))
-
-        # Process XLSX EV charging points
-        logger.info("Processing %s...", xlsx_file)
-        df = pd.read_excel(xlsx_path, dtype=str, keep_default_na=False)
-        ev_rows = []
-        for _, row_data in df.iterrows():
-            parsed_row = parse_and_filter_ev_charging_point_row(dict(row_data))
-            if parsed_row is not None:
-                ev_rows.append(parsed_row)
-
-        session.add_all(ev_rows)
-        logger.info("  Added %d EV charging point rows", len(ev_rows))
+        _process_emission_files(session, data_dir)
+        _process_ev_charging_points(session, xlsx_path)
 
         logger.info("Committing changes to database...")
         session.commit()

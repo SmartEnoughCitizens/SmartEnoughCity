@@ -28,7 +28,9 @@ def test_process_car_static_data(db_session: Session) -> None:
 
     # ASSERT: Verify row counts
     assert_row_count(db_session, "scats_sites", 3)
-    assert_row_count(db_session, "traffic_volumes", 0)  # Not populated from static files
+    assert_row_count(
+        db_session, "traffic_volumes", 0
+    )  # Not populated from static files
     assert_row_count(db_session, "vehicle_first_time", 3)
     assert_row_count(db_session, "vehicle_licensing_area", 3)
     assert_row_count(db_session, "vehicle_new_licensed", 2)
