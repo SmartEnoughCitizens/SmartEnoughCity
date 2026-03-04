@@ -12,8 +12,8 @@ from data_handler.bus.models import (
     BusLiveVehicle,
     ScheduleRelationship,
 )
-from data_handler.common.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.bus.synthetic_ridership import generate_ridership_for_vehicles
+from data_handler.common.gtfs_parsing_utils import parse_gtfs_date, parse_gtfs_time
 from data_handler.db import SessionLocal
 from data_handler.settings.api_settings import get_api_settings
 
