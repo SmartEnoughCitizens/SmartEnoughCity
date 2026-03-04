@@ -7,14 +7,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface TrainCurrentTrainRepository
-        extends JpaRepository<TrainCurrentTrain, Integer> {
+public interface TrainCurrentTrainRepository extends JpaRepository<TrainCurrentTrain, Integer> {
 
-    /**
-     * Returns the most-recent record per train_code that has a known location,
-     * fetched today (Dublin time).
-     */
-    @Query("""
+  /**
+   * Returns the most-recent record per train_code that has a known location, fetched today (Dublin
+   * time).
+   */
+  @Query(
+      """
             SELECT t FROM TrainCurrentTrain t
             WHERE t.lat IS NOT NULL
               AND t.lon IS NOT NULL
@@ -24,12 +24,13 @@ public interface TrainCurrentTrainRepository
               )
             ORDER BY t.trainCode
             """)
-    List<TrainCurrentTrain> findLatestPositionPerTrain();
+  List<TrainCurrentTrain> findLatestPositionPerTrain();
 
-    /** Count of trains with a known position (proxy for "running now"). */
-    @Query("""
+  /** Count of trains with a known position (proxy for "running now"). */
+  @Query(
+      """
             SELECT COUNT(DISTINCT t.trainCode) FROM TrainCurrentTrain t
             WHERE t.lat IS NOT NULL AND t.lon IS NOT NULL
             """)
-    long countActiveTrains();
+  long countActiveTrains();
 }

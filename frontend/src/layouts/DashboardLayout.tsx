@@ -105,12 +105,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     },
     ...(canManageUsers
       ? [
-        {
-          icon: <PersonAddIcon />,
-          path: "/dashboard/users",
-          label: "User Management",
-        },
-      ]
+          {
+            icon: <PersonAddIcon />,
+            path: "/dashboard/users",
+            label: "User Management",
+          },
+        ]
       : []),
   ];
 
@@ -172,9 +172,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 color: isActive(item.path) ? "primary.main" : "text.secondary",
                 bgcolor: isActive(item.path)
                   ? (t) =>
-                    t.palette.mode === "dark"
-                      ? "rgba(96, 165, 250, 0.12)"
-                      : "rgba(37, 99, 235, 0.08)"
+                      t.palette.mode === "dark"
+                        ? "rgba(96, 165, 250, 0.12)"
+                        : "rgba(37, 99, 235, 0.08)"
                   : "transparent",
                 "&:hover": {
                   bgcolor: (t) =>

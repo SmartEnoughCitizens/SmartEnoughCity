@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class TrainServiceStatsDTO {
-    private double reliabilityPct;
-    private double lateArrivalPct;
-    private double avgDueMinutes;
+  private double reliabilityPct;
+  private double lateArrivalPct;
+  private double avgDueMinutes;
 }

@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class TrainKpiDTO {
-    private long totalStations;
-    private long liveTrainsRunning;
-    private double onTimePct;
-    private double avgDelayMinutes;
+  private long totalStations;
+  private long liveTrainsRunning;
+  private double onTimePct;
+  private double avgDelayMinutes;
 }

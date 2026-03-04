@@ -15,21 +15,21 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class TrainFacade {
 
-    private final TrainDashboardService trainDashboardService;
+  private final TrainDashboardService trainDashboardService;
 
-    public List<TrainDTO> getStations(int limit) {
-        return trainDashboardService.getStations(limit);
-    }
+  public List<TrainDTO> getStations(int limit) {
+    return trainDashboardService.getStations(limit);
+  }
 
-    public TrainKpiDTO getKpis() {
-        return trainDashboardService.getKpis();
-    }
+  public TrainKpiDTO getKpis() {
+    return trainDashboardService.getKpis();
+  }
 
-    public List<TrainLiveDTO> getLiveTrains() {
-        return trainDashboardService.getLiveTrains();
-    }
+  public List<TrainLiveDTO> getLiveTrains() {
+    return trainDashboardService.getLiveTrains();
+  }
 
-    public TrainServiceStatsDTO getServiceStats() {
-        return trainDashboardService.getServiceStats();
-    }
+  public TrainServiceStatsDTO getServiceStats() {
+    return trainDashboardService.getServiceStats();
+  }
 }
