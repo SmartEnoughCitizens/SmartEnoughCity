@@ -171,6 +171,7 @@ jobs:
       - name: Helm repo add + dependency build
         run: |
           set -euo pipefail
+          helm repo add bitnami https://charts.bitnami.com/bitnami
           helm repo add groundhog2k https://groundhog2k.github.io/helm-charts/
           helm repo update
           helm dependency build infra/helm-charts
