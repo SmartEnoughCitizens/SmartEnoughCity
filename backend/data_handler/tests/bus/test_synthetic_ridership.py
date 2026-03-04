@@ -1,16 +1,16 @@
 from pathlib import Path
 
-from sqlalchemy import text
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from data_handler.bus.live_data_handler import process_bus_vehicles_live_data
+from data_handler.bus.models import BusRidership, BusStopTime
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.bus.synthetic_ridership import (
     find_nearest_stop_in_trip,
     generate_ridership_for_vehicles,
 )
 from data_handler.settings.data_sources_settings import get_data_sources_settings
-from data_handler.settings.database_settings import get_db_settings
 from tests.utils import assert_row_count
 
 
@@ -66,9 +66,8 @@ def test_generate_ridership_peak_hours(
 
     assert_row_count(db_session, "bus_ridership", 1)
 
-    schema = get_db_settings().postgres_schema
     result = db_session.execute(
-        text(f"SELECT passengers_onboard, vehicle_capacity FROM {schema}.bus_ridership")
+        select(BusRidership.passengers_onboard, BusRidership.vehicle_capacity)
     )
     rows = result.fetchall()
     for row in rows:
@@ -83,9 +82,8 @@ def test_generate_ridership_off_peak(db_session: Session, tests_data_dir: Path) 
 
     generate_ridership_for_vehicles(db_session)
 
-    schema = get_db_settings().postgres_schema
     result = db_session.execute(
-        text(f"SELECT passengers_onboard, vehicle_capacity FROM {schema}.bus_ridership")
+        select(BusRidership.passengers_onboard, BusRidership.vehicle_capacity)
     )
     rows = result.fetchall()
     for row in rows:
@@ -102,9 +100,8 @@ def test_passengers_onboard_never_exceeds_capacity(
 
     generate_ridership_for_vehicles(db_session)
 
-    schema = get_db_settings().postgres_schema
     result = db_session.execute(
-        text(f"SELECT passengers_onboard, vehicle_capacity FROM {schema}.bus_ridership")
+        select(BusRidership.passengers_onboard, BusRidership.vehicle_capacity)
     )
     for row in result.fetchall():
         assert row[0] <= row[1], (
@@ -120,9 +117,8 @@ def test_passengers_onboard_never_negative(
 
     generate_ridership_for_vehicles(db_session)
 
-    schema = get_db_settings().postgres_schema
     result = db_session.execute(
-        text(f"SELECT passengers_onboard FROM {schema}.bus_ridership")
+        select(BusRidership.passengers_onboard)
     )
     for row in result.fetchall():
         assert row[0] >= 0, f"passengers_onboard ({row[0]}) is negative"
@@ -136,15 +132,13 @@ def test_ridership_linked_to_live_vehicle_record(
 
     generate_ridership_for_vehicles(db_session)
 
-    schema = get_db_settings().postgres_schema
-
     # Only trip 5332_14104 has stop_times in test data, so 1 ridership record.
     # Trip 5332_14109 is skipped (no stop_times).
     assert_row_count(db_session, "bus_ridership", 1)
 
     # Verify the record matches vehicle 1112 on trip 5332_14104
     result = db_session.execute(
-        text(f"SELECT vehicle_id, trip_id FROM {schema}.bus_ridership")
+        select(BusRidership.vehicle_id, BusRidership.trip_id)
     )
     rows = result.fetchall()
     assert len(rows) == 1
@@ -160,14 +154,13 @@ def test_stop_sequence_increases_along_route(
 
     generate_ridership_for_vehicles(db_session)
 
-    schema = get_db_settings().postgres_schema
-
     result = db_session.execute(
-        text(
-            f"SELECT r.stop_sequence, st.sequence "
-            f"FROM {schema}.bus_ridership r "
-            f"JOIN {schema}.bus_stop_times st "
-            f"ON r.trip_id = st.trip_id AND r.nearest_stop_id = st.stop_id"
+        select(BusRidership.stop_sequence, BusStopTime.sequence).join(
+            BusStopTime,
+            and_(
+                BusRidership.trip_id == BusStopTime.trip_id,
+                BusRidership.nearest_stop_id == BusStopTime.stop_id,
+            ),
         )
     )
     for row in result.fetchall():

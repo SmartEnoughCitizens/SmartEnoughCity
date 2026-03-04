@@ -2,12 +2,11 @@ import logging
 import math
 import random
 
-from sqlalchemy import text
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from data_handler.bus.models import BusRidership
+from data_handler.bus.models import BusLiveVehicle, BusRidership, BusStop, BusStopTime
 from data_handler.db import SessionLocal
-from data_handler.settings.database_settings import get_db_settings
 
 logger = logging.getLogger(__name__)
 
@@ -52,16 +51,11 @@ def find_nearest_stop_in_trip(
     Raises:
         ValueError: If the trip has no stop times.
     """
-    schema = get_db_settings().postgres_schema
     result = session.execute(
-        text(
-            f"SELECT st.stop_id, st.sequence, s.lat, s.lon "
-            f"FROM {schema}.bus_stop_times st "
-            f"JOIN {schema}.bus_stops s ON st.stop_id = s.id "
-            f"WHERE st.trip_id = :trip_id "
-            f"ORDER BY st.sequence"
-        ),
-        {"trip_id": trip_id},
+        select(BusStopTime.stop_id, BusStopTime.sequence, BusStop.lat, BusStop.lon)
+        .join(BusStop, BusStopTime.stop_id == BusStop.id)
+        .where(BusStopTime.trip_id == trip_id)
+        .order_by(BusStopTime.sequence)
     )
     stops = result.fetchall()
 
@@ -161,17 +155,18 @@ def generate_ridership_for_vehicles(session: Session | None = None) -> None:
     if owns_session:
         session = SessionLocal()
 
-    schema = get_db_settings().postgres_schema
-
     try:
         # Fetch latest position per vehicle (most recent timestamp)
         vehicles_result = session.execute(
-            text(
-                f"SELECT DISTINCT ON (vehicle_id) "
-                f"vehicle_id, trip_id, lat, lon, timestamp "
-                f"FROM {schema}.bus_live_vehicles "
-                f"ORDER BY vehicle_id, timestamp DESC"
+            select(
+                BusLiveVehicle.vehicle_id,
+                BusLiveVehicle.trip_id,
+                BusLiveVehicle.lat,
+                BusLiveVehicle.lon,
+                BusLiveVehicle.timestamp,
             )
+            .distinct(BusLiveVehicle.vehicle_id)
+            .order_by(BusLiveVehicle.vehicle_id, BusLiveVehicle.timestamp.desc())
         )
         vehicles = vehicles_result.fetchall()
 
@@ -183,14 +178,11 @@ def generate_ridership_for_vehicles(session: Session | None = None) -> None:
 
         for vehicle_id, trip_id, lat, lon, ts in vehicles:
             # Get total stops for this trip
-            total_stops_result = session.execute(
-                text(
-                    f"SELECT COUNT(*) FROM {schema}.bus_stop_times "
-                    f"WHERE trip_id = :trip_id"
-                ),
-                {"trip_id": trip_id},
-            )
-            total_stops = total_stops_result.scalar() or 0
+            total_stops = session.scalar(
+                select(func.count())
+                .select_from(BusStopTime)
+                .where(BusStopTime.trip_id == trip_id)
+            ) or 0
 
             if total_stops == 0:
                 logger.warning(
