@@ -18,6 +18,9 @@ export const DASHBOARD_KEYS = {
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
   busSystemPerformance: ["bus", "system-performance"] as const,
+  trainKpis: ["train", "kpis"] as const,
+  trainLiveTrains: ["train", "live-trains"] as const,
+  trainServiceStats: ["train", "service-stats"] as const,
 };
 
 /**
@@ -143,6 +146,45 @@ export const useBusSystemPerformance = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.busSystemPerformance,
     queryFn: () => dashboardApi.getBusSystemPerformance(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get train dashboard KPIs
+ */
+export const useTrainKpis = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainKpis,
+    queryFn: () => dashboardApi.getTrainKpis(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get live train positions
+ */
+export const useTrainLiveTrains = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainLiveTrains,
+    queryFn: () => dashboardApi.getTrainLiveTrains(),
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get train service reliability stats
+ */
+export const useTrainServiceStats = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainServiceStats,
+    queryFn: () => dashboardApi.getTrainServiceStats(),
     staleTime: 60_000,
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,

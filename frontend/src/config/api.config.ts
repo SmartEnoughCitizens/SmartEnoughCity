@@ -41,6 +41,11 @@ export const API_ENDPOINTS = {
   BUS_SYSTEM_PERFORMANCE: "/api/v1/bus/system-performance",
   BUS_METRICS_REFRESH: "/api/v1/bus/metrics/refresh",
 
+  // Train Indicators
+  TRAIN_KPIS: "/api/v1/train/kpis",
+  TRAIN_LIVE_TRAINS: "/api/v1/train/live-trains",
+  TRAIN_SERVICE_STATS: "/api/v1/train/service-stats",
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
