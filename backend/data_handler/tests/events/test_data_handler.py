@@ -189,7 +189,6 @@ class TestUpsertEvents:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }
@@ -242,7 +241,6 @@ class TestUpsertEvents:
                     "event_date": date(2026, 3, 1),
                     "start_time": datetime(2026, 3, 1, 20, 0, 0),
                     "end_time": datetime(2026, 3, 1, 23, 0, 0),
-
                     "estimated_attendance": None,
                     "fetched_at": ANY,
                 }

@@ -81,9 +81,7 @@ def _upsert_venues(
 
     tm_ids = [v.ticketmaster_id for v in venues]
     rows = session.execute(
-        select(Venue.ticketmaster_id, Venue.id).where(
-            Venue.ticketmaster_id.in_(tm_ids)
-        )
+        select(Venue.ticketmaster_id, Venue.id).where(Venue.ticketmaster_id.in_(tm_ids))
     ).all()
 
     return {row.ticketmaster_id: row.id for row in rows}
