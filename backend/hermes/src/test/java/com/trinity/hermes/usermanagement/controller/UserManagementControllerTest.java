@@ -87,7 +87,6 @@ public class UserManagementControllerTest {
     req.setLastName("User");
     req.setRole(role);
     req.setEmail(username + "@mail.com");
-    req.setPassword(TestUtils.randomPassword());
     return req;
   }
 

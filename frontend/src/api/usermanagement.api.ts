@@ -35,4 +35,12 @@ export const userManagementApi = {
     );
     return data;
   },
+
+  changePassword: async (newPassword: string): Promise<{ message: string }> => {
+    const { data } = await axiosInstance.post<{ message: string }>(
+      API_ENDPOINTS.USER_CHANGE_PASSWORD,
+      { newPassword },
+    );
+    return data;
+  },
 };

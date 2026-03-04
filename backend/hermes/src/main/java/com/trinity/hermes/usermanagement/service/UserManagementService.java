@@ -1,6 +1,7 @@
 package com.trinity.hermes.usermanagement.service;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
+import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import jakarta.ws.rs.core.Response;
@@ -14,6 +15,7 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class UserManagementService {
 
   private final Keycloak keycloak;
   private final String realm;
+  private final MailService mailService;
 
   private static final Set<String> ALLOWED_ROLES =
       Set.of(
@@ -45,9 +48,13 @@ public class UserManagementService {
           "Tram_Admin",
           "Tram_Provider");
 
-  public UserManagementService(Keycloak keycloak, @Value("${keycloak.realm}") String realm) {
+  public UserManagementService(
+      Keycloak keycloak,
+      @Value("${keycloak.realm}") String realm,
+      @Qualifier("getMailService") MailService mailService) {
     this.keycloak = keycloak;
     this.realm = realm;
+    this.mailService = mailService;
   }
 
   private RealmResource getRealmResource() {
@@ -80,6 +87,7 @@ public class UserManagementService {
     user.setLastName(request.getLastName());
     user.setEnabled(true);
     user.setEmailVerified(true);
+    user.setAttributes(Map.of("passwordChangeRequired", List.of("true")));
 
     Response response = getUsersResource().create(user);
 
@@ -91,28 +99,76 @@ public class UserManagementService {
 
     log.info("User created successfully. ID: {}, Username: {}", userId, request.getUsername());
 
+    String tempPassword = generateTempPassword();
     CredentialRepresentation credential = new CredentialRepresentation();
     credential.setType(CredentialRepresentation.PASSWORD);
-
-    if (request.getPassword() != null && !request.getPassword().isBlank()) {
-      credential.setValue(request.getPassword());
-      credential.setTemporary(false);
-    } else {
-      credential.setValue("ChangeMe@123");
-      credential.setTemporary(true);
-    }
+    credential.setValue(tempPassword);
+    credential.setTemporary(false);
 
     getUsersResource().get(userId).resetPassword(credential);
-    log.info("Password set for user: {}", request.getUsername());
+    log.info("Temporary password set for user: {} | temp password: {}", request.getUsername(), tempPassword);
 
     assignRole(userId, request.getRole());
+
+    String message = "User registered successfully.";
+    try {
+      sendWelcomeEmail(request.getEmail(), request.getUsername(), request.getFirstName(), tempPassword);
+      message = "User registered successfully. A welcome email has been sent.";
+    } catch (Exception e) {
+      log.error("Failed to send welcome email to {}: {}", request.getEmail(), e.getMessage());
+    }
 
     return new RegisterUserResponse(
         userId,
         request.getUsername(),
         request.getEmail(),
         request.getRole(),
-        "User registered successfully");
+        message);
+  }
+
+  /**
+   * Checks whether the user must change their password on first login.
+   *
+   * @param username the username to check
+   * @return true if passwordChangeRequired attribute is set to "true"
+   */
+  public boolean isPasswordChangeRequired(String username) {
+    List<UserRepresentation> users = getUsersResource().search(username, 0, 1);
+    return users.stream()
+        .filter(u -> u.getUsername().equalsIgnoreCase(username))
+        .findFirst()
+        .map(
+            u -> {
+              Map<String, List<String>> attrs = u.getAttributes();
+              if (attrs == null) return false;
+              List<String> values = attrs.get("passwordChangeRequired");
+              return values != null && values.contains("true");
+            })
+        .orElse(false);
+  }
+
+  /**
+   * Resets a user's password and clears the passwordChangeRequired attribute.
+   *
+   * @param userId the Keycloak user ID (JWT subject)
+   * @param newPassword the new password to set
+   */
+  public void changePassword(String userId, String newPassword) {
+    CredentialRepresentation credential = new CredentialRepresentation();
+    credential.setType(CredentialRepresentation.PASSWORD);
+    credential.setValue(newPassword);
+    credential.setTemporary(false);
+    getUsersResource().get(userId).resetPassword(credential);
+
+    UserRepresentation userRep = getUsersResource().get(userId).toRepresentation();
+    Map<String, List<String>> attrs = userRep.getAttributes();
+    if (attrs != null) {
+      attrs.remove("passwordChangeRequired");
+      userRep.setAttributes(attrs);
+    }
+    getUsersResource().get(userId).update(userRep);
+
+    log.info("Password changed for user ID: {}", userId);
   }
 
   /**
@@ -201,5 +257,36 @@ public class UserManagementService {
     }
 
     return roles.contains(requiredRole);
+  }
+
+  private String generateTempPassword() {
+    return UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "!A1";
+  }
+
+  private void sendWelcomeEmail(
+      String email, String username, String firstName, String tempPassword) {
+    String subject = "You've been invited to SmartEnoughCity Dashboard";
+    String html =
+        "<div style='font-family: Arial, sans-serif; max-width: 600px;'>"
+            + "<h2>Welcome to SmartEnoughCity, "
+            + firstName
+            + "!</h2>"
+            + "<p>Your account has been created. Use the credentials below to log in:</p>"
+            + "<table style='border-collapse: collapse; margin: 16px 0;'>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Username:</td>"
+            + "<td style='padding: 8px;'>"
+            + username
+            + "</td></tr>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Temporary Password:</td>"
+            + "<td style='padding: 8px; font-family: monospace;'>"
+            + tempPassword
+            + "</td></tr>"
+            + "</table>"
+            + "<p>You will be asked to set a new password after your first login.</p>"
+            + "<p style='color: #888; font-size: 12px;'>If you did not expect this email, "
+            + "please ignore it.</p>"
+            + "</div>";
+    mailService.sendEmail(email, subject, html, null);
+    log.info("Welcome email sent to: {}", email);
   }
 }

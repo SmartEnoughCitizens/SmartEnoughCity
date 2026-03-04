@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
   USER_REGISTER: "/api/usermanagement/register",
   USER_LIST: "/api/usermanagement/users",
   USER_DELETE: "/api/usermanagement/delete",
+  USER_CHANGE_PASSWORD: "/api/usermanagement/change-password",
   TRAINS: "/api/trains",
   BUSES: "/api/buses",
 
