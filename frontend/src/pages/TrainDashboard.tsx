@@ -47,7 +47,10 @@ const DUBLIN_CENTER: [number, number] = [53.3498, -6.2603];
 type TypeKey = "ALL" | "D" | "S" | "M";
 type PanelTab = "stations" | "trains";
 
-const TYPE_CONFIG: Record<TypeKey, { label: string; color: string; short: string }> = {
+const TYPE_CONFIG: Record<
+  TypeKey,
+  { label: string; color: string; short: string }
+> = {
   ALL: { label: "All", color: "#607D8B", short: "•" },
   D: { label: "DART", color: "#00ACC1", short: "D" },
   S: { label: "Suburban", color: "#1976D2", short: "S" },
@@ -146,12 +149,16 @@ function makeStationIcon(type: string | null): L.DivIcon {
 function makeLiveTrainIcon(
   trainType: string | null,
   direction: string | null,
-  running: boolean
+  running: boolean,
 ): L.DivIcon {
   const typeKey = getTrainTypeKey(trainType);
   // Use type colour; fall back to green/orange for unknown type
   const color =
-    typeKey !== "ALL" ? TYPE_CONFIG[typeKey].color : running ? "#2ea043" : "#d29922";
+    typeKey === "ALL"
+      ? running
+        ? "#2ea043"
+        : "#d29922"
+      : TYPE_CONFIG[typeKey].color;
   const dirArrow = getDirectionArrow(direction);
   // If we know direction show that; otherwise show type letter so user knows the service
   const inner = dirArrow || TYPE_CONFIG[typeKey].short;
@@ -167,11 +174,17 @@ function makeLiveTrainIcon(
 
 // ── Map controller ───────────────────────────────────────────────────
 
-function MapController({ target }: { target: { center: [number, number]; id: number } | null }) {
+function MapController({
+  target,
+}: {
+  target: { center: [number, number]; id: number } | null;
+}) {
   const map = useMap();
   useEffect(() => {
-    if (target) map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
-  }, [target, map]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (target)
+      map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
   return null;
 }
 
@@ -259,7 +272,10 @@ function MapLegend() {
       {(["D", "S", "M"] as TypeKey[]).map((t) => {
         const cfg = TYPE_CONFIG[t];
         return (
-          <Box key={t} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+          <Box
+            key={t}
+            sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}
+          >
             <Box
               sx={{
                 width: 14,
@@ -276,7 +292,10 @@ function MapLegend() {
                 {cfg.short}
               </Typography>
             </Box>
-            <Typography variant="caption" sx={{ color: "#c9d1d9", fontSize: "0.7rem" }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "#c9d1d9", fontSize: "0.7rem" }}
+            >
               {cfg.label}
             </Typography>
           </Box>
@@ -300,15 +319,32 @@ function MapLegend() {
         { color: "#2ea043", label: "Running  (pulses)" },
         { color: "#d29922", label: "Scheduled" },
       ].map(({ color, label }) => (
-        <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.4 }}>
-          <Box sx={{ width: 11, height: 11, borderRadius: "50%", bgcolor: color, flexShrink: 0 }} />
-          <Typography variant="caption" sx={{ color: "#c9d1d9", fontSize: "0.7rem" }}>
+        <Box
+          key={label}
+          sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.4 }}
+        >
+          <Box
+            sx={{
+              width: 11,
+              height: 11,
+              borderRadius: "50%",
+              bgcolor: color,
+              flexShrink: 0,
+            }}
+          />
+          <Typography
+            variant="caption"
+            sx={{ color: "#c9d1d9", fontSize: "0.7rem" }}
+          >
             {label}
           </Typography>
         </Box>
       ))}
       <Box sx={{ mt: 0.75 }}>
-        <Typography variant="caption" sx={{ color: "#484f58", fontSize: "0.6rem" }}>
+        <Typography
+          variant="caption"
+          sx={{ color: "#484f58", fontSize: "0.6rem" }}
+        >
           ↑↓←→ = direction of travel
         </Typography>
       </Box>
@@ -323,11 +359,16 @@ export const TrainDashboard = () => {
   const [activeTab, setActiveTab] = useState<PanelTab>("stations");
   const [typeFilter, setTypeFilter] = useState<TypeKey>("ALL");
   const [search, setSearch] = useState("");
-  const [flyTarget, setFlyTarget] = useState<{ center: [number, number]; id: number } | null>(
-    null
+  const [flyTarget, setFlyTarget] = useState<{
+    center: [number, number];
+    id: number;
+  } | null>(null);
+  const [selectedStationCode, setSelectedStationCode] = useState<string | null>(
+    null,
   );
-  const [selectedStationCode, setSelectedStationCode] = useState<string | null>(null);
-  const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(null);
+  const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
+    null,
+  );
 
   const theme = useAppSelector((state) => state.ui.theme);
   const { data: trainData, isLoading: dataLoading, error } = useTrainData(500);
@@ -337,11 +378,11 @@ export const TrainDashboard = () => {
   // Inject CSS once
   useEffect(() => {
     const el = document.createElement("style");
-    el.setAttribute("data-train-ui", "1");
+    el.dataset["trainUi"] = "1";
     el.innerHTML = INJECTED_CSS;
-    document.head.appendChild(el);
+    document.head.append(el);
     return () => {
-      document.head.removeChild(el);
+      el.remove();
     };
   }, []);
 
@@ -358,12 +399,14 @@ export const TrainDashboard = () => {
   // Filtered stations (for panel list + map markers)
   const filteredStations = useMemo(() => {
     let list = trainData?.data ?? [];
-    if (typeFilter !== "ALL") list = list.filter((s) => s.stationType === typeFilter);
+    if (typeFilter !== "ALL")
+      list = list.filter((s) => s.stationType === typeFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
         (s) =>
-          s.stationDesc?.toLowerCase().includes(q) || s.stationCode?.toLowerCase().includes(q)
+          s.stationDesc?.toLowerCase().includes(q) ||
+          s.stationCode?.toLowerCase().includes(q),
       );
     }
     return list;
@@ -372,23 +415,33 @@ export const TrainDashboard = () => {
   // Filtered live trains (for panel list + map markers — type filter applies to both)
   const filteredLiveTrains = useMemo(() => {
     if (typeFilter === "ALL") return liveTrains;
-    return liveTrains.filter((t) => getTrainTypeKey(t.trainType) === typeFilter);
+    return liveTrains.filter(
+      (t) => getTrainTypeKey(t.trainType) === typeFilter,
+    );
   }, [liveTrains, typeFilter]);
 
-  const runningCount = filteredLiveTrains.filter((t) => isRunning(t.status)).length;
+  const runningCount = filteredLiveTrains.filter((t) =>
+    isRunning(t.status),
+  ).length;
   const scheduledCount = filteredLiveTrains.length - runningCount;
 
-  const handleStationClick = useCallback((lat: number, lon: number, code: string) => {
-    setSelectedStationCode(code);
-    setSelectedTrainCode(null);
-    setFlyTarget({ center: [lat, lon], id: Date.now() });
-  }, []);
+  const handleStationClick = useCallback(
+    (lat: number, lon: number, code: string) => {
+      setSelectedStationCode(code);
+      setSelectedTrainCode(null);
+      setFlyTarget({ center: [lat, lon], id: Date.now() });
+    },
+    [],
+  );
 
-  const handleTrainClick = useCallback((lat: number, lon: number, code: string) => {
-    setSelectedTrainCode(code);
-    setSelectedStationCode(null);
-    setFlyTarget({ center: [lat, lon], id: Date.now() });
-  }, []);
+  const handleTrainClick = useCallback(
+    (lat: number, lon: number, code: string) => {
+      setSelectedTrainCode(code);
+      setSelectedStationCode(null);
+      setFlyTarget({ center: [lat, lon], id: Date.now() });
+    },
+    [],
+  );
 
   // When switching to Trains tab, clear station selection (and vice-versa)
   const switchTab = (tab: PanelTab) => {
@@ -402,16 +455,23 @@ export const TrainDashboard = () => {
   // Sort trains: running first
   const sortedTrains = useMemo(
     () =>
-      [...filteredLiveTrains].sort((a, b) => {
+      filteredLiveTrains.toSorted((a, b) => {
         const aR = isRunning(a.status) ? 0 : 1;
         const bR = isRunning(b.status) ? 0 : 1;
         return aR - bR || (a.trainCode ?? "").localeCompare(b.trainCode ?? "");
       }),
-    [filteredLiveTrains]
+    [filteredLiveTrains],
   );
 
   return (
-    <Box sx={{ position: "relative", height: "100%", width: "100%", bgcolor: "#0d1117" }}>
+    <Box
+      sx={{
+        position: "relative",
+        height: "100%",
+        width: "100%",
+        bgcolor: "#0d1117",
+      }}
+    >
       {/* ── Full-viewport map ── */}
       <Box sx={{ height: "100%", width: "100%" }}>
         <MapContainer
@@ -428,22 +488,34 @@ export const TrainDashboard = () => {
             <Marker
               key={station.id}
               position={[station.lat, station.lon]}
-              icon={makeStationIcon(station.stationType)}
+              icon={makeStationIcon(station.stationType ?? null)}
               eventHandlers={{
                 click: () =>
-                  handleStationClick(station.lat, station.lon, station.stationCode),
+                  handleStationClick(
+                    station.lat,
+                    station.lon,
+                    station.stationCode,
+                  ),
               }}
             >
               <Popup>
                 <Box sx={{ minWidth: 180 }}>
-                  <Typography fontWeight={700} sx={{ fontSize: "0.95rem", color: "#e6edf3", mb: 0.75 }}>
+                  <Typography
+                    fontWeight={700}
+                    sx={{ fontSize: "0.95rem", color: "#e6edf3", mb: 0.75 }}
+                  >
                     {station.stationDesc}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
                     <Chip
                       size="small"
                       label={station.stationCode}
-                      sx={{ fontSize: "0.65rem", height: 18, bgcolor: "rgba(255,255,255,0.07)", color: "#8b949e" }}
+                      sx={{
+                        fontSize: "0.65rem",
+                        height: 18,
+                        bgcolor: "rgba(255,255,255,0.07)",
+                        color: "#8b949e",
+                      }}
                     />
                     {station.stationType &&
                       (() => {
@@ -464,7 +536,9 @@ export const TrainDashboard = () => {
                       })()}
                   </Box>
                   {station.stationAlias && (
-                    <Typography sx={{ fontSize: "0.72rem", color: "#8b949e", mt: 0.5 }}>
+                    <Typography
+                      sx={{ fontSize: "0.72rem", color: "#8b949e", mt: 0.5 }}
+                    >
                       Also: {station.stationAlias}
                     </Typography>
                   )}
@@ -485,17 +559,31 @@ export const TrainDashboard = () => {
                 <Marker
                   key={t.trainCode}
                   position={[t.lat, t.lon]}
-                  icon={makeLiveTrainIcon(t.trainType, t.direction, running)}
+                  icon={makeLiveTrainIcon(
+                    t.trainType ?? null,
+                    t.direction ?? null,
+                    running,
+                  )}
                   eventHandlers={{
                     click: () => handleTrainClick(t.lat, t.lon, t.trainCode),
                   }}
                 >
                   <Popup>
                     <Box sx={{ minWidth: 190 }}>
-                      <Typography fontWeight={700} sx={{ fontSize: "0.9rem", color: "#e6edf3", mb: 0.5 }}>
+                      <Typography
+                        fontWeight={700}
+                        sx={{ fontSize: "0.9rem", color: "#e6edf3", mb: 0.5 }}
+                      >
                         🚂 {t.trainCode}
                       </Typography>
-                      <Box sx={{ display: "flex", gap: 0.5, mb: 0.5, flexWrap: "wrap" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 0.5,
+                          mb: 0.5,
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <Chip
                           size="small"
                           label={running ? "● Running" : "○ Scheduled"}
@@ -509,7 +597,11 @@ export const TrainDashboard = () => {
                         {t.trainType && (
                           <Chip
                             size="small"
-                            label={typCfg.label !== "All" ? typCfg.label : t.trainType}
+                            label={
+                              typCfg.label === "All"
+                                ? t.trainType
+                                : typCfg.label
+                            }
                             sx={{
                               fontSize: "0.65rem",
                               height: 18,
@@ -521,12 +613,20 @@ export const TrainDashboard = () => {
                         )}
                       </Box>
                       {t.direction && (
-                        <Typography sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}>
+                        <Typography
+                          sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}
+                        >
                           {dirArrow} {t.direction}
                         </Typography>
                       )}
                       {t.publicMessage && (
-                        <Typography sx={{ fontSize: "0.72rem", color: "#8b949e", mt: 0.4 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "0.72rem",
+                            color: "#8b949e",
+                            mt: 0.4,
+                          }}
+                        >
                           {t.publicMessage}
                         </Typography>
                       )}
@@ -615,7 +715,8 @@ export const TrainDashboard = () => {
                   width: 34,
                   height: 34,
                   borderRadius: "50%",
-                  background: "linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)",
+                  background:
+                    "linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -628,29 +729,50 @@ export const TrainDashboard = () => {
                 <Typography
                   variant="subtitle1"
                   fontWeight={700}
-                  sx={{ color: "#e6edf3", lineHeight: 1.2, letterSpacing: -0.2 }}
+                  sx={{
+                    color: "#e6edf3",
+                    lineHeight: 1.2,
+                    letterSpacing: -0.2,
+                  }}
                 >
                   Dublin Rail Network
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <FiberManualRecordIcon sx={{ fontSize: 7, color: "#2ea043" }} />
+                  <FiberManualRecordIcon
+                    sx={{ fontSize: 7, color: "#2ea043" }}
+                  />
                   <Typography
                     variant="caption"
-                    sx={{ color: "#2ea043", fontSize: "0.62rem", letterSpacing: 0.4 }}
+                    sx={{
+                      color: "#2ea043",
+                      fontSize: "0.62rem",
+                      letterSpacing: 0.4,
+                    }}
                   >
                     LIVE · Greater Dublin Area
                   </Typography>
                 </Box>
               </Box>
             </Box>
-            <IconButton size="small" onClick={() => setPanelOpen(false)} sx={{ color: "#8b949e" }}>
+            <IconButton
+              size="small"
+              onClick={() => setPanelOpen(false)}
+              sx={{ color: "#8b949e" }}
+            >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
 
           {/* KPI grid */}
           {kpiData && (
-            <Box sx={{ p: 1.75, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+            <Box
+              sx={{
+                p: 1.75,
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 1,
+              }}
+            >
               <KpiCard
                 icon={<LocationOnIcon fontSize="inherit" />}
                 label="Stations"
@@ -739,7 +861,11 @@ export const TrainDashboard = () => {
                     alignItems: "center",
                     gap: 0.75,
                     transition: "all 0.15s",
-                    "&:hover": { bgcolor: active ? "rgba(21,101,192,0.25)" : "rgba(255,255,255,0.04)" },
+                    "&:hover": {
+                      bgcolor: active
+                        ? "rgba(21,101,192,0.25)"
+                        : "rgba(255,255,255,0.04)",
+                    },
                   }}
                 >
                   <Typography
@@ -761,7 +887,13 @@ export const TrainDashboard = () => {
                       textAlign: "center",
                     }}
                   >
-                    <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "#e6edf3" }}>
+                    <Typography
+                      sx={{
+                        fontSize: "0.62rem",
+                        fontWeight: 700,
+                        color: "#e6edf3",
+                      }}
+                    >
                       {count}
                     </Typography>
                   </Box>
@@ -775,7 +907,8 @@ export const TrainDashboard = () => {
             <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
               {(["ALL", "D", "S", "M"] as TypeKey[]).map((key) => {
                 const active = typeFilter === key;
-                const accent = key === "ALL" ? "#1565C0" : TYPE_CONFIG[key].color;
+                const accent =
+                  key === "ALL" ? "#1565C0" : TYPE_CONFIG[key].color;
                 return (
                   <Chip
                     key={key}
@@ -819,11 +952,15 @@ export const TrainDashboard = () => {
                       color: "#e6edf3",
                       fontSize: "0.85rem",
                       borderRadius: 2,
-                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(48,54,61,0.6)" },
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "rgba(48,54,61,0.6)",
+                      },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
                         borderColor: "rgba(255,255,255,0.18)",
                       },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#1565C0" },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#1565C0",
+                      },
                       "& input": {
                         color: "#e6edf3",
                         "&::placeholder": { color: "#8b949e", opacity: 1 },
@@ -837,10 +974,13 @@ export const TrainDashboard = () => {
 
           {/* Count caption */}
           <Box sx={{ px: 2, pb: 0.5 }}>
-            <Typography variant="caption" sx={{ color: "#484f58", fontSize: "0.68rem" }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "#484f58", fontSize: "0.68rem" }}
+            >
               {activeTab === "stations"
-                ? `${filteredStations.length} station${filteredStations.length !== 1 ? "s" : ""}${typeFilter !== "ALL" ? ` · ${TYPE_CONFIG[typeFilter].label}` : ""}${search.trim() ? ` · "${search}"` : ""}`
-                : `${sortedTrains.length} train${sortedTrains.length !== 1 ? "s" : ""} on map${typeFilter !== "ALL" ? ` · ${TYPE_CONFIG[typeFilter].label}` : ""}`}
+                ? `${filteredStations.length} station${filteredStations.length === 1 ? "" : "s"}${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}${search.trim() ? ` · "${search}"` : ""}`
+                : `${sortedTrains.length} train${sortedTrains.length === 1 ? "" : "s"} on map${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}`}
             </Typography>
           </Box>
 
@@ -855,19 +995,28 @@ export const TrainDashboard = () => {
               {activeTab === "stations" &&
                 filteredStations.map((station) => {
                   const typCfg =
-                    TYPE_CONFIG[(station.stationType as TypeKey) ?? "ALL"] ?? TYPE_CONFIG.ALL;
+                    TYPE_CONFIG[(station.stationType as TypeKey) ?? "ALL"] ??
+                    TYPE_CONFIG.ALL;
                   const selected = selectedStationCode === station.stationCode;
                   return (
                     <ListItemButton
                       key={station.id}
                       onClick={() =>
-                        handleStationClick(station.lat, station.lon, station.stationCode)
+                        handleStationClick(
+                          station.lat,
+                          station.lon,
+                          station.stationCode,
+                        )
                       }
                       sx={{
                         py: 0.875,
                         px: 2,
-                        bgcolor: selected ? "rgba(21,101,192,0.12)" : "transparent",
-                        borderLeft: selected ? "3px solid #1565C0" : "3px solid transparent",
+                        bgcolor: selected
+                          ? "rgba(21,101,192,0.12)"
+                          : "transparent",
+                        borderLeft: selected
+                          ? "3px solid #1565C0"
+                          : "3px solid transparent",
                         "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
                         transition: "all 0.12s",
                       }}
@@ -885,7 +1034,9 @@ export const TrainDashboard = () => {
                           mr: 1.5,
                         }}
                       >
-                        <Typography sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}>
+                        <Typography
+                          sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}
+                        >
                           {typCfg.short}
                         </Typography>
                       </Box>
@@ -901,7 +1052,13 @@ export const TrainDashboard = () => {
                         >
                           {station.stationDesc}
                         </Typography>
-                        <Typography sx={{ fontSize: "0.68rem", color: "#484f58", lineHeight: 1.2 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "0.68rem",
+                            color: "#484f58",
+                            lineHeight: 1.2,
+                          }}
+                        >
                           {station.stationCode} · {typCfg.label}
                         </Typography>
                       </Box>
@@ -934,13 +1091,19 @@ export const TrainDashboard = () => {
                   return (
                     <ListItemButton
                       key={t.trainCode}
-                      onClick={() => hasCoors && handleTrainClick(t.lat, t.lon, t.trainCode)}
+                      onClick={() =>
+                        hasCoors && handleTrainClick(t.lat, t.lon, t.trainCode)
+                      }
                       disabled={!hasCoors}
                       sx={{
                         py: 0.875,
                         px: 2,
-                        bgcolor: selected ? "rgba(21,101,192,0.12)" : "transparent",
-                        borderLeft: selected ? "3px solid #1565C0" : "3px solid transparent",
+                        bgcolor: selected
+                          ? "rgba(21,101,192,0.12)"
+                          : "transparent",
+                        borderLeft: selected
+                          ? "3px solid #1565C0"
+                          : "3px solid transparent",
                         opacity: hasCoors ? 1 : 0.45,
                         "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
                         transition: "all 0.12s",
@@ -958,18 +1121,28 @@ export const TrainDashboard = () => {
                           justifyContent: "center",
                           flexShrink: 0,
                           mr: 1.5,
-                          boxShadow: running ? `0 0 0 3px ${typCfg.color}44` : "none",
+                          boxShadow: running
+                            ? `0 0 0 3px ${typCfg.color}44`
+                            : "none",
                           transition: "box-shadow 0.3s",
                         }}
                       >
-                        <Typography sx={{ fontSize: 10, fontWeight: 900, color: "#fff" }}>
+                        <Typography
+                          sx={{ fontSize: 10, fontWeight: 900, color: "#fff" }}
+                        >
                           {dirArrow || typCfg.short}
                         </Typography>
                       </Box>
 
                       {/* Code + type + direction */}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                          }}
+                        >
                           <Typography
                             sx={{
                               fontSize: "0.855rem",
@@ -981,13 +1154,23 @@ export const TrainDashboard = () => {
                             {t.trainCode}
                           </Typography>
                           {!hasCoors && (
-                            <Typography sx={{ fontSize: "0.62rem", color: "#484f58" }}>
+                            <Typography
+                              sx={{ fontSize: "0.62rem", color: "#484f58" }}
+                            >
                               (no GPS)
                             </Typography>
                           )}
                         </Box>
-                        <Typography sx={{ fontSize: "0.68rem", color: "#484f58", lineHeight: 1.2 }}>
-                          {typCfg.label !== "All" ? typCfg.label : t.trainType ?? "Unknown"}
+                        <Typography
+                          sx={{
+                            fontSize: "0.68rem",
+                            color: "#484f58",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {typCfg.label === "All"
+                            ? (t.trainType ?? "Unknown")
+                            : typCfg.label}
                           {t.direction ? ` · ${dirArrow} ${t.direction}` : ""}
                         </Typography>
                       </Box>
@@ -1023,8 +1206,13 @@ export const TrainDashboard = () => {
           )}
 
           {/* Footer */}
-          <Box sx={{ px: 2, py: 1.25, borderTop: "1px solid rgba(48,54,61,0.5)" }}>
-            <Typography variant="caption" sx={{ color: "#30363d", fontSize: "0.62rem" }}>
+          <Box
+            sx={{ px: 2, py: 1.25, borderTop: "1px solid rgba(48,54,61,0.5)" }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "#30363d", fontSize: "0.62rem" }}
+            >
               Irish Rail · Greater Dublin Area · Real-time data
             </Typography>
           </Box>

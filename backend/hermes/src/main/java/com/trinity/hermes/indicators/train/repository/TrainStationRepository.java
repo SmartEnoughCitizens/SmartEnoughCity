@@ -30,9 +30,7 @@ public interface TrainStationRepository extends JpaRepository<TrainStation, Inte
       @Param("lonMin") double lonMin,
       @Param("lonMax") double lonMax);
 
-  /**
-   * Count stations within the Greater Dublin Area bounding box.
-   */
+  /** Count stations within the Greater Dublin Area bounding box. */
   @Query(
       """
           SELECT COUNT(s) FROM TrainStation s

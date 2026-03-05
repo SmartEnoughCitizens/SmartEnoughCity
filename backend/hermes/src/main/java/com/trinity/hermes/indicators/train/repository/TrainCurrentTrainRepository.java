@@ -59,9 +59,7 @@ public interface TrainCurrentTrainRepository extends JpaRepository<TrainCurrentT
       @Param("lonMin") double lonMin,
       @Param("lonMax") double lonMax);
 
-  /**
-   * Count of active trains within the Greater Dublin Area bounding box.
-   */
+  /** Count of active trains within the Greater Dublin Area bounding box. */
   @Query(
       """
           SELECT COUNT(DISTINCT t.trainCode) FROM TrainCurrentTrain t
