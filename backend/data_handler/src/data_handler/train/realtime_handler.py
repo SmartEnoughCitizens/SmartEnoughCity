@@ -39,6 +39,22 @@ logger = logging.getLogger(__name__)
 # Station types: A=All, M=Mainline, S=Suburban, D=DART
 STATION_TYPES = {"A": "All", "M": "Mainline", "S": "Suburban", "D": "DART"}
 
+# ── Dublin & Greater Dublin Area bounding box ────────────────────────
+# Covers: Greystones (south) → Drogheda (north), Maynooth (west) → coast (east)
+# Includes DART, Suburban and commuter-belt Mainline stations.
+DUBLIN_LAT_MIN = 53.05
+DUBLIN_LAT_MAX = 53.75
+DUBLIN_LON_MIN = -6.65
+DUBLIN_LON_MAX = -5.90
+
+
+def _is_dublin_area(lat: float, lon: float) -> bool:
+    """Return True if coordinates fall within the Greater Dublin Area bounding box."""
+    return (
+        DUBLIN_LAT_MIN <= lat <= DUBLIN_LAT_MAX
+        and DUBLIN_LON_MIN <= lon <= DUBLIN_LON_MAX
+    )
+
 
 # ── Helper Functions ────────────────────────────────────────────────
 
@@ -236,8 +252,14 @@ def irish_rail_stations_to_db() -> None:
 
     session = SessionLocal()
     try:
-        # Build station objects
+        # Build station objects and filter to Greater Dublin Area
         stations = [_parse_station_dict(s) for s in stations_data]
+        stations = [s for s in stations if _is_dublin_area(s.lat, s.lon)]
+        logger.info(
+            "Filtered to %d Greater Dublin Area stations (of %d total).",
+            len(stations),
+            len(stations_data),
+        )
 
         # Upsert using SQLAlchemy's on_conflict_do_update
         for station in stations:

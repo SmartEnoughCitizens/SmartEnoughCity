@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,24 +20,38 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class TrainDashboardService {
 
+  // ── Greater Dublin Area bounding box ─────────────────────────────
+  // Covers: Greystones (south) → Drogheda (north), Maynooth (west) → coast (east)
+  private static final double DUBLIN_LAT_MIN = 53.05;
+  private static final double DUBLIN_LAT_MAX = 53.75;
+  private static final double DUBLIN_LON_MIN = -6.65;
+  private static final double DUBLIN_LON_MAX = -5.90;
+
   private final TrainStationRepository trainStationRepository;
   private final TrainCurrentTrainRepository trainCurrentTrainRepository;
   private final TrainStationDataRepository trainStationDataRepository;
 
   @Transactional(readOnly = true)
   public List<TrainDTO> getStations(int limit) {
-    log.debug("Fetching up to {} train stations", limit);
-    return trainStationRepository.findAll(PageRequest.of(0, limit)).stream()
+    log.debug("Fetching up to {} Dublin-area train stations", limit);
+    return trainStationRepository
+        .findAllDublinStations(DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX)
+        .stream()
+        .limit(limit)
         .map(this::mapToTrainDTO)
         .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public TrainKpiDTO getKpis() {
-    log.info("Fetching train dashboard KPIs");
+    log.info("Fetching Dublin train dashboard KPIs");
 
-    long totalStations = trainStationRepository.count();
-    long liveTrainsRunning = trainCurrentTrainRepository.countActiveTrains();
+    long totalStations =
+        trainStationRepository.countDublinStations(
+            DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
+    long liveTrainsRunning =
+        trainCurrentTrainRepository.countActiveDublinTrains(
+            DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
     Double lateArrivalPct = trainStationDataRepository.findLateArrivalPct();
     Double avgDelayMinutes = trainStationDataRepository.findAverageLateMinutes();
 
@@ -55,8 +68,11 @@ public class TrainDashboardService {
 
   @Transactional(readOnly = true)
   public List<TrainLiveDTO> getLiveTrains() {
-    log.info("Fetching live train positions");
-    return trainCurrentTrainRepository.findLatestPositionPerTrain().stream()
+    log.info("Fetching live Dublin train positions");
+    return trainCurrentTrainRepository
+        .findLatestDublinTrainPositions(
+            DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX)
+        .stream()
         .map(this::mapToLiveDTO)
         .collect(Collectors.toList());
   }
