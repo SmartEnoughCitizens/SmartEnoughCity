@@ -103,8 +103,8 @@ def main_dynamic() -> None:
     print(f"  - Bus data: {sources_settings.enable_bus_data}")
     print(f"  - Train data: {sources_settings.enable_train_data}")
     print(f"  - Tram data: {sources_settings.enable_tram_data}")
+    print(f"  - Construction data: {sources_settings.enable_construction_data}")
     print(f"  - Events data: {sources_settings.enable_events_data}\n")
-    print(f"  - Construction data: {sources_settings.enable_construction_data}\n")
 
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
