@@ -68,10 +68,11 @@ class DataSourcesSettings(BaseSettings):
     )
 
     population_static_data_dir: Path | None = Field(
-        None,   
+        None,
         alias="POPULATION_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the population static data",
     )
+
     @field_validator(
         "bus_gtfs_static_data_dir",
         "car_static_data_dir",
