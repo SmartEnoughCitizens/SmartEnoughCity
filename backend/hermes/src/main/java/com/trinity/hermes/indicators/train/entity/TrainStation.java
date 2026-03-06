@@ -1,8 +1,7 @@
 package com.trinity.hermes.indicators.train.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -11,7 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Immutable;
 
 @Entity
-@Table(name = "train_stations", schema = "external_data")
+@Table(name = "irish_rail_stations", schema = "external_data")
 @Immutable
 @Data
 @NoArgsConstructor
@@ -19,12 +18,24 @@ import org.hibernate.annotations.Immutable;
 public class TrainStation {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @Column(name = "station_id")
+  private Integer id;
 
+  @Column(name = "station_code")
   private String stationCode;
+
+  @Column(name = "station_desc")
   private String stationDesc;
+
+  @Column(name = "station_alias")
+  private String stationAlias;
+
+  @Column(name = "lat")
   private Double lat;
+
+  @Column(name = "lon")
   private Double lon;
-  private String stationTypes;
+
+  @Column(name = "station_type")
+  private String stationType;
 }
