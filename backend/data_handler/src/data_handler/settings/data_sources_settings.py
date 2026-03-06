@@ -29,7 +29,6 @@ class DataSourcesSettings(BaseSettings):
     enable_train_data: bool = Field(True, alias="ENABLE_TRAIN_DATA")
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
-    enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
 
     bus_gtfs_static_data_dir: Path | None = Field(
         None,
@@ -49,17 +48,31 @@ class DataSourcesSettings(BaseSettings):
         description="Directory containing historical Dublin Bikes CSV archives",
     )
 
-    population_static_data_dir: Path | None = Field(
+    train_gtfs_static_data_dir: Path | None = Field(
         None,
-        alias="POPULATION_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the population static data",
+        alias="TRAIN_GTFS_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the GTFS train static data",
+    )
+
+    tram_gtfs_static_data_dir: Path | None = Field(
+        None,
+        alias="TRAM_GTFS_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the GTFS tram static data",
+    )
+
+    tram_cso_static_data_dir: Path | None = Field(
+        None,
+        alias="TRAM_CSO_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the CSO tram static data",
     )
 
     @field_validator(
         "bus_gtfs_static_data_dir",
         "car_static_data_dir",
         "dublin_bikes_csv_archive_dir",
-        "population_static_data_dir",
+        "train_gtfs_static_data_dir",
+        "tram_gtfs_static_data_dir",
+        "tram_cso_static_data_dir",
     )
     @classmethod
     def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
