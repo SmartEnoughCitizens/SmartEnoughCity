@@ -53,8 +53,15 @@ def parse_scats_site_row(row: dict[str, str]) -> ScatsSite:
     )
 
 
-def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume:
-    """Parse traffic volume row (used for live data, not static import)."""
+def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume | None:
+    """Parse a SCATS traffic volume CSV row into a TrafficVolume object.
+
+    Returns None for malformed rows (e.g. truncated lines where DictReader
+    fills missing fields with None).
+    """
+    if any(row.get(col) is None for col in ("End_Time", "Site", "Detector", "Sum_Volume", "Avg_Volume")):
+        logger.warning("Skipping malformed traffic volume row: %s", row)
+        return None
     return TrafficVolume(
         end_time=parse_scats_time(row["End_Time"]),
         site_id=int(row["Site"]),
@@ -290,6 +297,17 @@ _EMISSION_REQUIRED_HEADERS = [
 
 _XLSX_FILE = "ESB- EV-charge-point-locations.xlsx"
 
+_TRAFFIC_VOLUME_FILE = "SCATSAugust2025.csv"
+_TRAFFIC_VOLUME_REQUIRED_HEADERS = [
+    "End_Time",
+    "Region",
+    "Site",
+    "Detector",
+    "Sum_Volume",
+    "Avg_Volume",
+]
+_TRAFFIC_VOLUME_CHUNK_SIZE = 10_000
+
 
 def _validate_files(data_dir: Path, xlsx_path: Path) -> None:
     """Raise if data_dir is None or any required file is missing."""
@@ -374,6 +392,42 @@ def _process_emission_files(session: Session, data_dir: Path) -> None:
     )
 
 
+def _process_traffic_volumes(session: Session, data_dir: Path) -> None:
+    """Stream SCATS traffic volume CSV and bulk-insert in chunks.
+
+    The file can be very large (10M+ rows), so rows are inserted in chunks
+    rather than accumulating all objects in memory at once.
+    The file is optional — if not present, processing is skipped.
+    """
+    file_path = data_dir / _TRAFFIC_VOLUME_FILE
+    if not file_path.exists():
+        logger.info("No traffic volume file found (%s), skipping.", _TRAFFIC_VOLUME_FILE)
+        return
+
+    logger.info("Processing %s (this may take a while)...", _TRAFFIC_VOLUME_FILE)
+    chunk: list[TrafficVolume] = []
+    total = 0
+
+    for csv_row in read_csv_file(file_path, _TRAFFIC_VOLUME_REQUIRED_HEADERS):
+        parsed_row = parse_traffic_volume_row(csv_row)
+        if parsed_row is None:
+            continue
+        chunk.append(parsed_row)
+        if len(chunk) >= _TRAFFIC_VOLUME_CHUNK_SIZE:
+            session.add_all(chunk)
+            session.commit()
+            total += len(chunk)
+            chunk = []
+            logger.info("  Committed %d rows...", total)
+
+    if chunk:
+        session.add_all(chunk)
+        session.flush()
+        total += len(chunk)
+
+    logger.info("  Added %d rows from %s", total, _TRAFFIC_VOLUME_FILE)
+
+
 def _process_ev_charging_points(session: Session, xlsx_path: Path) -> None:
     """Read XLSX and bulk-add Dublin EV charging point rows to *session*."""
     logger.info("Processing %s...", xlsx_path.name)
@@ -424,6 +478,7 @@ def process_car_static_data(data_dir: Path) -> None:
 
         _process_emission_files(session, data_dir)
         _process_ev_charging_points(session, xlsx_path)
+        _process_traffic_volumes(session, data_dir)
 
         logger.info("Committing changes to database...")
         session.commit()

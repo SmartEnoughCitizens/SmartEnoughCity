@@ -34,6 +34,25 @@ def parse_scats_time(time_str: str) -> datetime:
     return datetime(year, month, day, hour, minute, second)
 
 
+def parse_optional_float(value: str) -> float | None:
+    """
+    Parse float from string, returning None for empty or invalid values.
+
+    Args:
+        value: String to parse
+
+    Returns:
+        Float value, or None if empty/unparseable
+    """
+    stripped = value.strip()
+    if not stripped:
+        return None
+    try:
+        return float(stripped)
+    except ValueError:
+        return None
+
+
 def parse_month_year(month_str: str) -> datetime:
     """
     Parse month-year format to datetime (first day of month).
