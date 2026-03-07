@@ -28,8 +28,13 @@ def test_process_car_static_data(db_session: Session) -> None:
 
     # ASSERT: Verify row counts
     assert_row_count(db_session, "scats_sites", 3)
-    assert_row_count(db_session, "traffic_volumes", 3)
+    assert_row_count(
+        db_session, "traffic_volumes", 0
+    )  # Not populated from static files
     assert_row_count(db_session, "vehicle_first_time", 3)
+    assert_row_count(db_session, "vehicle_licensing_area", 3)
+    assert_row_count(db_session, "vehicle_new_licensed", 2)
+    assert_row_count(db_session, "vehicle_yearly", 3)
     assert_row_count(db_session, "private_car_emissions", 3)
     assert_row_count(db_session, "ev_charging_points", 2)  # Only Dublin (Cork filtered)
 
@@ -65,39 +70,7 @@ def test_process_car_static_data(db_session: Session) -> None:
         ],
     )
 
-    # ASSERT: Verify traffic volumes data
-    assert_rows(
-        db_session,
-        "traffic_volumes",
-        [
-            {
-                "end_time": datetime(2025, 8, 26, 0, 0, 0),
-                "site_id": 123,
-                "detector": 1,
-                "region": "Dublin",
-                "sum_volume": 150,
-                "avg_volume": 25,
-            },
-            {
-                "end_time": datetime(2025, 8, 26, 1, 0, 0),
-                "site_id": 123,
-                "detector": 1,
-                "region": "Dublin",
-                "sum_volume": 120,
-                "avg_volume": 20,
-            },
-            {
-                "end_time": datetime(2025, 8, 26, 0, 0, 0),
-                "site_id": 456,
-                "detector": 2,
-                "region": "Dublin",
-                "sum_volume": 200,
-                "avg_volume": 33,
-            },
-        ],
-    )
-
-    # ASSERT: Verify emissions data (with enums)
+    # ASSERT: Verify emissions data (with enum values)
     assert_rows(
         db_session,
         "private_car_emissions",
@@ -126,7 +99,7 @@ def test_process_car_static_data(db_session: Session) -> None:
         ],
     )
 
-    # ASSERT: Verify EV charging points (Dublin only)
+    # ASSERT: Verify EV charging points (Dublin only, Cork filtered)
     assert_rows(
         db_session,
         "ev_charging_points",
@@ -152,6 +125,32 @@ def test_process_car_static_data(db_session: Session) -> None:
                 "power_rating_of_ac_fast_kw": 43.0,
                 "power_rating_of_standard_ac_socket_kw": 7.4,
                 "is_24_7": False,
+            },
+        ],
+    )
+
+    # ASSERT: Verify vehicle first time data
+    assert_rows(
+        db_session,
+        "vehicle_first_time",
+        [
+            {
+                "id": 1,
+                "month": datetime(1996, 6, 1),
+                "taxation_class": "ALL_VEHICLES",
+                "count": 5000,
+            },
+            {
+                "id": 2,
+                "month": datetime(1996, 6, 1),
+                "taxation_class": "NEW_PRIVATE_CARS",
+                "count": 3000,
+            },
+            {
+                "id": 3,
+                "month": datetime(1996, 7, 1),
+                "taxation_class": "SECONDHAND_PRIVATE_CARS",
+                "count": 2000,
             },
         ],
     )

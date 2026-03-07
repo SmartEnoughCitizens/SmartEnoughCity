@@ -1,9 +1,13 @@
 # data_handler/car/process_car_data.py
 
 import logging
+from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
 from sqlalchemy import delete
+from sqlalchemy.orm import Session
 
 from data_handler.car.car_parsing_utils import (
     parse_kw_value,
@@ -38,19 +42,29 @@ logger = logging.getLogger(__name__)
 
 
 def parse_scats_site_row(row: dict[str, str]) -> ScatsSite:
-    """Parse SCATS site row."""
+    """Parse DCC traffic signals site row."""
     return ScatsSite(
         site_id=int(row["SiteID"]),
-        description=row["Site Description"].strip(),
-        description_lower=row["Site Description Lower"].strip(),
+        description=row["Site_Description_Cap"].strip(),
+        description_lower=row["Site_Description_Lower"].strip(),
         region=row["Region"].strip(),
         lat=float(row["Lat"]),
         lon=float(row["Long"]),
     )
 
 
-def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume:
-    """Parse traffic volume row."""
+def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume | None:
+    """Parse a SCATS traffic volume CSV row into a TrafficVolume object.
+
+    Returns None for malformed rows (e.g. truncated lines where DictReader
+    fills missing fields with None).
+    """
+    if any(
+        row.get(col) is None
+        for col in ("End_Time", "Site", "Detector", "Sum_Volume", "Avg_Volume")
+    ):
+        logger.warning("Skipping malformed traffic volume row: %s", row)
+        return None
     return TrafficVolume(
         end_time=parse_scats_time(row["End_Time"]),
         site_id=int(row["Site"]),
@@ -61,111 +75,141 @@ def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume:
     )
 
 
-def parse_vehicle_first_time_row(row: dict[str, str]) -> VehicleFirstTime:
-    """Parse vehicle first time licensing row."""
-    taxation_class_str = row["Taxation class"].strip()
+def parse_vehicle_first_time_row(row: dict[str, str]) -> VehicleFirstTime | None:
+    """Parse vehicle first time licensing row. Returns None for unknown enum values or empty data."""
+    if not row.get("VALUE", "").strip():
+        return None
 
-    # Convert string to enum
+    taxation_class_str = row["Taxation Class"].strip()
+
     try:
         taxation_class = TaxationClass(taxation_class_str)
-    except ValueError as e:
-        msg = f"Invalid taxation class: {taxation_class_str}. Must be one of: {', '.join([t.value for t in TaxationClass])}"
-        raise ValueError(msg) from e
+    except ValueError:
+        logger.warning("Skipping unknown taxation class: %s", taxation_class_str)
+        return None
 
     return VehicleFirstTime(
         month=parse_month_year(row["Month"]),
         taxation_class=taxation_class,
-        count=int(row["Number"]),
+        count=int(row["VALUE"]),
     )
 
 
-def parse_vehicle_licensing_area_row(row: dict[str, str]) -> VehicleLicensingArea:
-    """Parse vehicle licensing by area row."""
-    fuel_type_str = row["Types of Fuel"].strip()
+def parse_vehicle_licensing_area_row(
+    row: dict[str, str],
+) -> VehicleLicensingArea | None:
+    """Parse vehicle licensing by area row. Returns None for unknown enum values or empty data."""
+    if not row.get("VALUE", "").strip():
+        return None
 
-    # Convert string to enum
+    fuel_type_str = row["Type of Fuel"].strip()
+
     try:
         fuel_type = FuelType(fuel_type_str)
-    except ValueError as e:
-        msg = f"Invalid fuel type: {fuel_type_str}. Must be one of: {', '.join([f.value for f in FuelType])}"
-        raise ValueError(msg) from e
+    except ValueError:
+        logger.warning("Skipping unknown fuel type: %s", fuel_type_str)
+        return None
 
     return VehicleLicensingArea(
         month=parse_month_year(row["Month"]),
         licensing_authority=row["Licensing Authority"].strip(),
         fuel_type=fuel_type,
-        count=int(row["Number"]),
+        count=int(row["VALUE"]),
     )
 
 
-def parse_vehicle_new_licensed_row(row: dict[str, str]) -> VehicleNewLicensed:
-    """Parse new vehicle licensing row."""
-    registration_type_str = row["Type of Vehicle Registration"].strip()
-    fuel_type_str = row["Types of Fuel"].strip()
+def parse_vehicle_new_licensed_row(row: dict[str, str]) -> VehicleNewLicensed | None:
+    """Parse new vehicle licensing row. Returns None for unknown enum values or empty data."""
+    if not row.get("VALUE", "").strip():
+        return None
 
-    # Convert strings to enums
+    registration_type_str = row["Type of Vehicle Registration"].strip()
+    fuel_type_str = row["Type of Fuel"].strip()
+
     try:
         registration_type = VehicleRegistrationType(registration_type_str)
-    except ValueError as e:
-        msg = f"Invalid registration type: {registration_type_str}. Must be one of: {', '.join([r.value for r in VehicleRegistrationType])}"
-        raise ValueError(msg) from e
+    except ValueError:
+        logger.warning("Skipping unknown registration type: %s", registration_type_str)
+        return None
 
     try:
         fuel_type = FuelType(fuel_type_str)
-    except ValueError as e:
-        msg = f"Invalid fuel type: {fuel_type_str}. Must be one of: {', '.join([f.value for f in FuelType])}"
-        raise ValueError(msg) from e
+    except ValueError:
+        logger.warning("Skipping unknown fuel type: %s", fuel_type_str)
+        return None
 
+    year = parse_year(row["Year"])
     return VehicleNewLicensed(
-        month=parse_month_year(row["Month"]),
+        month=datetime(year, 1, 1),
         registration_type=registration_type,
         fuel_type=fuel_type,
-        count=int(row["Number"]),
+        count=int(row["VALUE"]),
     )
 
 
-def parse_vehicle_yearly_row(row: dict[str, str]) -> VehicleYearly:
-    """Parse yearly vehicle data row."""
-    taxation_class_str = row["Taxation Class"].strip()
-    fuel_type_str = row["Types of Fuel"].strip()
+def parse_vehicle_yearly_row(row: dict[str, str]) -> VehicleYearly | None:
+    """Parse yearly vehicle data row. Returns None for unknown enum values or empty data."""
+    if not row.get("VALUE", "").strip():
+        return None
 
-    # Convert strings to enums
+    taxation_class_str = row["Taxation Class"].strip()
+    fuel_type_str = row["Type of Fuel"].strip()
+
     try:
         taxation_class = TaxationClass(taxation_class_str)
-    except ValueError as e:
-        msg = f"Invalid taxation class: {taxation_class_str}. Must be one of: {', '.join([t.value for t in TaxationClass])}"
-        raise ValueError(msg) from e
+    except ValueError:
+        logger.warning("Skipping unknown taxation class: %s", taxation_class_str)
+        return None
 
     try:
         fuel_type = FuelType(fuel_type_str)
-    except ValueError as e:
-        msg = f"Invalid fuel type: {fuel_type_str}. Must be one of: {', '.join([f.value for f in FuelType])}"
-        raise ValueError(msg) from e
+    except ValueError:
+        logger.warning("Skipping unknown fuel type: %s", fuel_type_str)
+        return None
 
     return VehicleYearly(
         year=parse_year(row["Year"]),
         taxation_class=taxation_class,
         fuel_type=fuel_type,
-        count=int(row["Number"]),
+        count=int(row["VALUE"]),
     )
 
 
-def parse_private_car_emission_row(row: dict[str, str]) -> PrivateCarEmission:
-    """Parse private car emission data row."""
-    emission_band_str = row["Emission Band"].strip()
+def parse_private_car_emission_row(row: dict[str, str]) -> PrivateCarEmission | None:
+    """
+    Parse private car emission data row.
 
-    # Convert string to enum
+    Filters to only summary rows (all engine capacities + all makes).
+    Returns None for non-summary rows or unknown enum values.
+    """
+    if not row.get("VALUE", "").strip():
+        return None
+
+    engine_capacity = row.get("Engine Capacity cc", "").strip()
+    car_make = row.get("Car Make", "").strip()
+
+    # Only include all-makes / all-engine-capacity summary rows
+    if (
+        not engine_capacity.lower().startswith("all engine capacities")
+        or car_make.lower() != "all makes"
+    ):
+        return None
+
+    emission_band_str = row["Emission Band"].strip()
+    # Normalize double spaces (e.g. "Band  A" -> "Band A")
+    emission_band_str = " ".join(emission_band_str.split())
+
     try:
         emission_band = EmissionBand(emission_band_str)
-    except ValueError as e:
-        msg = f"Invalid emission band: {emission_band_str}. Must be one of: {', '.join([b.value for b in EmissionBand])}"
-        raise ValueError(msg) from e
+    except ValueError:
+        logger.warning("Skipping unknown emission band: %s", emission_band_str)
+        return None
 
     return PrivateCarEmission(
         year=parse_year(row["Year"]),
         emission_band=emission_band,
         licensing_authority=row["Licensing Authority"].strip(),
-        count=int(row["Value"]),
+        count=int(row["VALUE"]),
     )
 
 
@@ -177,27 +221,27 @@ def parse_and_filter_ev_charging_point_row(
 
     Returns None if county is not Dublin (as per requirements).
     """
-    county = row["County"].strip()
+    county = str(row.get("County", "")).strip()
 
     # Only process Dublin charging points
     if county.lower() != "dublin":
         return None
 
     # Parse operating hours (returns tuple of (is_24_7, description))
-    open_hours_str = row.get("Open Hours", "")
+    open_hours_str = str(row.get("Open Hours", ""))
     is_24_7, _hours_description = parse_open_hours(open_hours_str)
 
     return EVChargingPoint(
         county="Dublin",  # Hardcoded for consistency
         lat=float(row["Latitude"]),
         lon=float(row["Longitude"]),
-        power_rating_of_ccs_connectors_kw=parse_kw_value(row.get("CCS kWs", "")),
+        power_rating_of_ccs_connectors_kw=parse_kw_value(str(row.get("CCS kWs", ""))),
         power_rating_of_chademo_connectors_kw=parse_kw_value(
-            row.get("CHAdeMO kWs", "")
+            str(row.get("CHAdeMO kWs", ""))
         ),
-        power_rating_of_ac_fast_kw=parse_kw_value(row.get("AC Fast kWs", "")),
+        power_rating_of_ac_fast_kw=parse_kw_value(str(row.get("AC Fast kWs", ""))),
         power_rating_of_standard_ac_socket_kw=parse_kw_value(
-            row.get("AC Socket kWs", "")
+            str(row.get("AC Socket kWs", ""))
         ),
         is_24_7=is_24_7,
     )
@@ -207,113 +251,239 @@ def parse_and_filter_ev_charging_point_row(
 # MAIN PROCESSING FUNCTION
 # ============================================================================
 
+_CsvTransformFn = Callable[[dict[str, str]], object]
+
+_CSV_FILES: dict[str, tuple[list[str], _CsvTransformFn]] = {
+    "dcc_traffic_signals_20221130.csv": (
+        [
+            "SiteID",
+            "Site_Description_Cap",
+            "Site_Description_Lower",
+            "Region",
+            "Lat",
+            "Long",
+        ],
+        parse_scats_site_row,
+    ),
+    "Vehicles Licensed for the first time.csv": (
+        ["Month", "Taxation Class", "VALUE"],
+        parse_vehicle_first_time_row,
+    ),
+    "New and second hand car by licensing area.csv": (
+        ["Month", "Licensing Authority", "Type of Fuel", "VALUE"],
+        parse_vehicle_licensing_area_row,
+    ),
+    "New Vehicles licensed for first time.csv": (
+        ["Year", "Type of Vehicle Registration", "Type of Fuel", "VALUE"],
+        parse_vehicle_new_licensed_row,
+    ),
+    "New and Second Hand Vehicles.csv": (
+        ["Year", "Taxation Class", "Type of Fuel", "VALUE"],
+        parse_vehicle_yearly_row,
+    ),
+}
+
+_EMISSION_FILES = [
+    "Private Cars Licensed for the First Time - 1998-2013.csv",
+    "Private Cars Licensed for the First Time - 2014-15.csv",
+    "Private Cars Licensed for the First Time - 2017-2025.csv",
+]
+
+_EMISSION_REQUIRED_HEADERS = [
+    "Engine Capacity cc",
+    "Car Make",
+    "Emission Band",
+    "Licensing Authority",
+    "Year",
+    "VALUE",
+]
+
+_XLSX_FILE = "ESB- EV-charge-point-locations.xlsx"
+
+_TRAFFIC_VOLUME_FILE = "SCATSAugust2025.csv"
+_TRAFFIC_VOLUME_REQUIRED_HEADERS = [
+    "End_Time",
+    "Region",
+    "Site",
+    "Detector",
+    "Sum_Volume",
+    "Avg_Volume",
+]
+_TRAFFIC_VOLUME_CHUNK_SIZE = 10_000
+
+
+def _validate_files(data_dir: Path, xlsx_path: Path) -> None:
+    """Raise if data_dir is None or any required file is missing."""
+    if data_dir is None:
+        msg = "data_dir cannot be None"
+        raise ValueError(msg)
+
+    for filename in list(_CSV_FILES) + _EMISSION_FILES:
+        file_path = data_dir / filename
+        if not file_path.exists():
+            msg = f"Required file not found: {file_path}"
+            raise FileNotFoundError(msg)
+
+    if not xlsx_path.exists():
+        msg = f"Required file not found: {xlsx_path}"
+        raise FileNotFoundError(msg)
+
+
+def _clear_existing_data(session: Session) -> None:
+    """Delete all existing car data in dependency order."""
+    logger.info("Deleting existing data...")
+    for model in (
+        TrafficVolume,
+        VehicleFirstTime,
+        VehicleLicensingArea,
+        VehicleNewLicensed,
+        VehicleYearly,
+        PrivateCarEmission,
+        EVChargingPoint,
+        ScatsSite,
+    ):
+        session.execute(delete(model))
+    session.commit()
+
+
+def _process_csv_file(
+    session: Session,
+    data_dir: Path,
+    filename: str,
+    required_headers: list[str],
+    transform_row: _CsvTransformFn,
+) -> None:
+    """Parse one CSV file and bulk-add rows to *session*."""
+    logger.info("Processing %s...", filename)
+    file_path = data_dir / filename
+
+    rows = []
+    for csv_row in read_csv_file(file_path, required_headers):
+        parsed_row = transform_row(csv_row)
+        if parsed_row is not None:
+            rows.append(parsed_row)
+
+    # Deduplicate scats_sites by site_id — source CSV has some Signal Site
+    # entries followed by the proper SCATS Site entry for the same ID.
+    # Keep the last occurrence (the SCATS Site with a valid region).
+    if filename == "dcc_traffic_signals_20221130.csv":
+        deduped: dict[int, ScatsSite] = {}
+        for site in rows:
+            deduped[site.site_id] = site
+        rows = list(deduped.values())
+
+    session.add_all(rows)
+    logger.info("  Added %d rows from %s", len(rows), filename)
+
+
+def _process_emission_files(session: Session, data_dir: Path) -> None:
+    """Combine all emission CSVs and bulk-add rows to *session*."""
+    logger.info("Processing private car emission files...")
+    emission_rows = []
+    for filename in _EMISSION_FILES:
+        file_path = data_dir / filename
+        for csv_row in read_csv_file(file_path, _EMISSION_REQUIRED_HEADERS):
+            parsed_row = parse_private_car_emission_row(csv_row)
+            if parsed_row is not None:
+                emission_rows.append(parsed_row)
+
+    session.add_all(emission_rows)
+    logger.info(
+        "  Added %d emission rows from %d files",
+        len(emission_rows),
+        len(_EMISSION_FILES),
+    )
+
+
+def _process_traffic_volumes(session: Session, data_dir: Path) -> None:
+    """Stream SCATS traffic volume CSV and bulk-insert in chunks.
+
+    The file can be very large (10M+ rows), so rows are inserted in chunks
+    rather than accumulating all objects in memory at once.
+    The file is optional — if not present, processing is skipped.
+    """
+    file_path = data_dir / _TRAFFIC_VOLUME_FILE
+    if not file_path.exists():
+        logger.info(
+            "No traffic volume file found (%s), skipping.", _TRAFFIC_VOLUME_FILE
+        )
+        return
+
+    logger.info("Processing %s (this may take a while)...", _TRAFFIC_VOLUME_FILE)
+    chunk: list[TrafficVolume] = []
+    total = 0
+
+    for csv_row in read_csv_file(file_path, _TRAFFIC_VOLUME_REQUIRED_HEADERS):
+        parsed_row = parse_traffic_volume_row(csv_row)
+        if parsed_row is None:
+            continue
+        chunk.append(parsed_row)
+        if len(chunk) >= _TRAFFIC_VOLUME_CHUNK_SIZE:
+            session.add_all(chunk)
+            session.commit()
+            total += len(chunk)
+            chunk = []
+            logger.info("  Committed %d rows...", total)
+
+    if chunk:
+        session.add_all(chunk)
+        session.flush()
+        total += len(chunk)
+
+    logger.info("  Added %d rows from %s", total, _TRAFFIC_VOLUME_FILE)
+
+
+def _process_ev_charging_points(session: Session, xlsx_path: Path) -> None:
+    """Read XLSX and bulk-add Dublin EV charging point rows to *session*."""
+    logger.info("Processing %s...", xlsx_path.name)
+    df = pd.read_excel(xlsx_path, dtype=str, keep_default_na=False)
+    ev_rows = []
+    for _, row_data in df.iterrows():
+        parsed_row = parse_and_filter_ev_charging_point_row(dict(row_data))
+        if parsed_row is not None:
+            ev_rows.append(parsed_row)
+
+    session.add_all(ev_rows)
+    logger.info("  Added %d EV charging point rows", len(ev_rows))
+
 
 def process_car_static_data(data_dir: Path) -> None:
     """
-    Process car static data from CSV files.
+    Process car static data from source files.
 
     This function:
-    1. Validates all required CSV files exist
+    1. Validates all required files exist
     2. Deletes all existing data from relevant tables
-    3. Reads data from CSV files
+    3. Reads and parses data from source files
     4. Inserts the data into the database
     5. All operations happen within a single transaction
 
     Args:
-        data_dir: Path to the directory containing car CSV files.
+        data_dir: Path to the directory containing car static data files.
 
     Raises:
-        FileNotFoundError: If any required CSV file is missing
-        ValueError: If any CSV file is missing required headers or the row data is invalid
+        FileNotFoundError: If any required file is missing
+        ValueError: If any CSV file is missing required headers or row data is invalid
     """
+    xlsx_path = data_dir / _XLSX_FILE if data_dir is not None else Path(_XLSX_FILE)
 
-    # CSV file name -> (required headers, transform row function)
-    csv_files = {
-        "scats_sites.csv": (
-            [
-                "SiteID",
-                "Site Description",
-                "Site Description Lower",
-                "Region",
-                "Lat",
-                "Long",
-            ],
-            parse_scats_site_row,
-        ),
-        "traffic_volumes.csv": (
-            ["End_Time", "Region", "Site", "Detector", "Sum_Volume", "Avg_Volume"],
-            parse_traffic_volume_row,
-        ),
-        "vehicle_first_time.csv": (
-            ["Month", "Taxation class", "Number"],
-            parse_vehicle_first_time_row,
-        ),
-        "vehicle_licensing_area.csv": (
-            ["Month", "Licensing Authority", "Types of Fuel", "Number"],
-            parse_vehicle_licensing_area_row,
-        ),
-        "vehicle_new_licensed.csv": (
-            ["Month", "Type of Vehicle Registration", "Types of Fuel", "Number"],
-            parse_vehicle_new_licensed_row,
-        ),
-        "vehicle_yearly.csv": (
-            ["Year", "Taxation Class", "Types of Fuel", "Number"],
-            parse_vehicle_yearly_row,
-        ),
-        "private_car_emissions.csv": (
-            ["Year", "Emission Band", "Licensing Authority", "Value"],
-            parse_private_car_emission_row,
-        ),
-        "ev_charging_points.csv": (
-            ["County", "Latitude", "Longitude"],
-            parse_and_filter_ev_charging_point_row,
-        ),
-    }
-
-    # Validate all files exist before processing
-    logger.info("Validating CSV files...")
-    for filename in csv_files:
-        if data_dir is None:
-            msg = "data_dir cannot be None"
-            raise ValueError(msg)
-        file_path = data_dir / filename
-        if not file_path.exists():
-            msg = f"Required CSV file not found: {file_path}"
-            raise FileNotFoundError(msg)
+    logger.info("Validating data files...")
+    _validate_files(data_dir, xlsx_path)
 
     logger.info("Processing static car data...")
 
     session = SessionLocal()
-
     try:
-        # Delete existing data in reverse dependency order
-        logger.info("Deleting existing data...")
-        session.execute(delete(TrafficVolume))
-        session.execute(delete(VehicleFirstTime))
-        session.execute(delete(VehicleLicensingArea))
-        session.execute(delete(VehicleNewLicensed))
-        session.execute(delete(VehicleYearly))
-        session.execute(delete(PrivateCarEmission))
-        session.execute(delete(EVChargingPoint))
-        session.execute(delete(ScatsSite))
+        _clear_existing_data(session)
 
-        session.commit()
+        for filename, (required_headers, transform_row) in _CSV_FILES.items():
+            _process_csv_file(
+                session, data_dir, filename, required_headers, transform_row
+            )
 
-        # Process each CSV file
-        for filename, (required_headers, transform_row) in csv_files.items():
-            logger.info("Processing %s...", filename)
-            file_path = data_dir / filename
-
-            rows = []
-            for csv_row in read_csv_file(file_path, required_headers):
-                parsed_row = transform_row(csv_row)
-
-                # Skip None rows (e.g., non-Dublin charging points)
-                if parsed_row is not None:
-                    rows.append(parsed_row)
-
-            session.add_all(rows)
-            logger.info("  Added %d rows from %s", len(rows), filename)
+        _process_emission_files(session, data_dir)
+        _process_ev_charging_points(session, xlsx_path)
+        _process_traffic_volumes(session, data_dir)
 
         logger.info("Committing changes to database...")
         session.commit()
