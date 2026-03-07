@@ -59,7 +59,10 @@ def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume | None:
     Returns None for malformed rows (e.g. truncated lines where DictReader
     fills missing fields with None).
     """
-    if any(row.get(col) is None for col in ("End_Time", "Site", "Detector", "Sum_Volume", "Avg_Volume")):
+    if any(
+        row.get(col) is None
+        for col in ("End_Time", "Site", "Detector", "Sum_Volume", "Avg_Volume")
+    ):
         logger.warning("Skipping malformed traffic volume row: %s", row)
         return None
     return TrafficVolume(
@@ -401,7 +404,9 @@ def _process_traffic_volumes(session: Session, data_dir: Path) -> None:
     """
     file_path = data_dir / _TRAFFIC_VOLUME_FILE
     if not file_path.exists():
-        logger.info("No traffic volume file found (%s), skipping.", _TRAFFIC_VOLUME_FILE)
+        logger.info(
+            "No traffic volume file found (%s), skipping.", _TRAFFIC_VOLUME_FILE
+        )
         return
 
     logger.info("Processing %s (this may take a while)...", _TRAFFIC_VOLUME_FILE)
