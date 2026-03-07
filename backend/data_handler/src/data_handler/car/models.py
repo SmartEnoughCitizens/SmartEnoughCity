@@ -4,9 +4,9 @@ import enum
 from datetime import datetime
 from typing import ClassVar
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from data_handler.db import Base
 from data_handler.settings.database_settings import get_db_settings
@@ -35,12 +35,18 @@ class TaxationClass(enum.Enum):
     """Vehicle taxation classes."""
 
     ALL_VEHICLES = "All Vehicles"
+    ALL_PRIVATE_CARS = "All Private Cars"
+    ALL_GOODS_VEHICLES = "All Goods Vehicles"
+    ALL_TRACTORS = "All Tractors"
+    ALL_MOTOR_CYCLES = "All Motor Cycles"
+    ALL_OTHER_VEHICLES = "All Other Vehicles"
     NEW_VEHICLES = "New Vehicles"
     NEW_PRIVATE_CARS = "New Private Cars"
     NEW_GOODS_VEHICLES = "New Goods Vehicles"
     NEW_TRACTORS = "New Tractors"
     NEW_MOTOR_CYCLES = "New Motor Cycles"
     NEW_EXEMPT_VEHICLES = "New Exempt Vehicles"
+    NEW_OTHER_VEHICLES = "New Other Vehicles"
     NEC = "New public service vehicles, heavy agricultural and plant machinery and vehicles (NEC)"
     SECONDHAND_VEHICLES = "Secondhand Vehicles"
     SECONDHAND_PRIVATE_CARS = "Secondhand Private Cars"
@@ -55,6 +61,7 @@ class FuelType(enum.Enum):
 
     PETROL = "Petrol"
     DIESEL = "Diesel"
+    HYBRID = "Hybrid"
     ELECTRIC = "Electric"
     PETROL_AND_ELECTRIC_HYBRID = "Petrol and electric hybrid"
     PETROL_OR_DIESEL_PLUG_IN_HYBRID_ELECTRIC = (
@@ -99,9 +106,6 @@ class ScatsSite(Base):
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lon: Mapped[float] = mapped_column(Float, nullable=False)
 
-    # Relationships
-    traffic_volumes: Mapped[list["TrafficVolume"]] = relationship(back_populates="site")
-
 
 class TrafficVolume(Base):
     """Hourly traffic volume data from SCATS detectors."""
@@ -116,17 +120,13 @@ class TrafficVolume(Base):
 
     # Composite primary key
     end_time: Mapped[datetime] = mapped_column(DateTime, primary_key=True)
-    site_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{DB_SCHEMA}.scats_sites.site_id"), primary_key=True
-    )
+    # No FK to scats_sites — volume files cover sites beyond the reference CSV vintage
+    site_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     detector: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     region: Mapped[str] = mapped_column(String, nullable=False)
     sum_volume: Mapped[int] = mapped_column(Integer, nullable=False)
     avg_volume: Mapped[int] = mapped_column(Integer, nullable=False)
-
-    # Relationships
-    site: Mapped["ScatsSite"] = relationship(back_populates="traffic_volumes")
 
 
 class VehicleFirstTime(Base):
