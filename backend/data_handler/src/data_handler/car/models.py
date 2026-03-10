@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from typing import ClassVar
 
-from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -120,8 +120,11 @@ class TrafficVolume(Base):
 
     # Composite primary key
     end_time: Mapped[datetime] = mapped_column(DateTime, primary_key=True)
-    # No FK to scats_sites — volume files cover sites beyond the reference CSV vintage
-    site_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    site_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey(f"{DB_SCHEMA}.scats_sites.site_id"),
+        primary_key=True,
+    )
     detector: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     region: Mapped[str] = mapped_column(String, nullable=False)

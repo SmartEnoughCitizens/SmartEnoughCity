@@ -5,7 +5,6 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-import pandas as pd
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
@@ -65,14 +64,18 @@ def parse_traffic_volume_row(row: dict[str, str]) -> TrafficVolume | None:
     ):
         logger.warning("Skipping malformed traffic volume row: %s", row)
         return None
-    return TrafficVolume(
-        end_time=parse_scats_time(row["End_Time"]),
-        site_id=int(row["Site"]),
-        detector=int(row["Detector"]),
-        region=row["Region"].strip(),
-        sum_volume=int(row["Sum_Volume"]),
-        avg_volume=int(row["Avg_Volume"]),
-    )
+    try:
+        return TrafficVolume(
+            end_time=parse_scats_time(row["End_Time"]),
+            site_id=int(row["Site"]),
+            detector=int(row["Detector"]),
+            region=row["Region"].strip(),
+            sum_volume=int(row["Sum_Volume"]),
+            avg_volume=int(row["Avg_Volume"]),
+        )
+    except (ValueError, KeyError):
+        logger.warning("Skipping unparseable traffic volume row: %s", row)
+        return None
 
 
 def parse_vehicle_first_time_row(row: dict[str, str]) -> VehicleFirstTime | None:
@@ -298,7 +301,8 @@ _EMISSION_REQUIRED_HEADERS = [
     "VALUE",
 ]
 
-_XLSX_FILE = "ESB- EV-charge-point-locations.xlsx"
+_EV_CSV_FILE = "ESB-_EV-charge-point-locations.csv"
+_EV_CSV_REQUIRED_HEADERS = ["County", "Latitude", "Longitude"]
 
 _TRAFFIC_VOLUME_FILE = "SCATSAugust2025.csv"
 _TRAFFIC_VOLUME_REQUIRED_HEADERS = [
@@ -312,7 +316,7 @@ _TRAFFIC_VOLUME_REQUIRED_HEADERS = [
 _TRAFFIC_VOLUME_CHUNK_SIZE = 10_000
 
 
-def _validate_files(data_dir: Path, xlsx_path: Path) -> None:
+def _validate_files(data_dir: Path, ev_csv_path: Path) -> None:
     """Raise if data_dir is None or any required file is missing."""
     if data_dir is None:
         msg = "data_dir cannot be None"
@@ -324,8 +328,8 @@ def _validate_files(data_dir: Path, xlsx_path: Path) -> None:
             msg = f"Required file not found: {file_path}"
             raise FileNotFoundError(msg)
 
-    if not xlsx_path.exists():
-        msg = f"Required file not found: {xlsx_path}"
+    if not ev_csv_path.exists():
+        msg = f"Required file not found: {ev_csv_path}"
         raise FileNotFoundError(msg)
 
 
@@ -410,12 +414,21 @@ def _process_traffic_volumes(session: Session, data_dir: Path) -> None:
         return
 
     logger.info("Processing %s (this may take a while)...", _TRAFFIC_VOLUME_FILE)
+
+    session.flush()  # ensure ScatsSites inserted earlier are visible to the query below
+    known_site_ids = {site_id for (site_id,) in session.query(ScatsSite.site_id).all()}
+    logger.info("  Filtering to %d known SCATS sites", len(known_site_ids))
+
     chunk: list[TrafficVolume] = []
     total = 0
+    skipped = 0
 
     for csv_row in read_csv_file(file_path, _TRAFFIC_VOLUME_REQUIRED_HEADERS):
         parsed_row = parse_traffic_volume_row(csv_row)
         if parsed_row is None:
+            continue
+        if parsed_row.site_id not in known_site_ids:
+            skipped += 1
             continue
         chunk.append(parsed_row)
         if len(chunk) >= _TRAFFIC_VOLUME_CHUNK_SIZE:
@@ -430,16 +443,20 @@ def _process_traffic_volumes(session: Session, data_dir: Path) -> None:
         session.flush()
         total += len(chunk)
 
-    logger.info("  Added %d rows from %s", total, _TRAFFIC_VOLUME_FILE)
+    logger.info(
+        "  Added %d rows from %s (%d skipped — unknown sites)",
+        total,
+        _TRAFFIC_VOLUME_FILE,
+        skipped,
+    )
 
 
-def _process_ev_charging_points(session: Session, xlsx_path: Path) -> None:
-    """Read XLSX and bulk-add Dublin EV charging point rows to *session*."""
-    logger.info("Processing %s...", xlsx_path.name)
-    df = pd.read_excel(xlsx_path, dtype=str, keep_default_na=False)
+def _process_ev_charging_points(session: Session, ev_csv_path: Path) -> None:
+    """Read CSV and bulk-add Dublin EV charging point rows to *session*."""
+    logger.info("Processing %s...", ev_csv_path.name)
     ev_rows = []
-    for _, row_data in df.iterrows():
-        parsed_row = parse_and_filter_ev_charging_point_row(dict(row_data))
+    for csv_row in read_csv_file(ev_csv_path, _EV_CSV_REQUIRED_HEADERS):
+        parsed_row = parse_and_filter_ev_charging_point_row(csv_row)
         if parsed_row is not None:
             ev_rows.append(parsed_row)
 
@@ -465,10 +482,10 @@ def process_car_static_data(data_dir: Path) -> None:
         FileNotFoundError: If any required file is missing
         ValueError: If any CSV file is missing required headers or row data is invalid
     """
-    xlsx_path = data_dir / _XLSX_FILE if data_dir is not None else Path(_XLSX_FILE)
+    ev_csv_path = data_dir / _EV_CSV_FILE if data_dir is not None else Path(_EV_CSV_FILE)
 
     logger.info("Validating data files...")
-    _validate_files(data_dir, xlsx_path)
+    _validate_files(data_dir, ev_csv_path)
 
     logger.info("Processing static car data...")
 
@@ -482,7 +499,7 @@ def process_car_static_data(data_dir: Path) -> None:
             )
 
         _process_emission_files(session, data_dir)
-        _process_ev_charging_points(session, xlsx_path)
+        _process_ev_charging_points(session, ev_csv_path)
         _process_traffic_volumes(session, data_dir)
 
         logger.info("Committing changes to database...")

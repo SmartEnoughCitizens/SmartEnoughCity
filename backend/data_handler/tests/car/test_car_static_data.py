@@ -29,8 +29,8 @@ def test_process_car_static_data(db_session: Session) -> None:
     # ASSERT: Verify row counts
     assert_row_count(db_session, "scats_sites", 3)
     assert_row_count(
-        db_session, "traffic_volumes", 0
-    )  # Not populated from static files
+        db_session, "traffic_volumes", 3
+    )  # 1 unknown site (999) and 1 malformed row filtered out
     assert_row_count(db_session, "vehicle_first_time", 3)
     assert_row_count(db_session, "vehicle_licensing_area", 3)
     assert_row_count(db_session, "vehicle_new_licensed", 2)
@@ -66,6 +66,38 @@ def test_process_car_static_data(db_session: Session) -> None:
                 "region": "Dublin",
                 "lat": 53.3428,
                 "lon": -6.2597,
+            },
+        ],
+    )
+
+    # ASSERT: Verify traffic volumes (unknown site 999 and malformed row filtered out)
+    assert_rows(
+        db_session,
+        "traffic_volumes",
+        [
+            {
+                "end_time": datetime(2025, 8, 26, 0, 0, 0),
+                "site_id": 123,
+                "detector": 1,
+                "region": "Dublin",
+                "sum_volume": 100,
+                "avg_volume": 50,
+            },
+            {
+                "end_time": datetime(2025, 8, 26, 0, 0, 0),
+                "site_id": 456,
+                "detector": 1,
+                "region": "Dublin",
+                "sum_volume": 200,
+                "avg_volume": 80,
+            },
+            {
+                "end_time": datetime(2025, 8, 26, 0, 0, 0),
+                "site_id": 789,
+                "detector": 1,
+                "region": "Dublin",
+                "sum_volume": 150,
+                "avg_volume": 60,
             },
         ],
     )
