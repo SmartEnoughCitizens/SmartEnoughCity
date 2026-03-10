@@ -191,7 +191,7 @@ export const CarDashboard = () => {
                     <br />
                     Day Type: {point.dayType}
                     <br />
-                    Time Slot: {point.timeSlot.replace(/_/g, " ")}
+                    Time Slot: {point.timeSlot.replaceAll(/_/g, " ")}
                   </Popup>
                 </CircleMarker>
             ))}
