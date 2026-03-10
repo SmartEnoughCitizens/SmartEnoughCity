@@ -21,6 +21,9 @@ const BusDashboard = lazy(() =>
 const CycleDashboard = lazy(() =>
   import("@/pages/CycleDashboard").then((m) => ({ default: m.CycleDashboard })),
 );
+const CarDashboard = lazy(() =>
+  import("@/pages/CarDashboard").then((m) => ({ default: m.CarDashboard })),
+);
 const NotificationsPage = lazy(() =>
   import("@/pages/NotificationsPage").then((m) => ({
     default: m.NotificationsPage,
@@ -93,6 +96,18 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <LazyWrapper>
             <CycleDashboard />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/car",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <CarDashboard />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>
