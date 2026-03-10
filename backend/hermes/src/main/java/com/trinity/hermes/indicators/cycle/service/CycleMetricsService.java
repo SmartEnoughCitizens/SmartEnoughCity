@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class CycleMetricsService {
-
-  private static final int DEFAULT_RANKING_LIMIT = 10;
-  private static final int DEFAULT_EVENTS_LIMIT = 50;
 
   private final DublinBikesStationRepository stationRepository;
   private final DublinBikesSnapshotRepository snapshotRepository;
@@ -111,7 +109,7 @@ public class CycleMetricsService {
     log.debug("Fetching {} time series for station {}", granularity, stationId);
 
     List<Object[]> rows =
-        switch (granularity.toLowerCase()) {
+        switch (granularity.toLowerCase(Locale.ROOT)) {
           case "hour" -> historyRepository.findHourlyTimeSeriesForStation(stationId, from, to);
           case "week" -> historyRepository.findWeeklyTimeSeriesForStation(stationId, from, to);
           default -> historyRepository.findDailyTimeSeriesForStation(stationId, from, to);
