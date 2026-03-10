@@ -6,7 +6,7 @@ from typing import ClassVar
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from data_handler.db import Base
 from data_handler.settings.database_settings import get_db_settings
@@ -106,6 +106,9 @@ class ScatsSite(Base):
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lon: Mapped[float] = mapped_column(Float, nullable=False)
 
+    # Relationships
+    traffic_volumes: Mapped[list["TrafficVolume"]] = relationship(back_populates="site")
+
 
 class TrafficVolume(Base):
     """Hourly traffic volume data from SCATS detectors."""
@@ -130,6 +133,9 @@ class TrafficVolume(Base):
     region: Mapped[str] = mapped_column(String, nullable=False)
     sum_volume: Mapped[int] = mapped_column(Integer, nullable=False)
     avg_volume: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Relationships
+    site: Mapped["ScatsSite"] = relationship(back_populates="traffic_volumes")
 
 
 class VehicleFirstTime(Base):
