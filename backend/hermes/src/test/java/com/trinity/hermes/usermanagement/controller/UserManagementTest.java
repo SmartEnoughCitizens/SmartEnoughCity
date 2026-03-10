@@ -65,7 +65,9 @@ class UserManagementTest {
 
   @Autowired MockMvc mockMvc;
   @Autowired ObjectMapper objectMapper;
-  @org.springframework.test.context.bean.override.mockito.MockitoBean MailService mailService;
+
+  @org.springframework.test.context.bean.override.mockito.MockitoBean(name = "getMailService")
+  MailService mailService;
 
   private String token(String username, String password) {
     String tokenUrl =
