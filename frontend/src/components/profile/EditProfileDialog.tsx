@@ -2,7 +2,7 @@
  * Dialog for editing the current user's profile
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Button,
@@ -35,36 +35,27 @@ export const EditProfileDialog = ({
   onClose,
   onSuccess,
 }: EditProfileDialogProps) => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  // Track only user edits — fall back to fetched data when no override exists
+  const [edits, setEdits] = useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  }>({});
 
   const profileQuery = useGetProfile();
   const updateMutation = useUpdateProfile();
 
-  useEffect(() => {
-    if (profileQuery.data) {
-      setFirstName(profileQuery.data.firstName ?? "");
-      setLastName(profileQuery.data.lastName ?? "");
-      setEmail(profileQuery.data.email ?? "");
-    }
-  }, [profileQuery.data]);
-
-  const resetForm = () => {
-    if (profileQuery.data) {
-      setFirstName(profileQuery.data.firstName ?? "");
-      setLastName(profileQuery.data.lastName ?? "");
-      setEmail(profileQuery.data.email ?? "");
-    }
-    updateMutation.reset();
-  };
+  const firstName = edits.firstName ?? profileQuery.data?.firstName ?? "";
+  const lastName = edits.lastName ?? profileQuery.data?.lastName ?? "";
+  const email = edits.email ?? profileQuery.data?.email ?? "";
 
   const handleClose = () => {
-    resetForm();
+    setEdits({});
+    updateMutation.reset();
     onClose();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const response = await updateMutation.mutateAsync({
@@ -101,7 +92,9 @@ export const EditProfileDialog = ({
           <TextField
             label="First Name"
             value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            onChange={(e) =>
+              setEdits((prev) => ({ ...prev, firstName: e.target.value }))
+            }
             disabled={updateMutation.isPending || profileQuery.isLoading}
             required
             fullWidth
@@ -110,7 +103,9 @@ export const EditProfileDialog = ({
           <TextField
             label="Last Name"
             value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
+            onChange={(e) =>
+              setEdits((prev) => ({ ...prev, lastName: e.target.value }))
+            }
             disabled={updateMutation.isPending || profileQuery.isLoading}
             required
             fullWidth
@@ -120,7 +115,9 @@ export const EditProfileDialog = ({
             label="Email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) =>
+              setEdits((prev) => ({ ...prev, email: e.target.value }))
+            }
             disabled={updateMutation.isPending || profileQuery.isLoading}
             required
             fullWidth
