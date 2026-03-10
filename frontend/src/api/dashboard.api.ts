@@ -10,8 +10,10 @@ import type {
   BusLiveVehicle,
   BusRouteUtilization,
   BusSystemPerformance,
+  CarFuelTypeStat,
   CycleDashboardResponse,
   CycleStation,
+  HighTrafficPoint,
   IndicatorType,
 } from "@/types";
 
@@ -117,6 +119,26 @@ export const dashboardApi = {
   getBusSystemPerformance: async (): Promise<BusSystemPerformance> => {
     const { data } = await axiosInstance.get<BusSystemPerformance>(
       API_ENDPOINTS.BUS_SYSTEM_PERFORMANCE,
+    );
+    return data;
+  },
+
+  /**
+   * Get car fuel type statistics
+   */
+  getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
+    const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
+      API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
+    );
+    return data;
+  },
+
+  /**
+   * Get high traffic points with location and time slot data
+   */
+  getCarHighTrafficPoints: async (): Promise<HighTrafficPoint[]> => {
+    const { data } = await axiosInstance.get<HighTrafficPoint[]>(
+      API_ENDPOINTS.CAR_HIGH_TRAFFIC_POINTS,
     );
     return data;
   },

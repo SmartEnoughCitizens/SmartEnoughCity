@@ -33,6 +33,10 @@ export const API_ENDPOINTS = {
   DASHBOARD_BUS_ROUTES: "/api/v1/dashboard/bus/routes",
   DASHBOARD_INDICATOR_TYPES: "/api/v1/dashboard/indicators/types",
 
+  // Car Indicators
+  CAR_FUEL_TYPE_STATISTICS: "/api/v1/car/fuel-type-statistics",
+  CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
+
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
   BUS_LIVE_VEHICLES: "/api/v1/bus/live-vehicles",
