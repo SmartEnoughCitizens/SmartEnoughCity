@@ -217,6 +217,3 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-
-
-src/data_handler/events/test.py
