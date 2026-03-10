@@ -18,6 +18,8 @@ export const DASHBOARD_KEYS = {
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
   busSystemPerformance: ["bus", "system-performance"] as const,
+  carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
+  carHighTrafficPoints: ["car", "high-traffic-points"] as const,
   trainKpis: ["train", "kpis"] as const,
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
@@ -149,6 +151,28 @@ export const useBusSystemPerformance = () => {
     staleTime: 60_000,
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get car fuel type statistics
+ */
+export const useCarFuelTypeStatistics = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.carFuelTypeStatistics,
+    queryFn: () => dashboardApi.getCarFuelTypeStatistics(),
+    staleTime: 300_000,
+  });
+};
+
+/**
+ * Get high traffic points with location and time slot data
+ */
+export const useCarHighTrafficPoints = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.carHighTrafficPoints,
+    queryFn: () => dashboardApi.getCarHighTrafficPoints(),
+    staleTime: 300_000,
   });
 };
 
