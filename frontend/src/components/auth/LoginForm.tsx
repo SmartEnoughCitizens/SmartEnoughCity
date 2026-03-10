@@ -47,11 +47,7 @@ export const LoginForm = () => {
         }),
       );
 
-      if (response.passwordChangeRequired) {
-        navigate("/change-password");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate("/dashboard");
     } catch {
       // Error is handled by mutation
     }

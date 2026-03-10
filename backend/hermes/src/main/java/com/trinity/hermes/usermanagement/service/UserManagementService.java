@@ -87,7 +87,6 @@ public class UserManagementService {
     user.setLastName(request.getLastName());
     user.setEnabled(true);
     user.setEmailVerified(true);
-    user.setAttributes(Map.of("passwordChangeRequired", List.of("true")));
 
     Response response = getUsersResource().create(user);
 
@@ -106,8 +105,8 @@ public class UserManagementService {
     credential.setTemporary(false);
 
     getUsersResource().get(userId).resetPassword(credential);
-    // log.info("Temporary password set for user: {} | temp password: {}", request.getUsername(), tempPassword);
-      log.info("Temporary password set for user: {} ", request.getUsername());
+
+    log.info("Temporary password set for user: {}", request.getUsername());
 
 
     assignRole(userId, request.getRole());
@@ -126,51 +125,6 @@ public class UserManagementService {
         request.getEmail(),
         request.getRole(),
         message);
-  }
-
-  /**
-   * Checks whether the user must change their password on first login.
-   *
-   * @param username the username to check
-   * @return true if passwordChangeRequired attribute is set to "true"
-   */
-  public boolean isPasswordChangeRequired(String username) {
-    List<UserRepresentation> users = getUsersResource().search(username, 0, 1);
-    return users.stream()
-        .filter(u -> u.getUsername().equalsIgnoreCase(username))
-        .findFirst()
-        .map(
-            u -> {
-              Map<String, List<String>> attrs = u.getAttributes();
-              if (attrs == null) return false;
-              List<String> values = attrs.get("passwordChangeRequired");
-              return values != null && values.contains("true");
-            })
-        .orElse(false);
-  }
-
-  /**
-   * Resets a user's password and clears the passwordChangeRequired attribute.
-   *
-   * @param userId the Keycloak user ID (JWT subject)
-   * @param newPassword the new password to set
-   */
-  public void changePassword(String userId, String newPassword) {
-    CredentialRepresentation credential = new CredentialRepresentation();
-    credential.setType(CredentialRepresentation.PASSWORD);
-    credential.setValue(newPassword);
-    credential.setTemporary(false);
-    getUsersResource().get(userId).resetPassword(credential);
-
-    UserRepresentation userRep = getUsersResource().get(userId).toRepresentation();
-    Map<String, List<String>> attrs = userRep.getAttributes();
-    if (attrs != null) {
-      attrs.remove("passwordChangeRequired");
-      userRep.setAttributes(attrs);
-    }
-    getUsersResource().get(userId).update(userRep);
-
-    log.info("Password changed for user ID: {}", userId);
   }
 
   /**
@@ -284,7 +238,6 @@ public class UserManagementService {
             + tempPassword
             + "</td></tr>"
             + "</table>"
-            + "<p>You will be asked to set a new password after your first login.</p>"
             + "<p style='color: #888; font-size: 12px;'>If you did not expect this email, "
             + "please ignore it.</p>"
             + "</div>";

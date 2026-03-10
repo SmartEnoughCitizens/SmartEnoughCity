@@ -1,7 +1,6 @@
 package com.trinity.hermes.usermanagement.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
-import com.trinity.hermes.usermanagement.dto.ChangePasswordRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
@@ -177,33 +176,6 @@ public class UserManagementController {
       }
     }
     return Set.of();
-  }
-
-  /**
-   * Retrieves users that the caller is allowed to manage based on their role.
-   *
-   * @param jwt authenticated JWT of the caller
-   * @return list of manageable users or an error response
-   */
-  /**
-   * Changes the authenticated user's password and clears the passwordChangeRequired flag.
-   *
-   * @param request contains the new password
-   * @param jwt authenticated JWT of the caller
-   * @return success or error response
-   */
-  @PostMapping("/change-password")
-  public ResponseEntity<?> changePassword(
-      @Valid @RequestBody ChangePasswordRequest request, @AuthenticationPrincipal Jwt jwt) {
-
-    String userId = jwt.getSubject();
-    try {
-      userManagementService.changePassword(userId, request.getNewPassword());
-      return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
-    } catch (RuntimeException e) {
-      log.error("Error changing password for user ID {}: {}", userId, e.getMessage());
-      return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-    }
   }
 
   @GetMapping("/users")

@@ -14,7 +14,6 @@ export interface LoginResponse {
   refreshToken: string;
   username: string;
   message: string;
-  passwordChangeRequired: boolean;
 }
 
 export interface ErrorResponse {
