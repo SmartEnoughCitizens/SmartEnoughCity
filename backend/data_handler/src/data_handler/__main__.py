@@ -8,9 +8,17 @@ from data_handler.cycle.csv_import_handler import import_all_station_history_csv
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
 from data_handler.db import Base, engine
+from data_handler.events.data_handler import (
+    fetch_and_store_events,
+    fetch_and_store_venues,
+)
 from data_handler.logging import configure_logging
 from data_handler.settings.data_sources_settings import get_data_sources_settings
 from data_handler.settings.database_settings import get_db_settings
+from data_handler.train.realtime_handler import irish_rail_realtime_to_db
+from data_handler.train.static_data_handler import process_train_static_data
+from data_handler.tram.forecast_handler import luas_forecasts_to_db
+from data_handler.tram.static_data_handler import process_tram_static_data
 
 
 def get_args() -> argparse.Namespace:
@@ -53,6 +61,30 @@ def main_static() -> None:
     else:
         logger.info("Skipping cycle static data processing...")
 
+    if (
+        sources_settings.enable_train_data
+        and sources_settings.train_gtfs_static_data_dir
+    ):
+        logger.info("Processing train static data...")
+        process_train_static_data(sources_settings.train_gtfs_static_data_dir)
+    else:
+        logger.info("Skipping train static data processing...")
+
+    if sources_settings.enable_events_data:
+        logger.info("Seeding event venues from Ticketmaster...")
+        fetch_and_store_venues()
+    else:
+        logger.info("Skipping events venue seeding...")
+
+    if sources_settings.enable_tram_data and sources_settings.tram_gtfs_static_data_dir:
+        logger.info("Processing tram static data...")
+        process_tram_static_data(
+            sources_settings.tram_gtfs_static_data_dir,
+            sources_settings.tram_cso_static_data_dir,
+        )
+    else:
+        logger.info("Skipping tram static data processing...")
+
     logger.info("Finished processing static data.")
 
 
@@ -71,11 +103,13 @@ def main_dynamic() -> None:
     print(f"  - Bus data: {sources_settings.enable_bus_data}")
     print(f"  - Train data: {sources_settings.enable_train_data}")
     print(f"  - Tram data: {sources_settings.enable_tram_data}")
-    print(f"  - Construction data: {sources_settings.enable_construction_data}\n")
+    print(f"  - Construction data: {sources_settings.enable_construction_data}")
+    print(f"  - Events data: {sources_settings.enable_events_data}\n")
 
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
         print("Processing train data...")
+        irish_rail_realtime_to_db()
 
     if sources_settings.enable_cycle_data:
         print("Processing cycle data...")
@@ -90,9 +124,14 @@ def main_dynamic() -> None:
 
     if sources_settings.enable_tram_data:
         print("Processing tram data...")
+        luas_forecasts_to_db()
 
     if sources_settings.enable_construction_data:
         print("Processing construction data...")
+
+    if sources_settings.enable_events_data:
+        print("Processing events data...")
+        fetch_and_store_events()
 
 
 def main_import_history() -> None:
