@@ -18,7 +18,11 @@ import { useAppSelector } from "@/store/hooks";
 import "leaflet/dist/leaflet.css";
 
 type DayTypeFilter = "weekday" | "weekend";
-type TimeSlotFilter = "morning_peak" | "inter_peak" | "evening_peak" | "off_peak";
+type TimeSlotFilter =
+  | "morning_peak"
+  | "inter_peak"
+  | "evening_peak"
+  | "off_peak";
 
 const FuelTypeTile = ({
   fuelType,
@@ -85,7 +89,7 @@ export const CarDashboard = () => {
     const ratio = volume / maxVolume;
     if (ratio > 0.66) return "#dc2626"; // high   — red
     if (ratio > 0.33) return "#f97316"; // medium — orange
-    return "#16a34a";                   // low    — green
+    return "#16a34a"; // low    — green
   };
 
   const dublinCenter: [number, number] = [53.3498, -6.2603];
@@ -116,7 +120,15 @@ export const CarDashboard = () => {
   }
 
   return (
-    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3, height: "100%" }}>
+    <Box
+      sx={{
+        p: 3,
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        height: "100%",
+      }}
+    >
       {/* Fuel Type Tiles */}
       <Box sx={{ flexShrink: 0 }}>
         <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
@@ -134,7 +146,9 @@ export const CarDashboard = () => {
       </Box>
 
       {/* High Traffic Points Map */}
-      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <Box
+        sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+      >
         <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
           High Traffic Points — Dublin
         </Typography>
@@ -164,7 +178,16 @@ export const CarDashboard = () => {
           </ToggleButtonGroup>
         </Box>
 
-        <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 2,
+            overflow: "hidden",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <MapContainer
             center={dublinCenter}
             zoom={12}
@@ -173,27 +196,27 @@ export const CarDashboard = () => {
           >
             <TileLayer attribution={tileAttribution} url={tileUrl} />
             {filteredPoints?.map((point, idx) => (
-                <CircleMarker
-                  key={`${point.siteId}-${idx}`}
-                  center={[point.lat, point.lon]}
-                  radius={6}
-                  pathOptions={{
-                    color: "#fff",
-                    weight: 1.5,
-                    fillColor: getMarkerColor(point.avgVolume),
-                    fillOpacity: 0.8,
-                  }}
-                >
-                  <Popup>
-                    <strong>Site {point.siteId}</strong>
-                    <br />
-                    Avg Volume: {point.avgVolume.toFixed(2)}
-                    <br />
-                    Day Type: {point.dayType}
-                    <br />
-                    Time Slot: {point.timeSlot.replaceAll(/_/g, " ")}
-                  </Popup>
-                </CircleMarker>
+              <CircleMarker
+                key={`${point.siteId}-${idx}`}
+                center={[point.lat, point.lon]}
+                radius={6}
+                pathOptions={{
+                  color: "#fff",
+                  weight: 1.5,
+                  fillColor: getMarkerColor(point.avgVolume),
+                  fillOpacity: 0.8,
+                }}
+              >
+                <Popup>
+                  <strong>Site {point.siteId}</strong>
+                  <br />
+                  Avg Volume: {point.avgVolume.toFixed(2)}
+                  <br />
+                  Day Type: {point.dayType}
+                  <br />
+                  Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                </Popup>
+              </CircleMarker>
             ))}
           </MapContainer>
         </Paper>
