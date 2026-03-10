@@ -26,6 +26,24 @@ export interface UserInfo {
   lastName: string;
 }
 
+export interface UserProfile {
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export const ALLOWED_ROLES = [
   "City_Manager",
   "Bus_Admin",
