@@ -18,6 +18,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import TrainIcon from "@mui/icons-material/Train";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -93,6 +94,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       icon: <DirectionsCarIcon />,
       path: "/dashboard/car",
       label: "Car",
+    },
+    {
+      icon: <TrainIcon />,
+      path: "/dashboard/train",
+      label: "Trains",
     },
     {
       icon: (
