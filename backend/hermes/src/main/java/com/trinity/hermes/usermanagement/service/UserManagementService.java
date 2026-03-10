@@ -1,6 +1,7 @@
 package com.trinity.hermes.usermanagement.service;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
+import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import jakarta.ws.rs.core.Response;
@@ -14,6 +15,7 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class UserManagementService {
 
   private final Keycloak keycloak;
   private final String realm;
+  private final MailService mailService;
 
   private static final Set<String> ALLOWED_ROLES =
       Set.of(
@@ -45,9 +48,13 @@ public class UserManagementService {
           "Tram_Admin",
           "Tram_Provider");
 
-  public UserManagementService(Keycloak keycloak, @Value("${keycloak.realm}") String realm) {
+  public UserManagementService(
+      Keycloak keycloak,
+      @Value("${keycloak.realm}") String realm,
+      @Qualifier("getMailService") MailService mailService) {
     this.keycloak = keycloak;
     this.realm = realm;
+    this.mailService = mailService;
   }
 
   private RealmResource getRealmResource() {
@@ -91,28 +98,29 @@ public class UserManagementService {
 
     log.info("User created successfully. ID: {}, Username: {}", userId, request.getUsername());
 
+    String tempPassword = generateTempPassword();
     CredentialRepresentation credential = new CredentialRepresentation();
     credential.setType(CredentialRepresentation.PASSWORD);
-
-    if (request.getPassword() != null && !request.getPassword().isBlank()) {
-      credential.setValue(request.getPassword());
-      credential.setTemporary(false);
-    } else {
-      credential.setValue("ChangeMe@123");
-      credential.setTemporary(true);
-    }
+    credential.setValue(tempPassword);
+    credential.setTemporary(false);
 
     getUsersResource().get(userId).resetPassword(credential);
-    log.info("Password set for user: {}", request.getUsername());
+
+    log.info("Temporary password set for user: {}", request.getUsername());
 
     assignRole(userId, request.getRole());
 
+    String message = "User registered successfully.";
+    try {
+      sendWelcomeEmail(
+          request.getEmail(), request.getUsername(), request.getFirstName(), tempPassword);
+      message = "User registered successfully. A welcome email has been sent.";
+    } catch (Exception e) {
+      log.error("Failed to send welcome email to {}: {}", request.getEmail(), e.getMessage());
+    }
+
     return new RegisterUserResponse(
-        userId,
-        request.getUsername(),
-        request.getEmail(),
-        request.getRole(),
-        "User registered successfully");
+        userId, request.getUsername(), request.getEmail(), request.getRole(), message);
   }
 
   /**
@@ -201,5 +209,35 @@ public class UserManagementService {
     }
 
     return roles.contains(requiredRole);
+  }
+
+  private String generateTempPassword() {
+    return UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "!A1";
+  }
+
+  private void sendWelcomeEmail(
+      String email, String username, String firstName, String tempPassword) {
+    String subject = "You've been invited to SmartEnoughCity Dashboard";
+    String html =
+        "<div style='font-family: Arial, sans-serif; max-width: 600px;'>"
+            + "<h2>Welcome to SmartEnoughCity, "
+            + firstName
+            + "!</h2>"
+            + "<p>Your account has been created. Use the credentials below to log in:</p>"
+            + "<table style='border-collapse: collapse; margin: 16px 0;'>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Username:</td>"
+            + "<td style='padding: 8px;'>"
+            + username
+            + "</td></tr>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Temporary Password:</td>"
+            + "<td style='padding: 8px; font-family: monospace;'>"
+            + tempPassword
+            + "</td></tr>"
+            + "</table>"
+            + "<p style='color: #888; font-size: 12px;'>If you did not expect this email, "
+            + "please ignore it.</p>"
+            + "</div>";
+    mailService.sendEmail(email, subject, html, null);
+    log.info("Welcome email sent to: {}", email);
   }
 }

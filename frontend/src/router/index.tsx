@@ -37,7 +37,6 @@ const UserManagementPage = lazy(() =>
     default: m.UserManagementPage,
   })),
 );
-
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
 const LoadingFallback = () => (
