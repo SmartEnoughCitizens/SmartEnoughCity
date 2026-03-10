@@ -23,6 +23,8 @@ const CycleDashboard = lazy(() =>
 );
 const CarDashboard = lazy(() =>
   import("@/pages/CarDashboard").then((m) => ({ default: m.CarDashboard })),
+const TrainDashboard = lazy(() =>
+  import("@/pages/TrainDashboard").then((m) => ({ default: m.TrainDashboard })),
 );
 const NotificationsPage = lazy(() =>
   import("@/pages/NotificationsPage").then((m) => ({
@@ -103,11 +105,13 @@ export const router = createBrowserRouter([
   },
   {
     path: "/dashboard/car",
+    path: "/dashboard/train",
     element: (
       <ProtectedRoute>
         <DashboardLayout>
           <LazyWrapper>
             <CarDashboard />
+            <TrainDashboard />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>

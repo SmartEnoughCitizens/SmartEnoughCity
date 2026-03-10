@@ -15,6 +15,10 @@ import type {
   CycleStation,
   HighTrafficPoint,
   IndicatorType,
+  TrainDashboardResponse,
+  TrainKpis,
+  TrainLiveTrain,
+  TrainServiceStats,
 } from "@/types";
 
 export const dashboardApi = {
@@ -40,6 +44,19 @@ export const dashboardApi = {
   }): Promise<CycleDashboardResponse> => {
     const { data } = await axiosInstance.get<CycleDashboardResponse>(
       API_ENDPOINTS.DASHBOARD_CYCLE,
+      { params },
+    );
+    return data;
+  },
+
+  /**
+   * Get train station data for dashboard
+   */
+  getTrainData: async (params?: {
+    limit?: number;
+  }): Promise<TrainDashboardResponse> => {
+    const { data } = await axiosInstance.get<TrainDashboardResponse>(
+      API_ENDPOINTS.DASHBOARD_TRAIN,
       { params },
     );
     return data;
@@ -129,6 +146,11 @@ export const dashboardApi = {
   getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
     const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
       API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
+   * Get train dashboard KPIs
+   */
+  getTrainKpis: async (): Promise<TrainKpis> => {
+    const { data } = await axiosInstance.get<TrainKpis>(
+      API_ENDPOINTS.TRAIN_KPIS,
     );
     return data;
   },
@@ -139,6 +161,21 @@ export const dashboardApi = {
   getCarHighTrafficPoints: async (): Promise<HighTrafficPoint[]> => {
     const { data } = await axiosInstance.get<HighTrafficPoint[]>(
       API_ENDPOINTS.CAR_HIGH_TRAFFIC_POINTS,
+   * Get live train positions
+   */
+  getTrainLiveTrains: async (): Promise<TrainLiveTrain[]> => {
+    const { data } = await axiosInstance.get<TrainLiveTrain[]>(
+      API_ENDPOINTS.TRAIN_LIVE_TRAINS,
+    );
+    return data;
+  },
+
+  /**
+   * Get train service reliability stats
+   */
+  getTrainServiceStats: async (): Promise<TrainServiceStats> => {
+    const { data } = await axiosInstance.get<TrainServiceStats>(
+      API_ENDPOINTS.TRAIN_SERVICE_STATS,
     );
     return data;
   },
