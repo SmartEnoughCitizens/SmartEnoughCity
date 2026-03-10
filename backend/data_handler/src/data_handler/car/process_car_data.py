@@ -482,7 +482,9 @@ def process_car_static_data(data_dir: Path) -> None:
         FileNotFoundError: If any required file is missing
         ValueError: If any CSV file is missing required headers or row data is invalid
     """
-    ev_csv_path = data_dir / _EV_CSV_FILE if data_dir is not None else Path(_EV_CSV_FILE)
+    ev_csv_path = (
+        data_dir / _EV_CSV_FILE if data_dir is not None else Path(_EV_CSV_FILE)
+    )
 
     logger.info("Validating data files...")
     _validate_files(data_dir, ev_csv_path)
