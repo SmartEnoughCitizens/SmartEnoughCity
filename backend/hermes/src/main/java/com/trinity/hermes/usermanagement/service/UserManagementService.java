@@ -108,23 +108,19 @@ public class UserManagementService {
 
     log.info("Temporary password set for user: {}", request.getUsername());
 
-
     assignRole(userId, request.getRole());
 
     String message = "User registered successfully.";
     try {
-      sendWelcomeEmail(request.getEmail(), request.getUsername(), request.getFirstName(), tempPassword);
+      sendWelcomeEmail(
+          request.getEmail(), request.getUsername(), request.getFirstName(), tempPassword);
       message = "User registered successfully. A welcome email has been sent.";
     } catch (Exception e) {
       log.error("Failed to send welcome email to {}: {}", request.getEmail(), e.getMessage());
     }
 
     return new RegisterUserResponse(
-        userId,
-        request.getUsername(),
-        request.getEmail(),
-        request.getRole(),
-        message);
+        userId, request.getUsername(), request.getEmail(), request.getRole(), message);
   }
 
   /**

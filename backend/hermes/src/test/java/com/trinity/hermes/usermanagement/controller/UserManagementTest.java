@@ -4,10 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.trinity.hermes.notification.services.mail.MailService;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.trinity.hermes.usermanagement.common.TestUtils;
+import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import java.util.Map;
