@@ -28,10 +28,15 @@ export const API_ENDPOINTS = {
   // Dashboard
   DASHBOARD_BUS: "/api/v1/dashboard/bus",
   DASHBOARD_CYCLE: "/api/v1/dashboard/cycle",
+  DASHBOARD_TRAIN: "/api/v1/dashboard/train",
   DASHBOARD_CYCLE_AVAILABLE_BIKES: "/api/v1/dashboard/cycle/available-bikes",
   DASHBOARD_CYCLE_AVAILABLE_DOCKS: "/api/v1/dashboard/cycle/available-docks",
   DASHBOARD_BUS_ROUTES: "/api/v1/dashboard/bus/routes",
   DASHBOARD_INDICATOR_TYPES: "/api/v1/dashboard/indicators/types",
+
+  // Car Indicators
+  CAR_FUEL_TYPE_STATISTICS: "/api/v1/car/fuel-type-statistics",
+  CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
@@ -39,6 +44,11 @@ export const API_ENDPOINTS = {
   BUS_ROUTE_UTILIZATION: "/api/v1/bus/route-utilization",
   BUS_SYSTEM_PERFORMANCE: "/api/v1/bus/system-performance",
   BUS_METRICS_REFRESH: "/api/v1/bus/metrics/refresh",
+
+  // Train Indicators
+  TRAIN_KPIS: "/api/v1/train/kpis",
+  TRAIN_LIVE_TRAINS: "/api/v1/train/live-trains",
+  TRAIN_SERVICE_STATS: "/api/v1/train/service-stats",
 
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
