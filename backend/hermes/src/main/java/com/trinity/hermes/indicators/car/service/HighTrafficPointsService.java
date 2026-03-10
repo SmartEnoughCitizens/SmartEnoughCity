@@ -31,15 +31,13 @@ public class HighTrafficPointsService {
     List<Object[]> rows = highTrafficPointsRepository.findAggregatedTrafficWithLocation();
 
     // Step 1: classify each raw row with dayType and timeSlot
-    List<ClassifiedRow> classified =
-        rows.stream().map(this::classify).collect(Collectors.toList());
+    List<ClassifiedRow> classified = rows.stream().map(this::classify).collect(Collectors.toList());
 
     // Step 2: group by (siteId, dayType, timeSlot) and compute average volume
     Map<String, List<ClassifiedRow>> grouped =
         classified.stream()
             .collect(
-                Collectors.groupingBy(
-                    r -> r.siteId() + "|" + r.dayType() + "|" + r.timeSlot()));
+                Collectors.groupingBy(r -> r.siteId() + "|" + r.dayType() + "|" + r.timeSlot()));
 
     return grouped.values().stream()
         .map(

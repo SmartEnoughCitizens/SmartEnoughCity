@@ -23,10 +23,12 @@ public class CarDashboardService {
     List<Object[]> rows = carStatisticsRepository.findTotalCountByFuelType();
 
     return rows.stream()
-        .map(row -> CarDashboardDTO.builder()
-            .fuelType((String) row[0])
-            .count(((Number) row[1]).longValue())
-            .build())
+        .map(
+            row ->
+                CarDashboardDTO.builder()
+                    .fuelType((String) row[0])
+                    .count(((Number) row[1]).longValue())
+                    .build())
         .collect(Collectors.toList());
   }
 }
