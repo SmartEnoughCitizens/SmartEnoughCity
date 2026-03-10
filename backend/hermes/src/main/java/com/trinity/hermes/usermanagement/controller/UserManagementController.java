@@ -178,12 +178,6 @@ public class UserManagementController {
     return Set.of();
   }
 
-  /**
-   * Retrieves users that the caller is allowed to manage based on their role.
-   *
-   * @param jwt authenticated JWT of the caller
-   * @return list of manageable users or an error response
-   */
   @GetMapping("/users")
   public ResponseEntity<?> getManageableUsers(@AuthenticationPrincipal Jwt jwt) {
 

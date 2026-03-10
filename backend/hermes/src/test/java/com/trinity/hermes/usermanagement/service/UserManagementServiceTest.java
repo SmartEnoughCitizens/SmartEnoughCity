@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import jakarta.ws.rs.core.Response;
@@ -37,13 +38,15 @@ public class UserManagementServiceTest {
 
   @Mock Response createResponse;
 
+  @Mock MailService mailService;
+
   UserManagementService service;
 
   @BeforeEach
   void setup() {
 
     String realm = "user-management-realm";
-    service = new UserManagementService(keycloak, realm);
+    service = new UserManagementService(keycloak, realm, mailService);
 
     lenient().when(keycloak.realm(realm)).thenReturn(realmResource);
     lenient().when(realmResource.users()).thenReturn(usersResource);
@@ -53,14 +56,13 @@ public class UserManagementServiceTest {
     lenient().when(roleMappingResource.realmLevel()).thenReturn(roleScopeResource);
   }
 
-  private RegisterUserRequest req(String username, String role, String password) {
+  private RegisterUserRequest req(String username, String role) {
     RegisterUserRequest r = new RegisterUserRequest();
     r.setUsername(username);
     r.setEmail(username + "@mail.com");
     r.setFirstName("First");
     r.setLastName("Last");
     r.setRole(role);
-    r.setPassword(password);
     return r;
   }
 
@@ -73,7 +75,7 @@ public class UserManagementServiceTest {
 
   @Test
   void registerUser_rejectsRoleNotAllowed() {
-    RegisterUserRequest request = req("u1", "Government_Admin", "x"); // not in ALLOWED_ROLES
+    RegisterUserRequest request = req("u1", "Government_Admin"); // not in ALLOWED_ROLES
 
     IllegalArgumentException ex =
         assertThrows(IllegalArgumentException.class, () -> service.registerUser(request));
@@ -84,7 +86,7 @@ public class UserManagementServiceTest {
 
   @Test
   void registerUser_throwsWhenUsernameAlreadyExists() {
-    RegisterUserRequest request = req("existing", "Cycle_Provider", "Pass@123");
+    RegisterUserRequest request = req("existing", "Cycle_Provider");
 
     when(usersResource.search(eq("existing"), eq(0), eq(10)))
         .thenReturn(List.of(userRep("id-1", "existing"))); // exact same username exists
@@ -97,7 +99,7 @@ public class UserManagementServiceTest {
 
   @Test
   void registerUser_throwsWhenCreateReturnsNon201() {
-    RegisterUserRequest request = req("newuser", "Cycle_Provider", "Pass@123");
+    RegisterUserRequest request = req("newuser", "Cycle_Provider");
 
     when(usersResource.search(eq("newuser"), eq(0), eq(10)))
         .thenReturn(List.of()); // no existing users
@@ -112,8 +114,8 @@ public class UserManagementServiceTest {
   }
 
   @Test
-  void registerUser_success_withProvidedPassword_setsPermanentPassword_andAssignsRole() {
-    RegisterUserRequest request = req("cycleprov1", "Cycle_Provider", "Pass@123");
+  void registerUser_success_setsGeneratedPasswordAndAssignsRole() {
+    RegisterUserRequest request = req("cycleprov1", "Cycle_Provider");
 
     when(usersResource.search(eq("cycleprov1"), eq(0), eq(10))).thenReturn(List.of());
     when(usersResource.create(any(UserRepresentation.class))).thenReturn(createResponse);
@@ -140,7 +142,8 @@ public class UserManagementServiceTest {
 
       CredentialRepresentation cred = credCaptor.getValue();
       assertEquals(CredentialRepresentation.PASSWORD, cred.getType());
-      assertEquals("Pass@123", cred.getValue());
+      assertNotNull(cred.getValue());
+      assertFalse(cred.getValue().isBlank());
       assertFalse(cred.isTemporary());
 
       verify(roleScopeResource)
@@ -154,37 +157,8 @@ public class UserManagementServiceTest {
   }
 
   @Test
-  void registerUser_success_withBlankPassword_setsDefaultTemporaryPassword() {
-    RegisterUserRequest request =
-        req("u2", "Bus_Provider", "   "); // blank => default ChangeMe@123, temporary=true
-
-    when(usersResource.search(eq("u2"), eq(0), eq(10))).thenReturn(List.of());
-    when(usersResource.create(any(UserRepresentation.class))).thenReturn(createResponse);
-    when(createResponse.getStatus()).thenReturn(201);
-
-    try (MockedStatic<CreatedResponseUtil> mocked = Mockito.mockStatic(CreatedResponseUtil.class)) {
-      mocked.when(() -> CreatedResponseUtil.getCreatedId(createResponse)).thenReturn("userId-222");
-
-      RoleRepresentation roleRep = new RoleRepresentation();
-      roleRep.setName("Bus_Provider");
-      when(rolesResource.get("Bus_Provider")).thenReturn(roleResource);
-      when(roleResource.toRepresentation()).thenReturn(roleRep);
-
-      service.registerUser(request);
-
-      ArgumentCaptor<CredentialRepresentation> credCaptor =
-          ArgumentCaptor.forClass(CredentialRepresentation.class);
-      verify(userResource).resetPassword(credCaptor.capture());
-
-      CredentialRepresentation cred = credCaptor.getValue();
-      assertEquals("ChangeMe@123", cred.getValue());
-      assertTrue(cred.isTemporary());
-    }
-  }
-
-  @Test
   void registerUser_throwsWhenRoleNotFoundInKeycloak() {
-    RegisterUserRequest request = req("u3", "Train_Provider", "Pass@123");
+    RegisterUserRequest request = req("u3", "Train_Provider");
 
     when(usersResource.search(eq("u3"), eq(0), eq(10))).thenReturn(List.of());
     when(usersResource.create(any(UserRepresentation.class))).thenReturn(createResponse);
