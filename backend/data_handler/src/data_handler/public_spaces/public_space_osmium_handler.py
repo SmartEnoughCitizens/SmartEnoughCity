@@ -22,15 +22,24 @@ RELEVANT_KEYS = {e.value for e in PublicSpaceType}
 
 
 def _is_within_dublin_bbox(lat: float, lon: float) -> bool:
-    return DUBLIN_LAT_MIN <= lat <= DUBLIN_LAT_MAX and DUBLIN_LON_MIN <= lon <= DUBLIN_LON_MAX
+    return (
+        DUBLIN_LAT_MIN <= lat <= DUBLIN_LAT_MAX
+        and DUBLIN_LON_MIN <= lon <= DUBLIN_LON_MAX
+    )
 
-def _extract_place_type_and_subtype(tags: dict[str, str]) -> tuple[PublicSpaceType, str] | None:
+
+def _extract_place_type_and_subtype(
+    tags: dict[str, str],
+) -> tuple[PublicSpaceType, str] | None:
     for key in RELEVANT_KEYS:
         if key in tags:
             return PublicSpaceType(key), tags[key]
     return None
 
-def _extract_location(obj: any, obj_type: Literal["node", "way"]) -> tuple[float, float] | None:
+
+def _extract_location(
+    obj: any, obj_type: Literal["node", "way"]
+) -> tuple[float, float] | None:
     try:
         if obj_type == "node":
             return obj.location.lat, obj.location.lon
@@ -67,13 +76,15 @@ class PublicSpaceHandler(osmium.SimpleHandler):
         lat, lon = location
 
         if _is_within_dublin_bbox(lat, lon):
-            self.data.append({
-                "name": name,
-                "type": place_type,
-                "subtype": place_subtype,
-                "lat": lat,
-                "lon": lon,
-            })
+            self.data.append(
+                {
+                    "name": name,
+                    "type": place_type,
+                    "subtype": place_subtype,
+                    "lat": lat,
+                    "lon": lon,
+                }
+            )
 
     def node(self, n: any) -> None:
         self._extract_data(n, "node")
