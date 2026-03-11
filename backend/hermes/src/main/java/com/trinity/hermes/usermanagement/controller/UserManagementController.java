@@ -1,8 +1,11 @@
 package com.trinity.hermes.usermanagement.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
+import com.trinity.hermes.usermanagement.dto.ChangePasswordRequest;
+import com.trinity.hermes.usermanagement.dto.ProfileResponse;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
+import com.trinity.hermes.usermanagement.dto.UpdateProfileRequest;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.Valid;
@@ -176,6 +179,44 @@ public class UserManagementController {
       }
     }
     return Set.of();
+  }
+
+  @GetMapping("/profile")
+  public ResponseEntity<?> getProfile(@AuthenticationPrincipal Jwt jwt) {
+    String username = jwt.getClaimAsString("preferred_username");
+    try {
+      ProfileResponse profile = userManagementService.getProfile(username);
+      return ResponseEntity.ok(profile);
+    } catch (RuntimeException e) {
+      log.error("Error fetching profile for {}: {}", username, e.getMessage());
+      return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+  }
+
+  @PutMapping("/profile")
+  public ResponseEntity<?> updateProfile(
+      @Valid @RequestBody UpdateProfileRequest request, @AuthenticationPrincipal Jwt jwt) {
+    String username = jwt.getClaimAsString("preferred_username");
+    try {
+      userManagementService.updateProfile(username, request);
+      return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
+    } catch (RuntimeException e) {
+      log.error("Error updating profile for {}: {}", username, e.getMessage());
+      return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+  }
+
+  @PutMapping("/password")
+  public ResponseEntity<?> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request, @AuthenticationPrincipal Jwt jwt) {
+    String username = jwt.getClaimAsString("preferred_username");
+    try {
+      userManagementService.changePassword(username, request);
+      return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+    } catch (RuntimeException e) {
+      log.error("Error changing password for {}: {}", username, e.getMessage());
+      return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
   }
 
   @GetMapping("/users")

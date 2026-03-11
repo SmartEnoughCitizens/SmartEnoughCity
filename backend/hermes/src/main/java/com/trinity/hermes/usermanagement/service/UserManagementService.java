@@ -2,8 +2,11 @@ package com.trinity.hermes.usermanagement.service;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.notification.services.mail.MailService;
+import com.trinity.hermes.usermanagement.dto.ChangePasswordRequest;
+import com.trinity.hermes.usermanagement.dto.ProfileResponse;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
+import com.trinity.hermes.usermanagement.dto.UpdateProfileRequest;
 import jakarta.ws.rs.core.Response;
 import java.util.*;
 import org.keycloak.admin.client.CreatedResponseUtil;
@@ -17,8 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * All Keycloak Admin API calls happen here.
@@ -35,6 +45,16 @@ public class UserManagementService {
   private final Keycloak keycloak;
   private final String realm;
   private final MailService mailService;
+  private final RestTemplate restTemplate = new RestTemplate();
+
+  @Value("${keycloak.server-url}")
+  private String keycloakServerUrl;
+
+  @Value("${keycloak.client-id}")
+  private String clientId;
+
+  @Value("${keycloak.client-secret}")
+  private String clientSecret;
 
   private static final Set<String> ALLOWED_ROLES =
       Set.of(
@@ -209,6 +229,56 @@ public class UserManagementService {
     }
 
     return roles.contains(requiredRole);
+  }
+
+  public ProfileResponse getProfile(String username) {
+    String userId = findUserIdByUsername(username);
+    UserRepresentation user = getUsersResource().get(userId).toRepresentation();
+    return new ProfileResponse(
+        user.getUsername(), user.getEmail(), user.getFirstName(), user.getLastName());
+  }
+
+  public void updateProfile(String username, UpdateProfileRequest request) {
+    String userId = findUserIdByUsername(username);
+    UserRepresentation user = getUsersResource().get(userId).toRepresentation();
+    user.setEmail(request.getEmail());
+    user.setFirstName(request.getFirstName());
+    user.setLastName(request.getLastName());
+    getUsersResource().get(userId).update(user);
+    log.info("Profile updated for user: {}", LogSanitizer.sanitizeLog(username));
+  }
+
+  public void changePassword(String username, ChangePasswordRequest request) {
+    // Verify current password by re-authenticating against Keycloak
+    String tokenUrl = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+    body.add("client_id", clientId);
+    body.add("client_secret", clientSecret);
+    body.add("grant_type", "password");
+    body.add("username", username);
+    body.add("password", request.getCurrentPassword());
+
+    HttpEntity<MultiValueMap<String, String>> tokenRequest = new HttpEntity<>(body, headers);
+
+    try {
+      restTemplate.postForEntity(tokenUrl, tokenRequest, Map.class);
+    } catch (HttpClientErrorException e) {
+      throw new RuntimeException("Current password is incorrect");
+    }
+
+    // Reset password via Keycloak Admin API
+    String userId = findUserIdByUsername(username);
+    CredentialRepresentation credential = new CredentialRepresentation();
+    credential.setType(CredentialRepresentation.PASSWORD);
+    credential.setValue(request.getNewPassword());
+    credential.setTemporary(false);
+    getUsersResource().get(userId).resetPassword(credential);
+
+    log.info("Password changed for user: {}", LogSanitizer.sanitizeLog(username));
   }
 
   private String generateTempPassword() {
