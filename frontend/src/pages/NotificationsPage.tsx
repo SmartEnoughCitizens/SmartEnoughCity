@@ -15,7 +15,11 @@ import {
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import { useEffect, useState } from "react";
-import { useUserNotifications, useSetReadState, useMarkAllAsRead } from "@/hooks";
+import {
+  useUserNotifications,
+  useSetReadState,
+  useMarkAllAsRead,
+} from "@/hooks";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setNotificationBadgeCount } from "@/store/slices/uiSlice";
 import { type Notification } from "@/types";
@@ -163,50 +167,51 @@ export const NotificationsPage = () => {
       )}
 
       {/* Notification detail dialog */}
-      {selected && (() => {
-        const subject =
-          (selected.metadata?.subject as string | undefined) ||
-          selected.message.split(": ")[0];
-        const body =
-          (selected.metadata?.body as string | undefined) ||
-          selected.message.split(": ").slice(1).join(": ");
+      {selected &&
+        (() => {
+          const subject =
+            (selected.metadata?.subject as string | undefined) ||
+            selected.message.split(": ")[0];
+          const body =
+            (selected.metadata?.body as string | undefined) ||
+            selected.message.split(": ").slice(1).join(": ");
 
-        return (
-          <Dialog
-            open
-            onClose={() => setSelected(null)}
-            maxWidth="sm"
-            fullWidth
-          >
-            <DialogTitle>{subject}</DialogTitle>
-            <DialogContent sx={{ pt: 1 }}>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                {body}
-              </Typography>
-              <Typography variant="caption" color="text.disabled">
-                {new Date(selected.timestamp).toLocaleString()}
-              </Typography>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
-              {!selected.read && (
-                <Button
-                  onClick={() => {
-                    setReadState(selected.id, true);
-                    setSelected((prev) =>
-                      prev ? { ...prev, read: true } : prev,
-                    );
-                  }}
-                >
-                  Mark as read
+          return (
+            <Dialog
+              open
+              onClose={() => setSelected(null)}
+              maxWidth="sm"
+              fullWidth
+            >
+              <DialogTitle>{subject}</DialogTitle>
+              <DialogContent sx={{ pt: 1 }}>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {body}
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  {new Date(selected.timestamp).toLocaleString()}
+                </Typography>
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 2 }}>
+                {!selected.read && (
+                  <Button
+                    onClick={() => {
+                      setReadState(selected.id, true);
+                      setSelected((prev) =>
+                        prev ? { ...prev, read: true } : prev,
+                      );
+                    }}
+                  >
+                    Mark as read
+                  </Button>
+                )}
+                <Button variant="contained" onClick={() => setSelected(null)}>
+                  Close
                 </Button>
-              )}
-              <Button variant="contained" onClick={() => setSelected(null)}>
-                Close
-              </Button>
-            </DialogActions>
-          </Dialog>
-        );
-      })()}
+              </DialogActions>
+            </Dialog>
+          );
+        })()}
     </Box>
   );
 };
