@@ -12,8 +12,14 @@ df = df.sort_values("Year")
 
 # Bands
 bands = [
-    "Band  A", "Band  B", "Band  C", "Band  D",
-    "Band  E", "Band  F", "Band  G", "Not available"
+    "Band  A",
+    "Band  B",
+    "Band  C",
+    "Band  D",
+    "Band  E",
+    "Band  F",
+    "Band  G",
+    "Not available",
 ]
 
 # ----------------------------
@@ -43,7 +49,6 @@ plt.title("Total Number of Cars Over Time")
 plt.xlabel("Year")
 plt.ylabel("Total Cars")
 plt.show()
-
 
 
 df = pd.read_csv(output_path)
