@@ -104,7 +104,7 @@ inference-engine:
     runAsNonRoot: true
 
 # Exclude PostgreSQL from Istio injection - databases need direct network access
-postgresql:
+postgres:
   primary:
     podAnnotations:
       sidecar.istio.io/inject: "false"
@@ -113,6 +113,14 @@ postgresql:
 postgresqlInit:
   podAnnotations:
     sidecar.istio.io/inject: "false"
+
+# Enable config-cli to push realm changes, exclude from Istio - Jobs can't complete with sidecars
+keycloak:
+  keycloakConfigCli:
+    enabled: true
+    existingConfigmap: keycloak-realm-import
+    podAnnotations:
+      sidecar.istio.io/inject: "false"
 
 ingress:
   enabled: true

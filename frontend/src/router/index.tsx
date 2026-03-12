@@ -21,12 +21,22 @@ const BusDashboard = lazy(() =>
 const CycleDashboard = lazy(() =>
   import("@/pages/CycleDashboard").then((m) => ({ default: m.CycleDashboard })),
 );
+const CarDashboard = lazy(() =>
+  import("@/pages/CarDashboard").then((m) => ({ default: m.CarDashboard })),
+);
+const TrainDashboard = lazy(() =>
+  import("@/pages/TrainDashboard").then((m) => ({ default: m.TrainDashboard })),
+);
 const NotificationsPage = lazy(() =>
   import("@/pages/NotificationsPage").then((m) => ({
     default: m.NotificationsPage,
   })),
 );
-
+const UserManagementPage = lazy(() =>
+  import("@/pages/UserManagementPage").then((m) => ({
+    default: m.UserManagementPage,
+  })),
+);
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
 const LoadingFallback = () => (
@@ -94,12 +104,48 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/dashboard/car",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <CarDashboard />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/train",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <TrainDashboard />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/dashboard/notifications",
     element: (
       <ProtectedRoute>
         <DashboardLayout>
           <LazyWrapper>
             <NotificationsPage />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/users",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <UserManagementPage />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>

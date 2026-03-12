@@ -2,6 +2,8 @@ server:
   port: ${SERVER_PORT}
 
 spring:
+  liquibase:
+    enabled: false
   security:
     oauth2:
       resourceserver:
@@ -20,8 +22,9 @@ spring:
     properties:
       hibernate:
         default_schema: ${SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA:backend}
+        hbm2ddl.schema_filter_provider: com.trinity.hermes.config.BackendSchemaFilterProvider
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     open-in-view: false
 
 keycloak:

@@ -1,8 +1,12 @@
 package com.trinity.hermes.usermanagement.service;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
+import com.trinity.hermes.notification.services.mail.MailService;
+import com.trinity.hermes.usermanagement.dto.ChangePasswordRequest;
+import com.trinity.hermes.usermanagement.dto.ProfileResponse;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
+import com.trinity.hermes.usermanagement.dto.UpdateProfileRequest;
 import jakarta.ws.rs.core.Response;
 import java.util.*;
 import org.keycloak.admin.client.CreatedResponseUtil;
@@ -14,9 +18,17 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * All Keycloak Admin API calls happen here.
@@ -32,6 +44,17 @@ public class UserManagementService {
 
   private final Keycloak keycloak;
   private final String realm;
+  private final MailService mailService;
+  private final RestTemplate restTemplate = new RestTemplate();
+
+  @Value("${keycloak.server-url}")
+  private String keycloakServerUrl;
+
+  @Value("${keycloak.client-id}")
+  private String clientId;
+
+  @Value("${keycloak.client-secret}")
+  private String clientSecret;
 
   private static final Set<String> ALLOWED_ROLES =
       Set.of(
@@ -45,9 +68,13 @@ public class UserManagementService {
           "Tram_Admin",
           "Tram_Provider");
 
-  public UserManagementService(Keycloak keycloak, @Value("${keycloak.realm}") String realm) {
+  public UserManagementService(
+      Keycloak keycloak,
+      @Value("${keycloak.realm}") String realm,
+      @Qualifier("getMailService") MailService mailService) {
     this.keycloak = keycloak;
     this.realm = realm;
+    this.mailService = mailService;
   }
 
   private RealmResource getRealmResource() {
@@ -91,47 +118,83 @@ public class UserManagementService {
 
     log.info("User created successfully. ID: {}, Username: {}", userId, request.getUsername());
 
+    String tempPassword = generateTempPassword();
     CredentialRepresentation credential = new CredentialRepresentation();
     credential.setType(CredentialRepresentation.PASSWORD);
-
-    if (request.getPassword() != null && !request.getPassword().isBlank()) {
-      credential.setValue(request.getPassword());
-      credential.setTemporary(false);
-    } else {
-      credential.setValue("ChangeMe@123");
-      credential.setTemporary(true);
-    }
+    credential.setValue(tempPassword);
+    credential.setTemporary(false);
 
     getUsersResource().get(userId).resetPassword(credential);
-    log.info("Password set for user: {}", request.getUsername());
+
+    log.info("Temporary password set for user: {}", request.getUsername());
 
     assignRole(userId, request.getRole());
 
+    String message = "User registered successfully.";
+    try {
+      sendWelcomeEmail(
+          request.getEmail(), request.getUsername(), request.getFirstName(), tempPassword);
+      message = "User registered successfully. A welcome email has been sent.";
+    } catch (Exception e) {
+      log.error("Failed to send welcome email to {}: {}", request.getEmail(), e.getMessage());
+    }
+
     return new RegisterUserResponse(
-        userId,
-        request.getUsername(),
-        request.getEmail(),
-        request.getRole(),
-        "User registered successfully");
+        userId, request.getUsername(), request.getEmail(), request.getRole(), message);
+  }
+
+  /**
+   * Finds a user's Keycloak ID by username.
+   *
+   * @param username the username to search for
+   * @return the Keycloak user ID
+   * @throws RuntimeException if the user is not found
+   */
+  public String findUserIdByUsername(String username) {
+    List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
+    return users.stream()
+        .filter(u -> u.getUsername().equalsIgnoreCase(username))
+        .findFirst()
+        .map(UserRepresentation::getId)
+        .orElseThrow(() -> new RuntimeException("User not found: " + username));
   }
 
   public void deleteUser(String username) {
 
-    List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
-
-    UserRepresentation targetUser =
-        users.stream()
-            .filter(u -> u.getUsername().equalsIgnoreCase(username))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("User not found: " + username));
-
-    getUsersResource().get(targetUser.getId()).remove();
+    String userId = findUserIdByUsername(username);
+    getUsersResource().get(userId).remove();
 
     log.info("User deleted: {}", LogSanitizer.sanitizeLog(username));
   }
 
   public List<UserRepresentation> getAllUsers() {
     return getUsersResource().search("", 0, 100);
+  }
+
+  /**
+   * Returns all users that have the given realm role.
+   *
+   * @param roleName the Keycloak realm role name
+   * @return list of users with that role
+   */
+  public List<UserRepresentation> getUsersByRole(String roleName) {
+    return getRealmResource().roles().get(roleName).getUserMembers(0, 100);
+  }
+
+  /**
+   * Returns the realm-level role names assigned to a user.
+   *
+   * @param userId the Keycloak user ID
+   * @return set of role names
+   */
+  public Set<String> getUserRoles(String userId) {
+    List<RoleRepresentation> roles =
+        getUsersResource().get(userId).roles().realmLevel().listEffective();
+    Set<String> roleNames = new HashSet<>();
+    for (RoleRepresentation role : roles) {
+      roleNames.add(role.getName());
+    }
+    return roleNames;
   }
 
   private void assignRole(String userId, String roleName) {
@@ -166,5 +229,85 @@ public class UserManagementService {
     }
 
     return roles.contains(requiredRole);
+  }
+
+  public ProfileResponse getProfile(String username) {
+    String userId = findUserIdByUsername(username);
+    UserRepresentation user = getUsersResource().get(userId).toRepresentation();
+    return new ProfileResponse(
+        user.getUsername(), user.getEmail(), user.getFirstName(), user.getLastName());
+  }
+
+  public void updateProfile(String username, UpdateProfileRequest request) {
+    String userId = findUserIdByUsername(username);
+    UserRepresentation user = getUsersResource().get(userId).toRepresentation();
+    user.setEmail(request.getEmail());
+    user.setFirstName(request.getFirstName());
+    user.setLastName(request.getLastName());
+    getUsersResource().get(userId).update(user);
+    log.info("Profile updated for user: {}", LogSanitizer.sanitizeLog(username));
+  }
+
+  public void changePassword(String username, ChangePasswordRequest request) {
+    // Verify current password by re-authenticating against Keycloak
+    String tokenUrl = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+    body.add("client_id", clientId);
+    body.add("client_secret", clientSecret);
+    body.add("grant_type", "password");
+    body.add("username", username);
+    body.add("password", request.getCurrentPassword());
+
+    HttpEntity<MultiValueMap<String, String>> tokenRequest = new HttpEntity<>(body, headers);
+
+    try {
+      restTemplate.postForEntity(tokenUrl, tokenRequest, Map.class);
+    } catch (HttpClientErrorException e) {
+      throw new RuntimeException("Current password is incorrect");
+    }
+
+    // Reset password via Keycloak Admin API
+    String userId = findUserIdByUsername(username);
+    CredentialRepresentation credential = new CredentialRepresentation();
+    credential.setType(CredentialRepresentation.PASSWORD);
+    credential.setValue(request.getNewPassword());
+    credential.setTemporary(false);
+    getUsersResource().get(userId).resetPassword(credential);
+
+    log.info("Password changed for user: {}", LogSanitizer.sanitizeLog(username));
+  }
+
+  private String generateTempPassword() {
+    return UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "!A1";
+  }
+
+  private void sendWelcomeEmail(
+      String email, String username, String firstName, String tempPassword) {
+    String subject = "You've been invited to SmartEnoughCity Dashboard";
+    String html =
+        "<div style='font-family: Arial, sans-serif; max-width: 600px;'>"
+            + "<h2>Welcome to SmartEnoughCity, "
+            + firstName
+            + "!</h2>"
+            + "<p>Your account has been created. Use the credentials below to log in:</p>"
+            + "<table style='border-collapse: collapse; margin: 16px 0;'>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Username:</td>"
+            + "<td style='padding: 8px;'>"
+            + username
+            + "</td></tr>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Temporary Password:</td>"
+            + "<td style='padding: 8px; font-family: monospace;'>"
+            + tempPassword
+            + "</td></tr>"
+            + "</table>"
+            + "<p style='color: #888; font-size: 12px;'>If you did not expect this email, "
+            + "please ignore it.</p>"
+            + "</div>";
+    mailService.sendEmail(email, subject, html, null);
+    log.info("Welcome email sent to: {}", email);
   }
 }
