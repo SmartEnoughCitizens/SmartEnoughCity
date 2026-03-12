@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationEventDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
@@ -87,7 +87,8 @@ public class CycleMetricsControllerTest {
     dto.setIsReturning(true);
     dto.setLastReported(Instant.now());
     dto.setSnapshotTimestamp(Instant.now());
-    dto.setFullnessPct(33.3);
+    dto.setBikeAvailabilityPct(33.3);
+    dto.setDockAvailabilityPct(66.7);
     dto.setStatusColor("GREEN");
     dto.setIsEmpty(false);
     dto.setIsFull(false);
@@ -133,14 +134,17 @@ public class CycleMetricsControllerTest {
     return dto;
   }
 
-  private StationEventDTO buildEventDTO(int stationId, String eventType) {
-    StationEventDTO dto = new StationEventDTO();
-    dto.setStationId(stationId);
-    dto.setStationName("Station " + stationId);
-    dto.setEventTime(Instant.now());
-    dto.setAvailableBikes(eventType.equals("EMPTY") ? 0 : 5);
-    dto.setPrevAvailableBikes(eventType.equals("EMPTY") ? 2 : 0);
-    dto.setEventType(eventType);
+  private StationODPairDTO buildODPairDTO(int originId, int destId) {
+    StationODPairDTO dto = new StationODPairDTO();
+    dto.setOriginStationId(originId);
+    dto.setOriginName("Station " + originId);
+    dto.setOriginLat(new BigDecimal("53.3498"));
+    dto.setOriginLon(new BigDecimal("-6.2603"));
+    dto.setDestStationId(destId);
+    dto.setDestName("Station " + destId);
+    dto.setDestLat(new BigDecimal("53.3510"));
+    dto.setDestLon(new BigDecimal("-6.2590"));
+    dto.setEstimatedTrips(120L);
     return dto;
   }
 
@@ -622,82 +626,62 @@ public class CycleMetricsControllerTest {
   }
 
   // =========================================================
-  // GET /api/v1/cycle/events/empty
+  // GET /api/v1/cycle/od/heatmap
   // =========================================================
   @Nested
-  @DisplayName("GET /api/v1/cycle/events/empty")
-  class EmptyEventsTests {
+  @DisplayName("GET /api/v1/cycle/od/heatmap")
+  class ODHeatmapTests {
 
     @Test
-    @DisplayName("200 with default days=7 and limit=50")
-    void getEmptyEvents_defaultParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getEmptyEvents(7, 50))
-          .thenReturn(List.of(buildEventDTO(1, "EMPTY"), buildEventDTO(2, "EMPTY")));
+    @DisplayName("200 with default limit=50, data from last calendar month")
+    void getODHeatmap_defaultParams_returnsOk() throws Exception {
+      when(cycleMetricsService.getODHeatmap(50))
+          .thenReturn(List.of(buildODPairDTO(1, 2), buildODPairDTO(3, 4)));
 
       mockMvc
-          .perform(get("/api/v1/cycle/events/empty"))
+          .perform(get("/api/v1/cycle/od/heatmap"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
-          .andExpect(jsonPath("$[0].eventType").value("EMPTY"))
-          .andExpect(jsonPath("$[0].availableBikes").value(0));
+          .andExpect(jsonPath("$[0].originStationId").value(1))
+          .andExpect(jsonPath("$[0].destStationId").value(2))
+          .andExpect(jsonPath("$[0].estimatedTrips").value(120))
+          .andExpect(jsonPath("$[1].originStationId").value(3));
 
-      verify(cycleMetricsService).getEmptyEvents(7, 50);
+      verify(cycleMetricsService).getODHeatmap(50);
     }
 
     @Test
-    @DisplayName("200 with custom days and limit parameters")
-    void getEmptyEvents_customParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getEmptyEvents(3, 20))
-          .thenReturn(List.of(buildEventDTO(5, "EMPTY")));
+    @DisplayName("200 with custom limit parameter")
+    void getODHeatmap_customLimit_returnsOk() throws Exception {
+      when(cycleMetricsService.getODHeatmap(20)).thenReturn(List.of(buildODPairDTO(5, 6)));
 
       mockMvc
-          .perform(get("/api/v1/cycle/events/empty").param("days", "3").param("limit", "20"))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$.length()").value(1));
-
-      verify(cycleMetricsService).getEmptyEvents(3, 20);
-    }
-
-    @Test
-    @DisplayName("500 when service throws exception")
-    void getEmptyEvents_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getEmptyEvents(anyInt(), anyInt()))
-          .thenThrow(new RuntimeException("Events query failed"));
-
-      mockMvc
-          .perform(get("/api/v1/cycle/events/empty"))
-          .andExpect(status().isInternalServerError());
-    }
-  }
-
-  // =========================================================
-  // GET /api/v1/cycle/events/full
-  // =========================================================
-  @Nested
-  @DisplayName("GET /api/v1/cycle/events/full")
-  class FullEventsTests {
-
-    @Test
-    @DisplayName("200 with default days=7 and limit=50")
-    void getFullEvents_defaultParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getFullEvents(7, 50)).thenReturn(List.of(buildEventDTO(3, "FULL")));
-
-      mockMvc
-          .perform(get("/api/v1/cycle/events/full"))
+          .perform(get("/api/v1/cycle/od/heatmap").param("limit", "20"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1))
-          .andExpect(jsonPath("$[0].eventType").value("FULL"));
+          .andExpect(jsonPath("$[0].originStationId").value(5));
 
-      verify(cycleMetricsService).getFullEvents(7, 50);
+      verify(cycleMetricsService).getODHeatmap(20);
+    }
+
+    @Test
+    @DisplayName("200 with empty list when no OD pairs found")
+    void getODHeatmap_emptyResult_returnsOk() throws Exception {
+      when(cycleMetricsService.getODHeatmap(50)).thenReturn(List.of());
+
+      mockMvc
+          .perform(get("/api/v1/cycle/od/heatmap"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     @DisplayName("500 when service throws exception")
-    void getFullEvents_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getFullEvents(anyInt(), anyInt()))
-          .thenThrow(new RuntimeException("Full events query failed"));
+    void getODHeatmap_serviceThrows_returns500() throws Exception {
+      when(cycleMetricsService.getODHeatmap(anyInt()))
+          .thenThrow(new RuntimeException("OD heatmap query failed"));
 
-      mockMvc.perform(get("/api/v1/cycle/events/full")).andExpect(status().isInternalServerError());
+      mockMvc.perform(get("/api/v1/cycle/od/heatmap")).andExpect(status().isInternalServerError());
     }
   }
 
