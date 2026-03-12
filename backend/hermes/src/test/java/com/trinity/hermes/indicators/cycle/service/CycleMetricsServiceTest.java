@@ -7,8 +7,8 @@ import static org.mockito.Mockito.*;
 import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationEventDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.repository.DublinBikesHistoryRepository;
@@ -142,12 +142,21 @@ public class CycleMetricsServiceTest {
   }
 
   /**
-   * Builds an event row matching column order: 0:station_id, 1:station_name, 2:event_time,
-   * 3:available_bikes, 4:prev_available_bikes
+   * Builds an OD pair row matching findODPairs column order: 0:origin_station_id, 1:origin_name,
+   * 2:origin_lat, 3:origin_lon, 4:dest_station_id, 5:dest_name, 6:dest_lat, 7:dest_lon,
+   * 8:estimated_trips
    */
-  private Object[] buildEventRow(int stationId, int availableBikes, int prevBikes) {
+  private Object[] buildODPairRow(int originId, int destId, long trips) {
     return new Object[] {
-      stationId, "Station " + stationId, Timestamp.from(Instant.now()), availableBikes, prevBikes
+      originId,
+      "Station " + originId,
+      53.3498,
+      -6.2603,
+      destId,
+      "Station " + destId,
+      53.3510,
+      -6.2590,
+      trips
     };
   }
 
@@ -202,42 +211,42 @@ public class CycleMetricsServiceTest {
     }
 
     @Test
-    @DisplayName("returns GREEN status when fullness < 50%")
-    void getLiveStations_lowFullness_setsGreenStatus() {
-      // capacity=30, availableDocks=20 => (30-20)/30 = 33.3% => GREEN
-      Object[] row = buildSnapshotRow(1, 10, 20, 30);
+    @DisplayName("returns GREEN status when bikeAvailabilityPct >= 40%")
+    void getLiveStations_highBikeAvailability_setsGreenStatus() {
+      // capacity=30, availableBikes=15 => 15/30 = 50% => GREEN
+      Object[] row = buildSnapshotRow(1, 15, 15, 30);
       when(snapshotRepository.findLatestSnapshotPerStation()).thenReturn(rows(row));
 
       StationLiveDTO result = service.getLiveStations().get(0);
 
       assertEquals("GREEN", result.getStatusColor());
-      assertTrue(result.getFullnessPct() < 50.0);
+      assertTrue(result.getBikeAvailabilityPct() >= 40.0);
     }
 
     @Test
-    @DisplayName("returns YELLOW status when fullness is between 50% and 79%")
-    void getLiveStations_mediumFullness_setsYellowStatus() {
-      // capacity=30, availableDocks=10 => (30-10)/30 = 66.7% => YELLOW
-      Object[] row = buildSnapshotRow(2, 10, 10, 30);
+    @DisplayName("returns YELLOW status when bikeAvailabilityPct is between 20% and 39%")
+    void getLiveStations_mediumBikeAvailability_setsYellowStatus() {
+      // capacity=30, availableBikes=9 => 9/30 = 30% => YELLOW
+      Object[] row = buildSnapshotRow(2, 9, 21, 30);
       when(snapshotRepository.findLatestSnapshotPerStation()).thenReturn(rows(row));
 
       StationLiveDTO result = service.getLiveStations().get(0);
 
       assertEquals("YELLOW", result.getStatusColor());
-      assertTrue(result.getFullnessPct() >= 50.0 && result.getFullnessPct() < 80.0);
+      assertTrue(result.getBikeAvailabilityPct() >= 20.0 && result.getBikeAvailabilityPct() < 40.0);
     }
 
     @Test
-    @DisplayName("returns RED status when fullness is 80% or above")
-    void getLiveStations_highFullness_setsRedStatus() {
-      // capacity=30, availableDocks=3 => (30-3)/30 = 90% => RED
-      Object[] row = buildSnapshotRow(3, 27, 3, 30);
+    @DisplayName("returns RED status when bikeAvailabilityPct < 20%")
+    void getLiveStations_lowBikeAvailability_setsRedStatus() {
+      // capacity=30, availableBikes=3 => 3/30 = 10% => RED
+      Object[] row = buildSnapshotRow(3, 3, 27, 30);
       when(snapshotRepository.findLatestSnapshotPerStation()).thenReturn(rows(row));
 
       StationLiveDTO result = service.getLiveStations().get(0);
 
       assertEquals("RED", result.getStatusColor());
-      assertTrue(result.getFullnessPct() >= 80.0);
+      assertTrue(result.getBikeAvailabilityPct() < 20.0);
     }
 
     @Test
@@ -589,63 +598,6 @@ public class CycleMetricsServiceTest {
   }
 
   // =========================================================
-  // getEmptyEvents
-  // =========================================================
-  @Nested
-  @DisplayName("getEmptyEvents")
-  class GetEmptyEventsTests {
-
-    @Test
-    @DisplayName("maps event rows to StationEventDTOs with EMPTY type")
-    void getEmptyEvents_mapsRowsWithEmptyType() {
-      Object[] row = buildEventRow(10, 0, 3);
-      when(historyRepository.findEmptyEvents(any(Instant.class), eq(50))).thenReturn(rows(row));
-
-      List<StationEventDTO> result = service.getEmptyEvents(7, 50);
-
-      assertEquals(1, result.size());
-      StationEventDTO event = result.get(0);
-      assertEquals(10, event.getStationId());
-      assertEquals("Station 10", event.getStationName());
-      assertEquals(0, event.getAvailableBikes());
-      assertEquals(3, event.getPrevAvailableBikes());
-      assertEquals("EMPTY", event.getEventType());
-      assertNotNull(event.getEventTime());
-    }
-
-    @Test
-    @DisplayName("returns empty list when no empty events")
-    void getEmptyEvents_emptyRows_returnsEmptyList() {
-      when(historyRepository.findEmptyEvents(any(Instant.class), anyInt()))
-          .thenReturn(Collections.emptyList());
-
-      assertTrue(service.getEmptyEvents(7, 50).isEmpty());
-    }
-  }
-
-  // =========================================================
-  // getFullEvents
-  // =========================================================
-  @Nested
-  @DisplayName("getFullEvents")
-  class GetFullEventsTests {
-
-    @Test
-    @DisplayName("maps event rows to StationEventDTOs with FULL type")
-    void getFullEvents_mapsRowsWithFullType() {
-      Object[] row = buildEventRow(20, 30, 0);
-      when(historyRepository.findFullEvents(any(Instant.class), eq(50))).thenReturn(rows(row));
-
-      List<StationEventDTO> result = service.getFullEvents(7, 50);
-
-      assertEquals(1, result.size());
-      assertEquals("FULL", result.get(0).getEventType());
-      assertEquals(30, result.get(0).getAvailableBikes());
-      assertEquals(0, result.get(0).getPrevAvailableBikes());
-    }
-  }
-
-  // =========================================================
   // getNetworkKpi
   // =========================================================
   @Nested
@@ -731,6 +683,81 @@ public class CycleMetricsServiceTest {
 
       assertEquals(0.0, result.getWeekdayAvgUsageRate());
       assertEquals(0.0, result.getWeekendAvgUsageRate());
+    }
+  }
+
+  // =========================================================
+  // getODHeatmap
+  // =========================================================
+  @Nested
+  @DisplayName("getODHeatmap")
+  class GetODHeatmapTests {
+
+    @Test
+    @DisplayName("returns mapped OD pairs ordered by estimated trips")
+    void getODHeatmap_returnsMappedPairs() {
+      when(historyRepository.findODPairs(any(Instant.class), any(Instant.class), eq(50)))
+          .thenReturn(rows(buildODPairRow(1, 2, 200L), buildODPairRow(3, 4, 150L)));
+
+      List<StationODPairDTO> result = service.getODHeatmap(50);
+
+      assertEquals(2, result.size());
+
+      StationODPairDTO first = result.get(0);
+      assertEquals(1, first.getOriginStationId());
+      assertEquals("Station 1", first.getOriginName());
+      assertEquals(2, first.getDestStationId());
+      assertEquals("Station 2", first.getDestName());
+      assertEquals(200L, first.getEstimatedTrips());
+      assertNotNull(first.getOriginLat());
+      assertNotNull(first.getOriginLon());
+      assertNotNull(first.getDestLat());
+      assertNotNull(first.getDestLon());
+
+      StationODPairDTO second = result.get(1);
+      assertEquals(3, second.getOriginStationId());
+      assertEquals(4, second.getDestStationId());
+      assertEquals(150L, second.getEstimatedTrips());
+    }
+
+    @Test
+    @DisplayName("returns empty list when no OD pairs found")
+    void getODHeatmap_noPairs_returnsEmptyList() {
+      when(historyRepository.findODPairs(any(Instant.class), any(Instant.class), eq(50)))
+          .thenReturn(Collections.emptyList());
+
+      List<StationODPairDTO> result = service.getODHeatmap(50);
+
+      assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("passes correct limit to repository and uses last calendar month window")
+    void getODHeatmap_passesLimitToRepository() {
+      when(historyRepository.findODPairs(any(Instant.class), any(Instant.class), eq(10)))
+          .thenReturn(rows(buildODPairRow(1, 2, 100L)));
+
+      service.getODHeatmap(10);
+
+      verify(historyRepository).findODPairs(any(Instant.class), any(Instant.class), eq(10));
+    }
+
+    @Test
+    @DisplayName("handles null lat/lon values gracefully")
+    void getODHeatmap_nullCoordinates_handledGracefully() {
+      Object[] rowWithNullCoords =
+          new Object[] {1, "Station 1", null, null, 2, "Station 2", null, null, 50L};
+      when(historyRepository.findODPairs(any(Instant.class), any(Instant.class), anyInt()))
+          .thenReturn(rows(rowWithNullCoords));
+
+      List<StationODPairDTO> result = service.getODHeatmap(50);
+
+      assertEquals(1, result.size());
+      assertNull(result.get(0).getOriginLat());
+      assertNull(result.get(0).getOriginLon());
+      assertNull(result.get(0).getDestLat());
+      assertNull(result.get(0).getDestLon());
+      assertEquals(50L, result.get(0).getEstimatedTrips());
     }
   }
 }

@@ -28,7 +28,8 @@ public class StationLiveDTO {
   private Boolean isReturning;
   private Instant lastReported;
   private Instant snapshotTimestamp;
-  private Double fullnessPct;
+  private Double bikeAvailabilityPct;
+  private Double dockAvailabilityPct;
   private String statusColor;
   private Boolean isEmpty;
   private Boolean isFull;
