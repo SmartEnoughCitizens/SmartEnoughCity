@@ -1,18 +1,9 @@
 /**
- * Train dashboard — Google Maps-style smart city view
- *
- * Features:
- *  - Full-viewport map: OSM (light) / Carto dark (dark) — matches all other dashboards
- *  - Left glass panel: KPI strip, type filters, Stations | Trains tab, search
- *  - Custom coloured station markers per type (DART / Suburban / Mainline)
- *  - Smart live-train markers: type-coloured + directional arrow (↑↓←→)
- *  - Type filter applies to BOTH station markers and train markers on the map
- *  - Trains tab: list every live train with type, direction, status; click → fly to it
- *  - Map-legend overlay (bottom-left)
- *  - Click a station OR train in the list → map flies to it
+ * Train data dashboard — full-viewport map with floating control panel.
+ * Four views: Stations | Live Trains | Utilization | Delays
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Box,
   Paper,
@@ -22,9 +13,15 @@ import {
   IconButton,
   Divider,
   Chip,
-  TextField,
-  InputAdornment,
-  ListItemButton,
+  Tabs,
+  Tab,
+  Tooltip,
+  LinearProgress,
+  ToggleButton,
+  ToggleButtonGroup,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
@@ -32,94 +29,28 @@ import TrainIcon from "@mui/icons-material/Train";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import SpeedIcon from "@mui/icons-material/Speed";
-import SearchIcon from "@mui/icons-material/Search";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import { useTrainData, useTrainKpis, useTrainLiveTrains } from "@/hooks";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
+import {
+  useTrainData,
+  useTrainKpis,
+  useTrainLiveTrains,
+  useTrainUtilization,
+  useTrainDelayPatterns,
+} from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import type { TrainDelayPattern, TrainStationUtilization, TimeOfDay } from "@/types";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-// ── Constants ───────────────────────────────────────────────────────
-
-const DUBLIN_CENTER: [number, number] = [53.3498, -6.2603];
-
-type TypeKey = "ALL" | "D" | "S" | "M";
-type PanelTab = "stations" | "trains";
-
-const TYPE_CONFIG: Record<
-  TypeKey,
-  { label: string; color: string; short: string }
-> = {
-  ALL: { label: "All", color: "#607D8B", short: "•" },
-  D: { label: "DART", color: "#00ACC1", short: "D" },
-  S: { label: "Suburban", color: "#1976D2", short: "S" },
-  M: { label: "Mainline", color: "#7B1FA2", short: "M" },
-};
-
-// ── CSS ──────────────────────────────────────────────────────────────
-
-const INJECTED_CSS = `
-  @keyframes trainPulse {
-    0%   { box-shadow: 0 0 0 0    rgba(46,160,67,0.75); }
-    70%  { box-shadow: 0 0 0 14px rgba(46,160,67,0);    }
-    100% { box-shadow: 0 0 0 0    rgba(46,160,67,0);    }
-  }
-  .leaflet-popup-content-wrapper {
-    background: rgba(13,17,23,0.96) !important;
-    color: #e6edf3 !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.55) !important;
-  }
-  .leaflet-popup-tip { background: rgba(13,17,23,0.96) !important; }
-  .leaflet-popup-close-button {
-    color: #8b949e !important; top: 8px !important; right: 8px !important;
-  }
-  .leaflet-popup-content { margin: 14px 16px !important; }
-  .stn-pin {
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 800; color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.50), 0 0 0 2px rgba(255,255,255,0.20);
-    transition: transform 0.15s ease; cursor: pointer;
-  }
-  .stn-pin:hover { transform: scale(1.25); }
-  .trn-dot {
-    border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.75);
-    display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 900; color: #fff; font-size: 11px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    cursor: pointer;
-  }
-  .trn-dot.running { animation: trainPulse 1.6s ease-out infinite; }
-`;
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-/** Map an Irish Rail trainType string to our TypeKey */
-function getTrainTypeKey(trainType?: string | null): TypeKey {
-  if (!trainType) return "ALL";
-  const t = trainType.toUpperCase();
-  if (t.includes("DART")) return "D";
-  if (t.includes("MAIN") || t === "M") return "M";
-  if (t.includes("SUB") || t === "S") return "S";
-  return "ALL";
-}
-
-/** Return a Unicode directional arrow for a direction string, or "" */
-function getDirectionArrow(direction?: string | null): string {
-  if (!direction) return "";
-  const d = direction.toLowerCase();
-  if (d.includes("north")) return "↑";
-  if (d.includes("south")) return "↓";
-  if (d.includes("east")) return "→";
-  if (d.includes("west")) return "←";
-  return "";
-}
+// ── constants & helpers ────────────────────────────────────────────
 
 const isRunning = (status?: string | null): boolean => {
   if (!status) return false;
@@ -127,1080 +58,425 @@ const isRunning = (status?: string | null): boolean => {
   return s === "R" || s === "RUNNING";
 };
 
-// ── Leaflet icon factories ───────────────────────────────────────────
+const UTIL_COLOR: Record<string, string> = {
+  HIGH: "#ef5350",
+  MEDIUM: "#ffa726",
+  LOW: "#26a69a",
+};
+const UTIL_LABEL: Record<string, string> = {
+  HIGH: "Over-used",
+  MEDIUM: "Normal",
+  LOW: "Under-used",
+};
 
-function makeStationIcon(type: string | null): L.DivIcon {
-  const cfg = TYPE_CONFIG[(type as TypeKey) ?? "ALL"] ?? TYPE_CONFIG.ALL;
+const SEV_COLOR: Record<string, string> = {
+  SEVERE: "#d32f2f",
+  MODERATE: "#f57c00",
+  MINOR: "#fbc02d",
+};
+const SEV_LABEL: Record<string, string> = {
+  SEVERE: "Severe ≥10 min",
+  MODERATE: "Moderate 5–10 min",
+  MINOR: "Minor 1–5 min",
+};
+
+const TOD_LABEL: Record<TimeOfDay, string> = {
+  MORNING_PEAK: "Morning Peak",
+  MIDDAY: "Midday",
+  AFTERNOON: "Afternoon",
+  EVENING_PEAK: "Evening Peak",
+  NIGHT: "Night",
+};
+const TOD_SHORT: Record<TimeOfDay, string> = {
+  MORNING_PEAK: "6–9",
+  MIDDAY: "9–13",
+  AFTERNOON: "13–17",
+  EVENING_PEAK: "17–21",
+  NIGHT: "21–6",
+};
+
+function makeColorDot(color: string, size = 14): L.DivIcon {
   return L.divIcon({
-    html: `<div class="stn-pin" style="width:26px;height:26px;background:${cfg.color};font-size:10px;">${cfg.short}</div>`,
+    html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:2px solid rgba(255,255,255,0.85);box-shadow:0 1px 4px rgba(0,0,0,0.45);"></div>`,
     className: "",
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-    popupAnchor: [0, -16],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2 + 4)],
   });
 }
 
-/**
- * Live train marker:
- *  - Coloured by train type (matches station pin colours)
- *  - Shows directional arrow (↑↓←→) when direction is known, otherwise type letter
- *  - Pulses when running
- */
-function makeLiveTrainIcon(
-  trainType: string | null,
-  direction: string | null,
-  running: boolean,
-): L.DivIcon {
-  const typeKey = getTrainTypeKey(trainType);
-  // Use type colour; fall back to green/orange for unknown type
-  const color =
-    typeKey === "ALL"
-      ? running
-        ? "#2ea043"
-        : "#d29922"
-      : TYPE_CONFIG[typeKey].color;
-  const dirArrow = getDirectionArrow(direction);
-  // If we know direction show that; otherwise show type letter so user knows the service
-  const inner = dirArrow || TYPE_CONFIG[typeKey].short;
+const RUNNING_TRAIN_ICON = L.divIcon({
+  html: `<div style="width:18px;height:18px;background:#4caf50;border-radius:50%;border:2px solid rgba(255,255,255,0.85);animation:trainPulse 1.4s ease-out infinite;"></div>`,
+  className: "",
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+  popupAnchor: [0, -13],
+});
 
-  return L.divIcon({
-    html: `<div class="trn-dot${running ? " running" : ""}" style="width:22px;height:22px;background:${color};">${inner}</div>`,
-    className: "",
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -14],
-  });
+const stationIcon = makeColorDot("#1976d2", 14);
+
+if (typeof document !== "undefined" && !document.getElementById("train-pulse-style")) {
+  const s = document.createElement("style");
+  s.id = "train-pulse-style";
+  s.textContent = `@keyframes trainPulse{0%{box-shadow:0 0 0 0 rgba(76,175,80,0.6)}70%{box-shadow:0 0 0 8px rgba(76,175,80,0)}100%{box-shadow:0 0 0 0 rgba(76,175,80,0)}}`;
+  document.head.appendChild(s);
 }
 
-// ── Map controller ───────────────────────────────────────────────────
+// ── Sub-components ─────────────────────────────────────────────────
 
-function MapController({
-  target,
-}: {
-  target: { center: [number, number]; id: number } | null;
-}) {
+interface FlyTarget { lat: number; lon: number; zoom?: number }
+
+function MapController({ target }: { target: FlyTarget | null }) {
   const map = useMap();
+  const prevRef = useRef<FlyTarget | null>(null);
   useEffect(() => {
-    if (target)
-      map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
+    if (target && target !== prevRef.current) {
+      prevRef.current = target;
+      map.flyTo([target.lat, target.lon], target.zoom ?? 15, { duration: 0.8 });
+    }
+  }, [map, target]);
   return null;
 }
 
-// ── KPI Card ─────────────────────────────────────────────────────────
-
-function KpiCard({
-  icon,
-  label,
-  value,
-  accent,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  accent: string;
-}) {
+function KpiCard({ icon, label, value, color = "primary.main" }: { icon: React.ReactNode; label: string; value: string | number; color?: string }) {
   return (
-    <Box
-      sx={{
-        p: 1.25,
-        borderRadius: 2,
-        background: "rgba(22,27,34,0.75)",
-        border: "1px solid rgba(48,54,61,0.6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.5,
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-        <Box sx={{ color: accent, display: "flex", fontSize: 14 }}>{icon}</Box>
-        <Typography
-          variant="caption"
-          sx={{
-            color: "#8b949e",
-            fontSize: "0.62rem",
-            textTransform: "uppercase",
-            letterSpacing: 0.6,
-          }}
-        >
-          {label}
-        </Typography>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, borderRadius: 2, bgcolor: (t) => t.palette.mode === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }}>
+      <Box sx={{ color, fontSize: 26, display: "flex" }}>{icon}</Box>
+      <Box>
+        <Typography variant="h6" fontWeight={700} lineHeight={1}>{value}</Typography>
+        <Typography variant="caption" color="text.secondary">{label}</Typography>
       </Box>
-      <Typography
-        variant="h6"
-        fontWeight={700}
-        sx={{ color: "#e6edf3", lineHeight: 1, fontSize: "1.05rem" }}
-      >
-        {value}
-      </Typography>
     </Box>
   );
 }
 
-// ── Map Legend ───────────────────────────────────────────────────────
-
-function MapLegend() {
+function UtilizationBar({ station, max, onClick }: { station: TrainStationUtilization; max: number; onClick: () => void }) {
+  const color = UTIL_COLOR[station.utilizationLevel] ?? "#90a4ae";
+  const pct = max > 0 ? (station.trainServiceCount / max) * 100 : 0;
   return (
-    <Box
-      sx={{
-        position: "absolute",
-        bottom: 36,
-        left: 16,
-        zIndex: 1000,
-        background: "rgba(13,17,23,0.92)",
-        backdropFilter: "blur(14px)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 2,
-        p: 1.5,
-        minWidth: 130,
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          color: "#484f58",
-          textTransform: "uppercase",
-          letterSpacing: 0.8,
-          fontSize: "0.6rem",
-          display: "block",
-          mb: 0.75,
-        }}
-      >
-        Station / Train Type
-      </Typography>
-      {(["D", "S", "M"] as TypeKey[]).map((t) => {
-        const cfg = TYPE_CONFIG[t];
-        return (
-          <Box
-            key={t}
-            sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}
-          >
-            <Box
-              sx={{
-                width: 14,
-                height: 14,
-                borderRadius: "50%",
-                bgcolor: cfg.color,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Typography sx={{ fontSize: 7, fontWeight: 800, color: "#fff" }}>
-                {cfg.short}
-              </Typography>
-            </Box>
-            <Typography
-              variant="caption"
-              sx={{ color: "#c9d1d9", fontSize: "0.7rem" }}
-            >
-              {cfg.label}
-            </Typography>
-          </Box>
-        );
-      })}
-      <Divider sx={{ my: 0.75, borderColor: "rgba(255,255,255,0.07)" }} />
-      <Typography
-        variant="caption"
-        sx={{
-          color: "#484f58",
-          textTransform: "uppercase",
-          letterSpacing: 0.8,
-          fontSize: "0.6rem",
-          display: "block",
-          mb: 0.5,
-        }}
-      >
-        Train Status
-      </Typography>
-      {[
-        { color: "#2ea043", label: "Running  (pulses)" },
-        { color: "#d29922", label: "Scheduled" },
-      ].map(({ color, label }) => (
-        <Box
-          key={label}
-          sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.4 }}
-        >
-          <Box
-            sx={{
-              width: 11,
-              height: 11,
-              borderRadius: "50%",
-              bgcolor: color,
-              flexShrink: 0,
-            }}
-          />
-          <Typography
-            variant="caption"
-            sx={{ color: "#c9d1d9", fontSize: "0.7rem" }}
-          >
-            {label}
-          </Typography>
+    <ListItem onClick={onClick} sx={{ px: 1.5, py: 0.75, cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }} divider>
+      <Box sx={{ width: "100%" }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.3 }}>
+          <Typography variant="body2" fontWeight={600} noWrap sx={{ flex: 1, mr: 1 }}>{station.stationDesc}</Typography>
+          <Chip size="small" label={UTIL_LABEL[station.utilizationLevel]} sx={{ height: 18, fontSize: "0.65rem", bgcolor: color, color: "#fff", fontWeight: 700 }} />
         </Box>
-      ))}
-      <Box sx={{ mt: 0.75 }}>
-        <Typography
-          variant="caption"
-          sx={{ color: "#484f58", fontSize: "0.6rem" }}
-        >
-          ↑↓←→ = direction of travel
-        </Typography>
+        <LinearProgress variant="determinate" value={pct} sx={{ height: 5, borderRadius: 3, bgcolor: "action.hover", "& .MuiLinearProgress-bar": { bgcolor: color } }} />
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.3 }}>
+          <Typography variant="caption" color="text.secondary">{station.trainServiceCount} services</Typography>
+          {station.avgDelayMinutes > 0 && <Typography variant="caption" color="warning.main">+{station.avgDelayMinutes.toFixed(1)} min delay</Typography>}
+        </Box>
       </Box>
-    </Box>
+    </ListItem>
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────
+function DelayPatternCard({ pattern, onClick }: { pattern: TrainDelayPattern; onClick: () => void }) {
+  const color = SEV_COLOR[pattern.severityLevel] ?? "#90a4ae";
+  return (
+    <ListItem onClick={onClick} sx={{ px: 1.5, py: 1, cursor: "pointer", "&:hover": { bgcolor: "action.hover" }, alignItems: "flex-start" }} divider>
+      <Box sx={{ width: "100%" }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.25 }}>
+          <Typography variant="body2" fontWeight={700} noWrap sx={{ flex: 1, mr: 1 }}>{pattern.stationDesc}</Typography>
+          <Chip size="small" label={SEV_LABEL[pattern.severityLevel]} sx={{ height: 18, fontSize: "0.62rem", bgcolor: color + "22", color, fontWeight: 700, border: `1px solid ${color}` }} />
+        </Box>
+        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
+          {pattern.origin} → {pattern.destination}
+          {pattern.trainType && <Box component="span" sx={{ ml: 0.75, opacity: 0.8 }}>· {pattern.trainType}</Box>}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mt: 0.5, flexWrap: "wrap" }}>
+          <Chip size="small" label={`${TOD_LABEL[pattern.timeOfDay]} (${TOD_SHORT[pattern.timeOfDay]})`} sx={{ height: 17, fontSize: "0.6rem" }} />
+          <Typography variant="caption" fontWeight={700} sx={{ color }}>avg {pattern.avgDelayMinutes.toFixed(1)} min</Typography>
+          <Typography variant="caption" color="text.disabled">· max {pattern.maxDelayMinutes} min</Typography>
+          <Typography variant="caption" color="text.secondary">· {pattern.latePercent.toFixed(0)}% late</Typography>
+          <Typography variant="caption" color="text.disabled">({pattern.occurrenceCount} records)</Typography>
+        </Box>
+      </Box>
+    </ListItem>
+  );
+}
+
+// ── Main dashboard ─────────────────────────────────────────────────
+
+type TabIndex = 0 | 1 | 2 | 3;
+type DaysWindow = 7 | 30 | 90;
+
+const TIME_OF_DAY_OPTIONS: Array<{ value: TimeOfDay | "ALL"; label: string }> = [
+  { value: "ALL", label: "All day" },
+  { value: "MORNING_PEAK", label: "Morning" },
+  { value: "MIDDAY", label: "Midday" },
+  { value: "AFTERNOON", label: "Afternoon" },
+  { value: "EVENING_PEAK", label: "Evening" },
+  { value: "NIGHT", label: "Night" },
+];
 
 export const TrainDashboard = () => {
   const [panelOpen, setPanelOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<PanelTab>("stations");
-  const [typeFilter, setTypeFilter] = useState<TypeKey>("ALL");
-  const [search, setSearch] = useState("");
-  const [flyTarget, setFlyTarget] = useState<{
-    center: [number, number];
-    id: number;
-  } | null>(null);
-  const [selectedStationCode, setSelectedStationCode] = useState<string | null>(
-    null,
-  );
-  const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
-    null,
-  );
+  const [activeTab, setActiveTab] = useState<TabIndex>(0);
+  const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null);
+  const [daysWindow, setDaysWindow] = useState<DaysWindow>(30);
+  const [todFilter, setTodFilter] = useState<TimeOfDay | "ALL">("ALL");
+  const [sevFilter, setSevFilter] = useState<string>("ALL");
 
   const theme = useAppSelector((state) => state.ui.theme);
   const { data: trainData, isLoading: dataLoading, error } = useTrainData(500);
   const { data: kpiData } = useTrainKpis();
   const { data: liveTrains = [] } = useTrainLiveTrains();
+  const { data: utilData = [], isLoading: utilLoading } = useTrainUtilization();
+  const { data: delayRaw = [], isLoading: delayLoading } = useTrainDelayPatterns(daysWindow);
 
-  // Inject CSS once
-  useEffect(() => {
-    const el = document.createElement("style");
-    el.dataset["trainUi"] = "1";
-    el.innerHTML = INJECTED_CSS;
-    document.head.append(el);
-    return () => {
-      el.remove();
-    };
-  }, []);
+  const defaultCenter: [number, number] = [53.3498, -6.2603];
+  const tileUrl = theme === "dark"
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const tileAttribution = theme === "dark"
+    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-  // Same tile choice as every other dashboard: OSM light, Carto dark
-  const tileUrl =
-    theme === "dark"
-      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const tileAttr =
-    theme === "dark"
-      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
-      : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-
-  // Filtered stations (for panel list + map markers)
-  const filteredStations = useMemo(() => {
-    let list = trainData?.data ?? [];
-    if (typeFilter !== "ALL")
-      list = list.filter((s) => s.stationType === typeFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (s) =>
-          s.stationDesc?.toLowerCase().includes(q) ||
-          s.stationCode?.toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [trainData, typeFilter, search]);
-
-  // Filtered live trains (for panel list + map markers — type filter applies to both)
-  const filteredLiveTrains = useMemo(() => {
-    if (typeFilter === "ALL") return liveTrains;
-    return liveTrains.filter(
-      (t) => getTrainTypeKey(t.trainType) === typeFilter,
-    );
-  }, [liveTrains, typeFilter]);
-
-  const runningCount = filteredLiveTrains.filter((t) =>
-    isRunning(t.status),
-  ).length;
-  const scheduledCount = filteredLiveTrains.length - runningCount;
-
-  const handleStationClick = useCallback(
-    (lat: number, lon: number, code: string) => {
-      setSelectedStationCode(code);
-      setSelectedTrainCode(null);
-      setFlyTarget({ center: [lat, lon], id: Date.now() });
-    },
-    [],
+  const delayPatterns = delayRaw.filter(
+    (p) => (todFilter === "ALL" || p.timeOfDay === todFilter) && (sevFilter === "ALL" || p.severityLevel === sevFilter),
   );
 
-  const handleTrainClick = useCallback(
-    (lat: number, lon: number, code: string) => {
-      setSelectedTrainCode(code);
-      setSelectedStationCode(null);
-      setFlyTarget({ center: [lat, lon], id: Date.now() });
-    },
-    [],
-  );
-
-  // When switching to Trains tab, clear station selection (and vice-versa)
-  const switchTab = (tab: PanelTab) => {
-    setActiveTab(tab);
-    if (tab === "trains") setSelectedStationCode(null);
-    else setSelectedTrainCode(null);
-  };
-
-  const PANEL_W = 380;
-
-  // Sort trains: running first
-  const sortedTrains = useMemo(
-    () =>
-      filteredLiveTrains.toSorted((a, b) => {
-        const aR = isRunning(a.status) ? 0 : 1;
-        const bR = isRunning(b.status) ? 0 : 1;
-        return aR - bR || (a.trainCode ?? "").localeCompare(b.trainCode ?? "");
-      }),
-    [filteredLiveTrains],
-  );
+  const maxServiceCount = utilData.length > 0 ? Math.max(...utilData.map((s) => s.trainServiceCount)) : 1;
+  const severeCount = delayRaw.filter((p) => p.severityLevel === "SEVERE").length;
 
   return (
-    <Box
-      sx={{
-        position: "relative",
-        height: "100%",
-        width: "100%",
-        bgcolor: "#0d1117",
-      }}
-    >
-      {/* ── Full-viewport map ── */}
+    <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
+      {/* Map */}
       <Box sx={{ height: "100%", width: "100%" }}>
-        <MapContainer
-          center={DUBLIN_CENTER}
-          zoom={11}
-          style={{ height: "100%", width: "100%" }}
-          zoomControl={false}
-        >
-          <TileLayer attribution={tileAttr} url={tileUrl} />
+        <MapContainer center={defaultCenter} zoom={12} style={{ height: "100%", width: "100%" }} zoomControl={false}>
+          <TileLayer attribution={tileAttribution} url={tileUrl} />
           <MapController target={flyTarget} />
 
-          {/* Station markers — always visible, filtered by type */}
-          {filteredStations.map((station) => (
-            <Marker
-              key={station.id}
-              position={[station.lat, station.lon]}
-              icon={makeStationIcon(station.stationType ?? null)}
-              eventHandlers={{
-                click: () =>
-                  handleStationClick(
-                    station.lat,
-                    station.lon,
-                    station.stationCode,
-                  ),
-              }}
-            >
+          {/* Station markers */}
+          {(activeTab === 0) && trainData?.data?.map((station) => (
+            <Marker key={station.id} position={[station.lat, station.lon]} icon={stationIcon} eventHandlers={{ click: () => setFlyTarget({ lat: station.lat, lon: station.lon }) }}>
               <Popup>
-                <Box sx={{ minWidth: 180 }}>
-                  <Typography
-                    fontWeight={700}
-                    sx={{ fontSize: "0.95rem", color: "#e6edf3", mb: 0.75 }}
-                  >
-                    {station.stationDesc}
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-                    <Chip
-                      size="small"
-                      label={station.stationCode}
-                      sx={{
-                        fontSize: "0.65rem",
-                        height: 18,
-                        bgcolor: "rgba(255,255,255,0.07)",
-                        color: "#8b949e",
-                      }}
-                    />
-                    {station.stationType &&
-                      (() => {
-                        const cfg = TYPE_CONFIG[station.stationType as TypeKey];
-                        return cfg ? (
-                          <Chip
-                            size="small"
-                            label={cfg.label}
-                            sx={{
-                              fontSize: "0.65rem",
-                              height: 18,
-                              bgcolor: cfg.color + "22",
-                              color: cfg.color,
-                              border: `1px solid ${cfg.color}44`,
-                            }}
-                          />
-                        ) : null;
-                      })()}
-                  </Box>
-                  {station.stationAlias && (
-                    <Typography
-                      sx={{ fontSize: "0.72rem", color: "#8b949e", mt: 0.5 }}
-                    >
-                      Also: {station.stationAlias}
-                    </Typography>
-                  )}
-                </Box>
+                <Typography variant="subtitle2" fontWeight={700}>{station.stationDesc}</Typography>
+                <Typography variant="body2" color="text.secondary">Code: {station.stationCode}</Typography>
+                {station.stationType && <Typography variant="body2" color="text.secondary">Type: {station.stationType}</Typography>}
               </Popup>
             </Marker>
           ))}
 
-          {/* Live train markers — filtered by type, coloured by type, directional */}
-          {filteredLiveTrains
-            .filter((t) => t.lat && t.lon)
-            .map((t) => {
-              const running = isRunning(t.status);
-              const dirArrow = getDirectionArrow(t.direction);
-              const typeKey = getTrainTypeKey(t.trainType);
-              const typCfg = TYPE_CONFIG[typeKey];
-              return (
-                <Marker
-                  key={t.trainCode}
-                  position={[t.lat, t.lon]}
-                  icon={makeLiveTrainIcon(
-                    t.trainType ?? null,
-                    t.direction ?? null,
-                    running,
-                  )}
-                  eventHandlers={{
-                    click: () => handleTrainClick(t.lat, t.lon, t.trainCode),
-                  }}
-                >
-                  <Popup>
-                    <Box sx={{ minWidth: 190 }}>
-                      <Typography
-                        fontWeight={700}
-                        sx={{ fontSize: "0.9rem", color: "#e6edf3", mb: 0.5 }}
-                      >
-                        🚂 {t.trainCode}
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 0.5,
-                          mb: 0.5,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <Chip
-                          size="small"
-                          label={running ? "● Running" : "○ Scheduled"}
-                          sx={{
-                            fontSize: "0.65rem",
-                            height: 18,
-                            bgcolor: (running ? "#2ea043" : "#d29922") + "22",
-                            color: running ? "#2ea043" : "#d29922",
-                          }}
-                        />
-                        {t.trainType && (
-                          <Chip
-                            size="small"
-                            label={
-                              typCfg.label === "All"
-                                ? t.trainType
-                                : typCfg.label
-                            }
-                            sx={{
-                              fontSize: "0.65rem",
-                              height: 18,
-                              bgcolor: typCfg.color + "22",
-                              color: typCfg.color,
-                              border: `1px solid ${typCfg.color}44`,
-                            }}
-                          />
-                        )}
-                      </Box>
-                      {t.direction && (
-                        <Typography
-                          sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}
-                        >
-                          {dirArrow} {t.direction}
-                        </Typography>
-                      )}
-                      {t.publicMessage && (
-                        <Typography
-                          sx={{
-                            fontSize: "0.72rem",
-                            color: "#8b949e",
-                            mt: 0.4,
-                          }}
-                        >
-                          {t.publicMessage}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Popup>
-                </Marker>
-              );
-            })}
+          {/* Live train markers */}
+          {activeTab === 1 && liveTrains.filter((t) => t.lat && t.lon).map((t) => (
+            <Marker key={t.trainCode} position={[t.lat, t.lon]} icon={isRunning(t.status) ? RUNNING_TRAIN_ICON : makeColorDot("#ff9800", 16)} eventHandlers={{ click: () => setFlyTarget({ lat: t.lat, lon: t.lon }) }}>
+              <Popup>
+                <Typography variant="subtitle2" fontWeight={700}>🚂 {t.trainCode}</Typography>
+                {t.direction && <Typography variant="body2" color="text.secondary">Direction: {t.direction}</Typography>}
+                {t.trainType && <Typography variant="body2" color="text.secondary">Type: {t.trainType}</Typography>}
+                <Chip size="small" label={isRunning(t.status) ? "Running" : "Not yet running"} color={isRunning(t.status) ? "success" : "warning"} sx={{ mt: 0.5, height: 18, fontSize: "0.65rem" }} />
+                {t.publicMessage && <Typography variant="body2" sx={{ mt: 0.5 }}>{t.publicMessage}</Typography>}
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Utilization markers */}
+          {activeTab === 2 && utilData.map((s) => (
+            <Marker key={s.stationCode} position={[s.lat, s.lon]} icon={makeColorDot(UTIL_COLOR[s.utilizationLevel] ?? "#90a4ae", 16)} eventHandlers={{ click: () => setFlyTarget({ lat: s.lat, lon: s.lon }) }}>
+              <Popup>
+                <Typography variant="subtitle2" fontWeight={700}>{s.stationDesc}</Typography>
+                <Typography variant="body2" color="text.secondary">{s.trainServiceCount} active services</Typography>
+                {s.avgDelayMinutes > 0 && <Typography variant="body2" color="warning.main">Avg delay: {s.avgDelayMinutes.toFixed(1)} min</Typography>}
+                <Chip size="small" label={UTIL_LABEL[s.utilizationLevel]} sx={{ mt: 0.5, height: 18, fontSize: "0.65rem", bgcolor: UTIL_COLOR[s.utilizationLevel], color: "#fff", fontWeight: 700 }} />
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Delay pattern markers */}
+          {activeTab === 3 && delayPatterns.map((p, i) => (
+            <Marker key={`${p.stationCode}-${p.timeOfDay}-${i}`} position={[p.lat, p.lon]} icon={makeColorDot(SEV_COLOR[p.severityLevel] ?? "#90a4ae", 14)} eventHandlers={{ click: () => setFlyTarget({ lat: p.lat, lon: p.lon }) }}>
+              <Popup>
+                <Typography variant="subtitle2" fontWeight={700}>{p.stationDesc}</Typography>
+                <Typography variant="body2" color="text.secondary">{p.origin} → {p.destination}</Typography>
+                <Typography variant="body2" sx={{ color: SEV_COLOR[p.severityLevel] }}>Avg delay: {p.avgDelayMinutes.toFixed(1)} min ({TOD_LABEL[p.timeOfDay]})</Typography>
+              </Popup>
+            </Marker>
+          ))}
         </MapContainer>
       </Box>
 
-      {/* Map legend */}
-      <MapLegend />
+      {error && <Alert severity="error" sx={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 1000, borderRadius: 2 }}>Failed to load train data</Alert>}
 
-      {/* Error */}
-      {error && (
-        <Alert
-          severity="error"
-          sx={{
-            position: "absolute",
-            top: 16,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1001,
-            borderRadius: 2,
-          }}
-        >
-          Failed to load train data
-        </Alert>
-      )}
-
-      {/* Toggle button */}
       {!panelOpen && (
-        <IconButton
-          onClick={() => setPanelOpen(true)}
-          sx={{
-            position: "absolute",
-            top: 16,
-            left: 16,
-            zIndex: 1001,
-            bgcolor: "rgba(13,17,23,0.92)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            backdropFilter: "blur(12px)",
-            color: "#e6edf3",
-            "&:hover": { bgcolor: "rgba(22,27,34,0.96)" },
-          }}
-        >
+        <IconButton onClick={() => setPanelOpen(true)} sx={{ position: "absolute", top: 16, right: 16, zIndex: 1000, bgcolor: (t) => t.palette.background.paper, backdropFilter: "blur(12px)", "&:hover": { bgcolor: (t) => t.palette.background.paper } }}>
           <MenuOpenIcon />
         </IconButton>
       )}
 
-      {/* ── Left glass panel ── */}
+      {/* Floating panel */}
       {panelOpen && (
-        <Paper
-          elevation={0}
-          sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            bottom: 0,
-            width: PANEL_W,
-            zIndex: 1000,
-            borderRadius: 0,
-            borderRight: "1px solid rgba(48,54,61,0.5)",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            background: "rgba(13,17,23,0.95)",
-            backdropFilter: "blur(20px)",
-          }}
-        >
+        <Paper elevation={0} sx={{ position: "absolute", top: 16, right: 16, bottom: 16, width: 420, zIndex: 1000, borderRadius: 3, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
           {/* Header */}
-          <Box
-            sx={{
-              px: 2,
-              py: 1.75,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderBottom: "1px solid rgba(48,54,61,0.5)",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-              <Box
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  background:
-                    "linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 2px 8px rgba(21,101,192,0.4)",
-                }}
-              >
-                <TrainIcon sx={{ fontSize: 18, color: "#fff" }} />
-              </Box>
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  fontWeight={700}
-                  sx={{
-                    color: "#e6edf3",
-                    lineHeight: 1.2,
-                    letterSpacing: -0.2,
-                  }}
-                >
-                  Dublin Rail Network
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <FiberManualRecordIcon
-                    sx={{ fontSize: 7, color: "#2ea043" }}
-                  />
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#2ea043",
-                      fontSize: "0.62rem",
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    LIVE · Greater Dublin Area
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-            <IconButton
-              size="small"
-              onClick={() => setPanelOpen(false)}
-              sx={{ color: "#8b949e" }}
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
+          <Box sx={{ p: 2, pb: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Typography variant="h5">🚂 Train Network</Typography>
+            <IconButton size="small" onClick={() => setPanelOpen(false)}><CloseIcon fontSize="small" /></IconButton>
           </Box>
 
-          {/* KPI grid */}
+          {/* KPIs */}
           {kpiData && (
-            <Box
-              sx={{
-                p: 1.75,
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 1,
-              }}
-            >
-              <KpiCard
-                icon={<LocationOnIcon fontSize="inherit" />}
-                label="Stations"
-                value={kpiData.totalStations}
-                accent="#00ACC1"
-              />
-              <KpiCard
-                icon={<TrainIcon fontSize="inherit" />}
-                label="Live Trains"
-                value={kpiData.liveTrainsRunning}
-                accent="#2ea043"
-              />
-              <KpiCard
-                icon={<AccessTimeIcon fontSize="inherit" />}
-                label="On Time"
-                value={`${kpiData.onTimePct.toFixed(1)}%`}
-                accent={kpiData.onTimePct >= 80 ? "#2ea043" : "#d29922"}
-              />
-              <KpiCard
-                icon={<SpeedIcon fontSize="inherit" />}
-                label="Avg Delay"
-                value={`${kpiData.avgDelayMinutes.toFixed(1)} min`}
-                accent={kpiData.avgDelayMinutes <= 2 ? "#2ea043" : "#d29922"}
-              />
+            <Box sx={{ px: 2, pb: 1.5, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+              <KpiCard icon={<LocationOnIcon fontSize="inherit" />} label="Stations" value={kpiData.totalStations} color="info.main" />
+              <KpiCard icon={<TrainIcon fontSize="inherit" />} label="Live Trains" value={kpiData.liveTrainsRunning} color="success.main" />
+              <KpiCard icon={<AccessTimeIcon fontSize="inherit" />} label="On Time" value={`${kpiData.onTimePct.toFixed(1)}%`} color={kpiData.onTimePct >= 80 ? "success.main" : "warning.main"} />
+              <KpiCard icon={<SpeedIcon fontSize="inherit" />} label="Avg Delay" value={`${kpiData.avgDelayMinutes.toFixed(1)} min`} color={kpiData.avgDelayMinutes <= 2 ? "success.main" : "warning.main"} />
             </Box>
           )}
 
-          {/* Running / Scheduled summary */}
-          {liveTrains.length > 0 && (
-            <Box sx={{ px: 1.75, pb: 1.25, display: "flex", gap: 0.75 }}>
-              <Chip
-                size="small"
-                label={`${runningCount} Running`}
-                sx={{
-                  fontSize: "0.68rem",
-                  bgcolor: "#2ea04320",
-                  color: "#2ea043",
-                  border: "1px solid #2ea04340",
-                }}
-              />
-              <Chip
-                size="small"
-                label={`${scheduledCount} Scheduled`}
-                sx={{
-                  fontSize: "0.68rem",
-                  bgcolor: "#d2992220",
-                  color: "#d29922",
-                  border: "1px solid #d2992240",
-                }}
-              />
+          <Divider />
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v as TabIndex)} variant="fullWidth" sx={{ minHeight: 40, "& .MuiTab-root": { minHeight: 40, fontSize: "0.7rem", px: 0.5 } }}>
+            <Tab label={`Stations (${trainData?.totalRecords ?? 0})`} />
+            <Tab label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+                Live
+                <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: liveTrains.filter((t) => isRunning(t.status)).length > 0 ? "success.main" : "text.disabled" }} />
+                ({liveTrains.length})
+              </Box>
+            } />
+            <Tab label={<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}><TrendingUpIcon sx={{ fontSize: 13 }} />Util.</Box>} />
+            <Tab label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+                <WarningAmberIcon sx={{ fontSize: 13, color: severeCount > 0 ? "error.main" : "inherit" }} />
+                Delays
+                {severeCount > 0 && <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "error.main" }} />}
+              </Box>
+            } />
+          </Tabs>
+
+          {/* ── Stations ── */}
+          {activeTab === 0 && (
+            <Box sx={{ flex: 1, overflow: "auto" }}>
+              {dataLoading ? <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress size={28} /></Box> : (
+                <List sx={{ px: 1 }}>
+                  {trainData?.data?.map((station) => (
+                    <ListItem key={station.id} divider onClick={() => setFlyTarget({ lat: station.lat, lon: station.lon })} sx={{ cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }}>
+                      <ListItemText primary={station.stationDesc} secondary={`${station.stationCode}${station.stationType ? ` · ${station.stationType}` : ""}`} />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </Box>
           )}
 
-          <Divider sx={{ borderColor: "rgba(48,54,61,0.5)" }} />
+          {/* ── Live Trains ── */}
+          {activeTab === 1 && (
+            <Box sx={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
+              {liveTrains.length > 0 && (
+                <Box sx={{ px: 2, py: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  <Chip size="small" label={`🟢 Running (${liveTrains.filter((t) => isRunning(t.status)).length})`} sx={{ fontSize: "0.7rem" }} />
+                  <Chip size="small" label={`🟠 Not yet (${liveTrains.filter((t) => !isRunning(t.status)).length})`} sx={{ fontSize: "0.7rem" }} />
+                </Box>
+              )}
+              {liveTrains.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>No live trains available</Typography>
+              ) : (
+                <List sx={{ flex: 1, overflow: "auto", px: 1 }}>
+                  {[...liveTrains].sort((a, b) => Number(isRunning(b.status)) - Number(isRunning(a.status))).map((t) => (
+                    <ListItem key={t.trainCode} divider onClick={() => t.lat && t.lon ? setFlyTarget({ lat: t.lat, lon: t.lon }) : undefined}
+                      sx={{ cursor: t.lat && t.lon ? "pointer" : "default", opacity: t.lat && t.lon ? 1 : 0.5, "&:hover": { bgcolor: t.lat && t.lon ? "action.hover" : undefined } }}>
+                      <ListItemText
+                        primary={<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: isRunning(t.status) ? "success.main" : "warning.main", flexShrink: 0 }} />
+                          <Typography variant="body2" fontWeight={600}>{t.trainCode}</Typography>
+                          {t.trainType && <Typography variant="caption" color="text.secondary">· {t.trainType}</Typography>}
+                        </Box>}
+                        secondary={t.direction ?? "Unknown direction"}
+                      />
+                      <Chip size="small" label={isRunning(t.status) ? "Running" : "Soon"} color={isRunning(t.status) ? "success" : "warning"} sx={{ height: 18, fontSize: "0.65rem" }} />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Box>
+          )}
 
-          {/* Tab toggle: Stations | Trains */}
-          <Box
-            sx={{
-              px: 1.75,
-              pt: 1.25,
-              pb: 1,
-              display: "flex",
-              gap: 0.5,
-            }}
-          >
-            {(["stations", "trains"] as PanelTab[]).map((tab) => {
-              const active = activeTab === tab;
-              const label = tab === "stations" ? "Stations" : "Live Trains";
-              const count =
-                tab === "stations"
-                  ? filteredStations.length
-                  : sortedTrains.filter((t) => t.lat && t.lon).length;
-              return (
-                <Box
-                  key={tab}
-                  onClick={() => switchTab(tab)}
-                  sx={{
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 1.5,
-                    cursor: "pointer",
-                    bgcolor: active ? "rgba(21,101,192,0.2)" : "transparent",
-                    border: "1px solid",
-                    borderColor: active ? "#1565C0" : "rgba(48,54,61,0.6)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.75,
-                    transition: "all 0.15s",
-                    "&:hover": {
-                      bgcolor: active
-                        ? "rgba(21,101,192,0.25)"
-                        : "rgba(255,255,255,0.04)",
-                    },
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: "0.75rem",
-                      fontWeight: active ? 600 : 400,
-                      color: active ? "#e6edf3" : "#8b949e",
-                    }}
-                  >
-                    {label}
-                  </Typography>
-                  <Box
-                    sx={{
-                      px: 0.75,
-                      py: 0.15,
-                      borderRadius: 1,
-                      bgcolor: active ? "#1565C0" : "rgba(48,54,61,0.6)",
-                      minWidth: 20,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: "0.62rem",
-                        fontWeight: 700,
-                        color: "#e6edf3",
-                      }}
-                    >
-                      {count}
+          {/* ── Utilization ── */}
+          {activeTab === 2 && (
+            <Box sx={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
+              {utilLoading ? <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress size={28} /></Box> : (
+                <>
+                  <Box sx={{ px: 2, py: 1, display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+                    {(["HIGH", "MEDIUM", "LOW"] as const).map((level) => (
+                      <Tooltip key={level} title={level === "HIGH" ? ">1.5× mean — high demand" : level === "LOW" ? "<0.5× mean — under-served" : "Within normal range"}>
+                        <Chip size="small" label={`${level === "HIGH" ? "🔴" : level === "LOW" ? "🟢" : "🟡"} ${UTIL_LABEL[level]} (${utilData.filter((s) => s.utilizationLevel === level).length})`} sx={{ fontSize: "0.68rem" }} />
+                      </Tooltip>
+                    ))}
+                  </Box>
+                  <Divider />
+                  {utilData.length === 0
+                    ? <Alert severity="info" sx={{ mx: 2, mt: 2 }}>No utilization data yet — check back once trains are active.</Alert>
+                    : <List disablePadding sx={{ flex: 1, overflow: "auto" }}>
+                        {utilData.map((s) => <UtilizationBar key={s.stationCode} station={s} max={maxServiceCount} onClick={() => setFlyTarget({ lat: s.lat, lon: s.lon })} />)}
+                      </List>
+                  }
+                </>
+              )}
+            </Box>
+          )}
+
+          {/* ── Delays ── */}
+          {activeTab === 3 && (
+            <Box sx={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
+              {/* Filters */}
+              <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75 }}>
+                {/* Time window toggle */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Window:</Typography>
+                  <ToggleButtonGroup value={daysWindow} exclusive onChange={(_, v) => v && setDaysWindow(v as DaysWindow)} size="small"
+                    sx={{ "& .MuiToggleButton-root": { py: 0.25, px: 1.25, fontSize: "0.7rem" } }}>
+                    <ToggleButton value={7}>7 days</ToggleButton>
+                    <ToggleButton value={30}>30 days</ToggleButton>
+                    <ToggleButton value={90}>90 days</ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+
+                {/* Time-of-day chips */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap", mb: 0.75 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ mr: 0.25 }}>Time:</Typography>
+                  {TIME_OF_DAY_OPTIONS.map((opt) => (
+                    <Chip key={opt.value} size="small" label={opt.label} clickable onClick={() => setTodFilter(opt.value as TimeOfDay | "ALL")}
+                      sx={{ height: 20, fontSize: "0.62rem", bgcolor: todFilter === opt.value ? "primary.main" : undefined, color: todFilter === opt.value ? "#fff" : undefined }} />
+                  ))}
+                </Box>
+
+                {/* Severity chips */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ mr: 0.25 }}>Severity:</Typography>
+                  {(["ALL", "SEVERE", "MODERATE", "MINOR"] as const).map((s) => (
+                    <Chip key={s} size="small" label={s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()} clickable onClick={() => setSevFilter(s)}
+                      sx={{ height: 20, fontSize: "0.62rem", bgcolor: sevFilter === s ? (s === "ALL" ? "primary.main" : SEV_COLOR[s]) : undefined, color: sevFilter === s ? "#fff" : s !== "ALL" ? SEV_COLOR[s] : undefined }} />
+                  ))}
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Results */}
+              {delayLoading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress size={28} /></Box>
+              ) : delayPatterns.length === 0 ? (
+                <Alert severity="info" sx={{ mx: 2, mt: 2, fontSize: "0.8rem" }}>
+                  {delayRaw.length === 0
+                    ? "No delay patterns found for this period. Historical data accumulates over time — try a longer window."
+                    : "No patterns match the selected filters — try widening your selection."}
+                </Alert>
+              ) : (
+                <>
+                  <Box sx={{ px: 2, py: 0.75 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {delayPatterns.length} pattern{delayPatterns.length !== 1 ? "s" : ""} · sorted worst-first
+                      {severeCount > 0 && <Box component="span" sx={{ color: "error.main", ml: 0.75 }}>· {severeCount} severe</Box>}
                     </Typography>
                   </Box>
-                </Box>
-              );
-            })}
-          </Box>
-
-          {/* Type filter (applies to both tabs — filters map AND list) */}
-          <Box sx={{ px: 1.75, pb: 1 }}>
-            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-              {(["ALL", "D", "S", "M"] as TypeKey[]).map((key) => {
-                const active = typeFilter === key;
-                const accent =
-                  key === "ALL" ? "#1565C0" : TYPE_CONFIG[key].color;
-                return (
-                  <Chip
-                    key={key}
-                    size="small"
-                    label={TYPE_CONFIG[key].label}
-                    onClick={() => setTypeFilter(key)}
-                    sx={{
-                      fontSize: "0.7rem",
-                      cursor: "pointer",
-                      bgcolor: active ? accent : "rgba(22,27,34,0.7)",
-                      color: active ? "#fff" : "#8b949e",
-                      border: "1px solid",
-                      borderColor: active ? accent : "rgba(48,54,61,0.6)",
-                      transition: "all 0.15s",
-                      "&:hover": { opacity: 0.85 },
-                    }}
-                  />
-                );
-              })}
-            </Box>
-          </Box>
-
-          {/* Search — only shown on Stations tab */}
-          {activeTab === "stations" && (
-            <Box sx={{ px: 1.75, pb: 1.25 }}>
-              <TextField
-                size="small"
-                fullWidth
-                placeholder="Search stations…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 16, color: "#8b949e" }} />
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      bgcolor: "rgba(22,27,34,0.7)",
-                      color: "#e6edf3",
-                      fontSize: "0.85rem",
-                      borderRadius: 2,
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(48,54,61,0.6)",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(255,255,255,0.18)",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#1565C0",
-                      },
-                      "& input": {
-                        color: "#e6edf3",
-                        "&::placeholder": { color: "#8b949e", opacity: 1 },
-                      },
-                    },
-                  },
-                }}
-              />
-            </Box>
-          )}
-
-          {/* Count caption */}
-          <Box sx={{ px: 2, pb: 0.5 }}>
-            <Typography
-              variant="caption"
-              sx={{ color: "#484f58", fontSize: "0.68rem" }}
-            >
-              {activeTab === "stations"
-                ? `${filteredStations.length} station${filteredStations.length === 1 ? "" : "s"}${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}${search.trim() ? ` · "${search}"` : ""}`
-                : `${sortedTrains.length} train${sortedTrains.length === 1 ? "" : "s"} on map${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}`}
-            </Typography>
-          </Box>
-
-          {/* ── Scrollable list ── */}
-          {dataLoading && activeTab === "stations" ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress size={24} sx={{ color: "#1565C0" }} />
-            </Box>
-          ) : (
-            <Box sx={{ flex: 1, overflow: "auto" }}>
-              {/* ── STATIONS LIST ── */}
-              {activeTab === "stations" &&
-                filteredStations.map((station) => {
-                  const typCfg =
-                    TYPE_CONFIG[(station.stationType as TypeKey) ?? "ALL"] ??
-                    TYPE_CONFIG.ALL;
-                  const selected = selectedStationCode === station.stationCode;
-                  return (
-                    <ListItemButton
-                      key={station.id}
-                      onClick={() =>
-                        handleStationClick(
-                          station.lat,
-                          station.lon,
-                          station.stationCode,
-                        )
-                      }
-                      sx={{
-                        py: 0.875,
-                        px: 2,
-                        bgcolor: selected
-                          ? "rgba(21,101,192,0.12)"
-                          : "transparent",
-                        borderLeft: selected
-                          ? "3px solid #1565C0"
-                          : "3px solid transparent",
-                        "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
-                        transition: "all 0.12s",
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          bgcolor: typCfg.color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          mr: 1.5,
-                        }}
-                      >
-                        <Typography
-                          sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}
-                        >
-                          {typCfg.short}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          noWrap
-                          sx={{
-                            fontSize: "0.855rem",
-                            fontWeight: selected ? 600 : 400,
-                            color: selected ? "#e6edf3" : "#c9d1d9",
-                            lineHeight: 1.25,
-                          }}
-                        >
-                          {station.stationDesc}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: "0.68rem",
-                            color: "#484f58",
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {station.stationCode} · {typCfg.label}
-                        </Typography>
-                      </Box>
-                      {selected && (
-                        <Box
-                          sx={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            bgcolor: "#1565C0",
-                            flexShrink: 0,
-                            ml: 1,
-                          }}
-                        />
-                      )}
-                    </ListItemButton>
-                  );
-                })}
-
-              {/* ── TRAINS LIST ── */}
-              {activeTab === "trains" &&
-                sortedTrains.map((t) => {
-                  const running = isRunning(t.status);
-                  const typeKey = getTrainTypeKey(t.trainType);
-                  const typCfg = TYPE_CONFIG[typeKey];
-                  const dirArrow = getDirectionArrow(t.direction);
-                  const hasCoors = t.lat && t.lon;
-                  const selected = selectedTrainCode === t.trainCode;
-
-                  return (
-                    <ListItemButton
-                      key={t.trainCode}
-                      onClick={() =>
-                        hasCoors && handleTrainClick(t.lat, t.lon, t.trainCode)
-                      }
-                      disabled={!hasCoors}
-                      sx={{
-                        py: 0.875,
-                        px: 2,
-                        bgcolor: selected
-                          ? "rgba(21,101,192,0.12)"
-                          : "transparent",
-                        borderLeft: selected
-                          ? "3px solid #1565C0"
-                          : "3px solid transparent",
-                        opacity: hasCoors ? 1 : 0.45,
-                        "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
-                        transition: "all 0.12s",
-                      }}
-                    >
-                      {/* Type + status dot */}
-                      <Box
-                        sx={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          bgcolor: typCfg.color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          mr: 1.5,
-                          boxShadow: running
-                            ? `0 0 0 3px ${typCfg.color}44`
-                            : "none",
-                          transition: "box-shadow 0.3s",
-                        }}
-                      >
-                        <Typography
-                          sx={{ fontSize: 10, fontWeight: 900, color: "#fff" }}
-                        >
-                          {dirArrow || typCfg.short}
-                        </Typography>
-                      </Box>
-
-                      {/* Code + type + direction */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 0.75,
-                          }}
-                        >
-                          <Typography
-                            sx={{
-                              fontSize: "0.855rem",
-                              fontWeight: 600,
-                              color: selected ? "#e6edf3" : "#c9d1d9",
-                              lineHeight: 1.25,
-                            }}
-                          >
-                            {t.trainCode}
-                          </Typography>
-                          {!hasCoors && (
-                            <Typography
-                              sx={{ fontSize: "0.62rem", color: "#484f58" }}
-                            >
-                              (no GPS)
-                            </Typography>
-                          )}
-                        </Box>
-                        <Typography
-                          sx={{
-                            fontSize: "0.68rem",
-                            color: "#484f58",
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {typCfg.label === "All"
-                            ? (t.trainType ?? "Unknown")
-                            : typCfg.label}
-                          {t.direction ? ` · ${dirArrow} ${t.direction}` : ""}
-                        </Typography>
-                      </Box>
-
-                      {/* Status badge */}
-                      <Chip
-                        size="small"
-                        label={running ? "Running" : "Sched."}
-                        sx={{
-                          fontSize: "0.62rem",
-                          height: 18,
-                          ml: 0.5,
-                          flexShrink: 0,
-                          bgcolor: (running ? "#2ea043" : "#d29922") + "20",
-                          color: running ? "#2ea043" : "#d29922",
-                          border: `1px solid ${running ? "#2ea043" : "#d29922"}40`,
-                        }}
-                      />
-                    </ListItemButton>
-                  );
-                })}
-
-              {/* Empty state for trains */}
-              {activeTab === "trains" && sortedTrains.length === 0 && (
-                <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <TrainIcon sx={{ fontSize: 32, color: "#30363d", mb: 1 }} />
-                  <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
-                    No live trains at the moment
-                  </Typography>
-                </Box>
+                  <List disablePadding sx={{ flex: 1, overflow: "auto" }}>
+                    {delayPatterns.map((p, i) => (
+                      <DelayPatternCard key={`${p.stationCode}-${p.timeOfDay}-${i}`} pattern={p} onClick={() => setFlyTarget({ lat: p.lat, lon: p.lon })} />
+                    ))}
+                  </List>
+                </>
               )}
             </Box>
           )}
@@ -1216,6 +492,32 @@ export const TrainDashboard = () => {
               Irish Rail · Greater Dublin Area · Real-time data
             </Typography>
           </Box>
+        </Paper>
+      )}
+
+      {/* Utilization map legend */}
+      {activeTab === 2 && panelOpen && (
+        <Paper elevation={0} sx={{ position: "absolute", bottom: 24, left: 16, zIndex: 1000, borderRadius: 2, p: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Typography variant="caption" fontWeight={700} color="text.secondary">SERVICE LOAD</Typography>
+          {(["HIGH", "MEDIUM", "LOW"] as const).map((level) => (
+            <Box key={level} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: UTIL_COLOR[level], border: "1.5px solid rgba(255,255,255,0.7)" }} />
+              <Typography variant="caption">{UTIL_LABEL[level]}</Typography>
+            </Box>
+          ))}
+        </Paper>
+      )}
+
+      {/* Delays map legend */}
+      {activeTab === 3 && panelOpen && (
+        <Paper elevation={0} sx={{ position: "absolute", bottom: 24, left: 16, zIndex: 1000, borderRadius: 2, p: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Typography variant="caption" fontWeight={700} color="text.secondary">DELAY SEVERITY</Typography>
+          {(["SEVERE", "MODERATE", "MINOR"] as const).map((level) => (
+            <Box key={level} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: SEV_COLOR[level], border: "1.5px solid rgba(255,255,255,0.7)" }} />
+              <Typography variant="caption">{level.charAt(0) + level.slice(1).toLowerCase()}</Typography>
+            </Box>
+          ))}
         </Paper>
       )}
     </Box>

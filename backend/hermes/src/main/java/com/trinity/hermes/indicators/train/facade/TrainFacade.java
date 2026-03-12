@@ -1,9 +1,11 @@
 package com.trinity.hermes.indicators.train.facade;
 
 import com.trinity.hermes.indicators.train.dto.TrainDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDelayPatternDTO;
 import com.trinity.hermes.indicators.train.dto.TrainKpiDTO;
 import com.trinity.hermes.indicators.train.dto.TrainLiveDTO;
 import com.trinity.hermes.indicators.train.dto.TrainServiceStatsDTO;
+import com.trinity.hermes.indicators.train.dto.TrainStationUtilizationDTO;
 import com.trinity.hermes.indicators.train.service.TrainDashboardService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +33,13 @@ public class TrainFacade {
 
   public TrainServiceStatsDTO getServiceStats() {
     return trainDashboardService.getServiceStats();
+  }
+
+  public List<TrainStationUtilizationDTO> getStationUtilization() {
+    return trainDashboardService.getStationUtilization();
+  }
+
+  public List<TrainDelayPatternDTO> getDelayPatterns(int days) {
+    return trainDashboardService.getDelayPatterns(days);
   }
 }

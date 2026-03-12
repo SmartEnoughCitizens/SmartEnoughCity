@@ -23,6 +23,9 @@ export const DASHBOARD_KEYS = {
   trainKpis: ["train", "kpis"] as const,
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
+  trainUtilization: ["train", "utilization"] as const,
+  trainDelayPatterns: (days: number) =>
+    ["train", "delay-patterns", days] as const,
 };
 
 /**
@@ -211,6 +214,34 @@ export const useTrainServiceStats = () => {
     queryFn: () => dashboardApi.getTrainServiceStats(),
     staleTime: 60_000,
     refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get per-station utilization (service count + delay + HIGH/MEDIUM/LOW band).
+ * Refreshes every 60 s — utilization changes slowly.
+ */
+export const useTrainUtilization = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainUtilization,
+    queryFn: () => dashboardApi.getTrainUtilization(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get recurring delay patterns aggregated by station, route, train type, and time-of-day.
+ * @param days look-back window: 7 | 30 | 90 (default 30)
+ */
+export const useTrainDelayPatterns = (days: 7 | 30 | 90 = 30) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainDelayPatterns(days),
+    queryFn: () => dashboardApi.getTrainDelayPatterns(days),
+    staleTime: 120_000,
+    refetchInterval: 120_000,
     refetchIntervalInBackground: true,
   });
 };

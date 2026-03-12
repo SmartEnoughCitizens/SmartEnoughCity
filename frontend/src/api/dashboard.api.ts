@@ -16,9 +16,11 @@ import type {
   HighTrafficPoint,
   IndicatorType,
   TrainDashboardResponse,
+  TrainDelayPattern,
   TrainKpis,
   TrainLiveTrain,
   TrainServiceStats,
+  TrainStationUtilization,
 } from "@/types";
 
 export const dashboardApi = {
@@ -186,6 +188,31 @@ export const dashboardApi = {
   getTrainServiceStats: async (): Promise<TrainServiceStats> => {
     const { data } = await axiosInstance.get<TrainServiceStats>(
       API_ENDPOINTS.TRAIN_SERVICE_STATS,
+    );
+    return data;
+  },
+
+  /**
+   * Get per-station utilization for the Greater Dublin Area.
+   * Stations are sorted busiest-first and tagged HIGH / MEDIUM / LOW.
+   */
+  getTrainUtilization: async (): Promise<TrainStationUtilization[]> => {
+    const { data } = await axiosInstance.get<TrainStationUtilization[]>(
+      API_ENDPOINTS.TRAIN_UTILIZATION,
+    );
+    return data;
+  },
+
+  /**
+   * Get recurring delay patterns for the Greater Dublin Area.
+   * @param days look-back window: 7 | 30 | 90 (default 30)
+   */
+  getTrainDelayPatterns: async (
+    days: 7 | 30 | 90 = 30,
+  ): Promise<TrainDelayPattern[]> => {
+    const { data } = await axiosInstance.get<TrainDelayPattern[]>(
+      API_ENDPOINTS.TRAIN_DELAY_PATTERNS,
+      { params: { days } },
     );
     return data;
   },
