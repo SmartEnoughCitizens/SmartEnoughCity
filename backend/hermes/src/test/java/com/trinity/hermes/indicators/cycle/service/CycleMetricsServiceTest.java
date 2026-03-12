@@ -56,69 +56,94 @@ public class CycleMetricsServiceTest {
   // -------------------------------------------------------------------------
 
   /**
-   * Builds a snapshot row matching findLatestSnapshotPerStation column order:
-   * 0:station_id, 1:name, 2:short_name, 3:address, 4:latitude, 5:longitude,
-   * 6:capacity, 7:region_id, 8:available_bikes, 9:available_docks,
-   * 10:disabled_bikes, 11:disabled_docks, 12:is_installed, 13:is_renting,
+   * Builds a snapshot row matching findLatestSnapshotPerStation column order: 0:station_id, 1:name,
+   * 2:short_name, 3:address, 4:latitude, 5:longitude, 6:capacity, 7:region_id, 8:available_bikes,
+   * 9:available_docks, 10:disabled_bikes, 11:disabled_docks, 12:is_installed, 13:is_renting,
    * 14:is_returning, 15:last_reported, 16:snapshot_timestamp
    */
-  private Object[] buildSnapshotRow(int stationId, int availableBikes, int availableDocks, int capacity) {
+  private Object[] buildSnapshotRow(
+      int stationId, int availableBikes, int availableDocks, int capacity) {
     Timestamp now = Timestamp.from(Instant.now());
     return new Object[] {
-      stationId, "Station " + stationId, "S" + stationId, "Address " + stationId,
-      53.3498, -6.2603, capacity, "DUBLIN_CITY",
-      availableBikes, availableDocks, 0, 0,
-      true, true, true, now, now
+      stationId,
+      "Station " + stationId,
+      "S" + stationId,
+      "Address " + stationId,
+      53.3498,
+      -6.2603,
+      capacity,
+      "DUBLIN_CITY",
+      availableBikes,
+      availableDocks,
+      0,
+      0,
+      true,
+      true,
+      true,
+      now,
+      now
     };
   }
 
   /**
-   * Builds a network summary row matching findNetworkSummary column order:
-   * 0:total_stations, 1:total_bikes, 2:total_docks, 3:disabled_bikes,
-   * 4:disabled_docks, 5:empty_stations, 6:full_stations, 7:avg_fullness, 8:latest_timestamp
+   * Builds a network summary row matching findNetworkSummary column order: 0:total_stations,
+   * 1:total_bikes, 2:total_docks, 3:disabled_bikes, 4:disabled_docks, 5:empty_stations,
+   * 6:full_stations, 7:avg_fullness, 8:latest_timestamp
    */
   private Object[] buildNetworkSummaryRow(
-      int totalStations, int totalBikes, int totalDocks,
-      int disabledBikes, int disabledDocks,
-      int emptyStations, int fullStations, double avgFullness) {
+      int totalStations,
+      int totalBikes,
+      int totalDocks,
+      int disabledBikes,
+      int disabledDocks,
+      int emptyStations,
+      int fullStations,
+      double avgFullness) {
     return new Object[] {
-      totalStations, totalBikes, totalDocks, disabledBikes, disabledDocks,
-      emptyStations, fullStations, avgFullness, Timestamp.from(Instant.now())
+      totalStations,
+      totalBikes,
+      totalDocks,
+      disabledBikes,
+      disabledDocks,
+      emptyStations,
+      fullStations,
+      avgFullness,
+      Timestamp.from(Instant.now())
     };
   }
 
   /**
-   * Builds a region metrics row matching findRegionMetrics column order:
-   * 0:region_id, 1:station_count, 2:total_capacity, 3:avg_usage_rate,
-   * 4:avg_available_bikes, 5:avg_available_docks, 6:empty_stations, 7:full_stations
+   * Builds a region metrics row matching findRegionMetrics column order: 0:region_id,
+   * 1:station_count, 2:total_capacity, 3:avg_usage_rate, 4:avg_available_bikes,
+   * 5:avg_available_docks, 6:empty_stations, 7:full_stations
    */
-  private Object[] buildRegionRow(String regionId, long stationCount, long capacity, double usageRate) {
+  private Object[] buildRegionRow(
+      String regionId, long stationCount, long capacity, double usageRate) {
     return new Object[] {regionId, stationCount, capacity, usageRate, 12.0, 18.0, 1L, 0L};
   }
 
   /**
-   * Builds a time-series row matching column order:
-   * 0:period, 1:avg_available_bikes, 2:avg_available_docks, 3:usage_rate_pct
+   * Builds a time-series row matching column order: 0:period, 1:avg_available_bikes,
+   * 2:avg_available_docks, 3:usage_rate_pct
    */
   private Object[] buildTimeSeriesRow(double avgBikes, double avgDocks, double usageRate) {
     return new Object[] {Timestamp.from(Instant.now()), avgBikes, avgDocks, usageRate};
   }
 
   /**
-   * Builds a ranking row matching column order:
-   * 0:station_id, 1:name, 2:region_id, 3:capacity, 4:avg_usage_rate,
-   * 5:avg_available_bikes, 6:avg_available_docks, 7:empty_event_count, 8:full_event_count
+   * Builds a ranking row matching column order: 0:station_id, 1:name, 2:region_id, 3:capacity,
+   * 4:avg_usage_rate, 5:avg_available_bikes, 6:avg_available_docks, 7:empty_event_count,
+   * 8:full_event_count
    */
   private Object[] buildRankingRow(int stationId, double avgUsageRate) {
     return new Object[] {
-      stationId, "Station " + stationId, "DUBLIN_CITY", 30,
-      avgUsageRate, 7.5, 22.5, 2L, 1L
+      stationId, "Station " + stationId, "DUBLIN_CITY", 30, avgUsageRate, 7.5, 22.5, 2L, 1L
     };
   }
 
   /**
-   * Builds an event row matching column order:
-   * 0:station_id, 1:station_name, 2:event_time, 3:available_bikes, 4:prev_available_bikes
+   * Builds an event row matching column order: 0:station_id, 1:station_name, 2:event_time,
+   * 3:available_bikes, 4:prev_available_bikes
    */
   private Object[] buildEventRow(int stationId, int availableBikes, int prevBikes) {
     return new Object[] {
@@ -472,8 +497,7 @@ public class CycleMetricsServiceTest {
     void getWeeklyUsageProfile_returnsMappedProfile() {
       Object[] mon = new Object[] {2, 62.0};
       Object[] sat = new Object[] {7, 45.0};
-      when(historyRepository.findWeeklyUsageProfile(any(Instant.class)))
-          .thenReturn(rows(mon, sat));
+      when(historyRepository.findWeeklyUsageProfile(any(Instant.class))).thenReturn(rows(mon, sat));
 
       Map<Integer, Double> result = service.getWeeklyUsageProfile(90);
 

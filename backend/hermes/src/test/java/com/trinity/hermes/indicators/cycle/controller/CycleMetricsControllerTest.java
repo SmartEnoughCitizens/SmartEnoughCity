@@ -231,8 +231,7 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("500 when service throws exception")
     void getNetworkSummary_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getNetworkSummary())
-          .thenThrow(new RuntimeException("Query failed"));
+      when(cycleMetricsService.getNetworkSummary()).thenThrow(new RuntimeException("Query failed"));
 
       mockMvc
           .perform(get("/api/v1/cycle/network/summary"))
@@ -268,12 +267,9 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("500 when service throws exception")
     void getRegionMetrics_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getRegionMetrics())
-          .thenThrow(new RuntimeException("Query failed"));
+      when(cycleMetricsService.getRegionMetrics()).thenThrow(new RuntimeException("Query failed"));
 
-      mockMvc
-          .perform(get("/api/v1/cycle/regions"))
-          .andExpect(status().isInternalServerError());
+      mockMvc.perform(get("/api/v1/cycle/regions")).andExpect(status().isInternalServerError());
     }
   }
 
@@ -287,7 +283,8 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with default granularity (day) and default date range")
     void getStationHistory_defaultParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getStationTimeSeries(eq(1), eq("day"), any(Instant.class), any(Instant.class)))
+      when(cycleMetricsService.getStationTimeSeries(
+              eq(1), eq("day"), any(Instant.class), any(Instant.class)))
           .thenReturn(List.of(buildTimeSeriesDTO()));
 
       mockMvc
@@ -303,7 +300,8 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with hourly granularity")
     void getStationHistory_hourlyGranularity_returnsOk() throws Exception {
-      when(cycleMetricsService.getStationTimeSeries(eq(5), eq("hour"), any(Instant.class), any(Instant.class)))
+      when(cycleMetricsService.getStationTimeSeries(
+              eq(5), eq("hour"), any(Instant.class), any(Instant.class)))
           .thenReturn(List.of(buildTimeSeriesDTO(), buildTimeSeriesDTO()));
 
       mockMvc
@@ -315,7 +313,8 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with weekly granularity")
     void getStationHistory_weeklyGranularity_returnsOk() throws Exception {
-      when(cycleMetricsService.getStationTimeSeries(eq(3), eq("week"), any(Instant.class), any(Instant.class)))
+      when(cycleMetricsService.getStationTimeSeries(
+              eq(3), eq("week"), any(Instant.class), any(Instant.class)))
           .thenReturn(List.of(buildTimeSeriesDTO()));
 
       mockMvc
@@ -346,8 +345,7 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with default 30-day window")
     void getHourlyProfile_defaultDays_returnsOk() throws Exception {
-      Map<Integer, Double> profile =
-          Map.of(8, 65.0, 9, 78.0, 17, 82.0, 18, 71.0);
+      Map<Integer, Double> profile = Map.of(8, 65.0, 9, 78.0, 17, 82.0, 18, 71.0);
       when(cycleMetricsService.getHourlyUsageProfile(30)).thenReturn(profile);
 
       mockMvc
@@ -460,8 +458,7 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with default 30-day window")
     void getDailyTrend_defaultDays_returnsOk() throws Exception {
-      when(cycleMetricsService.getNetworkDailyTrend(30))
-          .thenReturn(List.of(buildTimeSeriesDTO()));
+      when(cycleMetricsService.getNetworkDailyTrend(30)).thenReturn(List.of(buildTimeSeriesDTO()));
 
       mockMvc
           .perform(get("/api/v1/cycle/trends/daily"))
@@ -568,14 +565,10 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with custom days and limit parameters")
     void getBusiestStations_customParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getBusiestStations(30, 5))
-          .thenReturn(List.of(buildRankingDTO(10)));
+      when(cycleMetricsService.getBusiestStations(30, 5)).thenReturn(List.of(buildRankingDTO(10)));
 
       mockMvc
-          .perform(
-              get("/api/v1/cycle/rankings/busiest")
-                  .param("days", "30")
-                  .param("limit", "5"))
+          .perform(get("/api/v1/cycle/rankings/busiest").param("days", "30").param("limit", "5"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1));
 
@@ -654,13 +647,11 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with custom days and limit parameters")
     void getEmptyEvents_customParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getEmptyEvents(3, 20)).thenReturn(List.of(buildEventDTO(5, "EMPTY")));
+      when(cycleMetricsService.getEmptyEvents(3, 20))
+          .thenReturn(List.of(buildEventDTO(5, "EMPTY")));
 
       mockMvc
-          .perform(
-              get("/api/v1/cycle/events/empty")
-                  .param("days", "3")
-                  .param("limit", "20"))
+          .perform(get("/api/v1/cycle/events/empty").param("days", "3").param("limit", "20"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1));
 
@@ -689,8 +680,7 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("200 with default days=7 and limit=50")
     void getFullEvents_defaultParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getFullEvents(7, 50))
-          .thenReturn(List.of(buildEventDTO(3, "FULL")));
+      when(cycleMetricsService.getFullEvents(7, 50)).thenReturn(List.of(buildEventDTO(3, "FULL")));
 
       mockMvc
           .perform(get("/api/v1/cycle/events/full"))
@@ -707,9 +697,7 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getFullEvents(anyInt(), anyInt()))
           .thenThrow(new RuntimeException("Full events query failed"));
 
-      mockMvc
-          .perform(get("/api/v1/cycle/events/full"))
-          .andExpect(status().isInternalServerError());
+      mockMvc.perform(get("/api/v1/cycle/events/full")).andExpect(status().isInternalServerError());
     }
   }
 
@@ -750,11 +738,10 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("500 when service throws exception")
     void getNetworkKpi_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getNetworkKpi()).thenThrow(new RuntimeException("KPI computation failed"));
+      when(cycleMetricsService.getNetworkKpi())
+          .thenThrow(new RuntimeException("KPI computation failed"));
 
-      mockMvc
-          .perform(get("/api/v1/cycle/network/kpi"))
-          .andExpect(status().isInternalServerError());
+      mockMvc.perform(get("/api/v1/cycle/network/kpi")).andExpect(status().isInternalServerError());
     }
   }
 }

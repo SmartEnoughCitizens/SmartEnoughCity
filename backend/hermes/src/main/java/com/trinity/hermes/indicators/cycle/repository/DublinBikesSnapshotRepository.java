@@ -45,8 +45,8 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
 
   /**
    * Aggregated network summary from latest snapshot per station. Returns a single Object[] row
-   * with: total_stations, total_bikes, total_docks, disabled_bikes, disabled_docks,
-   * empty_stations, full_stations, avg_fullness_pct, latest_timestamp
+   * with: total_stations, total_bikes, total_docks, disabled_bikes, disabled_docks, empty_stations,
+   * full_stations, avg_fullness_pct, latest_timestamp
    */
   @Query(
       value =

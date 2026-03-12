@@ -7,8 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface CycleNetworkDailyKpiRepository
-    extends JpaRepository<CycleNetworkDailyKpi, Long> {
+public interface CycleNetworkDailyKpiRepository extends JpaRepository<CycleNetworkDailyKpi, Long> {
 
   Optional<CycleNetworkDailyKpi> findByMetricDate(LocalDate metricDate);
 }

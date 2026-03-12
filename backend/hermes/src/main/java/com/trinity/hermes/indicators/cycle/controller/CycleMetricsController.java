@@ -96,14 +96,17 @@ public class CycleMetricsController {
       @RequestParam(required = false) Instant to) {
 
     log.info(
-        "GET /api/v1/cycle/stations/{}/history granularity={}", LogSanitizer.sanitizeLog(stationId), LogSanitizer.sanitizeLog(granularity));
+        "GET /api/v1/cycle/stations/{}/history granularity={}",
+        LogSanitizer.sanitizeLog(stationId),
+        LogSanitizer.sanitizeLog(granularity));
 
     Instant resolvedFrom = from != null ? from : Instant.now().minus(7, ChronoUnit.DAYS);
     Instant resolvedTo = to != null ? to : Instant.now();
 
     try {
       return ResponseEntity.ok(
-          cycleMetricsService.getStationTimeSeries(stationId, granularity, resolvedFrom, resolvedTo));
+          cycleMetricsService.getStationTimeSeries(
+              stationId, granularity, resolvedFrom, resolvedTo));
     } catch (Exception e) {
       log.error("Error fetching station history: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -189,9 +192,11 @@ public class CycleMetricsController {
   /** Top N busiest stations by avg usage rate. days: lookback, limit: max results. */
   @GetMapping("/rankings/busiest")
   public ResponseEntity<List<StationRankingDTO>> getBusiestStations(
-      @RequestParam(defaultValue = "7") int days,
-      @RequestParam(defaultValue = "10") int limit) {
-    log.info("GET /api/v1/cycle/rankings/busiest days={} limit={}", LogSanitizer.sanitizeLog(days), LogSanitizer.sanitizeLog(limit));
+      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "10") int limit) {
+    log.info(
+        "GET /api/v1/cycle/rankings/busiest days={} limit={}",
+        LogSanitizer.sanitizeLog(days),
+        LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(cycleMetricsService.getBusiestStations(days, limit));
     } catch (Exception e) {
@@ -203,9 +208,11 @@ public class CycleMetricsController {
   /** Top N least used stations by avg usage rate. days: lookback, limit: max results. */
   @GetMapping("/rankings/underused")
   public ResponseEntity<List<StationRankingDTO>> getLeastUsedStations(
-      @RequestParam(defaultValue = "7") int days,
-      @RequestParam(defaultValue = "10") int limit) {
-    log.info("GET /api/v1/cycle/rankings/underused days={} limit={}", LogSanitizer.sanitizeLog(days), LogSanitizer.sanitizeLog(limit));
+      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "10") int limit) {
+    log.info(
+        "GET /api/v1/cycle/rankings/underused days={} limit={}",
+        LogSanitizer.sanitizeLog(days),
+        LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(cycleMetricsService.getLeastUsedStations(days, limit));
     } catch (Exception e) {
@@ -221,8 +228,7 @@ public class CycleMetricsController {
   /** Stations that transitioned to empty (0 bikes) within the lookback window. */
   @GetMapping("/events/empty")
   public ResponseEntity<List<StationEventDTO>> getEmptyEvents(
-      @RequestParam(defaultValue = "7") int days,
-      @RequestParam(defaultValue = "50") int limit) {
+      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "50") int limit) {
     log.info("GET /api/v1/cycle/events/empty days={}", LogSanitizer.sanitizeLog(days));
     try {
       return ResponseEntity.ok(cycleMetricsService.getEmptyEvents(days, limit));
@@ -235,8 +241,7 @@ public class CycleMetricsController {
   /** Stations that transitioned to full (0 docks) within the lookback window. */
   @GetMapping("/events/full")
   public ResponseEntity<List<StationEventDTO>> getFullEvents(
-      @RequestParam(defaultValue = "7") int days,
-      @RequestParam(defaultValue = "50") int limit) {
+      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "50") int limit) {
     log.info("GET /api/v1/cycle/events/full days={}", LogSanitizer.sanitizeLog(days));
     try {
       return ResponseEntity.ok(cycleMetricsService.getFullEvents(days, limit));

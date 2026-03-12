@@ -36,9 +36,7 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           """,
       nativeQuery = true)
   List<Object[]> findHourlyTimeSeriesForStation(
-      @Param("stationId") Integer stationId,
-      @Param("from") Instant from,
-      @Param("to") Instant to);
+      @Param("stationId") Integer stationId, @Param("from") Instant from, @Param("to") Instant to);
 
   /**
    * Daily aggregated time series for a single station. Returns Object[] rows: period,
@@ -61,9 +59,7 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           """,
       nativeQuery = true)
   List<Object[]> findDailyTimeSeriesForStation(
-      @Param("stationId") Integer stationId,
-      @Param("from") Instant from,
-      @Param("to") Instant to);
+      @Param("stationId") Integer stationId, @Param("from") Instant from, @Param("to") Instant to);
 
   /**
    * Weekly aggregated time series for a single station. Returns Object[] rows: period,
@@ -86,9 +82,7 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           """,
       nativeQuery = true)
   List<Object[]> findWeeklyTimeSeriesForStation(
-      @Param("stationId") Integer stationId,
-      @Param("from") Instant from,
-      @Param("to") Instant to);
+      @Param("stationId") Integer stationId, @Param("from") Instant from, @Param("to") Instant to);
 
   // -------------------------------------------------------------------------
   // Network-wide trends
@@ -373,9 +367,7 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
       nativeQuery = true)
   Object[] findAvgHourlyTurnoverRate();
 
-  /**
-   * Total trip estimate for a given day. Returns a single Object[] with: trips_estimate
-   */
+  /** Total trip estimate for a given day. Returns a single Object[] with: trips_estimate */
   @Query(
       value =
           """
