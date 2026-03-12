@@ -107,7 +107,10 @@ public class CycleMetricsService {
   @Transactional(readOnly = true)
   public List<StationTimeSeriesDTO> getStationTimeSeries(
       Integer stationId, String granularity, Instant from, Instant to) {
-    log.debug("Fetching {} time series for station {}", LogSanitizer.sanitizeLog(granularity), LogSanitizer.sanitizeLog(stationId));
+    log.debug(
+        "Fetching {} time series for station {}",
+        LogSanitizer.sanitizeLog(granularity),
+        LogSanitizer.sanitizeLog(stationId));
 
     List<Object[]> rows =
         switch (granularity.toLowerCase(Locale.ROOT)) {
@@ -196,18 +199,14 @@ public class CycleMetricsService {
   public List<StationEventDTO> getEmptyEvents(int days, int limit) {
     Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
     List<Object[]> rows = historyRepository.findEmptyEvents(since, limit);
-    return rows.stream()
-        .map(row -> mapToEventDTO(row, "EMPTY"))
-        .collect(Collectors.toList());
+    return rows.stream().map(row -> mapToEventDTO(row, "EMPTY")).collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public List<StationEventDTO> getFullEvents(int days, int limit) {
     Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
     List<Object[]> rows = historyRepository.findFullEvents(since, limit);
-    return rows.stream()
-        .map(row -> mapToEventDTO(row, "FULL"))
-        .collect(Collectors.toList());
+    return rows.stream().map(row -> mapToEventDTO(row, "FULL")).collect(Collectors.toList());
   }
 
   // -------------------------------------------------------------------------
