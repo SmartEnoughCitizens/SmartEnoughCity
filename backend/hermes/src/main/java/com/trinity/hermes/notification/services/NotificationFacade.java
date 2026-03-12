@@ -7,7 +7,6 @@ import com.trinity.hermes.notification.entity.NotificationEntity;
 import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
 import com.trinity.hermes.notification.model.enums.Channel;
-import com.trinity.hermes.notification.util.InMemoryNotificationStore;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
 import com.trinity.hermes.notification.repository.NotificationRepository;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -29,7 +28,6 @@ public class NotificationFacade {
   private final NotificationService notificationService;
   // private final RecommendationService recommendationService;
   private final NotificationDispatcher notificationDispatcher;
-  private final InMemoryNotificationStore notificationStore;
   private final UserManagementService userManagementService;
   private final NotificationRepository notificationRepository;
 
