@@ -33,6 +33,15 @@ export const API_ENDPOINTS = {
   DASHBOARD_BUS_ROUTES: "/api/v1/dashboard/bus/routes",
   DASHBOARD_INDICATOR_TYPES: "/api/v1/dashboard/indicators/types",
 
+  // Cycle Metrics (CycleMetricsController)
+  CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
+  CYCLE_NETWORK_SUMMARY: "/api/v1/cycle/network/summary",
+  CYCLE_NETWORK_KPI: "/api/v1/cycle/network/kpi",
+  CYCLE_RANKINGS_BUSIEST: "/api/v1/cycle/rankings/busiest",
+  CYCLE_RANKINGS_UNDERUSED: "/api/v1/cycle/rankings/underused",
+  CYCLE_EVENTS_EMPTY: "/api/v1/cycle/events/empty",
+  CYCLE_EVENTS_FULL: "/api/v1/cycle/events/full",
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>

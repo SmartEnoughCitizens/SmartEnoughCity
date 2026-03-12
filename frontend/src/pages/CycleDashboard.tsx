@@ -1,5 +1,6 @@
 /**
  * Cycle stations dashboard — full-viewport map with floating side panel
+ * Uses CycleMetricsController endpoints (/api/v1/cycle/...)
  */
 
 import { useState } from "react";
@@ -12,65 +13,65 @@ import {
   Tabs,
   Tab,
   IconButton,
+  Divider,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
-import { useCycleData, useAvailableBikes, useAvailableDocks } from "@/hooks";
-import { CycleStatsChart } from "@/components/charts/CycleStatsChart";
-import { CycleStationTable } from "@/components/tables/CycleStationTable";
-import { CycleStationMap } from "@/components/map/CycleStationMap";
+import {
+  useCycleStationsLive,
+  useCycleNetworkSummary,
+  useCycleBusiestStations,
+  useCycleUnderusedStations,
+  useCycleEmptyEvents,
+  useCycleFullEvents,
+} from "@/hooks";
+import { NetworkSummaryChart } from "@/components/charts/NetworkSummaryChart";
+import { LiveCycleStationTable } from "@/components/tables/LiveCycleStationTable";
+import { CycleRankingTable } from "@/components/tables/CycleRankingTable";
+import { CycleEventTable } from "@/components/tables/CycleEventTable";
+import { LiveCycleStationMap } from "@/components/map/LiveCycleStationMap";
 import { useAppSelector } from "@/store/hooks";
 
 export const CycleDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
+  const [rankingSubTab, setRankingSubTab] = useState(0); // 0=busiest, 1=underused
+  const [eventSubTab, setEventSubTab] = useState(0); // 0=empty, 1=full
   const [panelOpen, setPanelOpen] = useState(true);
   const theme = useAppSelector((state) => state.ui.theme);
 
-  const { data: allStations, isLoading: allLoading, error } = useCycleData(200);
-  const { data: bikesAvailable, isLoading: bikesLoading } = useAvailableBikes();
-  const { data: docksAvailable, isLoading: docksLoading } = useAvailableDocks();
+  const { data: liveStations, isLoading: stationsLoading, error } = useCycleStationsLive();
+  const { data: summary, isLoading: summaryLoading } = useCycleNetworkSummary();
+  const { data: busiest, isLoading: busiestLoading } = useCycleBusiestStations();
+  const { data: underused, isLoading: underusedLoading } = useCycleUnderusedStations();
+  const { data: emptyEvents, isLoading: emptyLoading } = useCycleEmptyEvents();
+  const { data: fullEvents, isLoading: fullLoading } = useCycleFullEvents();
 
-  const getCurrentData = () => {
-    switch (tabValue) {
-      case 0: {
-        return allStations?.data || [];
-      }
-      case 1: {
-        return bikesAvailable || [];
-      }
-      case 2: {
-        return docksAvailable || [];
-      }
-      default: {
-        return [];
-      }
-    }
-  };
-
-  const isLoading = allLoading || bikesLoading || docksLoading;
+  const isLoading =
+    stationsLoading ||
+    summaryLoading ||
+    busiestLoading ||
+    underusedLoading ||
+    emptyLoading ||
+    fullLoading;
 
   if (isLoading) {
     return (
       <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100%",
-        }}
+        sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}
       >
         <CircularProgress />
       </Box>
     );
   }
 
-  const panelWidth = 380;
+  const stations = liveStations ?? [];
+  const panelWidth = 400;
 
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
-      {/* Full-viewport map */}
-      <CycleStationMap
-        stations={getCurrentData()}
+      {/* Full-viewport map with status-coloured circle markers */}
+      <LiveCycleStationMap
+        stations={stations}
         height="100%"
         darkTiles={theme === "dark"}
       />
@@ -102,9 +103,7 @@ export const CycleDashboard = () => {
             zIndex: 1000,
             bgcolor: (t) => t.palette.background.paper,
             backdropFilter: "blur(12px)",
-            "&:hover": {
-              bgcolor: (t) => t.palette.background.paper,
-            },
+            "&:hover": { bgcolor: (t) => t.palette.background.paper },
           }}
         >
           <MenuOpenIcon />
@@ -138,23 +137,34 @@ export const CycleDashboard = () => {
               justifyContent: "space-between",
             }}
           >
-            <Typography variant="h5">Cycle Stations</Typography>
+            <Box>
+              <Typography variant="h5">Cycle Stations</Typography>
+              {summary && (
+                <Typography variant="caption" color="text.secondary">
+                  {summary.activeStations} active &middot;{" "}
+                  {summary.totalBikesAvailable} bikes &middot;{" "}
+                  {summary.rebalancingNeedCount} need rebalancing
+                </Typography>
+              )}
+            </Box>
             <IconButton size="small" onClick={() => setPanelOpen(false)}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
 
-          {/* Stats chart */}
-          {allStations?.statistics && (
+          {/* Network summary chart */}
+          {summary && (
             <Box sx={{ px: 2, pb: 1 }}>
-              <CycleStatsChart statistics={allStations.statistics} compact />
+              <NetworkSummaryChart summary={summary} compact />
             </Box>
           )}
 
-          {/* Tabs */}
+          <Divider />
+
+          {/* Main tabs */}
           <Tabs
             value={tabValue}
-            onChange={(_, newValue) => setTabValue(newValue)}
+            onChange={(_, v) => setTabValue(v)}
             variant="fullWidth"
             sx={{
               minHeight: 36,
@@ -166,18 +176,79 @@ export const CycleDashboard = () => {
               },
             }}
           >
-            <Tab label={`All (${allStations?.data.length || 0})`} />
-            <Tab label={`Bikes (${bikesAvailable?.length || 0})`} />
-            <Tab label={`Docks (${docksAvailable?.length || 0})`} />
+            <Tab label={`Stations (${stations.length})`} />
+            <Tab label="Rankings" />
+            <Tab label="Events" />
           </Tabs>
 
-          {/* Table */}
-          <Box sx={{ flex: 1, overflow: "auto", px: 1, pt: 0.5 }}>
-            <CycleStationTable
-              stations={getCurrentData()}
-              maxRows={50}
-              compact
-            />
+          {/* Tab content */}
+          <Box sx={{ flex: 1, overflow: "auto", pt: 0.5 }}>
+            {/* Tab 0: Live stations */}
+            {tabValue === 0 && (
+              <Box sx={{ px: 1 }}>
+                <LiveCycleStationTable stations={stations} maxRows={100} compact />
+              </Box>
+            )}
+
+            {/* Tab 1: Rankings */}
+            {tabValue === 1 && (
+              <Box>
+                <Tabs
+                  value={rankingSubTab}
+                  onChange={(_, v) => setRankingSubTab(v)}
+                  variant="fullWidth"
+                  sx={{
+                    minHeight: 32,
+                    "& .MuiTab-root": {
+                      minHeight: 32,
+                      fontSize: "0.7rem",
+                      textTransform: "none",
+                    },
+                  }}
+                >
+                  <Tab label="Busiest" />
+                  <Tab label="Underused" />
+                </Tabs>
+                <Box sx={{ px: 1, pt: 0.5 }}>
+                  {rankingSubTab === 0 && (
+                    <CycleRankingTable stations={busiest ?? []} />
+                  )}
+                  {rankingSubTab === 1 && (
+                    <CycleRankingTable stations={underused ?? []} />
+                  )}
+                </Box>
+              </Box>
+            )}
+
+            {/* Tab 2: Events */}
+            {tabValue === 2 && (
+              <Box>
+                <Tabs
+                  value={eventSubTab}
+                  onChange={(_, v) => setEventSubTab(v)}
+                  variant="fullWidth"
+                  sx={{
+                    minHeight: 32,
+                    "& .MuiTab-root": {
+                      minHeight: 32,
+                      fontSize: "0.7rem",
+                      textTransform: "none",
+                    },
+                  }}
+                >
+                  <Tab label={`Empty (${emptyEvents?.length ?? 0})`} />
+                  <Tab label={`Full (${fullEvents?.length ?? 0})`} />
+                </Tabs>
+                <Box sx={{ px: 1, pt: 0.5 }}>
+                  {eventSubTab === 0 && (
+                    <CycleEventTable events={emptyEvents ?? []} />
+                  )}
+                  {eventSubTab === 1 && (
+                    <CycleEventTable events={fullEvents ?? []} />
+                  )}
+                </Box>
+              </Box>
+            )}
           </Box>
         </Paper>
       )}
