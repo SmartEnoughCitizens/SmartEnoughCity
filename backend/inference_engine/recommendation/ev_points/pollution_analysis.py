@@ -9,19 +9,18 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # )
 
 car_counts1 = pd.read_csv(
-    os.path.join(BASE_DIR, "data", "carscounts2017-2025.csv"),
-    encoding="utf-8-sig"
+    os.path.join(BASE_DIR, "data", "carscounts2017-2025.csv"), encoding="utf-8-sig"
 )
 
 
 car_counts2 = pd.read_csv(
     os.path.join(BASE_DIR, "data", "carscount2014-15.csv"),  # dein zweiter Dateiname
-    encoding="utf-8-sig"
+    encoding="utf-8-sig",
 )
 
 car_counts3 = pd.read_csv(
     os.path.join(BASE_DIR, "data", "carscount1998-2013.csv"),  # dein zweiter Dateiname
-    encoding="utf-8-sig"
+    encoding="utf-8-sig",
 )
 
 
@@ -36,23 +35,18 @@ dublin_data = car_counts[
 ]
 
 yearly_sum = (
-    dublin_data
-    .groupby("Year")["VALUE"]
+    dublin_data.groupby("Year")["VALUE"]
     .sum()
     .reset_index()
     .rename(columns={"VALUE": "Total_Value"})
 )
 
 emission_by_year = (
-    dublin_data
-    .groupby(["Year", "Emission Band"])["VALUE"]
-    .sum()
-    .reset_index()
+    dublin_data.groupby(["Year", "Emission Band"])["VALUE"].sum().reset_index()
 )
 
 emission_pivot = (
-    emission_by_year
-    .pivot(index="Year", columns="Emission Band", values="VALUE")
+    emission_by_year.pivot(index="Year", columns="Emission Band", values="VALUE")
     .fillna(0)
     .reset_index()
 )
@@ -74,19 +68,26 @@ percent_per_year = emission_pivot.copy()
 band_columns = [col for col in percent_per_year.columns if col != "Year"]
 
 for col in band_columns:
-    percent_per_year[col + "_percent"] = (percent_per_year[col] / yearly_sum["Total_Value"]) * 100
+    percent_per_year[col + "_percent"] = (
+        percent_per_year[col] / yearly_sum["Total_Value"]
+    ) * 100
 
 percent_total = emission_pivot.copy()
 for col in band_columns:
-    percent_total[col + "_total_percent"] = (percent_total[col].cumsum() / yearly_sum["Total_Value"].cumsum()) * 100
+    percent_total[col + "_total_percent"] = (
+        percent_total[col].cumsum() / yearly_sum["Total_Value"].cumsum()
+    ) * 100
 
-final_df = final_df.merge(percent_per_year[[ "Year"] + [col + "_percent" for col in band_columns]], on="Year")
-final_df = final_df.merge(percent_total[["Year"] + [col + "_total_percent" for col in band_columns]], on="Year")
-
+final_df = final_df.merge(
+    percent_per_year[["Year"] + [col + "_percent" for col in band_columns]], on="Year"
+)
+final_df = final_df.merge(
+    percent_total[["Year"] + [col + "_total_percent" for col in band_columns]],
+    on="Year",
+)
 
 
 print(final_df)
-
 
 
 output_path = os.path.join(BASE_DIR, "data", "dublin_car_summary.csv")
