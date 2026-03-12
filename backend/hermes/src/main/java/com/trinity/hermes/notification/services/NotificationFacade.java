@@ -5,6 +5,7 @@ import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
 import com.trinity.hermes.notification.model.enums.Channel;
 import com.trinity.hermes.notification.util.InMemoryNotificationStore;
+import com.trinity.hermes.usermanagement.service.UserManagementService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
@@ -25,14 +26,20 @@ public class NotificationFacade {
   // private final RecommendationService recommendationService;
   private final NotificationDispatcher notificationDispatcher;
   private final InMemoryNotificationStore notificationStore;
+  private final UserManagementService userManagementService;
 
   public void handleBackendNotification(
       BackendNotificationRequestDTO backendNotificationRequestDTO) {
     // TODO: Add code for schema validations that need to be performed via networkNT
-    // TODO: Add code for user retreival
     // TODO: fix code to have facade work better
     String userId = backendNotificationRequestDTO.getUserId();
-    User user = User.builder().build();
+    String email = null;
+    try {
+      email = userManagementService.getUserEmail(userId);
+    } catch (Exception e) {
+      log.warn("Could not resolve email for userId {}, falling back to default", userId);
+    }
+    User user = User.builder().id(userId).email(email).build();
     Set<Notification> notificationSet =
         notificationService.createNotification(user, backendNotificationRequestDTO);
     if (notificationSet == null) return;
