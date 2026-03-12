@@ -38,6 +38,7 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               s.timestamp AS snapshot_timestamp
           FROM external_data.dublin_bikes_station_snapshots s
           JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
+          WHERE s.timestamp >= NOW() - INTERVAL '10 minutes'
           ORDER BY s.station_id, s.timestamp DESC
           """,
       nativeQuery = true)
@@ -56,6 +57,7 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
                   s.station_id, s.available_bikes, s.available_docks,
                   s.disabled_bikes, s.disabled_docks, s.is_installed, s.timestamp
               FROM external_data.dublin_bikes_station_snapshots s
+              WHERE s.timestamp >= NOW() - INTERVAL '10 minutes'
               ORDER BY s.station_id, s.timestamp DESC
           )
           SELECT
@@ -87,6 +89,7 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               SELECT DISTINCT ON (s.station_id)
                   s.station_id, s.available_bikes, s.available_docks, s.is_installed
               FROM external_data.dublin_bikes_station_snapshots s
+              WHERE s.timestamp >= NOW() - INTERVAL '10 minutes'
               ORDER BY s.station_id, s.timestamp DESC
           )
           SELECT
@@ -118,6 +121,7 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               SELECT DISTINCT ON (s.station_id)
                   s.station_id, s.available_docks
               FROM external_data.dublin_bikes_station_snapshots s
+              WHERE s.timestamp >= NOW() - INTERVAL '10 minutes'
               ORDER BY s.station_id, s.timestamp DESC
           ),
           fullness AS (
