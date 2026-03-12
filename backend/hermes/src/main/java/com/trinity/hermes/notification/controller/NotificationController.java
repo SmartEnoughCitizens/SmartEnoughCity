@@ -1,6 +1,7 @@
 package com.trinity.hermes.notification.controller;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.dto.NotificationResponseDTO;
 import com.trinity.hermes.notification.services.NotificationFacade;
 import com.trinity.hermes.notification.util.SseManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -40,9 +41,21 @@ public class NotificationController {
     return sseManager.register(userId);
   }
 
-  // TODO: Filter by userId when persistence is added
   @GetMapping("/{userId}")
-  public ResponseEntity<?> getUserNotifications(@PathVariable String userId) {
+  public ResponseEntity<NotificationResponseDTO> getUserNotifications(@PathVariable String userId) {
     return ResponseEntity.ok(notificationFacade.getAll(userId));
+  }
+
+  /**
+   * Mark a single notification as read. Returns 404 if the notification doesn't belong to the user.
+   */
+  @PatchMapping("/{userId}/{notificationId}/read")
+  public ResponseEntity<?> markNotificationAsRead(
+      @PathVariable String userId, @PathVariable Long notificationId) {
+    boolean updated = notificationFacade.markAsRead(userId, notificationId);
+    if (!updated) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(Map.of("status", "updated"));
   }
 }
