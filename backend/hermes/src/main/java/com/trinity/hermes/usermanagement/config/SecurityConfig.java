@@ -68,6 +68,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/train/**")
                     .permitAll()
+                    .requestMatchers("/api/v1/ev/**")
+                    .permitAll()
                     .requestMatchers("/error")
                     .permitAll()
                     .requestMatchers("/api/notification/v1", "/api/notification/v1/**")
