@@ -12,7 +12,7 @@ from data_handler.events.data_handler import (
     fetch_and_store_events,
     fetch_and_store_venues,
 )
-from data_handler.logging import configure_logging
+from backend.data_handler.src.data_handler.logging2 import configure_logging
 from data_handler.settings.data_sources_settings import get_data_sources_settings
 from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.realtime_handler import irish_rail_realtime_to_db
