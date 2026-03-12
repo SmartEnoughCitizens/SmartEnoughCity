@@ -246,73 +246,6 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
   List<Object[]> findLeastUsedStations(@Param("since") Instant since, @Param("limitVal") int limit);
 
   // -------------------------------------------------------------------------
-  // Empty / Full events
-  // -------------------------------------------------------------------------
-
-  /**
-   * Moments when a station transitioned to empty (available_bikes dropped to 0). Returns Object[]
-   * rows: station_id, station_name, event_time, available_bikes, prev_available_bikes
-   */
-  @Query(
-      value =
-          """
-          WITH ordered AS (
-              SELECT
-                  station_id,
-                  timestamp,
-                  available_bikes,
-                  LAG(available_bikes) OVER (PARTITION BY station_id ORDER BY timestamp) AS prev_available_bikes
-              FROM external_data.dublin_bikes_station_history
-              WHERE timestamp >= :since
-          )
-          SELECT
-              o.station_id,
-              st.name AS station_name,
-              o.timestamp AS event_time,
-              o.available_bikes,
-              o.prev_available_bikes
-          FROM ordered o
-          JOIN external_data.dublin_bikes_stations st ON o.station_id = st.station_id
-          WHERE o.available_bikes = 0 AND o.prev_available_bikes > 0
-          ORDER BY o.timestamp DESC
-          LIMIT :limitVal
-          """,
-      nativeQuery = true)
-  List<Object[]> findEmptyEvents(@Param("since") Instant since, @Param("limitVal") int limit);
-
-  /**
-   * Moments when a station transitioned to full (available_docks dropped to 0). Returns Object[]
-   * rows: station_id, station_name, event_time, available_bikes, prev_available_bikes
-   */
-  @Query(
-      value =
-          """
-          WITH ordered AS (
-              SELECT
-                  station_id,
-                  timestamp,
-                  available_bikes,
-                  available_docks,
-                  LAG(available_docks) OVER (PARTITION BY station_id ORDER BY timestamp) AS prev_available_docks
-              FROM external_data.dublin_bikes_station_history
-              WHERE timestamp >= :since
-          )
-          SELECT
-              o.station_id,
-              st.name AS station_name,
-              o.timestamp AS event_time,
-              o.available_bikes,
-              o.prev_available_docks AS prev_available_bikes
-          FROM ordered o
-          JOIN external_data.dublin_bikes_stations st ON o.station_id = st.station_id
-          WHERE o.available_docks = 0 AND o.prev_available_docks > 0
-          ORDER BY o.timestamp DESC
-          LIMIT :limitVal
-          """,
-      nativeQuery = true)
-  List<Object[]> findFullEvents(@Param("since") Instant since, @Param("limitVal") int limit);
-
-  // -------------------------------------------------------------------------
   // Derived KPIs
   // -------------------------------------------------------------------------
 
@@ -383,4 +316,62 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           """,
       nativeQuery = true)
   Object[] findTotalTripEstimate(@Param("from") Instant from, @Param("to") Instant to);
+
+  // -------------------------------------------------------------------------
+  // Origin-Destination pairs
+  // -------------------------------------------------------------------------
+
+  /**
+   * Infers origin-destination pairs from history by correlating bike departures at one station with
+   * arrivals at another within a 30-minute window. Returns Object[] rows: origin_station_id,
+   * origin_name, origin_lat, origin_lon, dest_station_id, dest_name, dest_lat, dest_lon,
+   * estimated_trips
+   */
+  @Query(
+      value =
+          """
+          WITH changes AS (
+              SELECT
+                  station_id,
+                  timestamp,
+                  available_bikes,
+                  LAG(available_bikes) OVER (PARTITION BY station_id ORDER BY timestamp) AS prev_bikes
+              FROM external_data.dublin_bikes_station_history
+              WHERE timestamp BETWEEN :from AND :to
+          ),
+          departures AS (
+              SELECT station_id AS origin_station_id, timestamp AS departure_time
+              FROM changes
+              WHERE prev_bikes IS NOT NULL AND available_bikes < prev_bikes
+          ),
+          arrivals AS (
+              SELECT station_id AS dest_station_id, timestamp AS arrival_time
+              FROM changes
+              WHERE prev_bikes IS NOT NULL AND available_bikes > prev_bikes
+          )
+          SELECT
+              d.origin_station_id,
+              os.name        AS origin_name,
+              os.latitude    AS origin_lat,
+              os.longitude   AS origin_lon,
+              a.dest_station_id,
+              ds.name        AS dest_name,
+              ds.latitude    AS dest_lat,
+              ds.longitude   AS dest_lon,
+              COUNT(*)::bigint AS estimated_trips
+          FROM departures d
+          JOIN arrivals a
+               ON a.arrival_time BETWEEN d.departure_time
+                                     AND d.departure_time + INTERVAL '30 minutes'
+              AND a.dest_station_id != d.origin_station_id
+          JOIN external_data.dublin_bikes_stations os ON d.origin_station_id = os.station_id
+          JOIN external_data.dublin_bikes_stations ds ON a.dest_station_id   = ds.station_id
+          GROUP BY d.origin_station_id, os.name, os.latitude, os.longitude,
+                   a.dest_station_id,  ds.name, ds.latitude, ds.longitude
+          ORDER BY estimated_trips DESC
+          LIMIT :limitVal
+          """,
+      nativeQuery = true)
+  List<Object[]> findODPairs(
+      @Param("from") Instant from, @Param("to") Instant to, @Param("limitVal") int limit);
 }

@@ -4,8 +4,8 @@ import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationEventDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Comprehensive cycle (Dublin Bikes) metrics controller. Covers live data, historical statistics,
- * rankings, events, and derived KPIs.
+ * rankings, and derived KPIs.
  */
 @RestController
 @RequestMapping("/api/v1/cycle")
@@ -222,31 +222,22 @@ public class CycleMetricsController {
   }
 
   // -------------------------------------------------------------------------
-  // Events
+  // Origin-Destination Heatmap
   // -------------------------------------------------------------------------
 
-  /** Stations that transitioned to empty (0 bikes) within the lookback window. */
-  @GetMapping("/events/empty")
-  public ResponseEntity<List<StationEventDTO>> getEmptyEvents(
-      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "50") int limit) {
-    log.info("GET /api/v1/cycle/events/empty days={}", LogSanitizer.sanitizeLog(days));
+  /**
+   * Top N inferred origin-destination pairs based on correlated departures and arrivals within a
+   * 30-minute window. Data covers the previous full calendar month. limit: max pairs returned
+   * (default 50).
+   */
+  @GetMapping("/od/heatmap")
+  public ResponseEntity<List<StationODPairDTO>> getODHeatmap(
+      @RequestParam(defaultValue = "50") int limit) {
+    log.info("GET /api/v1/cycle/od/heatmap limit={}", LogSanitizer.sanitizeLog(limit));
     try {
-      return ResponseEntity.ok(cycleMetricsService.getEmptyEvents(days, limit));
+      return ResponseEntity.ok(cycleMetricsService.getODHeatmap(limit));
     } catch (Exception e) {
-      log.error("Error fetching empty events: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /** Stations that transitioned to full (0 docks) within the lookback window. */
-  @GetMapping("/events/full")
-  public ResponseEntity<List<StationEventDTO>> getFullEvents(
-      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "50") int limit) {
-    log.info("GET /api/v1/cycle/events/full days={}", LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getFullEvents(days, limit));
-    } catch (Exception e) {
-      log.error("Error fetching full events: {}", e.getMessage(), e);
+      log.error("Error fetching OD heatmap: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }

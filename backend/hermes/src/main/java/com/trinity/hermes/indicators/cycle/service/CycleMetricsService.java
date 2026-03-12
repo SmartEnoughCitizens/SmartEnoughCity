@@ -4,8 +4,8 @@ import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationEventDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.entity.DublinBikesStation;
@@ -15,6 +15,8 @@ import com.trinity.hermes.indicators.cycle.repository.DublinBikesStationReposito
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -192,24 +194,6 @@ public class CycleMetricsService {
   }
 
   // -------------------------------------------------------------------------
-  // Empty / Full Events
-  // -------------------------------------------------------------------------
-
-  @Transactional(readOnly = true)
-  public List<StationEventDTO> getEmptyEvents(int days, int limit) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findEmptyEvents(since, limit);
-    return rows.stream().map(row -> mapToEventDTO(row, "EMPTY")).collect(Collectors.toList());
-  }
-
-  @Transactional(readOnly = true)
-  public List<StationEventDTO> getFullEvents(int days, int limit) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findFullEvents(since, limit);
-    return rows.stream().map(row -> mapToEventDTO(row, "FULL")).collect(Collectors.toList());
-  }
-
-  // -------------------------------------------------------------------------
   // Network KPIs
   // -------------------------------------------------------------------------
 
@@ -260,6 +244,20 @@ public class CycleMetricsService {
   }
 
   // -------------------------------------------------------------------------
+  // Origin-Destination Heatmap
+  // -------------------------------------------------------------------------
+
+  @Transactional(readOnly = true)
+  public List<StationODPairDTO> getODHeatmap(int limit) {
+    YearMonth lastMonth = YearMonth.now(ZoneOffset.UTC).minusMonths(1);
+    Instant from = lastMonth.atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+    Instant to = lastMonth.atEndOfMonth().atTime(23, 59, 59).atZone(ZoneOffset.UTC).toInstant();
+    log.debug("Computing OD heatmap for {} ({} to {}), top {} pairs", lastMonth, from, to, limit);
+    List<Object[]> rows = historyRepository.findODPairs(from, to, limit);
+    return rows.stream().map(this::mapToODPairDTO).collect(Collectors.toList());
+  }
+
+  // -------------------------------------------------------------------------
   // Fleet
   // -------------------------------------------------------------------------
 
@@ -284,12 +282,19 @@ public class CycleMetricsService {
     Integer availableBikes = toInt(row[8]);
     Integer availableDocks = toInt(row[9]);
 
-    double fullnessPct = 0.0;
-    if (capacity != null && capacity > 0 && availableDocks != null) {
-      fullnessPct = (double) (capacity - availableDocks) / capacity * 100.0;
+    double bikeAvailabilityPct = 0.0;
+    double dockAvailabilityPct = 0.0;
+    if (capacity != null && capacity > 0) {
+      if (availableBikes != null) {
+        bikeAvailabilityPct = (double) availableBikes / capacity * 100.0;
+      }
+      if (availableDocks != null) {
+        dockAvailabilityPct = (double) availableDocks / capacity * 100.0;
+      }
     }
 
-    String statusColor = fullnessPct >= 80 ? "RED" : fullnessPct >= 50 ? "YELLOW" : "GREEN";
+    String statusColor =
+        bikeAvailabilityPct < 20 ? "RED" : bikeAvailabilityPct < 40 ? "YELLOW" : "GREEN";
 
     StationLiveDTO dto = new StationLiveDTO();
     dto.setStationId(stationId);
@@ -309,7 +314,8 @@ public class CycleMetricsService {
     dto.setIsReturning((Boolean) row[14]);
     dto.setLastReported(toInstant(row[15]));
     dto.setSnapshotTimestamp(toInstant(row[16]));
-    dto.setFullnessPct(fullnessPct);
+    dto.setBikeAvailabilityPct(bikeAvailabilityPct);
+    dto.setDockAvailabilityPct(dockAvailabilityPct);
     dto.setStatusColor(statusColor);
     dto.setIsEmpty(availableBikes != null && availableBikes == 0);
     dto.setIsFull(availableDocks != null && availableDocks == 0);
@@ -342,15 +348,19 @@ public class CycleMetricsService {
     return dto;
   }
 
-  private StationEventDTO mapToEventDTO(Object[] row, String eventType) {
-    // 0:station_id, 1:station_name, 2:event_time, 3:available_bikes, 4:prev_available_bikes
-    StationEventDTO dto = new StationEventDTO();
-    dto.setStationId(toInt(row[0]));
-    dto.setStationName((String) row[1]);
-    dto.setEventTime(toInstant(row[2]));
-    dto.setAvailableBikes(toInt(row[3]));
-    dto.setPrevAvailableBikes(row[4] != null ? toInt(row[4]) : null);
-    dto.setEventType(eventType);
+  private StationODPairDTO mapToODPairDTO(Object[] row) {
+    // 0:origin_station_id, 1:origin_name, 2:origin_lat, 3:origin_lon,
+    // 4:dest_station_id, 5:dest_name, 6:dest_lat, 7:dest_lon, 8:estimated_trips
+    StationODPairDTO dto = new StationODPairDTO();
+    dto.setOriginStationId(toInt(row[0]));
+    dto.setOriginName((String) row[1]);
+    dto.setOriginLat(row[2] != null ? new BigDecimal(row[2].toString()) : null);
+    dto.setOriginLon(row[3] != null ? new BigDecimal(row[3].toString()) : null);
+    dto.setDestStationId(toInt(row[4]));
+    dto.setDestName((String) row[5]);
+    dto.setDestLat(row[6] != null ? new BigDecimal(row[6].toString()) : null);
+    dto.setDestLon(row[7] != null ? new BigDecimal(row[7].toString()) : null);
+    dto.setEstimatedTrips(toLong(row[8]));
     return dto;
   }
 
