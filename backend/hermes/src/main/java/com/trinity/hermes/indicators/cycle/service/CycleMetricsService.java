@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.cycle.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
@@ -106,7 +107,7 @@ public class CycleMetricsService {
   @Transactional(readOnly = true)
   public List<StationTimeSeriesDTO> getStationTimeSeries(
       Integer stationId, String granularity, Instant from, Instant to) {
-    log.debug("Fetching {} time series for station {}", granularity, stationId);
+    log.debug("Fetching {} time series for station {}", LogSanitizer.sanitizeLog(granularity), LogSanitizer.sanitizeLog(stationId));
 
     List<Object[]> rows =
         switch (granularity.toLowerCase(Locale.ROOT)) {
