@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
+import com.trinity.hermes.notification.model.enums.Channel;
 import com.trinity.hermes.notification.util.NotificationTemplatesProperties;
 import com.trinity.hermes.notification.util.QrCodeUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -58,19 +59,34 @@ public class NotificationService {
                 BASE_WIDTH,
                 BASE_HEIGHT);
       }
-      // TODO: Add logic to retrieve recepient email Id from the user for now use hardcoded
-      // recepient email id, for now use hardcoded user.
+      String recipient = StringUtils.isNotBlank(user.getEmail()) ? user.getEmail() : DUMMY_EMAIL;
+      Channel channel = resolveChannel(data);
       if (data.containsKey("subject")
           && data.containsKey("body")
           && StringUtils.isNotBlank(Objects.toString(data.get(SUBJECT), EMPTY_STRING))
           && StringUtils.isNotBlank(Objects.toString(data.get(BODY), EMPTY_STRING))) {
-        return createCustomNotification(DUMMY_EMAIL, data, qrCode);
+        return createCustomNotification(recipient, data, qrCode, channel);
       }
-      return createFromTemplate(DUMMY_EMAIL, data, qrCode);
+      return createFromTemplate(recipient, data, qrCode);
     } catch (Exception e) {
       log.error("Error while creating notification -", e);
       return null;
     }
+  }
+
+  private Channel resolveChannel(Map<String, Object> data) {
+    Object raw = data.get("channel");
+    if (raw instanceof Channel c) {
+      return c;
+    }
+    if (raw != null) {
+      try {
+        return Channel.valueOf(raw.toString());
+      } catch (IllegalArgumentException ignored) {
+        log.warn("Unknown channel value '{}', defaulting to EMAIL_AND_NOTIFICATION", raw);
+      }
+    }
+    return EMAIL_AND_NOTIFICATION;
   }
 
   private Set<Notification> createFromTemplate(
@@ -134,17 +150,18 @@ public class NotificationService {
    *
    * @param recepient - email id of the recipient
    * @param data - dynamic data map
+   * @param channel - delivery channel (EMAIL, NOTIFICATION, or EMAIL_AND_NOTIFICATION)
    * @return notification object
    */
   private Set<Notification> createCustomNotification(
-      String recepient, Map<String, Object> data, byte[] qrCode) {
+      String recepient, Map<String, Object> data, byte[] qrCode, Channel channel) {
     log.info("Creating notification for recepient: {}", recepient);
     Notification notification =
         Notification.builder()
             .recipient(recepient)
             .subject(data.getOrDefault(SUBJECT, EMPTY_STRING).toString())
             .body(data.getOrDefault(BODY, EMPTY_STRING).toString())
-            .channel(EMAIL_AND_NOTIFICATION)
+            .channel(channel)
             .qrCode(qrCode)
             .build();
     return Set.of(notification);

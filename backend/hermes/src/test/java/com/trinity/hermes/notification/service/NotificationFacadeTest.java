@@ -15,6 +15,7 @@ import com.trinity.hermes.notification.repository.NotificationRepository;
 import com.trinity.hermes.notification.services.NotificationDispatcher;
 import com.trinity.hermes.notification.services.NotificationFacade;
 import com.trinity.hermes.notification.services.NotificationService;
+import com.trinity.hermes.usermanagement.service.UserManagementService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -34,6 +35,7 @@ public class NotificationFacadeTest {
 
   @Mock NotificationService notificationService;
   @Mock NotificationDispatcher notificationDispatcher;
+  @Mock UserManagementService userManagementService;
   @Mock NotificationRepository notificationRepository;
 
   NotificationFacade facade;
@@ -41,7 +43,11 @@ public class NotificationFacadeTest {
   @BeforeEach
   void setUp() {
     facade =
-        new NotificationFacade(notificationService, notificationDispatcher, notificationRepository);
+        new NotificationFacade(
+            notificationService,
+            notificationDispatcher,
+            userManagementService,
+            notificationRepository);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

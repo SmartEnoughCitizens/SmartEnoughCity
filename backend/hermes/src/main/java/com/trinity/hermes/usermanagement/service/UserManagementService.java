@@ -143,13 +143,14 @@ public class UserManagementService {
         userId, request.getUsername(), request.getEmail(), request.getRole(), message);
   }
 
-  /**
-   * Finds a user's Keycloak ID by username.
-   *
-   * @param username the username to search for
-   * @return the Keycloak user ID
-   * @throws RuntimeException if the user is not found
-   */
+  public String getUserEmail(String userId) {
+    return getUsersResource().search(userId, 0, 10).stream()
+        .filter(u -> u.getUsername().equalsIgnoreCase(userId) || u.getId().equals(userId))
+        .findFirst()
+        .map(UserRepresentation::getEmail)
+        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+  }
+
   public String findUserIdByUsername(String username) {
     List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
     return users.stream()
