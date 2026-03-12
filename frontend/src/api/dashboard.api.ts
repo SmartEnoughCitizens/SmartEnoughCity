@@ -9,6 +9,11 @@ import type {
   CycleDashboardResponse,
   CycleStation,
   IndicatorType,
+  StationLiveDTO,
+  NetworkSummaryDTO,
+  NetworkKpiDTO,
+  StationRankingDTO,
+  StationEventDTO,
 } from "@/types";
 
 export const dashboardApi = {
@@ -75,6 +80,73 @@ export const dashboardApi = {
   getIndicatorTypes: async (): Promise<IndicatorType[]> => {
     const { data } = await axiosInstance.get<IndicatorType[]>(
       API_ENDPOINTS.DASHBOARD_INDICATOR_TYPES,
+    );
+    return data;
+  },
+
+  // ── Cycle Metrics ──────────────────────────────────────────────────────────
+
+  getCycleStationsLive: async (): Promise<StationLiveDTO[]> => {
+    const { data } = await axiosInstance.get<StationLiveDTO[]>(
+      API_ENDPOINTS.CYCLE_STATIONS_LIVE,
+    );
+    return data;
+  },
+
+  getCycleNetworkSummary: async (): Promise<NetworkSummaryDTO> => {
+    const { data } = await axiosInstance.get<NetworkSummaryDTO>(
+      API_ENDPOINTS.CYCLE_NETWORK_SUMMARY,
+    );
+    return data;
+  },
+
+  getCycleNetworkKpi: async (): Promise<NetworkKpiDTO> => {
+    const { data } = await axiosInstance.get<NetworkKpiDTO>(
+      API_ENDPOINTS.CYCLE_NETWORK_KPI,
+    );
+    return data;
+  },
+
+  getCycleBusiestStations: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationRankingDTO[]> => {
+    const { data } = await axiosInstance.get<StationRankingDTO[]>(
+      API_ENDPOINTS.CYCLE_RANKINGS_BUSIEST,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleUnderusedStations: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationRankingDTO[]> => {
+    const { data } = await axiosInstance.get<StationRankingDTO[]>(
+      API_ENDPOINTS.CYCLE_RANKINGS_UNDERUSED,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleEmptyEvents: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationEventDTO[]> => {
+    const { data } = await axiosInstance.get<StationEventDTO[]>(
+      API_ENDPOINTS.CYCLE_EVENTS_EMPTY,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleFullEvents: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationEventDTO[]> => {
+    const { data } = await axiosInstance.get<StationEventDTO[]>(
+      API_ENDPOINTS.CYCLE_EVENTS_FULL,
+      { params },
     );
     return data;
   },
