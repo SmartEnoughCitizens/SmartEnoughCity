@@ -18,4 +18,17 @@ export const notificationApi = {
     );
     return data;
   },
+
+  /**
+   * Dismiss (delete) a single notification.
+   * Frontend gates this behind write permission; backend should also enforce it.
+   */
+  dismissNotification: async (
+    userId: string,
+    notificationId: string,
+  ): Promise<void> => {
+    await axiosInstance.delete(
+      API_ENDPOINTS.NOTIFICATION_DISMISS(userId, notificationId),
+    );
+  },
 };

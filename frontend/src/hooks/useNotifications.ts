@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { notificationApi } from "@/api";
 import sseService from "@/services/sseService";
@@ -99,4 +99,54 @@ export const useUserNotifications = (
   }, [userId, enabled, queryClient]);
 
   return query;
+};
+
+/**
+ * useDismissNotification — write-permission mutation
+ *
+ * Optimistically removes the notification from the React Query cache
+ * and calls the backend DELETE endpoint. On failure the cache is rolled back.
+ *
+ * Frontend usage must be gated by `usePermissions().canWrite`
+ * (or <PermissionGate require="write">).
+ */
+export const useDismissNotification = (userId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (notificationId: string) =>
+      notificationApi.dismissNotification(userId, notificationId),
+
+    // Optimistic update — remove from list immediately
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({
+        queryKey: NOTIFICATION_KEYS.user(userId),
+      });
+
+      const previous = queryClient.getQueryData<NotificationResponse>(
+        NOTIFICATION_KEYS.user(userId),
+      );
+
+      queryClient.setQueryData<NotificationResponse>(
+        NOTIFICATION_KEYS.user(userId),
+        (old) => {
+          if (!old) return old;
+          const notifications = old.notifications.filter(
+            (n) => n.id !== notificationId,
+          );
+          return { ...old, notifications, totalCount: notifications.length };
+        },
+      );
+
+      return { previous };
+    },
+
+    // Roll back on error
+    onError: (_err, _id, context) => {
+      const ctx = context as { previous?: NotificationResponse } | undefined;
+      if (ctx?.previous) {
+        queryClient.setQueryData(NOTIFICATION_KEYS.user(userId), ctx.previous);
+      }
+    },
+  });
 };

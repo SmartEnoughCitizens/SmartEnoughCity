@@ -24,6 +24,8 @@ export interface UserInfo {
   email: string;
   firstName: string;
   lastName: string;
+  /** Keycloak realm roles assigned to this user (returned by backend if supported) */
+  roles?: string[];
 }
 
 export interface UserProfile {

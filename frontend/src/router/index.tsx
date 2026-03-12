@@ -7,6 +7,29 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
+import { usePermissions } from "@/hooks/usePermissions";
+import type { TransportCategory } from "@/config/permissions";
+
+// ─── Category-level route guard ───────────────────────────────────────────────
+
+/**
+ * Wraps a route so that users without access to the given transport category
+ * are redirected to the main dashboard instead of seeing the page.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+const CategoryRoute = ({
+  category,
+  children,
+}: {
+  category: TransportCategory;
+  children: React.ReactNode;
+}) => {
+  const { canViewCategory } = usePermissions();
+  if (!canViewCategory(category)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+};
 
 // Lazy load pages
 const LoginPage = lazy(() =>
@@ -84,9 +107,11 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <DashboardLayout>
-          <LazyWrapper>
-            <BusDashboard />
-          </LazyWrapper>
+          <CategoryRoute category="bus">
+            <LazyWrapper>
+              <BusDashboard />
+            </LazyWrapper>
+          </CategoryRoute>
         </DashboardLayout>
       </ProtectedRoute>
     ),
@@ -96,9 +121,11 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <DashboardLayout>
-          <LazyWrapper>
-            <CycleDashboard />
-          </LazyWrapper>
+          <CategoryRoute category="cycle">
+            <LazyWrapper>
+              <CycleDashboard />
+            </LazyWrapper>
+          </CategoryRoute>
         </DashboardLayout>
       </ProtectedRoute>
     ),
@@ -108,9 +135,11 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <DashboardLayout>
-          <LazyWrapper>
-            <CarDashboard />
-          </LazyWrapper>
+          <CategoryRoute category="car">
+            <LazyWrapper>
+              <CarDashboard />
+            </LazyWrapper>
+          </CategoryRoute>
         </DashboardLayout>
       </ProtectedRoute>
     ),
@@ -120,9 +149,11 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <DashboardLayout>
-          <LazyWrapper>
-            <TrainDashboard />
-          </LazyWrapper>
+          <CategoryRoute category="train">
+            <LazyWrapper>
+              <TrainDashboard />
+            </LazyWrapper>
+          </CategoryRoute>
         </DashboardLayout>
       </ProtectedRoute>
     ),
