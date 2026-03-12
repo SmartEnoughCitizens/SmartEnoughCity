@@ -35,12 +35,18 @@ class TaxationClass(enum.Enum):
     """Vehicle taxation classes."""
 
     ALL_VEHICLES = "All Vehicles"
+    ALL_PRIVATE_CARS = "All Private Cars"
+    ALL_GOODS_VEHICLES = "All Goods Vehicles"
+    ALL_TRACTORS = "All Tractors"
+    ALL_MOTOR_CYCLES = "All Motor Cycles"
+    ALL_OTHER_VEHICLES = "All Other Vehicles"
     NEW_VEHICLES = "New Vehicles"
     NEW_PRIVATE_CARS = "New Private Cars"
     NEW_GOODS_VEHICLES = "New Goods Vehicles"
     NEW_TRACTORS = "New Tractors"
     NEW_MOTOR_CYCLES = "New Motor Cycles"
     NEW_EXEMPT_VEHICLES = "New Exempt Vehicles"
+    NEW_OTHER_VEHICLES = "New Other Vehicles"
     NEC = "New public service vehicles, heavy agricultural and plant machinery and vehicles (NEC)"
     SECONDHAND_VEHICLES = "Secondhand Vehicles"
     SECONDHAND_PRIVATE_CARS = "Secondhand Private Cars"
@@ -55,6 +61,7 @@ class FuelType(enum.Enum):
 
     PETROL = "Petrol"
     DIESEL = "Diesel"
+    HYBRID = "Hybrid"
     ELECTRIC = "Electric"
     PETROL_AND_ELECTRIC_HYBRID = "Petrol and electric hybrid"
     PETROL_OR_DIESEL_PLUG_IN_HYBRID_ELECTRIC = (
@@ -117,7 +124,9 @@ class TrafficVolume(Base):
     # Composite primary key
     end_time: Mapped[datetime] = mapped_column(DateTime, primary_key=True)
     site_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{DB_SCHEMA}.scats_sites.site_id"), primary_key=True
+        Integer,
+        ForeignKey(f"{DB_SCHEMA}.scats_sites.site_id"),
+        primary_key=True,
     )
     detector: Mapped[int] = mapped_column(Integer, primary_key=True)
 

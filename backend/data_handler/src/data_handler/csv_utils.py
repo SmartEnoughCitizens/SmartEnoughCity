@@ -45,7 +45,7 @@ def read_csv_file(
     Raises:
         ValueError: If required_headers are specified and the file does not contain all required headers.
     """
-    with file_path.open(encoding="utf-8") as f:
+    with file_path.open(encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         if required_headers is not None and not validate_csv_headers(
             reader, required_headers

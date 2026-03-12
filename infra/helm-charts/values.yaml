@@ -8,20 +8,31 @@ global:
       backendSchema: "backend"
       keycloakSchema: &keycloakSchema "keycloak"
 
-postgresql:
+postgres:
   enabled: true
   fullnameOverride: *dbhost
-  # Disable Bitnami's default network policy — we manage our own in infra/network-policies/
-  networkPolicy:
-    enabled: false
-  primary:
-    persistence:
-      enabled: true
-      size: 10Gi
-  auth:
-    username: app_owner
-    database: smart_enough_city
+
+  image:
+    repository: postgis/postgis
+    tag: "18-3.6"
+
+  settings:
+    superuserPassword:
+      secretKey: postgres-password
     existingSecret: sec-db-root
+
+  userDatabase:
+    user:
+      value: app_owner
+    name:
+      value: smart_enough_city
+    password:
+      secretKey: password
+    existingSecret: sec-db-root
+  
+  storage:
+    volumeName: "postgres-data" 
+    requestedSize: "10Gi"
 
 db:
   # Passwords auto-generated if empty
@@ -45,6 +56,7 @@ keycloak:
     registry: docker.io
     repository: bitnamilegacy/keycloak
   keycloakConfigCli:
+    enabled: false
     image:
       registry: docker.io
       repository: bitnamilegacy/keycloak-config-cli

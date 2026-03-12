@@ -1,0 +1,5 @@
+stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon
+CNLLY,9001,Connolly,Dublin Connolly Station,53.352925,-6.249463
+TARA,9002,Tara Street,,53.347778,-6.254444
+PEARSE,9003,Pearse,,53.343611,-6.249722
+BYSDE,9004,Bayside,,53.384722,-6.136111
