@@ -193,13 +193,13 @@ for entry in "${RESULTS[@]}"; do
   IFS='|' read -r label status timing <<< "$entry"
   if [[ "$status" == "PASS" ]]; then
     echo -e "  ${GREEN}✔ PASS${RESET}  ${label}  ${DIM}${timing}${RESET}"
-    (( PASS_COUNT++ ))
+    (( ++PASS_COUNT ))
   elif [[ "$status" == "FAIL" ]]; then
     echo -e "  ${RED}✘ FAIL${RESET}  ${label}  ${DIM}${timing}${RESET}"
-    (( FAIL_COUNT++ ))
+    (( ++FAIL_COUNT ))
   else
     echo -e "  ${YELLOW}– SKIP${RESET}  ${label}"
-    (( SKIP_COUNT++ ))
+    (( ++SKIP_COUNT ))
   fi
 done
 

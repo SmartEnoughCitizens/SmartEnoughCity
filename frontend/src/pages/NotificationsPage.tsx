@@ -1,5 +1,8 @@
 /**
  * Notifications page — streamlined, compact list
+ *
+ * Write-permission users (Admin roles) can dismiss individual notifications.
+ * Read-only users (Provider roles) can view but not remove notifications.
  */
 
 import {
@@ -12,12 +15,16 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useEffect } from "react";
-import { useUserNotifications } from "@/hooks";
+import { useUserNotifications, useDismissNotification } from "@/hooks";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setNotificationBadgeCount } from "@/store/slices/uiSlice";
 import { Priority, NotificationType } from "@/types";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const getPriorityColor = (priority: Priority) => {
   switch (priority) {
@@ -57,12 +64,16 @@ export const NotificationsPage = () => {
   const { username } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
 
+  // RBAC: only Admin-level roles can dismiss notifications
+  const { canWrite } = usePermissions();
+
   // Clear badge when user views notifications
   useEffect(() => {
     dispatch(setNotificationBadgeCount(0));
   }, [dispatch]);
 
   const { data, isLoading } = useUserNotifications(username || "", !!username);
+  const dismissMutation = useDismissNotification(username || "");
 
   if (isLoading) {
     return (
@@ -90,9 +101,26 @@ export const NotificationsPage = () => {
         bgcolor: (t) => t.palette.background.default,
       }}
     >
-      <Typography variant="h4" sx={{ mb: 2 }}>
-        Notifications
-      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
+        <Typography variant="h4">Notifications</Typography>
+        {/* Subtle read-only indicator for Provider roles */}
+        {!canWrite && (
+          <Chip
+            label="Read only"
+            size="small"
+            variant="outlined"
+            color="default"
+            sx={{ fontSize: "0.7rem" }}
+          />
+        )}
+      </Box>
 
       <Paper
         elevation={0}
@@ -114,6 +142,34 @@ export const NotificationsPage = () => {
                     px: 2,
                     bgcolor: notification.read ? "transparent" : "action.hover",
                   }}
+                  secondaryAction={
+                    canWrite ? (
+                      <Tooltip title="Dismiss notification" arrow>
+                        <span>
+                          <IconButton
+                            edge="end"
+                            size="small"
+                            color="default"
+                            disabled={dismissMutation.isPending}
+                            onClick={() =>
+                              dismissMutation.mutate(notification.id)
+                            }
+                            sx={{ opacity: 0.5, "&:hover": { opacity: 1 } }}
+                          >
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title="Read-only access — cannot dismiss" arrow>
+                        <span>
+                          <IconButton edge="end" size="small" disabled>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    )
+                  }
                 >
                   <ListItemText
                     primary={

@@ -60,4 +60,7 @@ export const API_ENDPOINTS = {
   // Notifications
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
+  /** DELETE endpoint — requires write permission */
+  NOTIFICATION_DISMISS: (userId: string, notificationId: string) =>
+    `/api/notification/v1/${userId}/${notificationId}`,
 };

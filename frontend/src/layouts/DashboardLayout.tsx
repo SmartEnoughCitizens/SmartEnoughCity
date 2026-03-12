@@ -37,6 +37,7 @@ import {
 } from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
+import { usePermissions } from "@/hooks/usePermissions";
 import { getCreatableRoles } from "@/types";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import { ChangePasswordDialog } from "@/components/profile/ChangePasswordDialog";
@@ -54,6 +55,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const canManageUsers = getCreatableRoles(roles).length > 0;
   const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
   const logoutMutation = useLogout();
+
+  // RBAC: derive category visibility from roles
+  const { canViewCategory } = usePermissions();
 
   // Connect SSE as soon as dashboard loads (user is authenticated)
   useEffect(() => {
@@ -94,24 +98,52 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate("/login");
   };
 
+  // Transport-category nav items filtered by RBAC role permissions.
+  // Overview and Notifications are always visible; transport sections
+  // are shown only when the user has access to that category.
   const navItems = [
+    // Always visible
     { icon: <DashboardIcon />, path: "/dashboard", label: "Overview" },
-    { icon: <DirectionsBusIcon />, path: "/dashboard/bus", label: "Bus Data" },
-    {
-      icon: <DirectionsBikeIcon />,
-      path: "/dashboard/cycle",
-      label: "Cycles",
-    },
-    {
-      icon: <DirectionsCarIcon />,
-      path: "/dashboard/car",
-      label: "Car",
-    },
-    {
-      icon: <TrainIcon />,
-      path: "/dashboard/train",
-      label: "Trains",
-    },
+
+    // Transport sections — hidden when user lacks category access
+    ...(canViewCategory("bus")
+      ? [
+          {
+            icon: <DirectionsBusIcon />,
+            path: "/dashboard/bus",
+            label: "Bus Data",
+          },
+        ]
+      : []),
+    ...(canViewCategory("cycle")
+      ? [
+          {
+            icon: <DirectionsBikeIcon />,
+            path: "/dashboard/cycle",
+            label: "Cycles",
+          },
+        ]
+      : []),
+    ...(canViewCategory("car")
+      ? [
+          {
+            icon: <DirectionsCarIcon />,
+            path: "/dashboard/car",
+            label: "Car",
+          },
+        ]
+      : []),
+    ...(canViewCategory("train")
+      ? [
+          {
+            icon: <TrainIcon />,
+            path: "/dashboard/train",
+            label: "Trains",
+          },
+        ]
+      : []),
+
+    // Always visible
     {
       icon: (
         <Badge badgeContent={notificationBadgeCount} color="error">
@@ -121,6 +153,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       path: "/dashboard/notifications",
       label: "Notifications",
     },
+
+    // Only for users who can manage other users
     ...(canManageUsers
       ? [
           {
