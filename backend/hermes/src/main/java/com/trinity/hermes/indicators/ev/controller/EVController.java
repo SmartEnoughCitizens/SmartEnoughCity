@@ -24,33 +24,33 @@ public class EVController {
 
   @GetMapping("/charging-stations")
   public ResponseEntity<EVChargingStationsResponseDTO> getChargingStations() {
-    log.info("GET /api/v1/ev/charging-stations");
+    log.info("Fetching EV charging stations");
     try {
       return ResponseEntity.ok(evService.getChargingStations());
     } catch (Exception e) {
-      log.error("Error fetching EV charging stations: {}", e.getMessage(), e);
+      log.error("Failed to fetch EV charging stations", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
   @GetMapping("/charging-demand")
   public ResponseEntity<EVChargingDemandResponseDTO> getChargingDemand() {
-    log.info("GET /api/v1/ev/charging-demand");
+    log.info("Fetching EV charging demand data");
     try {
       return ResponseEntity.ok(evService.getChargingDemand());
     } catch (Exception e) {
-      log.error("Error fetching EV charging demand: {}", e.getMessage(), e);
+      log.error("Failed to fetch EV charging demand data", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
   @GetMapping("/areas-geojson")
   public ResponseEntity<Map<String, Object>> getAreasGeoJson() {
-    log.info("GET /api/v1/ev/areas-geojson");
+    log.info("Fetching EV areas GeoJSON");
     try {
       return ResponseEntity.ok(evService.getAreasGeoJson());
     } catch (Exception e) {
-      log.error("Error fetching EV areas GeoJSON: {}", e.getMessage(), e);
+      log.error("Failed to fetch EV areas GeoJSON", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
