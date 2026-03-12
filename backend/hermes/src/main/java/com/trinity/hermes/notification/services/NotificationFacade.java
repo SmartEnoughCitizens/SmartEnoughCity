@@ -1,10 +1,13 @@
 package com.trinity.hermes.notification.services;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.dto.NotificationItemDTO;
+import com.trinity.hermes.notification.dto.NotificationResponseDTO;
+import com.trinity.hermes.notification.entity.NotificationEntity;
 import com.trinity.hermes.notification.model.Notification;
 import com.trinity.hermes.notification.model.User;
 import com.trinity.hermes.notification.model.enums.Channel;
-import com.trinity.hermes.notification.util.InMemoryNotificationStore;
+import com.trinity.hermes.notification.repository.NotificationRepository;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
@@ -24,7 +27,7 @@ public class NotificationFacade {
   private final NotificationService notificationService;
   // private final RecommendationService recommendationService;
   private final NotificationDispatcher notificationDispatcher;
-  private final InMemoryNotificationStore notificationStore;
+  private final NotificationRepository notificationRepository;
 
   public void handleBackendNotification(
       BackendNotificationRequestDTO backendNotificationRequestDTO) {
@@ -46,7 +49,17 @@ public class NotificationFacade {
           && (notification.getChannel() == Channel.NOTIFICATION
               || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
         notificationDispatcher.dispatchSse(userId, notification);
-        notificationStore.add(notification);
+        notificationRepository.save(
+            NotificationEntity.builder()
+                .userId(userId)
+                .recipient(notification.getRecipient())
+                .subject(notification.getSubject())
+                .body(notification.getBody())
+                .channel(notification.getChannel())
+                .isRead(false)
+                .qrCodeId(backendNotificationRequestDTO.getQrid())
+                .build());
+        log.info("Persisted notification for userId={}", userId);
       }
     }
   }
@@ -114,8 +127,40 @@ public class NotificationFacade {
     }
   }
 
-  // TODO: Filter by userId when persistence is added
-  public List<Notification> getAll(String userId) {
-    return notificationStore.getAll();
+  public NotificationResponseDTO getAll(String userId) {
+    List<NotificationEntity> entities =
+        notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    long unreadCount = notificationRepository.countByUserIdAndIsReadFalse(userId);
+    return NotificationResponseDTO.builder()
+        .userId(userId)
+        .notifications(entities.stream().map(this::toItemDTO).toList())
+        .totalCount(unreadCount)
+        .build();
+  }
+
+  public boolean markAsRead(String userId, Long notificationId) {
+    return notificationRepository
+        .findByIdAndUserId(notificationId, userId)
+        .map(
+            entity -> {
+              entity.setRead(true);
+              notificationRepository.save(entity);
+              log.info("Marked notification {} as read for userId={}", notificationId, userId);
+              return true;
+            })
+        .orElse(false);
+  }
+
+  private NotificationItemDTO toItemDTO(NotificationEntity entity) {
+    return NotificationItemDTO.builder()
+        .id(String.valueOf(entity.getId()))
+        .subject(entity.getSubject())
+        .body(entity.getBody())
+        .channel(entity.getChannel() != null ? entity.getChannel().name() : null)
+        .recipient(entity.getRecipient())
+        .read(entity.isRead())
+        .timestamp(entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null)
+        .qrCodeId(entity.getQrCodeId())
+        .build();
   }
 }
