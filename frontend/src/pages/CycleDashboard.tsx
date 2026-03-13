@@ -39,6 +39,7 @@ export const CycleDashboard = () => {
   const [rankingSubTab, setRankingSubTab] = useState(0);
   const [odFilterStationId, setOdFilterStationId] = useState<number | null>(null);
   const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>("extreme");
+  const [selectedPairKey, setSelectedPairKey] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const theme = useAppSelector((state) => state.ui.theme);
 
@@ -84,6 +85,7 @@ export const CycleDashboard = () => {
           odPairs={pairs}
           globalMaxTrips={maxTrips}
           filterStationId={odFilterStationId}
+          selectedPairKey={selectedPairKey}
           height="100%"
           darkTiles={theme === "dark"}
         />
@@ -185,8 +187,10 @@ export const CycleDashboard = () => {
             value={tabValue}
             onChange={(_, v) => {
               setTabValue(v);
-              // Clear OD filter when leaving OD tab
-              if (v !== 3) setOdFilterStationId(null);
+              if (v !== 3) {
+                setOdFilterStationId(null);
+                setSelectedPairKey(null);
+              }
             }}
             variant="fullWidth"
             sx={{
@@ -261,8 +265,10 @@ export const CycleDashboard = () => {
                     allPairs={allPairs}
                     filterStationId={odFilterStationId}
                     intensityFilter={intensityFilter}
+                    selectedPairKey={selectedPairKey}
                     onFilterChange={setOdFilterStationId}
                     onIntensityFilterChange={setIntensityFilter}
+                    onPairSelect={setSelectedPairKey}
                   />
             )}
           </Box>
