@@ -11,6 +11,7 @@ import com.trinity.hermes.usermanagement.entity.PasswordResetTokenEntity;
 import com.trinity.hermes.usermanagement.repository.PasswordResetTokenRepository;
 import jakarta.ws.rs.core.Response;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -223,8 +224,7 @@ public class UserManagementServiceTest {
     UserRepresentation user = userRep("kc-id-1", "testuser");
     user.setEmail("test@example.com");
 
-    when(usersResource.searchByEmail(eq("test@example.com"), eq(true)))
-        .thenReturn(List.of(user));
+    when(usersResource.searchByEmail(eq("test@example.com"), eq(true))).thenReturn(List.of(user));
 
     service.initiateForgotPassword("test@example.com");
 
@@ -235,8 +235,7 @@ public class UserManagementServiceTest {
 
   @Test
   void initiateForgotPassword_doesNothing_whenUserNotFound() {
-    when(usersResource.searchByEmail(eq("unknown@example.com"), eq(true)))
-        .thenReturn(List.of());
+    when(usersResource.searchByEmail(eq("unknown@example.com"), eq(true))).thenReturn(List.of());
 
     service.initiateForgotPassword("unknown@example.com");
 
@@ -250,7 +249,7 @@ public class UserManagementServiceTest {
         PasswordResetTokenEntity.builder()
             .token("valid-token")
             .keycloakUserId("kc-id-2")
-            .expiresAt(LocalDateTime.now().plusHours(1))
+            .expiresAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")).plusHours(1))
             .build();
 
     when(passwordResetTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(token));
@@ -284,15 +283,14 @@ public class UserManagementServiceTest {
         PasswordResetTokenEntity.builder()
             .token("expired-token")
             .keycloakUserId("kc-id-3")
-            .expiresAt(LocalDateTime.now().minusHours(2))
+            .expiresAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")).minusHours(2))
             .build();
 
     when(passwordResetTokenRepository.findByToken("expired-token"))
         .thenReturn(Optional.of(expiredToken));
 
     RuntimeException ex =
-        assertThrows(
-            RuntimeException.class, () -> service.resetPassword("expired-token", "pass"));
+        assertThrows(RuntimeException.class, () -> service.resetPassword("expired-token", "pass"));
 
     assertTrue(ex.getMessage().contains("expired"));
     verify(userResource, never()).resetPassword(any());
