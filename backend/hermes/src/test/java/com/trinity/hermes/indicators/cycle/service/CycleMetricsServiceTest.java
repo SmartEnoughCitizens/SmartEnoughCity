@@ -130,15 +130,9 @@ public class CycleMetricsServiceTest {
     return new Object[] {Timestamp.from(Instant.now()), avgBikes, avgDocks, usageRate};
   }
 
-  /**
-   * Builds a ranking row matching column order: 0:station_id, 1:name, 2:region_id, 3:capacity,
-   * 4:avg_usage_rate, 5:avg_available_bikes, 6:avg_available_docks, 7:empty_event_count,
-   * 8:full_event_count
-   */
+  /** Builds a ranking row matching column order: 0:station_id, 1:name, 2:avg_usage_rate */
   private Object[] buildRankingRow(int stationId, double avgUsageRate) {
-    return new Object[] {
-      stationId, "Station " + stationId, "DUBLIN_CITY", 30, avgUsageRate, 7.5, 22.5, 2L, 1L
-    };
+    return new Object[] {stationId, "Station " + stationId, avgUsageRate};
   }
 
   /**
@@ -551,27 +545,23 @@ public class CycleMetricsServiceTest {
     void getBusiestStations_mapsRowsToDto() {
       Object[] row1 = buildRankingRow(1, 90.0);
       Object[] row2 = buildRankingRow(2, 75.0);
-      when(historyRepository.findBusiestStations(any(Instant.class), eq(10)))
-          .thenReturn(rows(row1, row2));
+      when(historyRepository.findBusiestStations(eq(10))).thenReturn(rows(row1, row2));
 
-      List<StationRankingDTO> result = service.getBusiestStations(7, 10);
+      List<StationRankingDTO> result = service.getBusiestStations(10);
 
       assertEquals(2, result.size());
       assertEquals(1, result.get(0).getStationId());
       assertEquals(90.0, result.get(0).getAvgUsageRate());
-      assertEquals(2L, result.get(0).getEmptyEventCount());
-      assertEquals(1L, result.get(0).getFullEventCount());
     }
 
     @Test
-    @DisplayName("passes correct since date and limit to repository")
+    @DisplayName("passes correct limit to repository")
     void getBusiestStations_passesCorrectArgs() {
-      when(historyRepository.findBusiestStations(any(Instant.class), eq(5)))
-          .thenReturn(Collections.emptyList());
+      when(historyRepository.findBusiestStations(eq(5))).thenReturn(Collections.emptyList());
 
-      service.getBusiestStations(14, 5);
+      service.getBusiestStations(5);
 
-      verify(historyRepository).findBusiestStations(any(Instant.class), eq(5));
+      verify(historyRepository).findBusiestStations(eq(5));
     }
   }
 
@@ -586,10 +576,9 @@ public class CycleMetricsServiceTest {
     @DisplayName("maps ranking rows to StationRankingDTOs")
     void getLeastUsedStations_mapsRowsToDto() {
       Object[] row = buildRankingRow(99, 5.0);
-      when(historyRepository.findLeastUsedStations(any(Instant.class), eq(10)))
-          .thenReturn(rows(row));
+      when(historyRepository.findLeastUsedStations(eq(10))).thenReturn(rows(row));
 
-      List<StationRankingDTO> result = service.getLeastUsedStations(7, 10);
+      List<StationRankingDTO> result = service.getLeastUsedStations(10);
 
       assertEquals(1, result.size());
       assertEquals(99, result.get(0).getStationId());
@@ -607,8 +596,7 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("computes full KPI DTO from multiple repository calls")
     void getNetworkKpi_computesAllFields() {
-      when(snapshotRepository.findNetworkImbalanceScore())
-          .thenReturn(rows(new Object[] {0.25}));
+      when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(rows(new Object[] {0.25}));
       when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(rows(new Object[] {1.8}));
       when(historyRepository.findTotalTripEstimate(any(Instant.class), any(Instant.class)))
           .thenReturn(rows(new Object[] {3500L}));
@@ -640,7 +628,8 @@ public class CycleMetricsServiceTest {
     void getNetworkKpi_nullSummaryRow_zeroRebalancingNeed() {
       when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(rows(new Object[] {0.0}));
       when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(rows(new Object[] {0.0}));
-      when(historyRepository.findTotalTripEstimate(any(), any())).thenReturn(rows(new Object[] {0L}));
+      when(historyRepository.findTotalTripEstimate(any(), any()))
+          .thenReturn(rows(new Object[] {0L}));
       when(historyRepository.findWeekdayVsWeekendUsage(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findHourlyUsageProfile(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findNetworkDailyTrend(any())).thenReturn(Collections.emptyList());
@@ -674,7 +663,8 @@ public class CycleMetricsServiceTest {
     void getNetworkKpi_missingDayTypeRows_defaultsToZero() {
       when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(rows(new Object[] {0.1}));
       when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(rows(new Object[] {1.0}));
-      when(historyRepository.findTotalTripEstimate(any(), any())).thenReturn(rows(new Object[] {100L}));
+      when(historyRepository.findTotalTripEstimate(any(), any()))
+          .thenReturn(rows(new Object[] {100L}));
       when(historyRepository.findWeekdayVsWeekendUsage(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findHourlyUsageProfile(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findNetworkDailyTrend(any())).thenReturn(Collections.emptyList());

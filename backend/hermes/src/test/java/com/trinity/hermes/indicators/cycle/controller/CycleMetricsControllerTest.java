@@ -551,9 +551,9 @@ public class CycleMetricsControllerTest {
   class BusiestStationsTests {
 
     @Test
-    @DisplayName("200 with default days=7 and limit=10")
+    @DisplayName("200 with default limit=10 (today's data)")
     void getBusiestStations_defaultParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getBusiestStations(7, 10))
+      when(cycleMetricsService.getBusiestStations(10))
           .thenReturn(List.of(buildRankingDTO(1), buildRankingDTO(2)));
 
       mockMvc
@@ -563,26 +563,26 @@ public class CycleMetricsControllerTest {
           .andExpect(jsonPath("$[0].stationId").value(1))
           .andExpect(jsonPath("$[0].avgUsageRate").value(75.0));
 
-      verify(cycleMetricsService).getBusiestStations(7, 10);
+      verify(cycleMetricsService).getBusiestStations(10);
     }
 
     @Test
-    @DisplayName("200 with custom days and limit parameters")
-    void getBusiestStations_customParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getBusiestStations(30, 5)).thenReturn(List.of(buildRankingDTO(10)));
+    @DisplayName("200 with custom limit parameter")
+    void getBusiestStations_customLimit_returnsOk() throws Exception {
+      when(cycleMetricsService.getBusiestStations(5)).thenReturn(List.of(buildRankingDTO(10)));
 
       mockMvc
-          .perform(get("/api/v1/cycle/rankings/busiest").param("days", "30").param("limit", "5"))
+          .perform(get("/api/v1/cycle/rankings/busiest").param("limit", "5"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1));
 
-      verify(cycleMetricsService).getBusiestStations(30, 5);
+      verify(cycleMetricsService).getBusiestStations(5);
     }
 
     @Test
     @DisplayName("500 when service throws exception")
     void getBusiestStations_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getBusiestStations(anyInt(), anyInt()))
+      when(cycleMetricsService.getBusiestStations(anyInt()))
           .thenThrow(new RuntimeException("Rankings query failed"));
 
       mockMvc
@@ -599,10 +599,9 @@ public class CycleMetricsControllerTest {
   class UnderusedStationsTests {
 
     @Test
-    @DisplayName("200 with default days=7 and limit=10")
+    @DisplayName("200 with default limit=10 (today's data)")
     void getLeastUsedStations_defaultParams_returnsOk() throws Exception {
-      when(cycleMetricsService.getLeastUsedStations(7, 10))
-          .thenReturn(List.of(buildRankingDTO(50)));
+      when(cycleMetricsService.getLeastUsedStations(10)).thenReturn(List.of(buildRankingDTO(50)));
 
       mockMvc
           .perform(get("/api/v1/cycle/rankings/underused"))
@@ -610,13 +609,13 @@ public class CycleMetricsControllerTest {
           .andExpect(jsonPath("$.length()").value(1))
           .andExpect(jsonPath("$[0].stationId").value(50));
 
-      verify(cycleMetricsService).getLeastUsedStations(7, 10);
+      verify(cycleMetricsService).getLeastUsedStations(10);
     }
 
     @Test
     @DisplayName("500 when service throws exception")
     void getLeastUsedStations_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getLeastUsedStations(anyInt(), anyInt()))
+      when(cycleMetricsService.getLeastUsedStations(anyInt()))
           .thenThrow(new RuntimeException("Underused query failed"));
 
       mockMvc

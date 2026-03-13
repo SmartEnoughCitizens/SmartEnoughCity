@@ -191,8 +191,8 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
   // -------------------------------------------------------------------------
 
   /**
-   * Today's station rankings ordered by avg usage rate descending (busiest first).
-   * Window: midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
+   * Today's station rankings ordered by avg usage rate descending (busiest first). Window: midnight
+   * UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
    */
   @Query(
       value =
@@ -212,8 +212,8 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
   List<Object[]> findBusiestStations(@Param("limitVal") int limit);
 
   /**
-   * Today's station rankings ordered by avg usage rate ascending (least used first).
-   * Window: midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
+   * Today's station rankings ordered by avg usage rate ascending (least used first). Window:
+   * midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
    */
   @Query(
       value =
