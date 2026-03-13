@@ -271,7 +271,7 @@ public class CycleMetricsServiceTest {
     @DisplayName("maps summary row to NetworkSummaryDTO")
     void getNetworkSummary_mapsRowToDto() {
       Object[] row = buildNetworkSummaryRow(100, 500, 2500, 5, 3, 4, 2, 35.5);
-      when(snapshotRepository.findNetworkSummary()).thenReturn(row);
+      when(snapshotRepository.findNetworkSummary()).thenReturn(rows(row));
 
       NetworkSummaryDTO result = service.getNetworkSummary();
 
@@ -292,7 +292,7 @@ public class CycleMetricsServiceTest {
     @DisplayName("rebalancingNeedCount equals emptyStations + fullStations")
     void getNetworkSummary_rebalancingNeedCount_isCorrect() {
       Object[] row = buildNetworkSummaryRow(50, 200, 800, 0, 0, 10, 5, 40.0);
-      when(snapshotRepository.findNetworkSummary()).thenReturn(row);
+      when(snapshotRepository.findNetworkSummary()).thenReturn(rows(row));
 
       NetworkSummaryDTO result = service.getNetworkSummary();
 
@@ -607,10 +607,11 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("computes full KPI DTO from multiple repository calls")
     void getNetworkKpi_computesAllFields() {
-      when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(new Object[] {0.25});
-      when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(new Object[] {1.8});
+      when(snapshotRepository.findNetworkImbalanceScore())
+          .thenReturn(rows(new Object[] {0.25}));
+      when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(rows(new Object[] {1.8}));
       when(historyRepository.findTotalTripEstimate(any(Instant.class), any(Instant.class)))
-          .thenReturn(new Object[] {3500L});
+          .thenReturn(rows(new Object[] {3500L}));
       when(historyRepository.findWeekdayVsWeekendUsage(any(Instant.class)))
           .thenReturn(rows(new Object[] {"weekday", 62.5}, new Object[] {"weekend", 48.0}));
       when(historyRepository.findHourlyUsageProfile(any(Instant.class)))
@@ -618,7 +619,7 @@ public class CycleMetricsServiceTest {
       when(historyRepository.findNetworkDailyTrend(any(Instant.class)))
           .thenReturn(rows(buildTimeSeriesRow(12.0, 18.0, 40.0)));
       when(snapshotRepository.findNetworkSummary())
-          .thenReturn(buildNetworkSummaryRow(100, 500, 2500, 5, 3, 4, 2, 35.5));
+          .thenReturn(rows(buildNetworkSummaryRow(100, 500, 2500, 5, 3, 4, 2, 35.5)));
 
       NetworkKpiDTO result = service.getNetworkKpi();
 
@@ -637,9 +638,9 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("returns zero rebalancing need when summary row is null")
     void getNetworkKpi_nullSummaryRow_zeroRebalancingNeed() {
-      when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(new Object[] {0.0});
-      when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(new Object[] {0.0});
-      when(historyRepository.findTotalTripEstimate(any(), any())).thenReturn(new Object[] {0L});
+      when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(rows(new Object[] {0.0}));
+      when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(rows(new Object[] {0.0}));
+      when(historyRepository.findTotalTripEstimate(any(), any())).thenReturn(rows(new Object[] {0L}));
       when(historyRepository.findWeekdayVsWeekendUsage(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findHourlyUsageProfile(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findNetworkDailyTrend(any())).thenReturn(Collections.emptyList());
@@ -671,9 +672,9 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("weekday and weekend rates default to 0 when absent from results")
     void getNetworkKpi_missingDayTypeRows_defaultsToZero() {
-      when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(new Object[] {0.1});
-      when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(new Object[] {1.0});
-      when(historyRepository.findTotalTripEstimate(any(), any())).thenReturn(new Object[] {100L});
+      when(snapshotRepository.findNetworkImbalanceScore()).thenReturn(rows(new Object[] {0.1}));
+      when(historyRepository.findAvgHourlyTurnoverRate()).thenReturn(rows(new Object[] {1.0}));
+      when(historyRepository.findTotalTripEstimate(any(), any())).thenReturn(rows(new Object[] {100L}));
       when(historyRepository.findWeekdayVsWeekendUsage(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findHourlyUsageProfile(any())).thenReturn(Collections.emptyList());
       when(historyRepository.findNetworkDailyTrend(any())).thenReturn(Collections.emptyList());

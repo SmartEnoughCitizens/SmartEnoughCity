@@ -191,9 +191,8 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
   // -------------------------------------------------------------------------
 
   /**
-   * Station rankings ordered by avg usage rate descending (busiest first). Returns Object[] rows:
-   * station_id, name, region_id, capacity, avg_usage_rate, avg_available_bikes,
-   * avg_available_docks, empty_event_count, full_event_count
+   * Today's station rankings ordered by avg usage rate descending (busiest first).
+   * Window: midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
    */
   @Query(
       value =
@@ -201,26 +200,20 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           SELECT
               h.station_id,
               st.name,
-              st.region_id,
-              st.capacity,
-              AVG((st.capacity - h.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate,
-              AVG(h.available_bikes)                                                         AS avg_available_bikes,
-              AVG(h.available_docks)                                                         AS avg_available_docks,
-              COUNT(CASE WHEN h.available_bikes = 0 THEN 1 END)                            AS empty_event_count,
-              COUNT(CASE WHEN h.available_docks = 0 THEN 1 END)                            AS full_event_count
+              AVG((st.capacity - h.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
           FROM external_data.dublin_bikes_station_history h
           JOIN external_data.dublin_bikes_stations st ON h.station_id = st.station_id
-          WHERE h.timestamp >= :since
-          GROUP BY h.station_id, st.name, st.region_id, st.capacity
+          WHERE h.timestamp >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+          GROUP BY h.station_id, st.name
           ORDER BY avg_usage_rate DESC
           LIMIT :limitVal
           """,
       nativeQuery = true)
-  List<Object[]> findBusiestStations(@Param("since") Instant since, @Param("limitVal") int limit);
+  List<Object[]> findBusiestStations(@Param("limitVal") int limit);
 
   /**
-   * Station rankings ordered by avg usage rate ascending (least used first). Returns same columns
-   * as findBusiestStations.
+   * Today's station rankings ordered by avg usage rate ascending (least used first).
+   * Window: midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
    */
   @Query(
       value =
@@ -228,22 +221,16 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           SELECT
               h.station_id,
               st.name,
-              st.region_id,
-              st.capacity,
-              AVG((st.capacity - h.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate,
-              AVG(h.available_bikes)                                                         AS avg_available_bikes,
-              AVG(h.available_docks)                                                         AS avg_available_docks,
-              COUNT(CASE WHEN h.available_bikes = 0 THEN 1 END)                            AS empty_event_count,
-              COUNT(CASE WHEN h.available_docks = 0 THEN 1 END)                            AS full_event_count
+              AVG((st.capacity - h.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
           FROM external_data.dublin_bikes_station_history h
           JOIN external_data.dublin_bikes_stations st ON h.station_id = st.station_id
-          WHERE h.timestamp >= :since
-          GROUP BY h.station_id, st.name, st.region_id, st.capacity
+          WHERE h.timestamp >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+          GROUP BY h.station_id, st.name
           ORDER BY avg_usage_rate ASC
           LIMIT :limitVal
           """,
       nativeQuery = true)
-  List<Object[]> findLeastUsedStations(@Param("since") Instant since, @Param("limitVal") int limit);
+  List<Object[]> findLeastUsedStations(@Param("limitVal") int limit);
 
   // -------------------------------------------------------------------------
   // Derived KPIs
@@ -298,7 +285,7 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           SELECT AVG(total_out::float / 24) AS avg_hourly_turnover FROM per_station
           """,
       nativeQuery = true)
-  Object[] findAvgHourlyTurnoverRate();
+  List<Object[]> findAvgHourlyTurnoverRate();
 
   /** Total trip estimate for a given day. Returns a single Object[] with: trips_estimate */
   @Query(
@@ -315,7 +302,7 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
           WHERE bikes_taken IS NOT NULL
           """,
       nativeQuery = true)
-  Object[] findTotalTripEstimate(@Param("from") Instant from, @Param("to") Instant to);
+  List<Object[]> findTotalTripEstimate(@Param("from") Instant from, @Param("to") Instant to);
 
   // -------------------------------------------------------------------------
   // Origin-Destination pairs
