@@ -12,7 +12,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { useResetPassword } from "@/hooks";
 
 export const ResetPasswordPage = () => {
@@ -30,7 +34,9 @@ export const ResetPasswordPage = () => {
     if (resetPasswordMutation.isSuccess) {
       const timer = setTimeout(() => {
         navigate("/login", {
-          state: { successMessage: "Password reset successfully. Please log in." },
+          state: {
+            successMessage: "Password reset successfully. Please log in.",
+          },
         });
       }, 2000);
       return () => clearTimeout(timer);

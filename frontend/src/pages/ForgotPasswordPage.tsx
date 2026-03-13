@@ -79,7 +79,8 @@ export const ForgotPasswordPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={
-              forgotPasswordMutation.isPending || forgotPasswordMutation.isSuccess
+              forgotPasswordMutation.isPending ||
+              forgotPasswordMutation.isSuccess
             }
             required
           />

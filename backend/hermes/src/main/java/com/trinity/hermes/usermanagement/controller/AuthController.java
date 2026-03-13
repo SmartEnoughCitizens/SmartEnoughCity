@@ -66,8 +66,7 @@ public class AuthController {
       // Intentionally swallowed — always return the same message to prevent email enumeration
     }
     Map<String, String> response = new HashMap<>();
-    response.put(
-        "message", "If that email is registered, you will receive a reset link shortly.");
+    response.put("message", "If that email is registered, you will receive a reset link shortly.");
     return ResponseEntity.ok(response);
   }
 

@@ -38,7 +38,9 @@ export const authApi = {
   /**
    * Request a password reset email
    */
-  forgotPassword: async (request: ForgotPasswordRequest): Promise<MessageResponse> => {
+  forgotPassword: async (
+    request: ForgotPasswordRequest,
+  ): Promise<MessageResponse> => {
     const { data } = await axiosInstance.post<MessageResponse>(
       API_ENDPOINTS.AUTH_FORGOT_PASSWORD,
       request,
@@ -49,7 +51,9 @@ export const authApi = {
   /**
    * Reset password using a token from the reset email
    */
-  resetPassword: async (request: ResetPasswordRequest): Promise<MessageResponse> => {
+  resetPassword: async (
+    request: ResetPasswordRequest,
+  ): Promise<MessageResponse> => {
     const { data } = await axiosInstance.post<MessageResponse>(
       API_ENDPOINTS.AUTH_RESET_PASSWORD,
       request,

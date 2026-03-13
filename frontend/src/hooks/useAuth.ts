@@ -4,7 +4,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "@/api";
-import type { ForgotPasswordRequest, LoginRequest, ResetPasswordRequest } from "@/types";
+import type {
+  ForgotPasswordRequest,
+  LoginRequest,
+  ResetPasswordRequest,
+} from "@/types";
 
 export const AUTH_KEYS = {
   health: ["auth", "health"] as const,
@@ -53,7 +57,8 @@ export const useLogout = () => {
  */
 export const useForgotPassword = () => {
   return useMutation({
-    mutationFn: (request: ForgotPasswordRequest) => authApi.forgotPassword(request),
+    mutationFn: (request: ForgotPasswordRequest) =>
+      authApi.forgotPassword(request),
   });
 };
 
@@ -62,7 +67,8 @@ export const useForgotPassword = () => {
  */
 export const useResetPassword = () => {
   return useMutation({
-    mutationFn: (request: ResetPasswordRequest) => authApi.resetPassword(request),
+    mutationFn: (request: ResetPasswordRequest) =>
+      authApi.resetPassword(request),
   });
 };
 
