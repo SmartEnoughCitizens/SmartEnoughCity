@@ -16,14 +16,14 @@ export const DASHBOARD_KEYS = {
   cycleStationsLive: ["cycle", "stations", "live"] as const,
   cycleNetworkSummary: ["cycle", "network", "summary"] as const,
   cycleNetworkKpi: ["cycle", "network", "kpi"] as const,
-  cycleBusiestStations: (days?: number, limit?: number) =>
-    ["cycle", "rankings", "busiest", { days, limit }] as const,
-  cycleUnderusedStations: (days?: number, limit?: number) =>
-    ["cycle", "rankings", "underused", { days, limit }] as const,
-  cycleEmptyEvents: (days?: number, limit?: number) =>
-    ["cycle", "events", "empty", { days, limit }] as const,
-  cycleFullEvents: (days?: number, limit?: number) =>
-    ["cycle", "events", "full", { days, limit }] as const,
+  cycleBusiestStations: (limit?: number) =>
+    ["cycle", "rankings", "busiest", { limit }] as const,
+  cycleUnderusedStations: (limit?: number) =>
+    ["cycle", "rankings", "underused", { limit }] as const,
+  cycleRebalancing: (limit?: number) =>
+    ["cycle", "network", "rebalancing", { limit }] as const,
+  cycleODHeatmap: (limit?: number) =>
+    ["cycle", "od", "heatmap", { limit }] as const,
 };
 
 /**
@@ -98,7 +98,8 @@ export const useCycleStationsLive = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycleStationsLive,
     queryFn: () => dashboardApi.getCycleStationsLive(),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 };
 
@@ -106,7 +107,8 @@ export const useCycleNetworkSummary = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycleNetworkSummary,
     queryFn: () => dashboardApi.getCycleNetworkSummary(),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 };
 
@@ -115,37 +117,42 @@ export const useCycleNetworkKpi = () => {
     queryKey: DASHBOARD_KEYS.cycleNetworkKpi,
     queryFn: () => dashboardApi.getCycleNetworkKpi(),
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 };
 
-export const useCycleBusiestStations = (days = 7, limit = 10) => {
+export const useCycleBusiestStations = (limit = 10) => {
   return useQuery({
-    queryKey: DASHBOARD_KEYS.cycleBusiestStations(days, limit),
-    queryFn: () => dashboardApi.getCycleBusiestStations({ days, limit }),
+    queryKey: DASHBOARD_KEYS.cycleBusiestStations(limit),
+    queryFn: () => dashboardApi.getCycleBusiestStations({ limit }),
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 };
 
-export const useCycleUnderusedStations = (days = 7, limit = 10) => {
+export const useCycleUnderusedStations = (limit = 10) => {
   return useQuery({
-    queryKey: DASHBOARD_KEYS.cycleUnderusedStations(days, limit),
-    queryFn: () => dashboardApi.getCycleUnderusedStations({ days, limit }),
+    queryKey: DASHBOARD_KEYS.cycleUnderusedStations(limit),
+    queryFn: () => dashboardApi.getCycleUnderusedStations({ limit }),
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 };
 
-export const useCycleEmptyEvents = (days = 7, limit = 30) => {
+export const useCycleRebalancing = (limit = 30) => {
   return useQuery({
-    queryKey: DASHBOARD_KEYS.cycleEmptyEvents(days, limit),
-    queryFn: () => dashboardApi.getCycleEmptyEvents({ days, limit }),
+    queryKey: DASHBOARD_KEYS.cycleRebalancing(limit),
+    queryFn: () => dashboardApi.getCycleRebalancingSuggestions({ limit }),
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 };
 
-export const useCycleFullEvents = (days = 7, limit = 30) => {
+export const useCycleODHeatmap = (limit = 50) => {
   return useQuery({
-    queryKey: DASHBOARD_KEYS.cycleFullEvents(days, limit),
-    queryFn: () => dashboardApi.getCycleFullEvents({ days, limit }),
-    staleTime: 60_000,
+    queryKey: DASHBOARD_KEYS.cycleODHeatmap(limit),
+    queryFn: () => dashboardApi.getCycleODHeatmap({ limit }),
+    staleTime: 300_000,
+    refetchInterval: 300_000, // 5 min — historical data changes slowly
   });
 };

@@ -22,20 +22,23 @@ import {
   useCycleNetworkSummary,
   useCycleBusiestStations,
   useCycleUnderusedStations,
-  useCycleEmptyEvents,
-  useCycleFullEvents,
+  useCycleRebalancing,
+  useCycleODHeatmap,
 } from "@/hooks";
 import { NetworkSummaryChart } from "@/components/charts/NetworkSummaryChart";
 import { LiveCycleStationTable } from "@/components/tables/LiveCycleStationTable";
 import { CycleRankingTable } from "@/components/tables/CycleRankingTable";
-import { CycleEventTable } from "@/components/tables/CycleEventTable";
+import { RebalancingTable } from "@/components/tables/RebalancingTable";
+import { ODFlowTable, type IntensityFilter } from "@/components/tables/ODFlowTable";
 import { LiveCycleStationMap } from "@/components/map/LiveCycleStationMap";
+import { ODFlowMap } from "@/components/map/ODFlowMap";
 import { useAppSelector } from "@/store/hooks";
 
 export const CycleDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
-  const [rankingSubTab, setRankingSubTab] = useState(0); // 0=busiest, 1=underused
-  const [eventSubTab, setEventSubTab] = useState(0); // 0=empty, 1=full
+  const [rankingSubTab, setRankingSubTab] = useState(0);
+  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(null);
+  const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>("extreme");
   const [panelOpen, setPanelOpen] = useState(true);
   const theme = useAppSelector((state) => state.ui.theme);
 
@@ -43,18 +46,10 @@ export const CycleDashboard = () => {
   const { data: summary, isLoading: summaryLoading } = useCycleNetworkSummary();
   const { data: busiest, isLoading: busiestLoading } = useCycleBusiestStations();
   const { data: underused, isLoading: underusedLoading } = useCycleUnderusedStations();
-  const { data: emptyEvents, isLoading: emptyLoading } = useCycleEmptyEvents();
-  const { data: fullEvents, isLoading: fullLoading } = useCycleFullEvents();
+  const { data: rebalancing, isLoading: rebalancingLoading } = useCycleRebalancing();
+  const { data: odPairs, isLoading: odLoading } = useCycleODHeatmap(50);
 
-  const isLoading =
-    stationsLoading ||
-    summaryLoading ||
-    busiestLoading ||
-    underusedLoading ||
-    emptyLoading ||
-    fullLoading;
-
-  if (isLoading) {
+  if (stationsLoading) {
     return (
       <Box
         sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}
@@ -65,16 +60,40 @@ export const CycleDashboard = () => {
   }
 
   const stations = liveStations ?? [];
+  const allPairs = odPairs ?? [];
+
+  const maxTrips = Math.max(...allPairs.map((p) => p.estimatedTrips), 1);
+  const pairs = allPairs.filter((p) => {
+    if (intensityFilter === "all") return true;
+    const t = p.estimatedTrips / maxTrips;
+    if (intensityFilter === "extreme") return t >= 0.66;
+    if (intensityFilter === "medium")  return t >= 0.33 && t < 0.66;
+    if (intensityFilter === "low")     return t < 0.33;
+    return true;
+  });
+
+  const isODTab = tabValue === 3;
   const panelWidth = 400;
 
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
-      {/* Full-viewport map with status-coloured circle markers */}
-      <LiveCycleStationMap
-        stations={stations}
-        height="100%"
-        darkTiles={theme === "dark"}
-      />
+      {/* Map — switches between live view and OD flow view */}
+      {isODTab ? (
+        <ODFlowMap
+          stations={stations}
+          odPairs={pairs}
+          globalMaxTrips={maxTrips}
+          filterStationId={odFilterStationId}
+          height="100%"
+          darkTiles={theme === "dark"}
+        />
+      ) : (
+        <LiveCycleStationMap
+          stations={stations}
+          height="100%"
+          darkTiles={theme === "dark"}
+        />
+      )}
 
       {error && (
         <Alert
@@ -164,21 +183,25 @@ export const CycleDashboard = () => {
           {/* Main tabs */}
           <Tabs
             value={tabValue}
-            onChange={(_, v) => setTabValue(v)}
+            onChange={(_, v) => {
+              setTabValue(v);
+              // Clear OD filter when leaving OD tab
+              if (v !== 3) setOdFilterStationId(null);
+            }}
             variant="fullWidth"
             sx={{
               minHeight: 36,
-              px: 1,
               "& .MuiTab-root": {
                 minHeight: 36,
-                fontSize: "0.75rem",
+                fontSize: "0.7rem",
                 textTransform: "none",
               },
             }}
           >
             <Tab label={`Stations (${stations.length})`} />
             <Tab label="Rankings" />
-            <Tab label="Events" />
+            <Tab label={`Rebalancing (${rebalancing?.length ?? 0})`} />
+            <Tab label="OD Flow" />
           </Tabs>
 
           {/* Tab content */}
@@ -199,11 +222,7 @@ export const CycleDashboard = () => {
                   variant="fullWidth"
                   sx={{
                     minHeight: 32,
-                    "& .MuiTab-root": {
-                      minHeight: 32,
-                      fontSize: "0.7rem",
-                      textTransform: "none",
-                    },
+                    "& .MuiTab-root": { minHeight: 32, fontSize: "0.7rem", textTransform: "none" },
                   }}
                 >
                   <Tab label="Busiest" />
@@ -211,43 +230,40 @@ export const CycleDashboard = () => {
                 </Tabs>
                 <Box sx={{ px: 1, pt: 0.5 }}>
                   {rankingSubTab === 0 && (
-                    <CycleRankingTable stations={busiest ?? []} />
+                    busiestLoading
+                      ? <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress size={24} /></Box>
+                      : <CycleRankingTable stations={busiest ?? []} />
                   )}
                   {rankingSubTab === 1 && (
-                    <CycleRankingTable stations={underused ?? []} />
+                    underusedLoading
+                      ? <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress size={24} /></Box>
+                      : <CycleRankingTable stations={underused ?? []} />
                   )}
                 </Box>
               </Box>
             )}
 
-            {/* Tab 2: Events */}
+            {/* Tab 2: Rebalancing */}
             {tabValue === 2 && (
-              <Box>
-                <Tabs
-                  value={eventSubTab}
-                  onChange={(_, v) => setEventSubTab(v)}
-                  variant="fullWidth"
-                  sx={{
-                    minHeight: 32,
-                    "& .MuiTab-root": {
-                      minHeight: 32,
-                      fontSize: "0.7rem",
-                      textTransform: "none",
-                    },
-                  }}
-                >
-                  <Tab label={`Empty (${emptyEvents?.length ?? 0})`} />
-                  <Tab label={`Full (${fullEvents?.length ?? 0})`} />
-                </Tabs>
-                <Box sx={{ px: 1, pt: 0.5 }}>
-                  {eventSubTab === 0 && (
-                    <CycleEventTable events={emptyEvents ?? []} />
-                  )}
-                  {eventSubTab === 1 && (
-                    <CycleEventTable events={fullEvents ?? []} />
-                  )}
-                </Box>
+              <Box sx={{ px: 1, pt: 0.5 }}>
+                {rebalancingLoading
+                  ? <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress size={24} /></Box>
+                  : <RebalancingTable suggestions={rebalancing ?? []} />}
               </Box>
+            )}
+
+            {/* Tab 3: OD Flow */}
+            {tabValue === 3 && (
+              odLoading
+                ? <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress size={24} /></Box>
+                : <ODFlowTable
+                    odPairs={pairs}
+                    allPairs={allPairs}
+                    filterStationId={odFilterStationId}
+                    intensityFilter={intensityFilter}
+                    onFilterChange={setOdFilterStationId}
+                    onIntensityFilterChange={setIntensityFilter}
+                  />
             )}
           </Box>
         </Paper>

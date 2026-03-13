@@ -39,8 +39,8 @@ export const API_ENDPOINTS = {
   CYCLE_NETWORK_KPI: "/api/v1/cycle/network/kpi",
   CYCLE_RANKINGS_BUSIEST: "/api/v1/cycle/rankings/busiest",
   CYCLE_RANKINGS_UNDERUSED: "/api/v1/cycle/rankings/underused",
-  CYCLE_EVENTS_EMPTY: "/api/v1/cycle/events/empty",
-  CYCLE_EVENTS_FULL: "/api/v1/cycle/events/full",
+  CYCLE_NETWORK_REBALANCING: "/api/v1/cycle/network/rebalancing",
+  CYCLE_OD_HEATMAP: "/api/v1/cycle/od/heatmap",
 
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
