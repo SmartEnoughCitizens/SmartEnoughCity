@@ -75,7 +75,7 @@ public class CycleMetricsService {
     dto.setEmptyStations(emptyStations);
     dto.setFullStations(fullStations);
     dto.setAvgNetworkFullnessPct(avgFullness);
-    dto.setRebalancingNeedCount(emptyStations + fullStations);
+    dto.setRebalancingNeedCount(emptyStations);
     dto.setDataAsOf(latestTimestamp);
     return dto;
   }
@@ -224,8 +224,7 @@ public class CycleMetricsService {
     int rebalancingNeed = 0;
     if (summaryRow != null) {
       int emptyStations = toInt(summaryRow[5]);
-      int fullStations = toInt(summaryRow[6]);
-      rebalancingNeed = emptyStations + fullStations;
+      rebalancingNeed = emptyStations;
     }
 
     NetworkKpiDTO dto = new NetworkKpiDTO();
