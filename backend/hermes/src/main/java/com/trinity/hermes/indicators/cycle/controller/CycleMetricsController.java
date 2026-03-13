@@ -3,6 +3,7 @@ package com.trinity.hermes.indicators.cycle.controller;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
+import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
@@ -189,34 +190,48 @@ public class CycleMetricsController {
   // Station Rankings
   // -------------------------------------------------------------------------
 
-  /** Top N busiest stations by avg usage rate. days: lookback, limit: max results. */
+  /** Top N busiest stations by avg usage rate today. limit: max results. */
   @GetMapping("/rankings/busiest")
   public ResponseEntity<List<StationRankingDTO>> getBusiestStations(
-      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "10") int limit) {
-    log.info(
-        "GET /api/v1/cycle/rankings/busiest days={} limit={}",
-        LogSanitizer.sanitizeLog(days),
-        LogSanitizer.sanitizeLog(limit));
+      @RequestParam(defaultValue = "10") int limit) {
+    log.info("GET /api/v1/cycle/rankings/busiest limit={}", LogSanitizer.sanitizeLog(limit));
     try {
-      return ResponseEntity.ok(cycleMetricsService.getBusiestStations(days, limit));
+      return ResponseEntity.ok(cycleMetricsService.getBusiestStations(limit));
     } catch (Exception e) {
       log.error("Error fetching busiest stations: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
-  /** Top N least used stations by avg usage rate. days: lookback, limit: max results. */
+  /** Top N least used stations by avg usage rate today. limit: max results. */
   @GetMapping("/rankings/underused")
   public ResponseEntity<List<StationRankingDTO>> getLeastUsedStations(
-      @RequestParam(defaultValue = "7") int days, @RequestParam(defaultValue = "10") int limit) {
-    log.info(
-        "GET /api/v1/cycle/rankings/underused days={} limit={}",
-        LogSanitizer.sanitizeLog(days),
-        LogSanitizer.sanitizeLog(limit));
+      @RequestParam(defaultValue = "10") int limit) {
+    log.info("GET /api/v1/cycle/rankings/underused limit={}", LogSanitizer.sanitizeLog(limit));
     try {
-      return ResponseEntity.ok(cycleMetricsService.getLeastUsedStations(days, limit));
+      return ResponseEntity.ok(cycleMetricsService.getLeastUsedStations(limit));
     } catch (Exception e) {
       log.error("Error fetching least used stations: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Rebalancing Suggestions
+  // -------------------------------------------------------------------------
+
+  /**
+   * Pairs full stations (no available docks) with their nearest empty station (no available bikes)
+   * from the latest snapshot. limit: max suggestions returned (default 30).
+   */
+  @GetMapping("/network/rebalancing")
+  public ResponseEntity<List<RebalanceSuggestionDTO>> getRebalancingSuggestions(
+      @RequestParam(defaultValue = "30") int limit) {
+    log.info("GET /api/v1/cycle/network/rebalancing limit={}", LogSanitizer.sanitizeLog(limit));
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getRebalancingSuggestions(limit));
+    } catch (Exception e) {
+      log.error("Error fetching rebalancing suggestions: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }

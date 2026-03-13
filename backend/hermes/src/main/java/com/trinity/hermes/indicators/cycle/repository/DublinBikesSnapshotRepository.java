@@ -4,6 +4,7 @@ import com.trinity.hermes.indicators.cycle.entity.DublinBikesSnapshot;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -61,21 +62,21 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               ORDER BY s.station_id, s.timestamp DESC
           )
           SELECT
-              COUNT(*)                                                          AS total_stations,
-              SUM(l.available_bikes)                                            AS total_bikes,
-              SUM(l.available_docks)                                            AS total_docks,
-              COALESCE(SUM(l.disabled_bikes), 0)                               AS disabled_bikes,
-              COALESCE(SUM(l.disabled_docks), 0)                               AS disabled_docks,
-              COUNT(CASE WHEN l.available_bikes = 0 AND l.is_installed THEN 1 END) AS empty_stations,
-              COUNT(CASE WHEN l.available_docks = 0 AND l.is_installed THEN 1 END) AS full_stations,
-              AVG((st.capacity - l.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_fullness_pct,
-              MAX(l.timestamp)                                                  AS latest_timestamp
+              COUNT(*)                                                                     AS total_stations,
+              COALESCE(SUM(l.available_bikes), 0)                                          AS total_bikes,
+              COALESCE(SUM(l.available_docks), 0)                                          AS total_docks,
+              COALESCE(SUM(l.disabled_bikes), 0)                                           AS disabled_bikes,
+              COALESCE(SUM(l.disabled_docks), 0)                                           AS disabled_docks,
+              COUNT(CASE WHEN l.available_bikes = 0 AND l.is_installed THEN 1 END)         AS empty_stations,
+              COUNT(CASE WHEN l.available_docks = 0 AND l.is_installed THEN 1 END)         AS full_stations,
+              COALESCE(AVG((st.capacity - l.available_docks)::float / NULLIF(st.capacity, 0) * 100), 0) AS avg_fullness_pct,
+              MAX(l.timestamp)                                                              AS latest_timestamp
           FROM latest l
           JOIN external_data.dublin_bikes_stations st ON l.station_id = st.station_id
           WHERE l.is_installed = true
           """,
       nativeQuery = true)
-  Object[] findNetworkSummary();
+  List<Object[]> findNetworkSummary();
 
   /**
    * Region-level aggregations from latest snapshots. Returns Object[] rows with: region_id,
@@ -133,5 +134,61 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
           SELECT AVG(deviation) AS imbalance_score FROM fullness
           """,
       nativeQuery = true)
-  Object[] findNetworkImbalanceScore();
+  List<Object[]> findNetworkImbalanceScore();
+
+  // -------------------------------------------------------------------------
+  // Rebalancing suggestions
+  // -------------------------------------------------------------------------
+
+  /**
+   * Pairs each empty station (available_bikes = 0) with its nearest surplus station
+   * (available_bikes > 0) from the latest 10-minute snapshot window. One row per empty station.
+   * Returns Object[] rows: source_station_id, source_name, source_lat, source_lon, source_bikes,
+   * target_station_id, target_name, target_lat, target_lon, target_capacity, distance_km
+   */
+  @Query(
+      value =
+          """
+          WITH latest AS (
+              SELECT DISTINCT ON (s.station_id)
+                  s.station_id, s.available_bikes, s.available_docks, s.is_installed
+              FROM external_data.dublin_bikes_station_snapshots s
+              WHERE s.timestamp >= NOW() - INTERVAL '10 minutes'
+              ORDER BY s.station_id, s.timestamp DESC
+          ),
+          surplus_stations AS (
+              SELECT l.station_id, l.available_bikes, l.available_docks,
+                     st.name, st.latitude, st.longitude
+              FROM latest l
+              JOIN external_data.dublin_bikes_stations st ON l.station_id = st.station_id
+              WHERE l.available_bikes > 10 AND l.is_installed = true
+          ),
+          empty_stations AS (
+              SELECT l.station_id, l.available_bikes, l.available_docks,
+                     st.name, st.latitude, st.longitude, st.capacity
+              FROM latest l
+              JOIN external_data.dublin_bikes_stations st ON l.station_id = st.station_id
+              WHERE l.available_bikes = 0 AND l.is_installed = true
+          )
+          SELECT DISTINCT ON (e.station_id)
+              s.station_id                                                           AS source_station_id,
+              s.name                                                                 AS source_name,
+              s.latitude                                                             AS source_lat,
+              s.longitude                                                            AS source_lon,
+              s.available_bikes                                                      AS source_bikes,
+              e.station_id                                                           AS target_station_id,
+              e.name                                                                 AS target_name,
+              e.latitude                                                             AS target_lat,
+              e.longitude                                                            AS target_lon,
+              e.capacity                                                             AS target_capacity,
+              SQRT(POWER((s.latitude::float - e.latitude::float), 2)
+                 + POWER((s.longitude::float - e.longitude::float), 2)) * 111.0     AS distance_km
+          FROM empty_stations e
+          CROSS JOIN surplus_stations s
+          WHERE e.station_id != s.station_id
+          ORDER BY e.station_id, distance_km ASC
+          LIMIT :limitVal
+          """,
+      nativeQuery = true)
+  List<Object[]> findRebalancingSuggestions(@Param("limitVal") int limit);
 }
