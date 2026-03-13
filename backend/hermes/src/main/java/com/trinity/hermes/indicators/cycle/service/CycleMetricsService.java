@@ -3,6 +3,7 @@ package com.trinity.hermes.indicators.cycle.service;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
+import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
@@ -15,8 +16,6 @@ import com.trinity.hermes.indicators.cycle.repository.DublinBikesStationReposito
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.YearMonth;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -51,19 +50,19 @@ public class CycleMetricsService {
   @Transactional(readOnly = true)
   public NetworkSummaryDTO getNetworkSummary() {
     log.debug("Fetching network summary");
-    Object[] row = snapshotRepository.findNetworkSummary();
+    Object[] row = firstRow(snapshotRepository.findNetworkSummary());
     if (row == null) {
       return new NetworkSummaryDTO();
     }
 
-    int totalStations = toInt(row[0]);
-    int totalBikes = toInt(row[1]);
-    int totalDocks = toInt(row[2]);
-    int disabledBikes = toInt(row[3]);
-    int disabledDocks = toInt(row[4]);
-    int emptyStations = toInt(row[5]);
-    int fullStations = toInt(row[6]);
-    double avgFullness = toDouble(row[7]);
+    int totalStations = toIntOrDefault(row[0], 0);
+    int totalBikes = toIntOrDefault(row[1], 0);
+    int totalDocks = toIntOrDefault(row[2], 0);
+    int disabledBikes = toIntOrDefault(row[3], 0);
+    int disabledDocks = toIntOrDefault(row[4], 0);
+    int emptyStations = toIntOrDefault(row[5], 0);
+    int fullStations = toIntOrDefault(row[6], 0);
+    double avgFullness = toDoubleOrDefault(row[7], 0.0);
     Instant latestTimestamp = toInstant(row[8]);
 
     NetworkSummaryDTO dto = new NetworkSummaryDTO();
@@ -180,16 +179,14 @@ public class CycleMetricsService {
   // -------------------------------------------------------------------------
 
   @Transactional(readOnly = true)
-  public List<StationRankingDTO> getBusiestStations(int days, int limit) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findBusiestStations(since, limit);
+  public List<StationRankingDTO> getBusiestStations(int limit) {
+    List<Object[]> rows = historyRepository.findBusiestStations(limit);
     return rows.stream().map(this::mapToRankingDTO).collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
-  public List<StationRankingDTO> getLeastUsedStations(int days, int limit) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findLeastUsedStations(since, limit);
+  public List<StationRankingDTO> getLeastUsedStations(int limit) {
+    List<Object[]> rows = historyRepository.findLeastUsedStations(limit);
     return rows.stream().map(this::mapToRankingDTO).collect(Collectors.toList());
   }
 
@@ -201,14 +198,14 @@ public class CycleMetricsService {
   public NetworkKpiDTO getNetworkKpi() {
     log.debug("Computing network KPIs");
 
-    Object[] imbalanceRow = snapshotRepository.findNetworkImbalanceScore();
+    Object[] imbalanceRow = firstRow(snapshotRepository.findNetworkImbalanceScore());
     double imbalanceScore = imbalanceRow != null ? toDouble(imbalanceRow[0]) : 0.0;
 
-    Object[] turnoverRow = historyRepository.findAvgHourlyTurnoverRate();
+    Object[] turnoverRow = firstRow(historyRepository.findAvgHourlyTurnoverRate());
     double turnoverRate = turnoverRow != null ? toDouble(turnoverRow[0]) : 0.0;
 
     Instant dayStart = Instant.now().truncatedTo(ChronoUnit.DAYS);
-    Object[] tripsRow = historyRepository.findTotalTripEstimate(dayStart, Instant.now());
+    Object[] tripsRow = firstRow(historyRepository.findTotalTripEstimate(dayStart, Instant.now()));
     long dailyTrips = tripsRow != null ? toLong(tripsRow[0]) : 0L;
 
     Instant since90 = Instant.now().minus(90, ChronoUnit.DAYS);
@@ -223,7 +220,7 @@ public class CycleMetricsService {
     Map<Integer, Double> hourlyProfile = getHourlyUsageProfile(30);
     List<StationTimeSeriesDTO> dailyTrend = getNetworkDailyTrend(30);
 
-    Object[] summaryRow = snapshotRepository.findNetworkSummary();
+    Object[] summaryRow = firstRow(snapshotRepository.findNetworkSummary());
     int rebalancingNeed = 0;
     if (summaryRow != null) {
       int emptyStations = toInt(summaryRow[5]);
@@ -244,15 +241,25 @@ public class CycleMetricsService {
   }
 
   // -------------------------------------------------------------------------
+  // Rebalancing Suggestions
+  // -------------------------------------------------------------------------
+
+  @Transactional(readOnly = true)
+  public List<RebalanceSuggestionDTO> getRebalancingSuggestions(int limit) {
+    log.debug("Fetching rebalancing suggestions, limit {}", limit);
+    List<Object[]> rows = snapshotRepository.findRebalancingSuggestions(limit);
+    return rows.stream().map(this::mapToRebalanceSuggestionDTO).collect(Collectors.toList());
+  }
+
+  // -------------------------------------------------------------------------
   // Origin-Destination Heatmap
   // -------------------------------------------------------------------------
 
   @Transactional(readOnly = true)
   public List<StationODPairDTO> getODHeatmap(int limit) {
-    YearMonth lastMonth = YearMonth.now(ZoneOffset.UTC).minusMonths(1);
-    Instant from = lastMonth.atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-    Instant to = lastMonth.atEndOfMonth().atTime(23, 59, 59).atZone(ZoneOffset.UTC).toInstant();
-    log.debug("Computing OD heatmap for {} ({} to {}), top {} pairs", lastMonth, from, to, limit);
+    Instant to = Instant.now();
+    Instant from = to.minus(30, ChronoUnit.DAYS);
+    log.debug("Computing OD heatmap for last 30 days ({} to {}), top {} pairs", from, to, limit);
     List<Object[]> rows = historyRepository.findODPairs(from, to, limit);
     return rows.stream().map(this::mapToODPairDTO).collect(Collectors.toList());
   }
@@ -333,18 +340,11 @@ public class CycleMetricsService {
   }
 
   private StationRankingDTO mapToRankingDTO(Object[] row) {
-    // 0:station_id, 1:name, 2:region_id, 3:capacity, 4:avg_usage_rate,
-    // 5:avg_available_bikes, 6:avg_available_docks, 7:empty_event_count, 8:full_event_count
+    // 0:station_id, 1:name, 2:avg_usage_rate
     StationRankingDTO dto = new StationRankingDTO();
     dto.setStationId(toInt(row[0]));
     dto.setName((String) row[1]);
-    dto.setRegionId((String) row[2]);
-    dto.setCapacity(toInt(row[3]));
-    dto.setAvgUsageRate(toDouble(row[4]));
-    dto.setAvgAvailableBikes(toDouble(row[5]));
-    dto.setAvgAvailableDocks(toDouble(row[6]));
-    dto.setEmptyEventCount(toLong(row[7]));
-    dto.setFullEventCount(toLong(row[8]));
+    dto.setAvgUsageRate(toDouble(row[2]));
     return dto;
   }
 
@@ -396,5 +396,39 @@ public class CycleMetricsService {
     if (value instanceof Timestamp ts) return ts.toInstant();
     if (value instanceof java.util.Date d) return d.toInstant();
     return Instant.parse(value.toString());
+  }
+
+  private RebalanceSuggestionDTO mapToRebalanceSuggestionDTO(Object[] row) {
+    // 0:source_station_id, 1:source_name, 2:source_lat, 3:source_lon, 4:source_bikes,
+    // 5:target_station_id, 6:target_name, 7:target_lat, 8:target_lon, 9:target_capacity,
+    // 10:distance_km
+    RebalanceSuggestionDTO dto = new RebalanceSuggestionDTO();
+    dto.setSourceStationId(toInt(row[0]));
+    dto.setSourceName((String) row[1]);
+    dto.setSourceLat(row[2] != null ? new BigDecimal(row[2].toString()) : null);
+    dto.setSourceLon(row[3] != null ? new BigDecimal(row[3].toString()) : null);
+    dto.setSourceBikes(toInt(row[4]));
+    dto.setTargetStationId(toInt(row[5]));
+    dto.setTargetName((String) row[6]);
+    dto.setTargetLat(row[7] != null ? new BigDecimal(row[7].toString()) : null);
+    dto.setTargetLon(row[8] != null ? new BigDecimal(row[8].toString()) : null);
+    dto.setTargetCapacity(toInt(row[9]));
+    dto.setDistanceKm(toDouble(row[10]));
+    return dto;
+  }
+
+  private int toIntOrDefault(Object value, int defaultValue) {
+    Integer result = toInt(value);
+    return result != null ? result : defaultValue;
+  }
+
+  private double toDoubleOrDefault(Object value, double defaultValue) {
+    Double result = toDouble(value);
+    return result != null ? result : defaultValue;
+  }
+
+  /** Returns the first row of a single-row native query result, or null if the list is empty. */
+  private Object[] firstRow(List<Object[]> rows) {
+    return (rows == null || rows.isEmpty()) ? null : rows.get(0);
   }
 }
