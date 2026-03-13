@@ -12,8 +12,9 @@ import type {
   StationLiveDTO,
   NetworkSummaryDTO,
   NetworkKpiDTO,
+  RebalanceSuggestionDTO,
   StationRankingDTO,
-  StationEventDTO,
+  StationODPairDTO,
 } from "@/types";
 
 export const dashboardApi = {
@@ -108,7 +109,6 @@ export const dashboardApi = {
   },
 
   getCycleBusiestStations: async (params?: {
-    days?: number;
     limit?: number;
   }): Promise<StationRankingDTO[]> => {
     const { data } = await axiosInstance.get<StationRankingDTO[]>(
@@ -119,7 +119,6 @@ export const dashboardApi = {
   },
 
   getCycleUnderusedStations: async (params?: {
-    days?: number;
     limit?: number;
   }): Promise<StationRankingDTO[]> => {
     const { data } = await axiosInstance.get<StationRankingDTO[]>(
@@ -129,23 +128,21 @@ export const dashboardApi = {
     return data;
   },
 
-  getCycleEmptyEvents: async (params?: {
-    days?: number;
+  getCycleRebalancingSuggestions: async (params?: {
     limit?: number;
-  }): Promise<StationEventDTO[]> => {
-    const { data } = await axiosInstance.get<StationEventDTO[]>(
-      API_ENDPOINTS.CYCLE_EVENTS_EMPTY,
+  }): Promise<RebalanceSuggestionDTO[]> => {
+    const { data } = await axiosInstance.get<RebalanceSuggestionDTO[]>(
+      API_ENDPOINTS.CYCLE_NETWORK_REBALANCING,
       { params },
     );
     return data;
   },
 
-  getCycleFullEvents: async (params?: {
-    days?: number;
+  getCycleODHeatmap: async (params?: {
     limit?: number;
-  }): Promise<StationEventDTO[]> => {
-    const { data } = await axiosInstance.get<StationEventDTO[]>(
-      API_ENDPOINTS.CYCLE_EVENTS_FULL,
+  }): Promise<StationODPairDTO[]> => {
+    const { data } = await axiosInstance.get<StationODPairDTO[]>(
+      API_ENDPOINTS.CYCLE_OD_HEATMAP,
       { params },
     );
     return data;

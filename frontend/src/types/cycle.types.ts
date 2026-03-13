@@ -59,7 +59,10 @@ export interface StationLiveDTO {
   isReturning: boolean;
   lastReported: string;
   snapshotTimestamp: string;
-  fullnessPct: number;
+  /** % of capacity that has bikes available (LOW = RED, station needs restocking) */
+  bikeAvailabilityPct: number;
+  /** % of capacity that has empty docks available (LOW = station is full, can't return) */
+  dockAvailabilityPct: number;
   statusColor: "RED" | "YELLOW" | "GREEN";
   isEmpty: boolean;
   isFull: boolean;
@@ -116,4 +119,33 @@ export interface NetworkKpiDTO {
   weekendAvgUsageRate: number;
   hourlyUsageProfile: Record<number, number>;
   dailyTrend: StationTimeSeriesDTO[];
+}
+
+/** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
+export interface RebalanceSuggestionDTO {
+  sourceStationId: number;
+  sourceName: string;
+  sourceLat: number;
+  sourceLon: number;
+  /** Bikes currently at the full station */
+  sourceBikes: number;
+  targetStationId: number;
+  targetName: string;
+  targetLat: number;
+  targetLon: number;
+  targetCapacity: number;
+  /** Straight-line distance in kilometres */
+  distanceKm: number;
+}
+
+export interface StationODPairDTO {
+  originStationId: number;
+  originName: string;
+  originLat: number;
+  originLon: number;
+  destStationId: number;
+  destName: string;
+  destLat: number;
+  destLon: number;
+  estimatedTrips: number;
 }
