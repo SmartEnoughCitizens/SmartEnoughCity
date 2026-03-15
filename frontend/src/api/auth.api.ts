@@ -4,7 +4,14 @@
 
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
-import type { LoginRequest, LoginResponse, HealthResponse } from "@/types";
+import type {
+  ForgotPasswordRequest,
+  HealthResponse,
+  LoginRequest,
+  LoginResponse,
+  MessageResponse,
+  ResetPasswordRequest,
+} from "@/types";
 
 export const authApi = {
   /**
@@ -24,6 +31,32 @@ export const authApi = {
   checkHealth: async (): Promise<HealthResponse> => {
     const { data } = await axiosInstance.get<HealthResponse>(
       API_ENDPOINTS.AUTH_HEALTH,
+    );
+    return data;
+  },
+
+  /**
+   * Request a password reset email
+   */
+  forgotPassword: async (
+    request: ForgotPasswordRequest,
+  ): Promise<MessageResponse> => {
+    const { data } = await axiosInstance.post<MessageResponse>(
+      API_ENDPOINTS.AUTH_FORGOT_PASSWORD,
+      request,
+    );
+    return data;
+  },
+
+  /**
+   * Reset password using a token from the reset email
+   */
+  resetPassword: async (
+    request: ResetPasswordRequest,
+  ): Promise<MessageResponse> => {
+    const { data } = await axiosInstance.post<MessageResponse>(
+      API_ENDPOINTS.AUTH_RESET_PASSWORD,
+      request,
     );
     return data;
   },

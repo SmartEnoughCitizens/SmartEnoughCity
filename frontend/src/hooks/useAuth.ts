@@ -4,7 +4,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "@/api";
-import type { LoginRequest } from "@/types";
+import type {
+  ForgotPasswordRequest,
+  LoginRequest,
+  ResetPasswordRequest,
+} from "@/types";
 
 export const AUTH_KEYS = {
   health: ["auth", "health"] as const,
@@ -45,6 +49,26 @@ export const useLogout = () => {
       // Clear all queries on logout
       queryClient.clear();
     },
+  });
+};
+
+/**
+ * Forgot password mutation — sends a reset link to the given email
+ */
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: (request: ForgotPasswordRequest) =>
+      authApi.forgotPassword(request),
+  });
+};
+
+/**
+ * Reset password mutation — validates the token and sets a new password
+ */
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: (request: ResetPasswordRequest) =>
+      authApi.resetPassword(request),
   });
 };
 
