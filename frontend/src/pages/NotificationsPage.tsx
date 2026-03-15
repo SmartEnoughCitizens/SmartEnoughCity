@@ -1,64 +1,39 @@
 /**
- * Notifications page — streamlined, compact list
+ * Notifications page — card-based list with detail dialog
  *
  * Write-permission users (Admin roles) can dismiss individual notifications.
- * Read-only users (Provider roles) can view but not remove notifications.
+ * Read-only users (Provider roles) can view and mark as read, but not remove notifications.
  */
 
 import {
   Box,
-  Paper,
-  Typography,
-  List,
-  ListItem,
-  ListItemText,
+  Button,
   Chip,
   CircularProgress,
-  Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
+  Paper,
+  Stack,
   Tooltip,
+  Typography,
 } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { useEffect } from "react";
-import { useUserNotifications, useDismissNotification } from "@/hooks";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import { useEffect, useState } from "react";
+import {
+  useUserNotifications,
+  useSetReadState,
+  useMarkAllAsRead,
+  useDismissNotification,
+} from "@/hooks";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setNotificationBadgeCount } from "@/store/slices/uiSlice";
-import { Priority, NotificationType } from "@/types";
+import { type Notification } from "@/types";
 import { usePermissions } from "@/hooks/usePermissions";
-
-const getPriorityColor = (priority: Priority) => {
-  switch (priority) {
-    case Priority.URGENT: {
-      return "error";
-    }
-    case Priority.HIGH: {
-      return "warning";
-    }
-    case Priority.MEDIUM: {
-      return "info";
-    }
-    case Priority.LOW: {
-      return "default";
-    }
-  }
-};
-
-const getTypeColor = (type: NotificationType) => {
-  switch (type) {
-    case NotificationType.ALERT: {
-      return "error";
-    }
-    case NotificationType.ROUTE_RECOMMENDATION: {
-      return "primary";
-    }
-    case NotificationType.UPDATE: {
-      return "info";
-    }
-    case NotificationType.SYSTEM: {
-      return "default";
-    }
-  }
-};
 
 export const NotificationsPage = () => {
   const { username } = useAppSelector((state) => state.auth);
@@ -67,13 +42,19 @@ export const NotificationsPage = () => {
   // RBAC: only Admin-level roles can dismiss notifications
   const { canWrite } = usePermissions();
 
+  const [selected, setSelected] = useState<Notification | null>(null);
+
   // Clear badge when user views notifications
   useEffect(() => {
     dispatch(setNotificationBadgeCount(0));
   }, [dispatch]);
 
   const { data, isLoading } = useUserNotifications(username || "", !!username);
+  const setReadState = useSetReadState(username || "");
+  const markAllAsRead = useMarkAllAsRead(username || "");
   const dismissMutation = useDismissNotification(username || "");
+
+  const hasUnread = data?.notifications?.some((n) => !n.read) ?? false;
 
   if (isLoading) {
     return (
@@ -105,126 +86,190 @@ export const NotificationsPage = () => {
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
+          justifyContent: "space-between",
           mb: 2,
         }}
       >
-        <Typography variant="h4">Notifications</Typography>
-        {/* Subtle read-only indicator for Provider roles */}
-        {!canWrite && (
-          <Chip
-            label="Read only"
-            size="small"
-            variant="outlined"
-            color="default"
-            sx={{ fontSize: "0.7rem" }}
-          />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+            Notifications
+          </Typography>
+          {/* Subtle read-only indicator for Provider roles */}
+          {!canWrite && (
+            <Chip
+              label="Read only"
+              size="small"
+              variant="outlined"
+              color="default"
+              sx={{ fontSize: "0.7rem" }}
+            />
+          )}
+        </Box>
+        {hasUnread && (
+          <Button size="small" onClick={markAllAsRead}>
+            Mark all as read
+          </Button>
         )}
       </Box>
 
-      <Paper
-        elevation={0}
-        sx={{ borderRadius: 3, maxWidth: 720, overflow: "hidden" }}
-      >
-        {!data?.notifications || data.notifications.length === 0 ? (
-          <Box sx={{ p: 4, textAlign: "center" }}>
-            <Typography variant="body1" color="text.secondary">
-              No notifications available
-            </Typography>
-          </Box>
-        ) : (
-          <List disablePadding>
-            {data.notifications.map((notification, index) => (
-              <Box key={notification.id}>
-                <ListItem
-                  sx={{
-                    py: 1.5,
-                    px: 2,
-                    bgcolor: notification.read ? "transparent" : "action.hover",
-                  }}
-                  secondaryAction={
-                    canWrite ? (
-                      <Tooltip title="Dismiss notification" arrow>
-                        <span>
-                          <IconButton
-                            edge="end"
-                            size="small"
-                            color="default"
-                            disabled={dismissMutation.isPending}
-                            onClick={() =>
-                              dismissMutation.mutate(notification.id)
-                            }
-                            sx={{ opacity: 0.5, "&:hover": { opacity: 1 } }}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title="Read-only access — cannot dismiss" arrow>
-                        <span>
-                          <IconButton edge="end" size="small" disabled>
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    )
-                  }
+      {!data?.notifications || data.notifications.length === 0 ? (
+        <Paper
+          elevation={1}
+          sx={{ borderRadius: 3, p: 4, maxWidth: 720, textAlign: "center" }}
+        >
+          <Typography variant="body1" color="text.secondary">
+            No notifications available
+          </Typography>
+        </Paper>
+      ) : (
+        <Stack spacing={1.5} sx={{ maxWidth: 720 }}>
+          {data.notifications.map((notification) => {
+            const subject =
+              (notification.metadata?.subject as string | undefined) ||
+              notification.message.split(": ")[0];
+            return (
+              <Paper
+                key={notification.id}
+                elevation={1}
+                onClick={() => setSelected(notification)}
+                sx={{
+                  borderRadius: 2,
+                  px: 2.5,
+                  py: 2,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  opacity: notification.read ? 0.45 : 1,
+                  bgcolor: notification.read
+                    ? "background.paper"
+                    : (t) =>
+                        t.palette.mode === "dark"
+                          ? "rgba(25, 118, 210, 0.12)"
+                          : "#e8f1fd",
+                  transition: "opacity 0.2s, background-color 0.2s",
+                  "&:hover": {
+                    opacity: notification.read ? 0.65 : 0.9,
+                  },
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, mb: 0.25 }}
+                    noWrap
+                  >
+                    {subject}
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled">
+                    {new Date(notification.timestamp).toLocaleString()}
+                  </Typography>
+                </Box>
+
+                {/* Read/unread toggle — available to all roles */}
+                <Tooltip
+                  title={notification.read ? "Mark as unread" : "Mark as read"}
+                  placement="left"
+                  arrow
                 >
-                  <ListItemText
-                    primary={
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 0.75,
-                          mb: 0.75,
-                          alignItems: "center",
-                          flexWrap: "wrap",
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReadState(notification.id, !notification.read);
+                    }}
+                    color={notification.read ? "default" : "primary"}
+                  >
+                    {notification.read ? (
+                      <RadioButtonUncheckedIcon fontSize="small" />
+                    ) : (
+                      <CheckCircleOutlineIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+
+                {/* Dismiss button — write-permission only */}
+                {canWrite && (
+                  <Tooltip title="Dismiss notification" placement="left" arrow>
+                    <span>
+                      <IconButton
+                        size="small"
+                        color="default"
+                        disabled={dismissMutation.isPending}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dismissMutation.mutate(notification.id);
                         }}
+                        sx={{ opacity: 0.5, "&:hover": { opacity: 1 } }}
                       >
-                        <Chip
-                          label={notification.type}
-                          size="small"
-                          color={getTypeColor(notification.type)}
-                        />
-                        <Chip
-                          label={notification.priority}
-                          size="small"
-                          color={getPriorityColor(notification.priority)}
-                        />
-                        {!notification.read && (
-                          <Chip
-                            label="NEW"
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
-                    }
-                    secondary={
-                      <>
-                        <Typography
-                          variant="body2"
-                          component="span"
-                          display="block"
-                          sx={{ mb: 0.5 }}
-                        >
-                          {notification.message}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(notification.timestamp).toLocaleString()}
-                        </Typography>
-                      </>
-                    }
-                  />
-                </ListItem>
-                {index < data.notifications.length - 1 && <Divider />}
-              </Box>
-            ))}
-          </List>
-        )}
-      </Paper>
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
+              </Paper>
+            );
+          })}
+        </Stack>
+      )}
+
+      {/* Notification detail dialog */}
+      {selected &&
+        (() => {
+          const subject =
+            (selected.metadata?.subject as string | undefined) ||
+            selected.message.split(": ")[0];
+          const body =
+            (selected.metadata?.body as string | undefined) ||
+            selected.message.split(": ").slice(1).join(": ");
+          return (
+            <Dialog
+              open
+              onClose={() => setSelected(null)}
+              maxWidth="sm"
+              fullWidth
+            >
+              <DialogTitle>{subject}</DialogTitle>
+              <DialogContent sx={{ pt: 1 }}>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {body}
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  {new Date(selected.timestamp).toLocaleString()}
+                </Typography>
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 2 }}>
+                {!selected.read && (
+                  <Button
+                    onClick={() => {
+                      setReadState(selected.id, true);
+                      setSelected((prev) =>
+                        prev ? { ...prev, read: true } : prev,
+                      );
+                    }}
+                  >
+                    Mark as read
+                  </Button>
+                )}
+                {canWrite && (
+                  <Button
+                    color="error"
+                    disabled={dismissMutation.isPending}
+                    onClick={() => {
+                      dismissMutation.mutate(selected.id);
+                      setSelected(null);
+                    }}
+                  >
+                    Dismiss
+                  </Button>
+                )}
+                <Button variant="contained" onClick={() => setSelected(null)}>
+                  Close
+                </Button>
+              </DialogActions>
+            </Dialog>
+          );
+        })()}
     </Box>
   );
 };

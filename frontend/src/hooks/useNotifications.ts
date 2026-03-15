@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { notificationApi } from "@/api";
 import sseService from "@/services/sseService";
 import {
@@ -99,6 +99,43 @@ export const useUserNotifications = (
   }, [userId, enabled, queryClient]);
 
   return query;
+};
+
+export const useMarkAllAsRead = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useCallback(() => {
+    queryClient.setQueryData<NotificationResponse>(
+      NOTIFICATION_KEYS.user(userId),
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          notifications: old.notifications.map((n) => ({ ...n, read: true })),
+        };
+      },
+    );
+  }, [userId, queryClient]);
+};
+
+export const useSetReadState = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (notificationId: string, read: boolean) => {
+      queryClient.setQueryData<NotificationResponse>(
+        NOTIFICATION_KEYS.user(userId),
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            notifications: old.notifications.map((n) =>
+              n.id === notificationId ? { ...n, read } : n,
+            ),
+          };
+        },
+      );
+    },
+    [userId, queryClient],
+  );
 };
 
 /**
