@@ -35,6 +35,9 @@ keycloak:
   admin-username: admin
   admin-password: admin
 
+app:
+  frontend-url: http://localhost:3000
+
 management:
   endpoints:
     web:
