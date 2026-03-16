@@ -60,6 +60,16 @@ const UserManagementPage = lazy(() =>
     default: m.UserManagementPage,
   })),
 );
+const ForgotPasswordPage = lazy(() =>
+  import("@/pages/ForgotPasswordPage").then((m) => ({
+    default: m.ForgotPasswordPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("@/pages/ResetPasswordPage").then((m) => ({
+    default: m.ResetPasswordPage,
+  })),
+);
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
 const LoadingFallback = () => (
@@ -87,6 +97,22 @@ export const router = createBrowserRouter([
     element: (
       <LazyWrapper>
         <LoginPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <LazyWrapper>
+        <ForgotPasswordPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <LazyWrapper>
+        <ResetPasswordPage />
       </LazyWrapper>
     ),
   },
