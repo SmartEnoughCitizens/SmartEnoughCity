@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.events.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.events.dto.EventsDTO;
 import com.trinity.hermes.indicators.events.facade.EventsFacade;
 import java.util.List;
@@ -23,7 +24,7 @@ public class EventsController {
   @GetMapping("/api/v1/events")
   public ResponseEntity<List<EventsDTO>> getUpcomingEvents(
       @RequestParam(defaultValue = "10") Integer limit) {
-    log.info("GET /api/v1/events?limit={}", limit);
+    log.info("GET /api/v1/events?limit={}", LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(eventsFacade.getUpcomingEvents(limit));
     } catch (Exception e) {

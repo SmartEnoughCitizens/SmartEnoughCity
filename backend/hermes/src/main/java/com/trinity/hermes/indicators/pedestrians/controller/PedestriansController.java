@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.pedestrians.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.pedestrians.dto.PedestrianLiveDTO;
 import com.trinity.hermes.indicators.pedestrians.facade.PedestriansFacade;
 import java.util.List;
@@ -23,7 +24,7 @@ public class PedestriansController {
   @GetMapping("/api/v1/pedestrians/live")
   public ResponseEntity<List<PedestrianLiveDTO>> getLivePedestrianCounts(
       @RequestParam(defaultValue = "20") Integer limit) {
-    log.info("GET /api/v1/pedestrians/live?limit={}", limit);
+    log.info("GET /api/v1/pedestrians/live?limit={}", LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(pedestriansFacade.getLiveCounts(limit));
     } catch (Exception e) {
