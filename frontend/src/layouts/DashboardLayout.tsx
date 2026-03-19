@@ -4,23 +4,28 @@
 
 import { useState, useEffect } from "react";
 import {
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
+  Alert,
+  Avatar,
   Badge,
+  Box,
+  Divider,
+  IconButton,
   Menu,
   MenuItem,
-  Avatar,
-  Divider,
+  Snackbar,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import TrainIcon from "@mui/icons-material/Train";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import EditIcon from "@mui/icons-material/Edit";
+import LockIcon from "@mui/icons-material/Lock";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -33,6 +38,8 @@ import {
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
 import { getCreatableRoles } from "@/types";
+import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
+import { ChangePasswordDialog } from "@/components/profile/ChangePasswordDialog";
 import sseService from "@/services/sseService";
 
 interface DashboardLayoutProps {
@@ -65,6 +72,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, [username, dispatch]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+  }>({ open: false, message: "" });
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -88,6 +101,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       icon: <DirectionsBikeIcon />,
       path: "/dashboard/cycle",
       label: "Cycles",
+    },
+    {
+      icon: <DirectionsCarIcon />,
+      path: "/dashboard/car",
+      label: "Car",
     },
     {
       icon: <TrainIcon />,
@@ -240,6 +258,25 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             {username}
           </MenuItem>
           <Divider />
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              setEditProfileOpen(true);
+            }}
+          >
+            <EditIcon sx={{ mr: 1 }} />
+            Edit Profile
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              setChangePasswordOpen(true);
+            }}
+          >
+            <LockIcon sx={{ mr: 1 }} />
+            Change Password
+          </MenuItem>
+          <Divider />
           <MenuItem onClick={handleLogout}>
             <LogoutIcon sx={{ mr: 1 }} />
             Logout
@@ -259,6 +296,36 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       >
         {children}
       </Box>
+
+      <EditProfileDialog
+        open={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+        onSuccess={(message) => {
+          setEditProfileOpen(false);
+          setSnackbar({ open: true, message });
+        }}
+      />
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        onSuccess={(message) => {
+          setChangePasswordOpen(false);
+          setSnackbar({ open: true, message });
+        }}
+      />
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
