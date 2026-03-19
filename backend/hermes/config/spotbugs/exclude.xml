@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!--
+        EI_EXPOSE_REP / EI_EXPOSE_REP2: Lombok-generated getters/constructors on JPA entities
+        return/store mutable objects (e.g. byte[], Date, List). These are false positives in the
+        context of Spring Data JPA entities and DTOs where Lombok is used for boilerplate generation.
+    -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>
