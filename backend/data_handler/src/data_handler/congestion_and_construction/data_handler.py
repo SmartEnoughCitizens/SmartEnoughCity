@@ -72,9 +72,9 @@ def _upsert_traffic_events(
 # data_handler.py
 
 
-def fetch_and_store_traffic_data(
+def process_traffic_live_data(
     bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
-    session: Session | None = None,  # ← add this
+    session: Session | None = None,
 ) -> int:
     client = TIIApiClient(bounding_box=bounding_box)
 

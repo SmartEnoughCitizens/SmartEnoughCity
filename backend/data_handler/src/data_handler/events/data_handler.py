@@ -200,11 +200,11 @@ def _upsert_events(
     return len(events)
 
 
-def fetch_and_store_venues(session: Session | None = None) -> int:
+def process_event_venue_info(session: Session | None = None) -> int:
     """
     Fetch all Dublin venues from Ticketmaster and seed the venues table.
 
-    Called during static data processing. Fetches venues from the
+    Scheduled as a monthly job. Fetches venues from the
     Ticketmaster /venues.json endpoint and upserts them, preserving
     any manually-set capacity values.
 
@@ -246,7 +246,7 @@ def fetch_and_store_venues(session: Session | None = None) -> int:
             session.close()
 
 
-def fetch_and_store_events(session: Session | None = None) -> int:
+def process_events_data(session: Session | None = None) -> int:
     """
     Fetch events from Ticketmaster and store in database.
 

@@ -112,7 +112,7 @@ def fetch_forecast_for_stop(stop_id: str) -> list[dict]:
 # ── DB writers ───────────────────────────────────────────────────
 
 
-def luas_stops_to_db() -> None:
+def process_tram_stop_info() -> None:
     """Fetch Luas stops from the forecasting API and upsert into DB."""
     session = SessionLocal()
 
@@ -162,7 +162,7 @@ def luas_stops_to_db() -> None:
         session.close()
 
 
-def luas_forecasts_to_db() -> None:
+def process_tram_live_data() -> None:
     """Fetch live forecasts for all known stops and insert into DB."""
     session = SessionLocal()
 
@@ -172,7 +172,7 @@ def luas_forecasts_to_db() -> None:
         ).fetchall()
 
         if not stops:
-            logger.warning("No stops in DB. Run luas_stops_to_db() first!")
+            logger.warning("No stops in DB. Run process_tram_stop_info() first!")
             return
 
         # Clear old forecasts before inserting fresh data

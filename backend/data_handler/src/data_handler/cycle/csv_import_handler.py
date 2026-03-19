@@ -83,7 +83,7 @@ def import_station_history_csv(csv_path: Path) -> None:
         raise
 
 
-def import_all_station_history_csvs(directory: Path) -> None:
+def import_cycle_history_data(directory: Path) -> None:
     """Import all matching CSV files from a directory."""
     logger.info("Scanning directory for CSV files: %s", directory)
 
