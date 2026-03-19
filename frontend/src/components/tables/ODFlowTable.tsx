@@ -77,34 +77,73 @@ export const ODFlowTable = ({
     <Box>
       {/* Intensity filter */}
       <Box sx={{ px: 1, pt: 1, pb: 0.5 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mb: 0.5 }}
+        >
           Show flows with intensity ≥
         </Typography>
         <ToggleButtonGroup
           value={intensityFilter}
           exclusive
-          onChange={(_, val) => { if (val) onIntensityFilterChange(val as IntensityFilter); }}
+          onChange={(_, val) => {
+            if (val) onIntensityFilterChange(val as IntensityFilter);
+          }}
           size="small"
           fullWidth
-          sx={{ "& .MuiToggleButton-root": { fontSize: "0.65rem", py: 0.4, textTransform: "none" } }}
+          sx={{
+            "& .MuiToggleButton-root": {
+              fontSize: "0.65rem",
+              py: 0.4,
+              textTransform: "none",
+            },
+          }}
         >
-          <ToggleButton value="extreme" sx={{ "&.Mui-selected": { bgcolor: "#dc2626", color: "#fff", "&:hover": { bgcolor: "#b91c1c" } } }}>
+          <ToggleButton
+            value="extreme"
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: "#dc2626",
+                color: "#fff",
+                "&:hover": { bgcolor: "#b91c1c" },
+              },
+            }}
+          >
             Extreme
           </ToggleButton>
-          <ToggleButton value="medium" sx={{ "&.Mui-selected": { bgcolor: "#f97316", color: "#fff", "&:hover": { bgcolor: "#ea6c0a" } } }}>
+          <ToggleButton
+            value="medium"
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: "#f97316",
+                color: "#fff",
+                "&:hover": { bgcolor: "#ea6c0a" },
+              },
+            }}
+          >
             Medium
           </ToggleButton>
-          <ToggleButton value="low" sx={{ "&.Mui-selected": { bgcolor: "#4ade80", color: "#000", "&:hover": { bgcolor: "#22c55e" } } }}>
+          <ToggleButton
+            value="low"
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: "#4ade80",
+                color: "#000",
+                "&:hover": { bgcolor: "#22c55e" },
+              },
+            }}
+          >
             Low
           </ToggleButton>
-          <ToggleButton value="all">
-            All
-          </ToggleButton>
+          <ToggleButton value="all">All</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {/* Station filter */}
-      <Box sx={{ px: 1, pb: 0.5, display: "flex", gap: 0.5, alignItems: "center" }}>
+      <Box
+        sx={{ px: 1, pb: 0.5, display: "flex", gap: 0.5, alignItems: "center" }}
+      >
         <Autocomplete
           size="small"
           options={stationOptions}
@@ -112,7 +151,11 @@ export const ODFlowTable = ({
           onChange={(_, opt) => onFilterChange(opt?.id ?? null)}
           isOptionEqualToValue={(a, b) => a.id === b.id}
           renderInput={(params) => (
-            <TextField {...params} label="Filter by station" variant="outlined" />
+            <TextField
+              {...params}
+              label="Filter by station"
+              variant="outlined"
+            />
           )}
           sx={{ flex: 1 }}
           clearOnEscape
@@ -149,7 +192,11 @@ export const ODFlowTable = ({
             {visiblePairs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ py: 2 }}
+                  >
                     No flows found
                   </Typography>
                 </TableCell>
@@ -159,7 +206,12 @@ export const ODFlowTable = ({
                 const key = `${pair.originStationId}-${pair.destStationId}`;
                 const intensity = pair.estimatedTrips / maxTrips;
                 const pct = Math.round(intensity * 100);
-                const chipColor = intensity >= 0.66 ? "#dc2626" : intensity >= 0.33 ? "#f97316" : "#4ade80";
+                const chipColor =
+                  intensity >= 0.66
+                    ? "#dc2626"
+                    : intensity >= 0.33
+                      ? "#f97316"
+                      : "#4ade80";
                 const isSelected = selectedPairKey === key;
                 const isOrigin = pair.originStationId === filterStationId;
                 const isDest = pair.destStationId === filterStationId;
@@ -171,24 +223,41 @@ export const ODFlowTable = ({
                     sx={{
                       cursor: "pointer",
                       ...(isSelected
-                        ? { bgcolor: "primary.main", "& td": { color: "#fff" }, "&:hover": { bgcolor: "primary.dark" } }
+                        ? {
+                            bgcolor: "primary.main",
+                            "& td": { color: "#fff" },
+                            "&:hover": { bgcolor: "primary.dark" },
+                          }
                         : filterStationId && (isOrigin || isDest)
                           ? { bgcolor: "action.selected" }
                           : undefined),
                     }}
                   >
                     <TableCell>
-                      <Typography variant="body2" fontWeight={isOrigin || isSelected ? 700 : 400}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={isOrigin || isSelected ? 700 : 400}
+                      >
                         {pair.originName}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={isDest || isSelected ? 700 : 400}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={isDest || isSelected ? 700 : 400}
+                      >
                         {pair.destName}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "flex-end",
+                          gap: 0.5,
+                        }}
+                      >
                         <Box
                           sx={{
                             width: `${Math.max(pct * 0.4, 4)}px`,
@@ -202,7 +271,11 @@ export const ODFlowTable = ({
                           label={pair.estimatedTrips}
                           size="small"
                           variant="outlined"
-                          sx={{ borderColor: chipColor, color: chipColor, fontWeight: 600 }}
+                          sx={{
+                            borderColor: chipColor,
+                            color: chipColor,
+                            fontWeight: 600,
+                          }}
                         />
                       </Box>
                     </TableCell>

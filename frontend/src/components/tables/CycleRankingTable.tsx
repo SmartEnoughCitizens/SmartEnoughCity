@@ -47,7 +47,11 @@ export const CycleRankingTable = ({
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ py: 2 }}
+                  >
                     No data available yet today
                   </Typography>
                 </TableCell>
@@ -69,7 +73,13 @@ export const CycleRankingTable = ({
                     <Chip
                       label={`${station.avgUsageRate.toFixed(0)}%`}
                       size="small"
-                      color={station.avgUsageRate >= 70 ? "error" : station.avgUsageRate >= 40 ? "warning" : "success"}
+                      color={
+                        station.avgUsageRate >= 70
+                          ? "error"
+                          : station.avgUsageRate >= 40
+                            ? "warning"
+                            : "success"
+                      }
                     />
                   </TableCell>
                 </TableRow>

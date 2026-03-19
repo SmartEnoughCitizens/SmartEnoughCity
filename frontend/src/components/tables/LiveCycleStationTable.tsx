@@ -75,7 +75,9 @@ export const LiveCycleStationTable = ({
               displayStations.map((station) => (
                 <TableRow key={station.stationId} hover>
                   <TableCell>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                    >
                       <Box
                         sx={{
                           width: 8,
@@ -103,28 +105,50 @@ export const LiveCycleStationTable = ({
                     </TableCell>
                   )}
                   <TableCell align="center">
-                    <Chip label={station.availableBikes} size="small" color="primary" />
+                    <Chip
+                      label={station.availableBikes}
+                      size="small"
+                      color="primary"
+                    />
                   </TableCell>
                   <TableCell align="center">
-                    <Chip label={station.availableDocks} size="small" color="secondary" />
+                    <Chip
+                      label={station.availableDocks}
+                      size="small"
+                      color="secondary"
+                    />
                   </TableCell>
                   <TableCell align="center">
                     <Chip
                       label={`${station.bikeAvailabilityPct.toFixed(0)}%`}
                       size="small"
-                      color={STATUS_CHIP_COLOR[station.statusColor] ?? "default"}
+                      color={
+                        STATUS_CHIP_COLOR[station.statusColor] ?? "default"
+                      }
                     />
                   </TableCell>
                   <TableCell align="center">
                     <Chip
                       label={`${station.dockAvailabilityPct.toFixed(0)}%`}
                       size="small"
-                      color={station.dockAvailabilityPct < 20 ? "error" : station.dockAvailabilityPct < 40 ? "warning" : "default"}
+                      color={
+                        station.dockAvailabilityPct < 20
+                          ? "error"
+                          : station.dockAvailabilityPct < 40
+                            ? "warning"
+                            : "default"
+                      }
                     />
                   </TableCell>
                   {!compact && (
                     <TableCell align="center">
-                      <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 0.5,
+                          justifyContent: "center",
+                        }}
+                      >
                         <StatusIcon status={station.isRenting} />
                         <StatusIcon status={station.isReturning} />
                       </Box>

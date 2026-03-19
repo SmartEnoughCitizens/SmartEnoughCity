@@ -27,7 +27,10 @@ import { NetworkSummaryChart } from "@/components/charts/NetworkSummaryChart";
 import { LiveCycleStationTable } from "@/components/tables/LiveCycleStationTable";
 import { CycleRankingTable } from "@/components/tables/CycleRankingTable";
 import { RebalancingTable } from "@/components/tables/RebalancingTable";
-import { ODFlowTable, type IntensityFilter } from "@/components/tables/ODFlowTable";
+import {
+  ODFlowTable,
+  type IntensityFilter,
+} from "@/components/tables/ODFlowTable";
 import { LiveCycleStationMap } from "@/components/map/LiveCycleStationMap";
 import { ODFlowMap } from "@/components/map/ODFlowMap";
 import { useAppSelector } from "@/store/hooks";
@@ -35,17 +38,27 @@ import { useAppSelector } from "@/store/hooks";
 export const CycleDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const [rankingSubTab, setRankingSubTab] = useState(0);
-  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(null);
-  const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>("all");
+  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(
+    null,
+  );
+  const [intensityFilter, setIntensityFilter] =
+    useState<IntensityFilter>("all");
   const [selectedPairKey, setSelectedPairKey] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const theme = useAppSelector((state) => state.ui.theme);
 
-  const { data: stations, isLoading: stationsLoading, error } = useCycleStationsLive();
+  const {
+    data: stations,
+    isLoading: stationsLoading,
+    error,
+  } = useCycleStationsLive();
   const { data: summary } = useCycleNetworkSummary();
-  const { data: busiest, isLoading: busiestLoading } = useCycleBusiestStations(10);
-  const { data: underused, isLoading: underusedLoading } = useCycleUnderusedStations(10);
-  const { data: rebalancing, isLoading: rebalancingLoading } = useCycleRebalancing(30);
+  const { data: busiest, isLoading: busiestLoading } =
+    useCycleBusiestStations(10);
+  const { data: underused, isLoading: underusedLoading } =
+    useCycleUnderusedStations(10);
+  const { data: rebalancing, isLoading: rebalancingLoading } =
+    useCycleRebalancing(30);
   const { data: odHeatmap, isLoading: odLoading } = useCycleODHeatmap(50);
 
   const isLoading =
@@ -71,7 +84,10 @@ export const CycleDashboard = () => {
   }
 
   const allOdPairs = odHeatmap ?? [];
-  const globalMaxTrips = allOdPairs.length > 0 ? Math.max(...allOdPairs.map((p) => p.estimatedTrips)) : 1;
+  const globalMaxTrips =
+    allOdPairs.length > 0
+      ? Math.max(...allOdPairs.map((p) => p.estimatedTrips))
+      : 1;
 
   const filteredOdPairs = (() => {
     const byStation = odFilterStationId
@@ -83,7 +99,12 @@ export const CycleDashboard = () => {
       : allOdPairs;
 
     if (intensityFilter === "all") return byStation;
-    const threshold = intensityFilter === "extreme" ? 0.66 : intensityFilter === "medium" ? 0.33 : 0;
+    const threshold =
+      intensityFilter === "extreme"
+        ? 0.66
+        : intensityFilter === "medium"
+          ? 0.33
+          : 0;
     return byStation.filter(
       (p) => p.estimatedTrips / globalMaxTrips >= threshold,
     );
@@ -224,7 +245,11 @@ export const CycleDashboard = () => {
                   sx={{
                     minHeight: 32,
                     mb: 0.5,
-                    "& .MuiTab-root": { minHeight: 32, fontSize: "0.7rem", textTransform: "none" },
+                    "& .MuiTab-root": {
+                      minHeight: 32,
+                      fontSize: "0.7rem",
+                      textTransform: "none",
+                    },
                   }}
                 >
                   <Tab label="Busiest" />
