@@ -45,13 +45,13 @@ def main_static() -> None:
 
     sources_settings = get_data_sources_settings()
 
-    if sources_settings.enable_bus_data and sources_settings.bus_gtfs_static_data_dir:
-        process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
+    if sources_settings.enable_bus_data:
+        process_bus_static_data(sources_settings.base_static_data_dir / "bus")
     else:
         logger.info("Skipping bus static data processing...")
 
-    if sources_settings.enable_car_data and sources_settings.car_static_data_dir:
-        process_car_static_data(sources_settings.car_static_data_dir)
+    if sources_settings.enable_car_data:
+        process_car_static_data(sources_settings.base_static_data_dir / "car")
     else:
         logger.info("Skipping car static data processing...")
 
@@ -61,12 +61,9 @@ def main_static() -> None:
     else:
         logger.info("Skipping cycle static data processing...")
 
-    if (
-        sources_settings.enable_train_data
-        and sources_settings.train_gtfs_static_data_dir
-    ):
+    if sources_settings.enable_train_data:
         logger.info("Processing train static data...")
-        process_train_static_data(sources_settings.train_gtfs_static_data_dir)
+        process_train_static_data(sources_settings.base_static_data_dir / "train")
     else:
         logger.info("Skipping train static data processing...")
 
@@ -76,15 +73,11 @@ def main_static() -> None:
     else:
         logger.info("Skipping events venue seeding...")
 
-    if sources_settings.enable_tram_data and sources_settings.tram_gtfs_static_data_dir:
+    if sources_settings.enable_tram_data:
         logger.info("Processing tram static data...")
-        process_tram_static_data(
-            sources_settings.tram_gtfs_static_data_dir,
-            sources_settings.tram_cso_static_data_dir,
-        )
+        process_tram_static_data(sources_settings.base_static_data_dir / "tram")
     else:
         logger.info("Skipping tram static data processing...")
-
     logger.info("Finished processing static data.")
 
 

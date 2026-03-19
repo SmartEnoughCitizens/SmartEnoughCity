@@ -17,7 +17,7 @@ def test_process_bus_vehicles_live_data(
 ) -> None:
     # Static data needed for live data due to foreign key constraints
     sources_settings = get_data_sources_settings()
-    process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
+    process_bus_static_data(sources_settings.bus_static_data_dir)
 
     vehicles_json_path = tests_data_dir / "bus" / "vehicles.json"
     with vehicles_json_path.open() as f:
@@ -65,7 +65,7 @@ def test_process_bus_trip_updates_live_data(
 ) -> None:
     # Static data needed for live data due to foreign key constraints
     sources_settings = get_data_sources_settings()
-    process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
+    process_bus_static_data(sources_settings.bus_static_data_dir)
 
     trip_updates_json_path = tests_data_dir / "bus" / "TripUpdates.json"
     with trip_updates_json_path.open() as f:

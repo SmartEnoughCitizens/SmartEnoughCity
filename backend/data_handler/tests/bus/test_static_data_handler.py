@@ -15,7 +15,7 @@ def test_process_bus_static_data(db_session: Session) -> None:
     assert_row_count(db_session, "bus_calendar_schedule", 0)
 
     sources_settings = get_data_sources_settings()
-    process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
+    process_bus_static_data(sources_settings.bus_static_data_dir)
 
     assert_row_count(db_session, "bus_stops", 5)
     assert_rows(
