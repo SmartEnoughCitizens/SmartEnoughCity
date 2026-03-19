@@ -29,7 +29,6 @@ def parse_iso_timestamp(timestamp_str: str) -> datetime:
         raise ValueError(msg) from e
 
 
-
 def validate_station_status_record(record: dict) -> None:
     """
     Validate API station status record.
