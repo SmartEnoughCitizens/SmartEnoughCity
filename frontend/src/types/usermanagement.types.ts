@@ -70,6 +70,36 @@ export const CREATE_PERMISSIONS: Record<string, string[]> = {
 };
 
 /**
+ * Maps each transport mode to the roles that can access its data.
+ */
+export const TRANSPORT_ACCESS: Record<string, string[]> = {
+  bus:   ["City_Manager", "Bus_Admin",   "Bus_Provider"],
+  train: ["City_Manager", "Train_Admin", "Train_Provider"],
+  cycle: ["City_Manager", "Cycle_Admin", "Cycle_Provider"],
+  tram:  ["City_Manager", "Tram_Admin",  "Tram_Provider"],
+  car:   ["City_Manager"],
+};
+
+/**
+ * Returns true if the user has access to the given transport mode.
+ */
+export function canAccessTransport(userRoles: string[], transport: string): boolean {
+  return (TRANSPORT_ACCESS[transport] ?? []).some((r) => userRoles.includes(r));
+}
+
+/**
+ * Returns the appropriate landing page path based on the user's roles.
+ */
+export function getLandingPage(userRoles: string[]): string {
+  if (userRoles.includes("City_Manager"))                                              return "/dashboard";
+  if (userRoles.some((r) => ["Bus_Admin",   "Bus_Provider"  ].includes(r)))           return "/dashboard/bus";
+  if (userRoles.some((r) => ["Train_Admin", "Train_Provider"].includes(r)))           return "/dashboard/train";
+  if (userRoles.some((r) => ["Cycle_Admin", "Cycle_Provider"].includes(r)))           return "/dashboard/cycle";
+  if (userRoles.some((r) => ["Tram_Admin",  "Tram_Provider" ].includes(r)))           return "/dashboard/tram";
+  return "/dashboard/notifications";
+}
+
+/**
  * Role priority from highest to lowest. Keycloak composite roles may add
  * sub-roles to the JWT (e.g. City_Manager token also contains Bus_Admin),
  * so we only use the highest-level role for determining creatable roles.
