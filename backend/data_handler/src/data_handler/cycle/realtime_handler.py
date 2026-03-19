@@ -35,23 +35,21 @@ def _transform_station_records(stations: list[dict], fetch_ts: datetime) -> list
     Returns:
         List of dicts ready for database insertion.
     """
-    records = []
-    for station in stations:
-        records.append(
-            {
-                "station_id": int(station["station_id"]),
-                "timestamp": fetch_ts,
-                "last_reported": _parse_last_reported(station["last_reported"]),
-                "available_bikes": station["num_bikes_available"],
-                "available_docks": station["num_docks_available"],
-                "disabled_bikes": station.get("num_bikes_disabled", 0),
-                "disabled_docks": station.get("num_docks_disabled", 0),
-                "is_installed": station["is_installed"],
-                "is_renting": station["is_renting"],
-                "is_returning": station["is_returning"],
-            }
-        )
-    return records
+    return [
+        {
+            "station_id": int(station["station_id"]),
+            "timestamp": fetch_ts,
+            "last_reported": _parse_last_reported(station["last_reported"]),
+            "available_bikes": station["num_bikes_available"],
+            "available_docks": station["num_docks_available"],
+            "disabled_bikes": station.get("num_bikes_disabled", 0),
+            "disabled_docks": station.get("num_docks_disabled", 0),
+            "is_installed": station["is_installed"],
+            "is_renting": station["is_renting"],
+            "is_returning": station["is_returning"],
+        }
+        for station in stations
+    ]
 
 
 def process_cycle_live_data() -> None:

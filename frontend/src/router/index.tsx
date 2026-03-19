@@ -21,6 +21,9 @@ const BusDashboard = lazy(() =>
 const CycleDashboard = lazy(() =>
   import("@/pages/CycleDashboard").then((m) => ({ default: m.CycleDashboard })),
 );
+const CarDashboard = lazy(() =>
+  import("@/pages/CarDashboard").then((m) => ({ default: m.CarDashboard })),
+);
 const TrainDashboard = lazy(() =>
   import("@/pages/TrainDashboard").then((m) => ({ default: m.TrainDashboard })),
 );
@@ -34,7 +37,16 @@ const UserManagementPage = lazy(() =>
     default: m.UserManagementPage,
   })),
 );
-
+const ForgotPasswordPage = lazy(() =>
+  import("@/pages/ForgotPasswordPage").then((m) => ({
+    default: m.ForgotPasswordPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("@/pages/ResetPasswordPage").then((m) => ({
+    default: m.ResetPasswordPage,
+  })),
+);
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
 const LoadingFallback = () => (
@@ -62,6 +74,22 @@ export const router = createBrowserRouter([
     element: (
       <LazyWrapper>
         <LoginPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <LazyWrapper>
+        <ForgotPasswordPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <LazyWrapper>
+        <ResetPasswordPage />
       </LazyWrapper>
     ),
   },
@@ -96,6 +124,18 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <LazyWrapper>
             <CycleDashboard />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/car",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <CarDashboard />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>
