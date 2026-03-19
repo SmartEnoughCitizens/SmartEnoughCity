@@ -1,4 +1,5 @@
 import logging
+import xml.parsers.expat
 
 import pandas as pd
 import requests
@@ -34,7 +35,7 @@ def _luas_forecast_url(stop_id: str) -> str:
 
 def fetch_luas_stops(line_name: str) -> pd.DataFrame:
     """Fetch stops for a given Luas line from the forecasting API."""
-    res = requests.get(_luas_stops_url())
+    res = requests.get(_luas_stops_url(), timeout=30)
     res.raise_for_status()
 
     doc = xmltodict.parse(res.text)
@@ -52,19 +53,19 @@ def fetch_luas_stops(line_name: str) -> pd.DataFrame:
             if isinstance(stops, dict):
                 stops = [stops]
 
-            for stop in stops:
-                rows.append(
-                    {
-                        "stop_id": stop["@abrev"],
-                        "line": line_name,
-                        "name": stop.get("#text", stop.get("@text", "")),
-                        "pronunciation": stop.get("@pronunciation", ""),
-                        "park_ride": stop.get("@isParkRide") == "1",
-                        "cycle_ride": stop.get("@isCycleRide") == "1",
-                        "lat": float(stop["@lat"]),
-                        "lon": float(stop["@long"]),
-                    }
-                )
+            rows.extend(
+                {
+                    "stop_id": stop["@abrev"],
+                    "line": line_name,
+                    "name": stop.get("#text", stop.get("@text", "")),
+                    "pronunciation": stop.get("@pronunciation", ""),
+                    "park_ride": stop.get("@isParkRide") == "1",
+                    "cycle_ride": stop.get("@isCycleRide") == "1",
+                    "lat": float(stop["@lat"]),
+                    "lon": float(stop["@long"]),
+                }
+                for stop in stops
+            )
 
     return pd.DataFrame(rows)
 
@@ -72,12 +73,12 @@ def fetch_luas_stops(line_name: str) -> pd.DataFrame:
 def fetch_forecast_for_stop(stop_id: str) -> list[dict]:
     """Fetch live forecast entries for a single Luas stop."""
     url = _luas_forecast_url(stop_id)
-    res = requests.get(url)
+    res = requests.get(url, timeout=30)
     res.raise_for_status()
 
     try:
         doc = xmltodict.parse(res.text)
-    except Exception:
+    except xml.parsers.expat.ExpatError:
         return []
 
     stop_info = doc.get("stopInfo", {})

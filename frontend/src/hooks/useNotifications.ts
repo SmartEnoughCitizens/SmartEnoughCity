@@ -1,13 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { notificationApi } from "@/api";
 import sseService from "@/services/sseService";
-import {
-  type Notification,
-  type NotificationResponse,
-  NotificationType,
-  Priority,
-} from "@/types";
+import { type Notification, type NotificationResponse } from "@/types";
 
 export const NOTIFICATION_KEYS = {
   user: (userId: string) => ["notifications", userId] as const,
@@ -33,9 +28,7 @@ const toFrontendNotification = (
   index: number,
 ): Notification => ({
   id: raw.id || String(Date.now() + index),
-  type: (raw.type as NotificationType) || "ALERT",
   message: raw.message || `${raw.subject || ""}: ${raw.body || ""}`,
-  priority: (raw.priority as Priority) || "MEDIUM",
   timestamp: raw.timestamp || new Date().toISOString(),
   read: raw.read ?? false,
   metadata: raw.metadata || {
@@ -99,4 +92,43 @@ export const useUserNotifications = (
   }, [userId, enabled, queryClient]);
 
   return query;
+};
+
+export const useMarkAllAsRead = (userId: string) => {
+  const queryClient = useQueryClient();
+
+  return useCallback(() => {
+    queryClient.setQueryData<NotificationResponse>(
+      NOTIFICATION_KEYS.user(userId),
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          notifications: old.notifications.map((n) => ({ ...n, read: true })),
+        };
+      },
+    );
+  }, [userId, queryClient]);
+};
+
+export const useSetReadState = (userId: string) => {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (notificationId: string, read: boolean) => {
+      queryClient.setQueryData<NotificationResponse>(
+        NOTIFICATION_KEYS.user(userId),
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            notifications: old.notifications.map((n) =>
+              n.id === notificationId ? { ...n, read } : n,
+            ),
+          };
+        },
+      );
+    },
+    [userId, queryClient],
+  );
 };
