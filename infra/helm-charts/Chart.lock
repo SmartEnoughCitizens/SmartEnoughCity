@@ -1,7 +1,7 @@
 dependencies:
-- name: postgresql
-  repository: https://charts.bitnami.com/bitnami
-  version: 18.1.8
+- name: postgres
+  repository: https://groundhog2k.github.io/helm-charts/
+  version: 1.6.1
 - name: keycloak
   repository: https://charts.bitnami.com/bitnami
   version: 25.2.0
@@ -17,5 +17,5 @@ dependencies:
 - name: frontend
   repository: file://./charts/frontend
   version: 0.1.1
-digest: sha256:dec9467dd58deb6d9288103cb587349cdc0cef26ec1e9f0e6d56f6d3d3a13b6b
-generated: "2025-12-10T09:54:23.7368344Z"
+digest: sha256:344c9c38eb94c0739b6c264be22fcab69627ad8a5ef5699e4efcd76be62c9ca0
+generated: "2026-03-02T17:21:20.0511727Z"

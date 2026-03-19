@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import {
   Box,
   Button,
+  Link,
   TextField,
   Typography,
   Alert,
@@ -16,7 +17,7 @@ import { useLogin } from "@/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { setAuthenticated } from "@/store/slices/authSlice";
 import { getRolesFromToken } from "@/utils/jwt";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 export const LoginForm = () => {
   const [username, setUsername] = useState("");
@@ -117,12 +118,23 @@ export const LoginForm = () => {
             required
           />
 
+          <Box sx={{ textAlign: "right", mt: 1 }}>
+            <Link
+              component={RouterLink}
+              to="/forgot-password"
+              variant="body2"
+              underline="hover"
+            >
+              Forgot password?
+            </Link>
+          </Box>
+
           <Button
             fullWidth
             type="submit"
             variant="contained"
             size="large"
-            sx={{ mt: 3 }}
+            sx={{ mt: 2 }}
             disabled={loginMutation.isPending || !username || !password}
           >
             {loginMutation.isPending ? (

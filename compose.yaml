@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgis/postgis:18-3.6-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: app_owner
@@ -9,7 +9,7 @@ services:
     ports:
       - "55432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     networks:
       - postgres-internal
       - keycloak-postgres
@@ -151,15 +151,6 @@ services:
         
         SELECT 'Backend user initialization completed successfully!' as status;
         EOF
-
-        echo "Running database migrations..."
-        for migration in /migrations/*.sql; do
-          if [ -f "$$migration" ]; then
-            echo "Running migration: $$(basename $$migration)"
-            PGPASSWORD="$$DATA_HANDLER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$DATA_HANDLER_USER" -d "$$DB_NAME" -f "$$migration"
-          fi
-        done
-        echo "Migrations completed!"
 
         echo "Database initialization completed!"
     networks:
