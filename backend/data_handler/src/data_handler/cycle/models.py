@@ -13,7 +13,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -53,9 +52,6 @@ class DublinBikesStation(Base):
     snapshots: Mapped[list["DublinBikesStationSnapshot"]] = relationship(
         back_populates="station"
     )
-    history: Mapped[list["DublinBikesStationHistory"]] = relationship(
-        back_populates="station"
-    )
 
 
 class DublinBikesStationSnapshot(Base):
@@ -84,31 +80,3 @@ class DublinBikesStationSnapshot(Base):
 
     # Relationships
     station: Mapped["DublinBikesStation"] = relationship(back_populates="snapshots")
-
-
-class DublinBikesStationHistory(Base):
-    """Historical station status archive (Table 3: station_history)."""
-
-    __tablename__ = "dublin_bikes_station_history"
-    __table_args__: ClassVar[dict] = (
-        Index("idx_history_station_timestamp", "station_id", "timestamp"),
-        Index("idx_history_date", "timestamp"),
-        UniqueConstraint("station_id", "timestamp", name="uq_station_timestamp"),
-        {"schema": DB_SCHEMA},
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    station_id: Mapped[int] = mapped_column(
-        ForeignKey(_fk("dublin_bikes_stations.station_id")), nullable=False
-    )
-    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    last_reported: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    available_bikes: Mapped[int] = mapped_column(Integer, nullable=False)
-    available_docks: Mapped[int] = mapped_column(Integer, nullable=False)
-    is_installed: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    is_renting: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    is_returning: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-
-    # Relationships
-    station: Mapped["DublinBikesStation"] = relationship(back_populates="history")
