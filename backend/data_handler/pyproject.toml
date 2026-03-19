@@ -12,6 +12,9 @@ dependencies = [
     "xmltodict>=1.0.2",
     "pydantic>=2.12.4",
     "pytest-cov>=7.0.0",
+    "geoalchemy2>=0.18.4",
+    "shapely>=2.1.2",
+    "osmium>=4.3.0",
 ]
 
 [project.scripts]

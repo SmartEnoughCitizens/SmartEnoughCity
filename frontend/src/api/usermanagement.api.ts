@@ -5,9 +5,12 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  ChangePasswordRequest,
   RegisterUserRequest,
   RegisterUserResponse,
+  UpdateProfileRequest,
   UserInfo,
+  UserProfile,
 } from "@/types";
 
 export const userManagementApi = {
@@ -32,6 +35,33 @@ export const userManagementApi = {
     const { data } = await axiosInstance.delete<{ message: string }>(
       API_ENDPOINTS.USER_DELETE,
       { params: { username } },
+    );
+    return data;
+  },
+
+  getProfile: async (): Promise<UserProfile> => {
+    const { data } = await axiosInstance.get<UserProfile>(
+      API_ENDPOINTS.USER_PROFILE,
+    );
+    return data;
+  },
+
+  updateProfile: async (
+    request: UpdateProfileRequest,
+  ): Promise<{ message: string }> => {
+    const { data } = await axiosInstance.put<{ message: string }>(
+      API_ENDPOINTS.USER_PROFILE,
+      request,
+    );
+    return data;
+  },
+
+  changePassword: async (
+    request: ChangePasswordRequest,
+  ): Promise<{ message: string }> => {
+    const { data } = await axiosInstance.put<{ message: string }>(
+      API_ENDPOINTS.USER_PASSWORD,
+      request,
     );
     return data;
   },

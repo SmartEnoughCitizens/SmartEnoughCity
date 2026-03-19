@@ -43,7 +43,6 @@ export const AddUserDialog = ({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState("");
-  const [password, setPassword] = useState("");
 
   const { roles } = useAppSelector((state) => state.auth);
   const creatableRoles = getCreatableRoles(roles);
@@ -55,7 +54,6 @@ export const AddUserDialog = ({
     setFirstName("");
     setLastName("");
     setRole("");
-    setPassword("");
     registerMutation.reset();
   };
 
@@ -74,7 +72,6 @@ export const AddUserDialog = ({
         firstName,
         lastName,
         role,
-        ...(password && { password }),
       });
       onSuccess(response.message);
       handleClose();
@@ -156,16 +153,6 @@ export const AddUserDialog = ({
               </MenuItem>
             ))}
           </TextField>
-          <TextField
-            label="Password (optional)"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={registerMutation.isPending}
-            fullWidth
-            margin="dense"
-            helperText="Leave empty to set temporary password (ChangeMe@123)"
-          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleClose} disabled={registerMutation.isPending}>

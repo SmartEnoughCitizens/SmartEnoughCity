@@ -22,8 +22,9 @@ spring:
     properties:
       hibernate:
         default_schema: ${SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA:backend}
+        hbm2ddl.schema_filter_provider: com.trinity.hermes.config.BackendSchemaFilterProvider
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     open-in-view: false
 
 keycloak:
@@ -34,6 +35,9 @@ keycloak:
   # TODO to be set properly using secrets
   admin-username: admin
   admin-password: admin
+
+app:
+  frontend-url: ${APP_FRONTEND_URL}
 
 management:
   endpoints:
