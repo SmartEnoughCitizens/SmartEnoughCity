@@ -70,8 +70,8 @@ export const CycleDashboard = () => {
     );
   }
 
-  const allOdPairs = odHeatmap?.odPairs ?? [];
-  const globalMaxTrips = odHeatmap?.maxTrips ?? 1;
+  const allOdPairs = odHeatmap ?? [];
+  const globalMaxTrips = allOdPairs.length > 0 ? Math.max(...allOdPairs.map((p) => p.estimatedTrips)) : 1;
 
   const filteredOdPairs = (() => {
     const byStation = odFilterStationId
@@ -231,16 +231,16 @@ export const CycleDashboard = () => {
                   <Tab label="Underused" />
                 </Tabs>
                 {rankingSubTab === 0 && (
-                  <CycleRankingTable stations={busiest ?? []} mode="busiest" compact />
+                  <CycleRankingTable stations={busiest ?? []} />
                 )}
                 {rankingSubTab === 1 && (
-                  <CycleRankingTable stations={underused ?? []} mode="underused" compact />
+                  <CycleRankingTable stations={underused ?? []} />
                 )}
               </>
             )}
 
             {tabValue === 2 && (
-              <RebalancingTable suggestions={rebalancing ?? []} compact />
+              <RebalancingTable suggestions={rebalancing ?? []} />
             )}
 
             {tabValue === 3 && (
