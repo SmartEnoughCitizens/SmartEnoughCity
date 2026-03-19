@@ -7,8 +7,13 @@ import static org.mockito.Mockito.*;
 import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
+import com.trinity.hermes.usermanagement.entity.PasswordResetTokenEntity;
+import com.trinity.hermes.usermanagement.repository.PasswordResetTokenRepository;
 import jakarta.ws.rs.core.Response;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,13 +45,15 @@ public class UserManagementServiceTest {
 
   @Mock MailService mailService;
 
+  @Mock PasswordResetTokenRepository passwordResetTokenRepository;
+
   UserManagementService service;
 
   @BeforeEach
   void setup() {
 
     String realm = "user-management-realm";
-    service = new UserManagementService(keycloak, realm, mailService);
+    service = new UserManagementService(keycloak, realm, mailService, passwordResetTokenRepository);
 
     lenient().when(keycloak.realm(realm)).thenReturn(realmResource);
     lenient().when(realmResource.users()).thenReturn(usersResource);
@@ -208,5 +215,84 @@ public class UserManagementServiceTest {
     service.getAllUsers();
 
     verify(usersResource).search(eq(""), eq(0), eq(100));
+  }
+
+  // ---- Forgot / Reset Password Tests ----
+
+  @Test
+  void initiateForgotPassword_savesTokenAndSendsEmail_whenUserFound() {
+    UserRepresentation user = userRep("kc-id-1", "testuser");
+    user.setEmail("test@example.com");
+
+    when(usersResource.searchByEmail(eq("test@example.com"), eq(true))).thenReturn(List.of(user));
+
+    service.initiateForgotPassword("test@example.com");
+
+    verify(passwordResetTokenRepository).deleteByKeycloakUserId("kc-id-1");
+    verify(passwordResetTokenRepository).save(any(PasswordResetTokenEntity.class));
+    verify(mailService).sendEmail(eq("test@example.com"), anyString(), anyString(), isNull());
+  }
+
+  @Test
+  void initiateForgotPassword_doesNothing_whenUserNotFound() {
+    when(usersResource.searchByEmail(eq("unknown@example.com"), eq(true))).thenReturn(List.of());
+
+    service.initiateForgotPassword("unknown@example.com");
+
+    verify(passwordResetTokenRepository, never()).save(any());
+    verify(mailService, never()).sendEmail(anyString(), anyString(), anyString(), any());
+  }
+
+  @Test
+  void resetPassword_resetsKeycloakAndDeletesToken_whenTokenValid() {
+    PasswordResetTokenEntity token =
+        PasswordResetTokenEntity.builder()
+            .token("valid-token")
+            .keycloakUserId("kc-id-2")
+            .expiresAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")).plusHours(1))
+            .build();
+
+    when(passwordResetTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(token));
+    when(usersResource.get("kc-id-2")).thenReturn(userResource);
+
+    service.resetPassword("valid-token", "NewPassword1!");
+
+    ArgumentCaptor<CredentialRepresentation> credCaptor =
+        ArgumentCaptor.forClass(CredentialRepresentation.class);
+    verify(userResource).resetPassword(credCaptor.capture());
+    assertEquals("NewPassword1!", credCaptor.getValue().getValue());
+    assertFalse(credCaptor.getValue().isTemporary());
+
+    verify(passwordResetTokenRepository).deleteByToken("valid-token");
+  }
+
+  @Test
+  void resetPassword_throwsForUnknownToken() {
+    when(passwordResetTokenRepository.findByToken("bad-token")).thenReturn(Optional.empty());
+
+    RuntimeException ex =
+        assertThrows(RuntimeException.class, () -> service.resetPassword("bad-token", "pass"));
+
+    assertTrue(ex.getMessage().contains("Invalid or expired token"));
+    verifyNoInteractions(userResource);
+  }
+
+  @Test
+  void resetPassword_throwsForExpiredToken() {
+    PasswordResetTokenEntity expiredToken =
+        PasswordResetTokenEntity.builder()
+            .token("expired-token")
+            .keycloakUserId("kc-id-3")
+            .expiresAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")).minusHours(2))
+            .build();
+
+    when(passwordResetTokenRepository.findByToken("expired-token"))
+        .thenReturn(Optional.of(expiredToken));
+
+    RuntimeException ex =
+        assertThrows(RuntimeException.class, () -> service.resetPassword("expired-token", "pass"));
+
+    assertTrue(ex.getMessage().contains("expired"));
+    verify(userResource, never()).resetPassword(any());
   }
 }

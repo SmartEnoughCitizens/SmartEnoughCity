@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: "/api/auth/login",
   AUTH_HEALTH: "/api/auth/health",
+  AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
+  AUTH_RESET_PASSWORD: "/api/auth/reset-password",
 
   // Public
   PUBLIC_HEALTH: "/api/public/health",

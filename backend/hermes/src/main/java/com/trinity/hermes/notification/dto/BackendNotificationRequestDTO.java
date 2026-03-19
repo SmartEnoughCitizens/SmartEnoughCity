@@ -1,6 +1,7 @@
 package com.trinity.hermes.notification.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.trinity.hermes.notification.model.enums.Channel;
 import java.util.Map;
 import lombok.Data;
 
@@ -18,6 +19,7 @@ public class BackendNotificationRequestDTO {
   private String body;
   private Map<String, Object> metadata;
   private String priority;
+  private Channel channel;
 
   public Map<String, Object> getMetadata() {
     return metadata == null ? null : Map.copyOf(metadata);
