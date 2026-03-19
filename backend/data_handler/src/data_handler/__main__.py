@@ -21,6 +21,9 @@ from data_handler.tram.forecast_handler import luas_forecasts_to_db
 from data_handler.tram.static_data_handler import process_tram_static_data
 
 
+from data_handler.urls import download_drive_folder
+
+
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="SmartEnoughCity Data Handler")
     parser.add_argument(
@@ -51,7 +54,9 @@ def main_static() -> None:
         logger.info("Skipping bus static data processing...")
 
     if sources_settings.enable_car_data:
+        download_drive_folder("car", sources_settings.base_static_data_dir)
         process_car_static_data(sources_settings.base_static_data_dir / "car")
+        #delete
     else:
         logger.info("Skipping car static data processing...")
 
