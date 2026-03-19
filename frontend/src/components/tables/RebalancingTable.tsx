@@ -29,7 +29,11 @@ export const RebalancingTable = ({ suggestions }: RebalancingTableProps) => {
         <Typography variant="body2" color="text.secondary">
           No rebalancing needed right now
         </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mt: 0.5 }}
+        >
           All stations have bikes and dock space available
         </Typography>
       </Box>
@@ -57,9 +61,17 @@ export const RebalancingTable = ({ suggestions }: RebalancingTableProps) => {
         </TableHead>
         <TableBody>
           {suggestions.map((s, i) => (
-            <TableRow key={`${s.sourceStationId}-${s.targetStationId}-${i}`} hover>
+            <TableRow
+              key={`${s.sourceStationId}-${s.targetStationId}-${i}`}
+              hover
+            >
               <TableCell>
-                <Typography variant="body2" fontWeight={500} noWrap sx={{ maxWidth: 130 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight={500}
+                  noWrap
+                  sx={{ maxWidth: 130 }}
+                >
                   {s.sourceName}
                 </Typography>
                 <Chip
@@ -73,7 +85,12 @@ export const RebalancingTable = ({ suggestions }: RebalancingTableProps) => {
                 <ArrowForwardIcon fontSize="small" color="action" />
               </TableCell>
               <TableCell>
-                <Typography variant="body2" fontWeight={500} noWrap sx={{ maxWidth: 130 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight={500}
+                  noWrap
+                  sx={{ maxWidth: 130 }}
+                >
                   {s.targetName}
                 </Typography>
                 <Chip

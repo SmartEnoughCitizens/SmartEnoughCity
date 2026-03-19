@@ -38,7 +38,10 @@ export const NetworkSummaryChart = ({
                 strokeWidth={0}
               >
                 {pieData.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -52,7 +55,9 @@ export const NetworkSummaryChart = ({
             </PieChart>
           </ResponsiveContainer>
         </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75 }}>
+        <Box
+          sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75 }}
+        >
           <StatItem
             label="Active stations"
             value={`${summary.activeStations}/${summary.totalStations}`}
@@ -98,7 +103,10 @@ export const NetworkSummaryChart = ({
               strokeWidth={0}
             >
               {pieData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
               ))}
             </Pie>
             <Tooltip
@@ -117,13 +125,22 @@ export const NetworkSummaryChart = ({
         <StatItem label="Active Stations" value={summary.activeStations} />
         <StatItem label="Bikes Available" value={summary.totalBikesAvailable} />
         <StatItem label="Docks Available" value={summary.totalDocksAvailable} />
-        <StatItem label="No Bikes (empty stations)" value={summary.emptyStations} />
-        <StatItem label="No Space (full stations)" value={summary.fullStations} />
+        <StatItem
+          label="No Bikes (empty stations)"
+          value={summary.emptyStations}
+        />
+        <StatItem
+          label="No Space (full stations)"
+          value={summary.fullStations}
+        />
         <StatItem
           label="Avg Bike Availability"
           value={`${summary.avgNetworkFullnessPct.toFixed(1)}%`}
         />
-        <StatItem label="Rebalancing Need" value={summary.rebalancingNeedCount} />
+        <StatItem
+          label="Rebalancing Need"
+          value={summary.rebalancingNeedCount}
+        />
       </Box>
     </Box>
   );

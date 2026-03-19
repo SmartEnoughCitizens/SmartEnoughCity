@@ -3,7 +3,13 @@
  */
 
 import { useEffect, useCallback } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import { Box, Typography, Chip } from "@mui/material";
 import L from "leaflet";
 import type { StationLiveDTO } from "@/types";
@@ -88,7 +94,10 @@ export const LiveCycleStationMap = ({
           >
             <Popup>
               <Box sx={{ minWidth: 180, p: 0.5 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: 600, mb: 0.5 }}
+                >
                   {station.name}
                 </Typography>
                 <Typography

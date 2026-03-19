@@ -36,8 +36,10 @@ const lineOpacity = (trips: number, maxTrips: number): number =>
 
 /** Temporary bezier shown only while OSRM route is loading */
 const bezierArc = (
-  lat1: number, lon1: number,
-  lat2: number, lon2: number,
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
   steps = 20,
 ): [number, number][] => {
   const dLat = lat2 - lat1;
@@ -61,8 +63,10 @@ const bezierArc = (
 // ── OSRM fetch ────────────────────────────────────────────────────────────────
 
 const fetchCycleRoute = async (
-  originLat: number, originLon: number,
-  destLat: number, destLon: number,
+  originLat: number,
+  originLon: number,
+  destLat: number,
+  destLon: number,
 ): Promise<[number, number][]> => {
   // routing.openstreetmap.de/routed-bike is a public OSRM instance with bicycle profile
   const url =
@@ -72,7 +76,9 @@ const fetchCycleRoute = async (
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`OSRM ${res.status}`);
-  const json = (await res.json()) as { routes?: { geometry: { coordinates: [number, number][] } }[] };
+  const json = (await res.json()) as {
+    routes?: { geometry: { coordinates: [number, number][] } }[];
+  };
   if (!json.routes?.length) throw new Error("No route returned");
   // OSRM returns [lon, lat]; Leaflet needs [lat, lon]
   return json.routes[0].geometry.coordinates.map(
@@ -85,7 +91,8 @@ const fetchCycleRoute = async (
 
 const routeCache = new Map<string, [number, number][]>();
 
-const cacheKey = (p: StationODPairDTO) => `${p.originStationId}-${p.destStationId}`;
+const cacheKey = (p: StationODPairDTO) =>
+  `${p.originStationId}-${p.destStationId}`;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -99,7 +106,9 @@ const FitBounds = ({ stations }: { stations: StationLiveDTO[] }) => {
       );
     }
   }, [stations, map]);
-  useEffect(() => { fitBounds(); }, [fitBounds]);
+  useEffect(() => {
+    fitBounds();
+  }, [fitBounds]);
   return <></>;
 };
 
@@ -118,7 +127,10 @@ const Legend = () => (
       backdropFilter: "blur(6px)",
     }}
   >
-    <Typography variant="caption" sx={{ display: "block", mb: 0.75, fontWeight: 600 }}>
+    <Typography
+      variant="caption"
+      sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
+    >
       Cycle path intensity
     </Typography>
     {[
@@ -126,7 +138,10 @@ const Legend = () => (
       { color: "#f97316", label: "Medium" },
       { color: "#4ade80", label: "Low" },
     ].map(({ color, label }) => (
-      <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.4 }}>
+      <Box
+        key={label}
+        sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.4 }}
+      >
         <Box sx={{ width: 24, height: 4, borderRadius: 1, bgcolor: color }} />
         <Typography variant="caption">{label}</Typography>
       </Box>
@@ -194,7 +209,10 @@ export const ODFlowMap = ({
   const maxTrips = globalMaxTrips > 0 ? globalMaxTrips : 1;
 
   const activeIds = useMemo(
-    () => new Set<number>(visiblePairs.flatMap((p) => [p.originStationId, p.destStationId])),
+    () =>
+      new Set<number>(
+        visiblePairs.flatMap((p) => [p.originStationId, p.destStationId]),
+      ),
     [visiblePairs],
   );
 
@@ -217,7 +235,12 @@ export const ODFlowMap = ({
       const key = cacheKey(pair);
       inFlight.current.add(key);
 
-      fetchCycleRoute(pair.originLat, pair.originLon, pair.destLat, pair.destLon)
+      fetchCycleRoute(
+        pair.originLat,
+        pair.originLon,
+        pair.destLat,
+        pair.destLon,
+      )
         .then((path) => {
           console.log(`Cycle route loaded: ${key} (${path.length} points)`);
           routeCache.set(key, path);
@@ -256,7 +279,12 @@ export const ODFlowMap = ({
 
           const path =
             routes.get(key) ??
-            bezierArc(pair.originLat, pair.originLon, pair.destLat, pair.destLon);
+            bezierArc(
+              pair.originLat,
+              pair.originLon,
+              pair.destLat,
+              pair.destLon,
+            );
 
           const isRealRoute = routes.has(key);
 
@@ -265,8 +293,14 @@ export const ODFlowMap = ({
               key={`od-${key}-${idx}`}
               positions={path}
               pathOptions={{
-                color: isSelected ? "#facc15" : isHighlighted ? "#ffffff" : heatColor(intensity),
-                weight: isSelected ? lineWeight(pair.estimatedTrips, maxTrips) + 3 : lineWeight(pair.estimatedTrips, maxTrips),
+                color: isSelected
+                  ? "#facc15"
+                  : isHighlighted
+                    ? "#ffffff"
+                    : heatColor(intensity),
+                weight: isSelected
+                  ? lineWeight(pair.estimatedTrips, maxTrips) + 3
+                  : lineWeight(pair.estimatedTrips, maxTrips),
                 opacity: isSelected
                   ? 1
                   : isHighlighted
@@ -279,7 +313,11 @@ export const ODFlowMap = ({
             >
               <Popup>
                 <Box sx={{ minWidth: 180, p: 0.5 }}>
-                  <Typography variant="caption" color="text.secondary" display="block">
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                  >
                     Origin
                   </Typography>
                   <Typography variant="body2" fontWeight={600}>
@@ -303,7 +341,12 @@ export const ODFlowMap = ({
                     sx={{ mt: 0.75 }}
                   />
                   {!isRealRoute && (
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ mt: 0.5 }}
+                    >
                       Loading cycle route…
                     </Typography>
                   )}
@@ -326,21 +369,32 @@ export const ODFlowMap = ({
                 color: isEndpoint ? "#facc15" : "#fff",
                 weight: isEndpoint ? 3 : isActive ? 2 : 1,
                 fillColor: isEndpoint
-                  ? STATUS_FILL[station.statusColor] ?? "#94a3b8"
+                  ? (STATUS_FILL[station.statusColor] ?? "#94a3b8")
                   : isActive
-                    ? STATUS_FILL[station.statusColor] ?? "#94a3b8"
+                    ? (STATUS_FILL[station.statusColor] ?? "#94a3b8")
                     : "#94a3b8",
                 fillOpacity: isEndpoint ? 1 : isActive ? 1 : 0.75,
               }}
             >
               <Popup>
                 <Box sx={{ minWidth: 160, p: 0.5 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 600, mb: 0.5 }}
+                  >
                     {station.name}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 0.5 }}>
-                    <Chip label={`${station.availableBikes} bikes`} size="small" color="primary" />
-                    <Chip label={`${station.availableDocks} docks`} size="small" color="secondary" />
+                    <Chip
+                      label={`${station.availableBikes} bikes`}
+                      size="small"
+                      color="primary"
+                    />
+                    <Chip
+                      label={`${station.availableDocks} docks`}
+                      size="small"
+                      color="secondary"
+                    />
                   </Box>
                 </Box>
               </Popup>
