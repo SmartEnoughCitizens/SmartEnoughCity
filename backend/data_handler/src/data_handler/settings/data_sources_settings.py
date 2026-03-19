@@ -32,64 +32,16 @@ class DataSourcesSettings(BaseSettings):
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
 
-    bus_gtfs_static_data_dir: Path | None = Field(
+    bus_static_data_dir: Path | None = Field(
         None,
-        alias="BUS_GTFS_STATIC_DATA_DIR",
+        alias="STATIC_DATA" / "bus",
         description="Filesystem path to the directory containing the GTFS bus static data",
     )
 
-    car_static_data_dir: Path | None = Field(
-        None,
-        alias="CAR_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the Car static data",
-    )
-
-    dublin_bikes_csv_archive_dir: Path | None = Field(
-        None,
-        alias="DUBLIN_BIKES_CSV_ARCHIVE_DIR",
-        description="Directory containing historical Dublin Bikes CSV archives",
-    )
-
-    train_gtfs_static_data_dir: Path | None = Field(
-        None,
-        alias="TRAIN_GTFS_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the GTFS train static data",
-    )
-
-    tram_gtfs_static_data_dir: Path | None = Field(
-        None,
-        alias="TRAM_GTFS_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the GTFS tram static data",
-    )
-
-    tram_cso_static_data_dir: Path | None = Field(
-        None,
-        alias="TRAM_CSO_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the CSO tram static data",
-    )
-
-    population_static_data_dir: Path | None = Field(
-        None,
-        alias="POPULATION_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the population static data",
-    )
-
-    @field_validator(
-        "bus_gtfs_static_data_dir",
-        "car_static_data_dir",
-        "dublin_bikes_csv_archive_dir",
-        "train_gtfs_static_data_dir",
-        "tram_gtfs_static_data_dir",
-        "tram_cso_static_data_dir",
-        "population_static_data_dir",
-    )
+    @field_validator("base_static_data_dir")
     @classmethod
-    def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
-        if p is None:
-            return None
-        if not p.is_dir():
-            msg = f"Path is not a directory: {p}"
-            raise ValueError(msg)
+    def _ensure_base_dir(cls, p: Path) -> Path:
+        p.mkdir(parents=True, exist_ok=True)
         return p
 
     model_config = SettingsConfigDict(
