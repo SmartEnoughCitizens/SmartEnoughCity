@@ -104,7 +104,7 @@ inference-engine:
     runAsNonRoot: true
 
 # Exclude PostgreSQL from Istio injection - databases need direct network access
-postgresql:
+postgres:
   primary:
     podAnnotations:
       sidecar.istio.io/inject: "false"

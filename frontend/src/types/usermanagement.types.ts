@@ -8,7 +8,6 @@ export interface RegisterUserRequest {
   firstName: string;
   lastName: string;
   role: string;
-  password?: string;
 }
 
 export interface RegisterUserResponse {
@@ -25,6 +24,24 @@ export interface UserInfo {
   email: string;
   firstName: string;
   lastName: string;
+}
+
+export interface UserProfile {
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export const ALLOWED_ROLES = [

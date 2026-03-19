@@ -34,6 +34,25 @@ def parse_scats_time(time_str: str) -> datetime:
     return datetime(year, month, day, hour, minute, second)
 
 
+def parse_optional_float(value: str) -> float | None:
+    """
+    Parse float from string, returning None for empty or invalid values.
+
+    Args:
+        value: String to parse
+
+    Returns:
+        Float value, or None if empty/unparseable
+    """
+    stripped = value.strip()
+    if not stripped:
+        return None
+    try:
+        return float(stripped)
+    except ValueError:
+        return None
+
+
 def parse_month_year(month_str: str) -> datetime:
     """
     Parse month-year format to datetime (first day of month).
@@ -116,6 +135,10 @@ def parse_kw_value(value: str) -> float | None:
     # Clean the value
     value = value.strip().replace("kW", "").replace("kw", "").strip()
 
+    # Handle "22(2)" format - kW value followed by charger count in parens
+    if "(" in value:
+        value = value[: value.index("(")].strip()
+
     # Handle empty after cleaning
     if not value or value.lower() in ["not available", "n/a", "na", "none"]:
         return None
@@ -173,6 +196,7 @@ def parse_open_hours(value: str) -> tuple[bool, str | None]:
             "24/7" in value_lower,
             "24 hours" in value_lower,
             "24hrs" in value_lower,
+            "24 x" in value_lower,  # "24 x 7" format from ESB XLSX
             "always" in value_lower,
             value_lower == "24",
         ]
