@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.trinity.hermes.usermanagement.common.TestUtils;
+import com.trinity.hermes.notification.services.mail.MailService;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import java.util.Map;
@@ -25,7 +25,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = "app.frontend-url=http://localhost:3000")
 @AutoConfigureMockMvc
 class UserManagementTest {
 
@@ -65,6 +67,9 @@ class UserManagementTest {
 
   @Autowired MockMvc mockMvc;
   @Autowired ObjectMapper objectMapper;
+
+  @org.springframework.test.context.bean.override.mockito.MockitoBean(name = "getMailService")
+  MailService mailService;
 
   private String token(String username, String password) {
     String tokenUrl =
@@ -122,7 +127,6 @@ class UserManagementTest {
     r.setFirstName("First");
     r.setLastName("Last");
     r.setRole(role);
-    r.setPassword(TestUtils.randomPassword());
     return r;
   }
 
