@@ -225,9 +225,9 @@ def process_bus_vehicles_live_data(json_string: str) -> None:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    rows: list[BusLiveVehicle] = []
-    for entity in feed.entity:
-        rows.append(_entity_to_live_vehicle(entity))
+    rows: list[BusLiveVehicle] = [
+        _entity_to_live_vehicle(entity) for entity in feed.entity
+    ]
 
     with SessionLocal() as session:
         try:
@@ -259,9 +259,9 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    rows: list[BusLiveTripUpdate] = []
-    for entity in feed.entity:
-        rows.append(_entity_to_live_trip_update(entity))
+    rows: list[BusLiveTripUpdate] = [
+        _entity_to_live_trip_update(entity) for entity in feed.entity
+    ]
 
     with SessionLocal() as session:
         try:
@@ -283,12 +283,12 @@ def process_bus_live_data() -> None:
     trip_updates_url = f"{api_settings.gtfs_api_base_url}/TripUpdates?format=json"
 
     logger.info("Fetching bus live vehicles data...")
-    vehicles_response = requests.get(vehicles_url, headers=headers)
+    vehicles_response = requests.get(vehicles_url, headers=headers, timeout=30)
     vehicles_response.raise_for_status()
     process_bus_vehicles_live_data(vehicles_response.text)
 
     logger.info("Fetching bus live trip updates data...")
-    trip_updates_response = requests.get(trip_updates_url, headers=headers)
+    trip_updates_response = requests.get(trip_updates_url, headers=headers, timeout=30)
     trip_updates_response.raise_for_status()
     process_bus_trip_updates_live_data(trip_updates_response.text)
 
