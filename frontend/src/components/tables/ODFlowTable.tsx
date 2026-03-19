@@ -56,9 +56,9 @@ export const ODFlowTable = ({
     stationMap.set(pair.originStationId, pair.originName);
     stationMap.set(pair.destStationId, pair.destName);
   }
-  const stationOptions: StationOption[] = Array.from(stationMap.entries())
+  const stationOptions: StationOption[] = [...stationMap.entries()]
     .map(([id, label]) => ({ id, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .toSorted((a, b) => a.label.localeCompare(b.label));
 
   const visiblePairs = filterStationId
     ? odPairs.filter(

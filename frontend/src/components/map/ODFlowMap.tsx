@@ -42,7 +42,7 @@ const bezierArc = (
 ): [number, number][] => {
   const dLat = lat2 - lat1;
   const dLon = lon2 - lon1;
-  const len = Math.sqrt(dLat * dLat + dLon * dLon) || 1;
+  const len = Math.hypot(dLat, dLon) || 1;
   const offset = len * 0.3;
   const ctrlLat = (lat1 + lat2) / 2 + (-dLon / len) * offset;
   const ctrlLon = (lon1 + lon2) / 2 + (dLat / len) * offset;
@@ -72,11 +72,11 @@ const fetchCycleRoute = async (
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`OSRM ${res.status}`);
-  const json = await res.json();
+  const json = (await res.json()) as { routes?: { geometry: { coordinates: [number, number][] } }[] };
   if (!json.routes?.length) throw new Error("No route returned");
   // OSRM returns [lon, lat]; Leaflet needs [lat, lon]
   return json.routes[0].geometry.coordinates.map(
-    ([lon, lat]: [number, number]) => [lat, lon] as [number, number],
+    ([lon, lat]) => [lat, lon] as [number, number],
   );
 };
 
@@ -187,7 +187,7 @@ export const ODFlowMap = ({
 
   // Stable key string so the effect only fires when the actual pair set changes
   const pairKeys = useMemo(
-    () => visiblePairs.map(cacheKey).join(","),
+    () => visiblePairs.map((p) => cacheKey(p)).join(","),
     [visiblePairs],
   );
 
@@ -213,7 +213,7 @@ export const ODFlowMap = ({
     );
     if (missing.length === 0) return;
 
-    missing.forEach((pair) => {
+    for (const pair of missing) {
       const key = cacheKey(pair);
       inFlight.current.add(key);
 
@@ -223,13 +223,13 @@ export const ODFlowMap = ({
           routeCache.set(key, path);
           setRoutes(new Map(routeCache));
         })
-        .catch((err) => {
-          console.warn(`OSRM route failed for ${key}:`, err);
+        .catch((error) => {
+          console.warn(`OSRM route failed for ${key}:`, error);
         })
         .finally(() => {
           inFlight.current.delete(key);
         });
-    });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pairKeys]);
 
