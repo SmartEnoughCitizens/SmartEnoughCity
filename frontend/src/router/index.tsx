@@ -47,6 +47,9 @@ const ResetPasswordPage = lazy(() =>
     default: m.ResetPasswordPage,
   })),
 );
+const MiscDashboard = lazy(() =>
+  import("@/pages/MiscDashboard").then((m) => ({ default: m.MiscDashboard })),
+);
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
 const LoadingFallback = () => (
@@ -148,6 +151,18 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <LazyWrapper>
             <TrainDashboard />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/misc",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <MiscDashboard />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>

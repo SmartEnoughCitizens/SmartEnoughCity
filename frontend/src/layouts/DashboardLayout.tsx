@@ -29,6 +29,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
@@ -111,6 +112,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       icon: <TrainIcon />,
       path: "/dashboard/train",
       label: "Trains",
+    },
+    {
+      icon: <EventNoteIcon />,
+      path: "/dashboard/misc",
+      label: "Misc",
     },
     {
       icon: (
