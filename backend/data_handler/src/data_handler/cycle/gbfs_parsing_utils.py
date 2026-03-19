@@ -29,43 +29,6 @@ def parse_iso_timestamp(timestamp_str: str) -> datetime:
         raise ValueError(msg) from e
 
 
-def parse_csv_boolean(value: str) -> bool:
-    """
-    Convert CSV string boolean to Python bool.
-
-    Args:
-        value: String representation of boolean ("true", "false", "1", "0", "yes", "no")
-
-    Returns:
-        Python boolean value
-
-    Raises:
-        ValueError: If value cannot be converted to boolean
-    """
-    value_lower = value.strip().lower()
-    if value_lower in ("true", "1", "yes"):
-        return True
-    if value_lower in ("false", "0", "no"):
-        return False
-    msg = f"Invalid boolean value: {value}"
-    raise ValueError(msg)
-
-
-def parse_csv_timestamp(timestamp_str: str) -> datetime:
-    """
-    Parse timestamp from CSV (ISO format).
-
-    Args:
-        timestamp_str: ISO format timestamp string
-
-    Returns:
-        Timezone-aware datetime object
-
-    Raises:
-        ValueError: If timestamp format is invalid
-    """
-    return parse_iso_timestamp(timestamp_str)
-
 
 def validate_station_status_record(record: dict) -> None:
     """
@@ -114,50 +77,3 @@ def validate_station_status_record(record: dict) -> None:
         if not isinstance(record[bool_field], bool):
             msg = f"{bool_field} must be boolean, got: {type(record[bool_field])}"
             raise TypeError(msg)
-
-
-def _validate_numeric_csv_field(
-    row: dict, field: str, *, allow_zero: bool = True
-) -> None:
-    """Validate a numeric CSV field."""
-    try:
-        value = int(row[field])
-    except ValueError as e:
-        msg = f"Invalid {field}: {row[field]}"
-        raise ValueError(msg) from e
-    min_value = 0 if allow_zero else 1
-    if value < min_value:
-        msg = f"Invalid {field}: {value}"
-        raise ValueError(msg)
-
-
-def validate_csv_station_history_row(row: dict) -> None:
-    """
-    Validate CSV row for station history.
-
-    Args:
-        row: Dictionary containing one row from CSV file
-
-    Raises:
-        ValueError: If row is missing required fields or has invalid data
-    """
-    required_fields = [
-        "station_id",
-        "last_reported",
-        "num_bikes_available",
-        "num_docks_available",
-        "is_installed",
-        "is_renting",
-        "is_returning",
-    ]
-
-    # Check for missing or empty fields
-    for field in required_fields:
-        if field not in row or not row[field].strip():
-            msg = f"Missing or empty required field: {field}"
-            raise ValueError(msg)
-
-    # Validate numeric fields
-    _validate_numeric_csv_field(row, "station_id", allow_zero=False)
-    _validate_numeric_csv_field(row, "num_bikes_available")
-    _validate_numeric_csv_field(row, "num_docks_available")
