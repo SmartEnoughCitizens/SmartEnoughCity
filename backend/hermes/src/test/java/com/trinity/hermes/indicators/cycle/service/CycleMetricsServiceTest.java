@@ -278,19 +278,19 @@ public class CycleMetricsServiceTest {
       assertEquals(4, result.getEmptyStations());
       assertEquals(2, result.getFullStations());
       assertEquals(35.5, result.getAvgNetworkFullnessPct());
-      assertEquals(6, result.getRebalancingNeedCount()); // emptyStations + fullStations
+      assertEquals(4, result.getRebalancingNeedCount()); // emptyStations only
       assertNotNull(result.getDataAsOf());
     }
 
     @Test
-    @DisplayName("rebalancingNeedCount equals emptyStations + fullStations")
+    @DisplayName("rebalancingNeedCount equals emptyStations only")
     void getNetworkSummary_rebalancingNeedCount_isCorrect() {
       Object[] row = buildNetworkSummaryRow(50, 200, 800, 0, 0, 10, 5, 40.0);
       when(snapshotRepository.findNetworkSummary()).thenReturn(rows(row));
 
       NetworkSummaryDTO result = service.getNetworkSummary();
 
-      assertEquals(15, result.getRebalancingNeedCount());
+      assertEquals(10, result.getRebalancingNeedCount());
     }
 
     @Test
@@ -611,7 +611,7 @@ public class CycleMetricsServiceTest {
 
       NetworkKpiDTO result = service.getNetworkKpi();
 
-      assertEquals(6, result.getRebalancingNeedCount()); // 4 empty + 2 full
+      assertEquals(4, result.getRebalancingNeedCount()); // emptyStations only
       assertEquals(0.25, result.getNetworkImbalanceScore());
       assertEquals(1.8, result.getAvgHourlyTurnoverRate());
       assertEquals(3500L, result.getDailyTripsEstimate());
