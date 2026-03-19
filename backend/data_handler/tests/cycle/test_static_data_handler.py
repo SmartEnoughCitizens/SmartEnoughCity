@@ -7,7 +7,7 @@ import pytest
 
 from data_handler.cycle.static_data_handler import (
     parse_station_information_record,
-    process_station_information,
+    process_cycle_station_info,
 )
 
 
@@ -87,7 +87,7 @@ class TestParseStationInformationRecord:
 
 
 class TestProcessStationInformation:
-    """Test the full process_station_information workflow."""
+    """Test the full process_cycle_station_info workflow."""
 
     def test_fetches_and_stores_stations(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful fetch and store of station information."""
@@ -119,7 +119,7 @@ class TestProcessStationInformation:
             lambda: mock_session,
         )
 
-        process_station_information()
+        process_cycle_station_info()
 
         mock_client.fetch_station_information.assert_called_once()
         assert mock_session.execute.call_count == 2  # upsert + delete stale
@@ -151,7 +151,7 @@ class TestProcessStationInformation:
         )
 
         with pytest.raises(Exception, match="DB error"):
-            process_station_information()
+            process_cycle_station_info()
 
         mock_session.rollback.assert_called_once()
         mock_session.close.assert_called_once()
@@ -171,7 +171,7 @@ class TestProcessStationInformation:
             lambda: mock_session,
         )
 
-        process_station_information()
+        process_cycle_station_info()
 
         mock_session.execute.assert_not_called()
         mock_session.commit.assert_called_once()

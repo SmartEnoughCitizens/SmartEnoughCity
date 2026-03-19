@@ -54,7 +54,7 @@ def _transform_station_records(stations: list[dict], fetch_ts: datetime) -> list
     return records
 
 
-def fetch_and_store_station_snapshots() -> None:
+def process_cycle_live_data() -> None:
     """Fetch and store real-time station status.
 
     This function:

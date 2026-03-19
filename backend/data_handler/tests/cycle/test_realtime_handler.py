@@ -8,7 +8,7 @@ import pytest
 from data_handler.cycle.realtime_handler import (
     _parse_last_reported,
     _transform_station_records,
-    fetch_and_store_station_snapshots,
+    process_cycle_live_data,
 )
 
 
@@ -193,7 +193,7 @@ class TestFetchAndStoreStationSnapshots:
             lambda: mock_session_ctx,
         )
 
-        fetch_and_store_station_snapshots()
+        process_cycle_live_data()
 
         mock_client.fetch_station_status.assert_called_once()
         assert mock_session.execute.call_count == 2  # snapshots + history
@@ -208,7 +208,7 @@ class TestFetchAndStoreStationSnapshots:
             lambda: mock_client,
         )
 
-        fetch_and_store_station_snapshots()
+        process_cycle_live_data()
 
         mock_client.fetch_station_status.assert_called_once()
 
@@ -234,4 +234,4 @@ class TestFetchAndStoreStationSnapshots:
         )
 
         with pytest.raises(Exception, match="DB error"):
-            fetch_and_store_station_snapshots()
+            process_cycle_live_data()

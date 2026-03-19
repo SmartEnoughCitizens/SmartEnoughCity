@@ -28,7 +28,7 @@ def parse_station_information_record(record: dict) -> dict:
     }
 
 
-def process_station_information() -> None:
+def process_cycle_station_info() -> None:
     """
     Fetch and store static station information from JCDecaux GBFS API.
 

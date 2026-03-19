@@ -8,7 +8,7 @@ import pytest
 
 from data_handler.cycle.csv_import_handler import (
     REQUIRED_HEADERS,
-    import_all_station_history_csvs,
+    import_cycle_history_data,
     import_station_history_csv,
     parse_station_history_csv_row,
 )
@@ -217,18 +217,18 @@ class TestImportAllStationHistoryCsvs:
     def test_raises_on_invalid_directory(self) -> None:
         """Test that non-existent directory raises ValueError."""
         with pytest.raises(ValueError, match="Invalid directory"):
-            import_all_station_history_csvs(Path("/nonexistent/dir"))
+            import_cycle_history_data(Path("/nonexistent/dir"))
 
     def test_raises_on_file_instead_of_directory(self, tmp_path: Path) -> None:
         """Test that passing a file path raises ValueError."""
         f = tmp_path / "not_a_dir.csv"
         f.write_text("data")
         with pytest.raises(ValueError, match="Invalid directory"):
-            import_all_station_history_csvs(f)
+            import_cycle_history_data(f)
 
     def test_handles_empty_directory(self, tmp_path: Path) -> None:
         """Test that empty directory logs warning and returns."""
-        import_all_station_history_csvs(tmp_path)
+        import_cycle_history_data(tmp_path)
 
     def test_imports_matching_csv_files(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -252,7 +252,7 @@ class TestImportAllStationHistoryCsvs:
             lambda: mock_session_ctx,
         )
 
-        import_all_station_history_csvs(tmp_path)
+        import_cycle_history_data(tmp_path)
 
         # Should have imported 2 files (not the "other_file.csv")
         assert mock_session.execute.call_count == 2
@@ -289,4 +289,4 @@ class TestImportAllStationHistoryCsvs:
         )
 
         # Should NOT raise - errors are caught and logged
-        import_all_station_history_csvs(tmp_path)
+        import_cycle_history_data(tmp_path)

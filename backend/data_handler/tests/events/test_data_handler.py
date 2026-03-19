@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from data_handler.events.data_handler import (
     _upsert_events,
     _upsert_venues,
-    fetch_and_store_events,
-    fetch_and_store_venues,
+    process_events_data,
+    process_event_venue_info,
 )
 from data_handler.events.parsing_utils import ParsedEvent, ParsedVenue
 from tests.utils import ANY, assert_row_count, assert_rows
@@ -331,12 +331,12 @@ class TestUpsertEventsWithVenueFK:
 
 
 # ---------------------------------------------------------------------------
-# fetch_and_store_venues
+# process_event_venue_info
 # ---------------------------------------------------------------------------
 
 
 class TestFetchAndStoreVenues:
-    """Tests for fetch_and_store_venues."""
+    """Tests for process_event_venue_info."""
 
     @patch("data_handler.events.data_handler.get_ticketmaster_client")
     def test_venues_stored(
@@ -364,7 +364,7 @@ class TestFetchAndStoreVenues:
         }
         mock_get_client.return_value = mock_tm
 
-        count = fetch_and_store_venues(session=db_session)
+        count = process_event_venue_info(session=db_session)
 
         assert count == 1
         assert_row_count(db_session, "venues", 1)
@@ -380,19 +380,19 @@ class TestFetchAndStoreVenues:
         mock_tm.fetch_venues.return_value = {}
         mock_get_client.return_value = mock_tm
 
-        count = fetch_and_store_venues(session=db_session)
+        count = process_event_venue_info(session=db_session)
 
         assert count == 0
         assert_row_count(db_session, "venues", 0)
 
 
 # ---------------------------------------------------------------------------
-# fetch_and_store_events
+# process_events_data
 # ---------------------------------------------------------------------------
 
 
 class TestFetchAndStoreEvents:
-    """Tests for fetch_and_store_events (end-to-end with mocked clients)."""
+    """Tests for process_events_data (end-to-end with mocked clients)."""
 
     @patch("data_handler.events.data_handler.get_ticketmaster_client")
     def test_ticketmaster_events_stored(
@@ -433,7 +433,7 @@ class TestFetchAndStoreEvents:
         }
         mock_get_tm_client.return_value = mock_tm
 
-        count = fetch_and_store_events(session=db_session)
+        count = process_events_data(session=db_session)
 
         assert count == 1
         assert_row_count(db_session, "events", 1)
@@ -450,7 +450,7 @@ class TestFetchAndStoreEvents:
         mock_tm.fetch_events.return_value = {}
         mock_get_tm_client.return_value = mock_tm
 
-        count = fetch_and_store_events(session=db_session)
+        count = process_events_data(session=db_session)
 
         assert count == 0
         assert_row_count(db_session, "events", 0)
@@ -466,7 +466,7 @@ class TestFetchAndStoreEvents:
         mock_tm.fetch_events.side_effect = Exception("API down")
         mock_get_tm_client.return_value = mock_tm
 
-        count = fetch_and_store_events(session=db_session)
+        count = process_events_data(session=db_session)
 
         assert count == 0
         assert_row_count(db_session, "events", 0)
