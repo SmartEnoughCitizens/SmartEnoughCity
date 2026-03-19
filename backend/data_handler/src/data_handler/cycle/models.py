@@ -80,5 +80,3 @@ class DublinBikesStationSnapshot(Base):
 
     # Relationships
     station: Mapped["DublinBikesStation"] = relationship(back_populates="snapshots")
-
-

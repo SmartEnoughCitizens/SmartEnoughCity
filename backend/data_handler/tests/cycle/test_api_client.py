@@ -8,7 +8,7 @@ import requests
 from data_handler.cycle.api_client import DublinBikesClient
 
 
-def _make_feature(
+def _make_feature(  # noqa: PLR0913
     station_id: str = "1",
     lon: float = -6.2625,
     lat: float = 53.3409,
@@ -195,7 +195,9 @@ class TestFetchFeatures:
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        client = DublinBikesClient(url="https://my-custom-url.example.com/stations.geojson")
+        client = DublinBikesClient(
+            url="https://my-custom-url.example.com/stations.geojson"
+        )
         client.fetch_station_information()
 
         call_args = mock_get.call_args[0]
