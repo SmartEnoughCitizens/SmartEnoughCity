@@ -144,7 +144,15 @@ function SectionHeader({
   );
 }
 
-function EventRow({ event, selected, onClick }: { event: EventItem; selected: boolean; onClick: () => void }) {
+function EventRow({
+  event,
+  selected,
+  onClick,
+}: {
+  event: EventItem;
+  selected: boolean;
+  onClick: () => void;
+}) {
   const color = eventColor(event.eventType);
   return (
     <ListItemButton
@@ -190,7 +198,15 @@ function EventRow({ event, selected, onClick }: { event: EventItem; selected: bo
           {event.eventName}
         </Typography>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.3, flexWrap: "wrap" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            mt: 0.3,
+            flexWrap: "wrap",
+          }}
+        >
           <Chip
             size="small"
             label={event.eventType}
@@ -209,12 +225,17 @@ function EventRow({ event, selected, onClick }: { event: EventItem; selected: bo
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.4, mt: 0.2 }}>
           <LocationOnIcon sx={{ fontSize: 11, color: "text.disabled" }} />
-          <Typography noWrap sx={{ fontSize: "0.68rem", color: "text.disabled" }}>
+          <Typography
+            noWrap
+            sx={{ fontSize: "0.68rem", color: "text.disabled" }}
+          >
             {event.venueName}
           </Typography>
           {event.estimatedAttendance != null && (
             <>
-              <PeopleIcon sx={{ fontSize: 11, color: "text.disabled", ml: 0.5 }} />
+              <PeopleIcon
+                sx={{ fontSize: 11, color: "text.disabled", ml: 0.5 }}
+              />
               <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }}>
                 {event.estimatedAttendance.toLocaleString()}
               </Typography>
@@ -228,7 +249,8 @@ function EventRow({ event, selected, onClick }: { event: EventItem; selected: bo
 
 function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
   const intensity = Math.min(site.totalCount / 200, 1); // normalise for colour
-  const color = intensity > 0.7 ? "#EF4444" : intensity > 0.4 ? "#F59E0B" : "#10B981";
+  const color =
+    intensity > 0.7 ? "#EF4444" : intensity > 0.4 ? "#F59E0B" : "#10B981";
 
   return (
     <Box
@@ -257,14 +279,34 @@ function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
 
       {/* Count bar */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 0.3,
+          }}
+        >
           <Typography
             noWrap
-            sx={{ fontSize: "0.835rem", color: "text.primary", fontWeight: 500, lineHeight: 1.2 }}
+            sx={{
+              fontSize: "0.835rem",
+              color: "text.primary",
+              fontWeight: 500,
+              lineHeight: 1.2,
+            }}
           >
             {site.siteName}
           </Typography>
-          <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color, ml: 1, flexShrink: 0 }}>
+          <Typography
+            sx={{
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              color,
+              ml: 1,
+              flexShrink: 0,
+            }}
+          >
             {site.totalCount.toLocaleString()}
           </Typography>
         </Box>
@@ -288,8 +330,12 @@ function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
           />
         </Box>
         {site.lastUpdated && (
-          <Typography sx={{ fontSize: "0.62rem", color: "text.disabled", mt: 0.2 }}>
-            <AccessTimeIcon sx={{ fontSize: 9, mr: 0.3, verticalAlign: "middle" }} />
+          <Typography
+            sx={{ fontSize: "0.62rem", color: "text.disabled", mt: 0.2 }}
+          >
+            <AccessTimeIcon
+              sx={{ fontSize: 9, mr: 0.3, verticalAlign: "middle" }}
+            />
             {formatLastUpdated(site.lastUpdated)}
           </Typography>
         )}
@@ -304,7 +350,11 @@ export const MiscDashboard = () => {
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
-  const { data: events = [], isLoading: eventsLoading, error: eventsError } = useEvents(EVENT_LIMIT);
+  const {
+    data: events = [],
+    isLoading: eventsLoading,
+    error: eventsError,
+  } = useEvents(EVENT_LIMIT);
   const {
     data: pedestrians = [],
     isLoading: pedLoading,
@@ -365,7 +415,7 @@ export const MiscDashboard = () => {
           <SectionHeader
             icon={<EventIcon sx={{ fontSize: 18, color: "#fff" }} />}
             title="Upcoming Events"
-            subtitle={`${events.length} event${events.length !== 1 ? "s" : ""} · Dublin`}
+            subtitle={`${events.length} event${events.length === 1 ? "" : "s"} · Dublin`}
             accent="#7C3AED"
           />
 
@@ -383,8 +433,12 @@ export const MiscDashboard = () => {
             <Box sx={{ flex: 1, overflow: "auto" }}>
               {visibleEvents.length === 0 ? (
                 <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <EventIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
-                  <Typography sx={{ fontSize: "0.8rem", color: "text.disabled" }}>
+                  <EventIcon
+                    sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                  />
+                  <Typography
+                    sx={{ fontSize: "0.8rem", color: "text.disabled" }}
+                  >
                     No upcoming events
                   </Typography>
                 </Box>
@@ -395,7 +449,9 @@ export const MiscDashboard = () => {
                     event={ev}
                     selected={selectedEventId === ev.id}
                     onClick={() =>
-                      setSelectedEventId(selectedEventId === ev.id ? null : ev.id)
+                      setSelectedEventId(
+                        selectedEventId === ev.id ? null : ev.id,
+                      )
                     }
                   />
                 ))
@@ -427,8 +483,18 @@ export const MiscDashboard = () => {
             </Box>
           )}
 
-          <Box sx={{ px: 2, py: 1, borderTop: "1px solid rgba(0,0,0,0.08)", flexShrink: 0 }}>
-            <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.62rem" }}>
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              borderTop: "1px solid rgba(0,0,0,0.08)",
+              flexShrink: 0,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "text.disabled", fontSize: "0.62rem" }}
+            >
               Source: Ticketmaster · Refreshed every 5 min
             </Typography>
           </Box>
@@ -454,18 +520,34 @@ export const MiscDashboard = () => {
           />
 
           {/* Legend */}
-          <Box sx={{ px: 2, py: 0.75, display: "flex", gap: 1.5, flexShrink: 0 }}>
+          <Box
+            sx={{ px: 2, py: 0.75, display: "flex", gap: 1.5, flexShrink: 0 }}
+          >
             {[
               { color: "#10B981", label: "Low" },
               { color: "#F59E0B", label: "Medium" },
               { color: "#EF4444", label: "High" },
             ].map(({ color, label }) => (
-              <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: color }} />
-                <Typography sx={{ fontSize: "0.62rem", color: "#8b949e" }}>{label}</Typography>
+              <Box
+                key={label}
+                sx={{ display: "flex", alignItems: "center", gap: 0.4 }}
+              >
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    bgcolor: color,
+                  }}
+                />
+                <Typography sx={{ fontSize: "0.62rem", color: "#8b949e" }}>
+                  {label}
+                </Typography>
               </Box>
             ))}
-            <Typography sx={{ fontSize: "0.62rem", color: "text.disabled", ml: "auto" }}>
+            <Typography
+              sx={{ fontSize: "0.62rem", color: "text.disabled", ml: "auto" }}
+            >
               count / 15 min window
             </Typography>
           </Box>
@@ -486,8 +568,12 @@ export const MiscDashboard = () => {
             <Box sx={{ flex: 1, overflow: "auto" }}>
               {pedestrians.length === 0 ? (
                 <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <DirectionsWalkIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
-                  <Typography sx={{ fontSize: "0.8rem", color: "text.disabled" }}>
+                  <DirectionsWalkIcon
+                    sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                  />
+                  <Typography
+                    sx={{ fontSize: "0.8rem", color: "text.disabled" }}
+                  >
                     No pedestrian data available
                   </Typography>
                 </Box>
@@ -508,8 +594,18 @@ export const MiscDashboard = () => {
             </Box>
           )}
 
-          <Box sx={{ px: 2, py: 1, borderTop: "1px solid rgba(0,0,0,0.08)", flexShrink: 0 }}>
-            <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.62rem" }}>
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              borderTop: "1px solid rgba(0,0,0,0.08)",
+              flexShrink: 0,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "text.disabled", fontSize: "0.62rem" }}
+            >
               Source: Eco Counter · Refreshed every 30 s
             </Typography>
           </Box>

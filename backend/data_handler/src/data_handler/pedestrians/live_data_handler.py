@@ -111,10 +111,14 @@ def process_pedestrian_sites(json_string: str) -> list[int]:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    valid_payloads = [p for p in payloads if p.location.lat is not None and p.location.lon is not None]
+    valid_payloads = [
+        p for p in payloads if p.location.lat is not None and p.location.lon is not None
+    ]
     skipped = len(payloads) - len(valid_payloads)
     if skipped:
-        logger.warning("Skipping %d site(s) with missing location coordinates.", skipped)
+        logger.warning(
+            "Skipping %d site(s) with missing location coordinates.", skipped
+        )
 
     sites = [_payload_to_site(p) for p in valid_payloads]
     updated_ids: list[int] = []
@@ -383,8 +387,11 @@ def process_pedestrian_live_data() -> None:
     # Use the most recent lastData date from the sites rather than today, because
     # the API may lag by days or weeks and requesting a date with no data yields
     # empty CSVs.  Fall back to today only if no site carries lastData.
-    last_data_dates = [p.last_data.date() for p in _sites_adapter.validate_json(sites_response.text)
-                       if p.last_data is not None]
+    last_data_dates = [
+        p.last_data.date()
+        for p in _sites_adapter.validate_json(sites_response.text)
+        if p.last_data is not None
+    ]
     export_date = max(last_data_dates) if last_data_dates else date.today()
     logger.info("Using export date %s (derived from lastData).", export_date)
 
@@ -404,7 +411,9 @@ def process_pedestrian_live_data() -> None:
             max_attempts,
         )
         try:
-            job_result_response = requests.get(job_result_url, headers=headers, timeout=30)
+            job_result_response = requests.get(
+                job_result_url, headers=headers, timeout=30
+            )
         except requests.RequestException as e:
             if attempt < max_attempts - 1:
                 delay = poll_delays[attempt]
@@ -417,7 +426,9 @@ def process_pedestrian_live_data() -> None:
                 )
                 time.sleep(delay)
                 continue
-            logger.exception("Batch job result fetch failed after %d attempts.", max_attempts)
+            logger.exception(
+                "Batch job result fetch failed after %d attempts.", max_attempts
+            )
             raise
 
         if job_result_response.status_code == 404:
@@ -432,9 +443,8 @@ def process_pedestrian_live_data() -> None:
                 )
                 time.sleep(delay)
                 continue
-            raise RuntimeError(
-                f"Batch job {job_id} did not complete after {max_attempts} attempts."
-            )
+            msg = f"Batch job {job_id} did not complete after {max_attempts} attempts."
+            raise RuntimeError(msg)
 
         job_result_response.raise_for_status()
         process_batch_job_result(job_result_response.content)

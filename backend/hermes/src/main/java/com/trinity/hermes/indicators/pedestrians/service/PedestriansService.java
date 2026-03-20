@@ -32,7 +32,9 @@ public class PedestriansService {
     Double lon = row[3] != null ? ((Number) row[3]).doubleValue() : null;
     Long totalCount =
         row[4] != null
-            ? (row[4] instanceof BigDecimal ? ((BigDecimal) row[4]).longValue() : ((Number) row[4]).longValue())
+            ? (row[4] instanceof BigDecimal
+                ? ((BigDecimal) row[4]).longValue()
+                : ((Number) row[4]).longValue())
             : 0L;
     OffsetDateTime lastUpdated = null;
     if (row[5] != null) {
