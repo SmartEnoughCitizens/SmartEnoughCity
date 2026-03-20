@@ -20,6 +20,7 @@ export const DASHBOARD_KEYS = {
   busSystemPerformance: ["bus", "system-performance"] as const,
   carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
   carHighTrafficPoints: ["car", "high-traffic-points"] as const,
+  carJunctionEmissions: ["car", "junction-emissions"] as const,
   trainKpis: ["train", "kpis"] as const,
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
@@ -173,6 +174,18 @@ export const useCarHighTrafficPoints = () => {
     queryKey: DASHBOARD_KEYS.carHighTrafficPoints,
     queryFn: () => dashboardApi.getCarHighTrafficPoints(),
     staleTime: 300_000,
+  });
+};
+
+/**
+ * Get junction-level CO2 emission estimates
+ */
+export const useCarJunctionEmissions = (enabled = true) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.carJunctionEmissions,
+    queryFn: () => dashboardApi.getCarJunctionEmissions(),
+    staleTime: 300_000,
+    enabled,
   });
 };
 

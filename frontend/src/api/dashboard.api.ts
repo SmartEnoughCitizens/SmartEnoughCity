@@ -15,6 +15,7 @@ import type {
   CycleStation,
   HighTrafficPoint,
   IndicatorType,
+  JunctionEmission,
   TrainDashboardResponse,
   TrainKpis,
   TrainLiveTrain,
@@ -156,6 +157,16 @@ export const dashboardApi = {
   getCarHighTrafficPoints: async (): Promise<HighTrafficPoint[]> => {
     const { data } = await axiosInstance.get<HighTrafficPoint[]>(
       API_ENDPOINTS.CAR_HIGH_TRAFFIC_POINTS,
+    );
+    return data;
+  },
+
+  /**
+   * Get junction-level CO2 emission estimates
+   */
+  getCarJunctionEmissions: async (): Promise<JunctionEmission[]> => {
+    const { data } = await axiosInstance.get<JunctionEmission[]>(
+      API_ENDPOINTS.CAR_JUNCTION_EMISSIONS,
     );
     return data;
   },
