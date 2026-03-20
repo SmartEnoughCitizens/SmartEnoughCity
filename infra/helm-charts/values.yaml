@@ -104,14 +104,11 @@ hermes:
 
 data-handler:
   enabled: true
-  ecoCounterApiBaseUrl: "https://api.eco-counter.com/api/v2"
   secrets:
     dbUser:
       name: sec-db-data-handler-user
     gtfsApiKey:
       name: sec-gtfs-api-key
-    ecoCounterApiKey:
-      name: sec-eco-counter-api-key
 
 inference-engine:
   enabled: true
