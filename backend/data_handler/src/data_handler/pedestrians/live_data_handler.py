@@ -166,7 +166,9 @@ def send_batch_job_request(site_ids: list[int], date: date) -> int:
     }
 
     logger.info("Sending batch job request for date %s...", date)
-    response = requests.post(batch_job_url, headers=headers, json=request_body)
+    response = requests.post(
+        batch_job_url, headers=headers, json=request_body, timeout=30
+    )
     response.raise_for_status()
     job_id = response.json()["id"]
     logger.info("Batch job request sent successfully. Job ID: %s", job_id)
@@ -374,7 +376,7 @@ def process_pedestrian_live_data() -> None:
     sites_url = f"{api_settings.eco_counter_api_base_url}/sites"
 
     logger.info("Fetching pedestrian counter sites data...")
-    sites_response = requests.get(sites_url, headers=headers)
+    sites_response = requests.get(sites_url, headers=headers, timeout=30)
     sites_response.raise_for_status()
     updated_site_ids = process_pedestrian_sites(sites_response.text)
 
@@ -402,7 +404,7 @@ def process_pedestrian_live_data() -> None:
             max_attempts,
         )
         try:
-            job_result_response = requests.get(job_result_url, headers=headers)
+            job_result_response = requests.get(job_result_url, headers=headers, timeout=30)
         except requests.RequestException as e:
             if attempt < max_attempts - 1:
                 delay = poll_delays[attempt]
