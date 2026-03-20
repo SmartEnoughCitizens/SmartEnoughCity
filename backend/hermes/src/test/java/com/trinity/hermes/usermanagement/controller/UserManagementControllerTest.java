@@ -193,30 +193,12 @@ public class UserManagementControllerTest {
     }
 
     @Test
-    @DisplayName(
-        "403 when Government_Admin tries to create Bus_Admin (should be City_Manager only)")
-    void register_busAdmin_byGovAdmin_forbidden() throws Exception {
+    @DisplayName("201 when Government_Admin creates Bus_Admin (allowed)")
+    void register_busAdmin_byGovAdmin_created() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
       RegisterUserRequest req = buildRegisterRequest("busadmin1", "Bus_Admin");
       Jwt caller = buildJwt("gov", "Government_Admin");
-
-      mockMvc
-          .perform(
-              post("/api/usermanagement/register")
-                  .with(jwt().jwt(caller))
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(objectMapper.writeValueAsString(req)))
-          .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("201 when City_Manager creates Bus_Admin (allowed)")
-    void register_busAdmin_byCityManager_created() throws Exception {
-      mockHasRoleBasedOnJwtClaims();
-
-      RegisterUserRequest req = buildRegisterRequest("busadmin1", "Bus_Admin");
-      Jwt caller = buildJwt("citymgr", "City_Manager");
 
       RegisterUserResponse resp = Mockito.mock(RegisterUserResponse.class);
       when(userManagementService.registerUser(any(RegisterUserRequest.class))).thenReturn(resp);
@@ -233,12 +215,30 @@ public class UserManagementControllerTest {
     }
 
     @Test
+    @DisplayName("403 when City_Manager tries to create Bus_Admin (Government_Admin only)")
+    void register_busAdmin_byCityManager_forbidden() throws Exception {
+      mockHasRoleBasedOnJwtClaims();
+
+      RegisterUserRequest req = buildRegisterRequest("busadmin1", "Bus_Admin");
+      Jwt caller = buildJwt("citymgr", "City_Manager");
+
+      mockMvc
+          .perform(
+              post("/api/usermanagement/register")
+                  .with(jwt().jwt(caller))
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(req)))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.message", containsString("Access denied")));
+    }
+
+    @Test
     @DisplayName("400 when service throws RuntimeException (bad request)")
     void register_serviceThrows_returns400() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
       RegisterUserRequest req = buildRegisterRequest("busadmin1", "Bus_Admin");
-      Jwt caller = buildJwt("citymgr", "City_Manager");
+      Jwt caller = buildJwt("gov", "Government_Admin");
 
       when(userManagementService.registerUser(any(RegisterUserRequest.class)))
           .thenThrow(new RuntimeException("Username already exists"));
@@ -332,11 +332,29 @@ public class UserManagementControllerTest {
     }
 
     @Test
-    @DisplayName("200 when City_Manager deletes Bus_Admin (allowed)")
-    void delete_busAdmin_byCityManager_success() throws Exception {
+    @DisplayName("403 when City_Manager tries to delete Bus_Admin (Government_Admin only)")
+    void delete_busAdmin_byCityManager_forbidden() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
       Jwt caller = buildJwt("citymgr", "City_Manager");
+
+      mockMvc
+          .perform(
+              delete("/api/usermanagement/delete")
+                  .with(jwt().jwt(caller))
+                  .param("username", "bus_admin_1"))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.message", containsString("do not have permission to delete")));
+
+      verify(userManagementService, never()).deleteUser(anyString());
+    }
+
+    @Test
+    @DisplayName("200 when Government_Admin deletes Bus_Admin (allowed)")
+    void delete_busAdmin_byGovAdmin_success() throws Exception {
+      mockHasRoleBasedOnJwtClaims();
+
+      Jwt caller = buildJwt("gov", "Government_Admin");
 
       when(userManagementService.findUserIdByUsername("bus_admin_1")).thenReturn("user-id-789");
       when(userManagementService.getUserRoles("user-id-789")).thenReturn(Set.of("Bus_Admin"));
@@ -419,20 +437,34 @@ public class UserManagementControllerTest {
     }
 
     @Test
-    @DisplayName("200 when City_Manager lists users (returns all admins)")
-    void listUsers_cityManager_returnsAdmins() throws Exception {
+    @DisplayName("403 when City_Manager lists users (no manage permissions)")
+    void listUsers_cityManager_forbidden() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
       Jwt caller = buildJwt("citymgr", "City_Manager");
 
+      mockMvc
+          .perform(get("/api/usermanagement/users").with(jwt().jwt(caller)))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.message", containsString("do not have permission to manage")));
+    }
+
+    @Test
+    @DisplayName("200 when Government_Admin lists users (returns City_Manager and all service admins)")
+    void listUsers_govAdmin_returnsAllAdmins() throws Exception {
+      mockHasRoleBasedOnJwtClaims();
+
+      Jwt caller = buildJwt("gov", "Government_Admin");
+
+      UserRepresentation cityMgr = new UserRepresentation();
+      cityMgr.setUsername("city_manager_1");
+
       UserRepresentation busAdmin = new UserRepresentation();
       busAdmin.setUsername("bus_admin_1");
 
-      UserRepresentation cycleAdmin = new UserRepresentation();
-      cycleAdmin.setUsername("cycle_admin_1");
-
+      when(userManagementService.getUsersByRole("City_Manager")).thenReturn(List.of(cityMgr));
       when(userManagementService.getUsersByRole("Bus_Admin")).thenReturn(List.of(busAdmin));
-      when(userManagementService.getUsersByRole("Cycle_Admin")).thenReturn(List.of(cycleAdmin));
+      when(userManagementService.getUsersByRole("Cycle_Admin")).thenReturn(List.of());
       when(userManagementService.getUsersByRole("Train_Admin")).thenReturn(List.of());
       when(userManagementService.getUsersByRole("Tram_Admin")).thenReturn(List.of());
 
@@ -442,8 +474,9 @@ public class UserManagementControllerTest {
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(
               jsonPath("$[*].username")
-                  .value(org.hamcrest.Matchers.hasItems("bus_admin_1", "cycle_admin_1")));
+                  .value(org.hamcrest.Matchers.hasItems("city_manager_1", "bus_admin_1")));
 
+      verify(userManagementService).getUsersByRole("City_Manager");
       verify(userManagementService).getUsersByRole("Bus_Admin");
       verify(userManagementService).getUsersByRole("Cycle_Admin");
       verify(userManagementService).getUsersByRole("Train_Admin");
