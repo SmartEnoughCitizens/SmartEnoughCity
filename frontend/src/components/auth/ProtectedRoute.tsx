@@ -11,7 +11,10 @@ interface ProtectedRouteProps {
   allowedRoles?: string[];
 }
 
-export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({
+  children,
+  allowedRoles,
+}: ProtectedRouteProps) => {
   const { isAuthenticated, roles } = useAppSelector((state) => state.auth);
 
   if (!isAuthenticated) {
