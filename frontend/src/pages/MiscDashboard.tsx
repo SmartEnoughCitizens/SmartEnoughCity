@@ -103,7 +103,7 @@ function SectionHeader({
         display: "flex",
         alignItems: "center",
         gap: 1.25,
-        borderBottom: "1px solid rgba(48,54,61,0.5)",
+        borderBottom: "1px solid rgba(0,0,0,0.08)",
         flexShrink: 0,
       }}
     >
@@ -126,7 +126,7 @@ function SectionHeader({
         <Typography
           variant="subtitle1"
           fontWeight={700}
-          sx={{ color: "#e6edf3", lineHeight: 1.2, letterSpacing: -0.2 }}
+          sx={{ color: "text.primary", lineHeight: 1.2, letterSpacing: -0.2 }}
         >
           {title}
         </Typography>
@@ -318,7 +318,7 @@ export const MiscDashboard = () => {
       sx={{
         height: "100%",
         width: "100%",
-        bgcolor: "#0d1117",
+        bgcolor: "background.default",
         display: "flex",
         flexDirection: "column",
         p: 2,
@@ -331,11 +331,11 @@ export const MiscDashboard = () => {
         <Typography
           variant="h6"
           fontWeight={700}
-          sx={{ color: "#e6edf3", letterSpacing: -0.3 }}
+          sx={{ color: "text.primary", letterSpacing: -0.3 }}
         >
           Misc
         </Typography>
-        <Typography variant="caption" sx={{ color: "#484f58" }}>
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
           Upcoming events · Live pedestrian counters
         </Typography>
       </Box>
@@ -357,9 +357,8 @@ export const MiscDashboard = () => {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            background: "rgba(13,17,23,0.95)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(48,54,61,0.5)",
+            background: "background.paper",
+            border: "1px solid rgba(0,0,0,0.08)",
             borderRadius: 2,
           }}
         >
@@ -442,9 +441,8 @@ export const MiscDashboard = () => {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            background: "rgba(13,17,23,0.95)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(48,54,61,0.5)",
+            background: "background.paper",
+            border: "1px solid rgba(0,0,0,0.08)",
             borderRadius: 2,
           }}
         >
