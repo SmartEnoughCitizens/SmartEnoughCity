@@ -22,6 +22,7 @@ class DataSourcesSettings(BaseSettings):
         enable_tram_data: Toggle for tram data source (from ENABLE_TRAM_DATA)
         enable_construction_data: Toggle for construction data source (from ENABLE_CONSTRUCTION_DATA)
         enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
+        enable_pedestrian_data: Toggle for pedestrian data source (from ENABLE_PEDESTRIAN_DATA)
     """
 
     enable_cycle_data: bool = Field(True, alias="ENABLE_CYCLE_DATA")
@@ -31,6 +32,7 @@ class DataSourcesSettings(BaseSettings):
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
+    enable_pedestrian_data: bool = Field(True, alias="ENABLE_PEDESTRIAN_DATA")
 
     bus_gtfs_static_data_dir: Path | None = Field(
         None,

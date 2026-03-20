@@ -2,11 +2,14 @@ import argparse
 import logging
 
 from data_handler.bus.live_data_handler import process_bus_live_data
+from data_handler.pedestrians.live_data_handler import process_pedestrian_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
 from data_handler.cycle.csv_import_handler import import_all_station_history_csvs
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
+from sqlalchemy import text
+
 from data_handler.db import Base, engine
 from data_handler.events.data_handler import (
     fetch_and_store_events,
@@ -34,8 +37,26 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _migrate_enums(schema: str) -> None:
+    """
+    Patch enum types that have grown new values since the DB was first created.
+    Using IF NOT EXISTS makes every statement idempotent — safe to run on every
+    startup without a dedicated migration framework.
+    """
+    statements = [
+        f"ALTER TYPE {schema}.channeldirection ADD VALUE IF NOT EXISTS 'UNKNOWN'",
+        f"ALTER TYPE {schema}.mobilitytype ADD VALUE IF NOT EXISTS 'CAR'",
+    ]
+    with engine.connect() as conn:
+        for stmt in statements:
+            conn.execute(text(stmt))
+        conn.commit()
+
+
 def init_db() -> None:
+    from data_handler.settings.database_settings import get_db_settings
     Base.metadata.create_all(bind=engine)
+    _migrate_enums(get_db_settings().postgres_schema)
 
 
 def main_static() -> None:
@@ -104,7 +125,8 @@ def main_dynamic() -> None:
     print(f"  - Train data: {sources_settings.enable_train_data}")
     print(f"  - Tram data: {sources_settings.enable_tram_data}")
     print(f"  - Construction data: {sources_settings.enable_construction_data}")
-    print(f"  - Events data: {sources_settings.enable_events_data}\n")
+    print(f"  - Events data: {sources_settings.enable_events_data}")
+    print(f"  - Pedestrian data: {sources_settings.enable_pedestrian_data}\n")
 
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
@@ -132,6 +154,10 @@ def main_dynamic() -> None:
     if sources_settings.enable_events_data:
         print("Processing events data...")
         fetch_and_store_events()
+
+    if sources_settings.enable_pedestrian_data:
+        print("Processing pedestrian data...")
+        process_pedestrian_live_data()
 
 
 def main_import_history() -> None:

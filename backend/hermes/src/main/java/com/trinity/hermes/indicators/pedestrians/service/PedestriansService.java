@@ -34,7 +34,16 @@ public class PedestriansService {
         row[4] != null
             ? (row[4] instanceof BigDecimal ? ((BigDecimal) row[4]).longValue() : ((Number) row[4]).longValue())
             : 0L;
-    OffsetDateTime lastUpdated = row[5] != null ? ((java.sql.Timestamp) row[5]).toInstant().atOffset(java.time.ZoneOffset.UTC) : null;
+    OffsetDateTime lastUpdated = null;
+    if (row[5] != null) {
+      if (row[5] instanceof java.sql.Timestamp ts) {
+        lastUpdated = ts.toInstant().atOffset(java.time.ZoneOffset.UTC);
+      } else if (row[5] instanceof java.time.Instant instant) {
+        lastUpdated = instant.atOffset(java.time.ZoneOffset.UTC);
+      } else if (row[5] instanceof OffsetDateTime odt) {
+        lastUpdated = odt;
+      }
+    }
 
     return PedestrianLiveDTO.builder()
         .siteId(siteId)
