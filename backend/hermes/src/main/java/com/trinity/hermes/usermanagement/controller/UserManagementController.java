@@ -43,10 +43,10 @@ public class UserManagementController {
   /** Maps target role → set of caller roles allowed to create it. */
   private static final Map<String, Set<String>> CREATE_PERMISSIONS =
       Map.of(
-          "Cycle_Admin", Set.of("City_Manager"),
-          "Bus_Admin", Set.of("City_Manager"),
-          "Train_Admin", Set.of("City_Manager"),
-          "Tram_Admin", Set.of("City_Manager"),
+          "Cycle_Admin", Set.of("Government_Admin"),
+          "Bus_Admin", Set.of("Government_Admin"),
+          "Train_Admin", Set.of("Government_Admin"),
+          "Tram_Admin", Set.of("Government_Admin"),
           "Cycle_Provider", Set.of("Cycle_Admin"),
           "Bus_Provider", Set.of("Bus_Admin"),
           "Train_Provider", Set.of("Train_Admin"),
@@ -70,8 +70,9 @@ public class UserManagementController {
   /** Maps caller role → set of target roles they can manage (list/delete). */
   private static final Map<String, Set<String>> MANAGE_PERMISSIONS =
       Map.of(
-          "Government_Admin", Set.of("City_Manager"),
-          "City_Manager", Set.of("Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"),
+          "Government_Admin",
+              Set.of("City_Manager", "Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"),
+          "City_Manager", Set.of(),
           "Bus_Admin", Set.of("Bus_Provider"),
           "Cycle_Admin", Set.of("Cycle_Provider"),
           "Train_Admin", Set.of("Train_Provider"),
