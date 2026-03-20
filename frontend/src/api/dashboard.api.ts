@@ -196,9 +196,12 @@ export const dashboardApi = {
    * Get upcoming events
    */
   getEvents: async (limit = 10): Promise<EventItem[]> => {
-    const { data } = await axiosInstance.get<EventItem[]>(API_ENDPOINTS.EVENTS, {
-      params: { limit },
-    });
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS,
+      {
+        params: { limit },
+      },
+    );
     return data;
   },
 

@@ -21,9 +21,7 @@ public class EventsService {
   @Transactional(readOnly = true)
   public List<EventsDTO> getUpcomingEvents(int limit) {
     log.debug("Fetching up to {} upcoming events", limit);
-    return eventsRepository
-        .findUpcomingEvents(PageRequest.of(0, limit))
-        .stream()
+    return eventsRepository.findUpcomingEvents(PageRequest.of(0, limit)).stream()
         .map(this::mapToDTO)
         .collect(Collectors.toList());
   }
