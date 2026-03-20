@@ -12,8 +12,12 @@ import {
   ToggleButtonGroup,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
-import { useCarFuelTypeStatistics, useCarHighTrafficPoints } from "@/hooks";
+import { MapContainer, TileLayer, CircleMarker, Circle, Popup } from "react-leaflet";
+import {
+  useCarFuelTypeStatistics,
+  useCarHighTrafficPoints,
+  useCarJunctionEmissions,
+} from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import "leaflet/dist/leaflet.css";
 
@@ -23,6 +27,7 @@ type TimeSlotFilter =
   | "inter_peak"
   | "evening_peak"
   | "off_peak";
+type MapMode = "traffic" | "pollution";
 
 const FuelTypeTile = ({
   fuelType,
@@ -72,7 +77,12 @@ export const CarDashboard = () => {
   const [dayTypeFilter, setDayTypeFilter] = useState<DayTypeFilter>("weekday");
   const [timeSlotFilter, setTimeSlotFilter] =
     useState<TimeSlotFilter>("morning_peak");
+  const [mapMode, setMapMode] = useState<MapMode>("traffic");
 
+  const { data: emissionPoints, isLoading: emissionsLoading } =
+    useCarJunctionEmissions(mapMode === "pollution");
+
+  // --- Traffic mode ---
   const filteredPoints = trafficPoints?.filter(
     (p) =>
       p.lat != null &&
@@ -87,9 +97,35 @@ export const CarDashboard = () => {
 
   const getMarkerColor = (volume: number): string => {
     const ratio = volume / maxVolume;
-    if (ratio > 0.66) return "#dc2626"; // high   — red
-    if (ratio > 0.33) return "#f97316"; // medium — orange
-    return "#16a34a"; // low    — green
+    if (ratio > 0.66) return "#dc2626";
+    if (ratio > 0.33) return "#f97316";
+    return "#16a34a";
+  };
+
+  // --- Pollution mode ---
+  const filteredEmissions = emissionPoints?.filter(
+    (p) =>
+      p.lat != null &&
+      p.lon != null &&
+      p.dayType === dayTypeFilter &&
+      p.timeSlot === timeSlotFilter,
+  );
+
+  const maxEmission = filteredEmissions?.length
+    ? Math.max(...filteredEmissions.map((p) => p.totalEmissionG))
+    : 1;
+  const minEmission = filteredEmissions?.length
+    ? Math.min(...filteredEmissions.map((p) => p.totalEmissionG))
+    : 0;
+
+  const getEmissionColor = (emission: number): string => {
+    const ratio =
+      maxEmission > minEmission
+        ? (emission - minEmission) / (maxEmission - minEmission)
+        : 0;
+    if (ratio > 0.66) return "#dc2626";
+    if (ratio > 0.33) return "#f97316";
+    return "#16a34a";
   };
 
   const dublinCenter: [number, number] = [53.3498, -6.2603];
@@ -104,7 +140,7 @@ export const CarDashboard = () => {
       ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
       : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-  if (statsLoading || trafficLoading) {
+  if (statsLoading || trafficLoading || (mapMode === "pollution" && emissionsLoading)) {
     return (
       <Box
         sx={{
@@ -145,13 +181,35 @@ export const CarDashboard = () => {
         </Box>
       </Box>
 
-      {/* High Traffic Points Map */}
+      {/* Map Section */}
       <Box
         sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
       >
-        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
-          High Traffic Points — Dublin
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 2.5,
+            flexWrap: "wrap",
+            gap: 1,
+          }}
+        >
+          <Typography variant="h6" fontWeight="bold">
+            {mapMode === "traffic"
+              ? "High Traffic Points — Dublin"
+              : "Pollution Estimation — Dublin"}
+          </Typography>
+          <ToggleButtonGroup
+            value={mapMode}
+            exclusive
+            onChange={(_, value) => value && setMapMode(value)}
+            size="small"
+          >
+            <ToggleButton value="traffic">Traffic</ToggleButton>
+            <ToggleButton value="pollution">Pollution</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
 
         {/* Filters */}
         <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
@@ -195,29 +253,58 @@ export const CarDashboard = () => {
             zoomControl={true}
           >
             <TileLayer attribution={tileAttribution} url={tileUrl} />
-            {filteredPoints?.map((point, idx) => (
-              <CircleMarker
-                key={`${point.siteId}-${idx}`}
-                center={[point.lat, point.lon]}
-                radius={6}
-                pathOptions={{
-                  color: "#fff",
-                  weight: 1.5,
-                  fillColor: getMarkerColor(point.avgVolume),
-                  fillOpacity: 0.8,
-                }}
-              >
-                <Popup>
-                  <strong>Site {point.siteId}</strong>
-                  <br />
-                  Avg Volume: {point.avgVolume.toFixed(2)}
-                  <br />
-                  Day Type: {point.dayType}
-                  <br />
-                  Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                </Popup>
-              </CircleMarker>
-            ))}
+
+            {mapMode === "traffic" &&
+              filteredPoints?.map((point, idx) => (
+                <CircleMarker
+                  key={`traffic-${point.siteId}-${idx}`}
+                  center={[point.lat, point.lon]}
+                  radius={6}
+                  pathOptions={{
+                    color: "#fff",
+                    weight: 1.5,
+                    fillColor: getMarkerColor(point.avgVolume),
+                    fillOpacity: 0.8,
+                  }}
+                >
+                  <Popup>
+                    <strong>Site {point.siteId}</strong>
+                    <br />
+                    Avg Volume: {point.avgVolume.toFixed(2)}
+                    <br />
+                    Day Type: {point.dayType}
+                    <br />
+                    Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                  </Popup>
+                </CircleMarker>
+              ))}
+
+            {mapMode === "pollution" &&
+              filteredEmissions?.map((point, idx) => (
+                <Circle
+                  key={`pollution-${point.siteId}-${idx}`}
+                  center={[point.lat, point.lon]}
+                  radius={250}
+                  pathOptions={{
+                    color: getEmissionColor(point.totalEmissionG),
+                    weight: 1,
+                    fillColor: getEmissionColor(point.totalEmissionG),
+                    fillOpacity: 0.45,
+                  }}
+                >
+                  <Popup>
+                    <strong>Site {point.siteId}</strong>
+                    <br />
+                    Total Emission: {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
+                    <br />
+                    Car Volume: {point.carVolume.toFixed(0)}
+                    <br />
+                    Day Type: {point.dayType}
+                    <br />
+                    Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                  </Popup>
+                </Circle>
+              ))}
           </MapContainer>
         </Paper>
       </Box>
