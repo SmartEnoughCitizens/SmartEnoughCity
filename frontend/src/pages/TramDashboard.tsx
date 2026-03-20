@@ -19,6 +19,8 @@ export const TramDashboard = () => (
   >
     <TramIcon sx={{ fontSize: 64, opacity: 0.4 }} />
     <Typography variant="h5">Tram Dashboard</Typography>
-    <Typography variant="body2">Coming soon — tram data integration in progress.</Typography>
+    <Typography variant="body2">
+      Coming soon — tram data integration in progress.
+    </Typography>
   </Box>
 );

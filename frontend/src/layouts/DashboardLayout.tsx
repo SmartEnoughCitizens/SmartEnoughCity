@@ -100,10 +100,22 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       ? [{ icon: <DashboardIcon />, path: "/dashboard", label: "Overview" }]
       : []),
     ...(canAccessTransport(roles, "bus")
-      ? [{ icon: <DirectionsBusIcon />, path: "/dashboard/bus", label: "Bus Data" }]
+      ? [
+          {
+            icon: <DirectionsBusIcon />,
+            path: "/dashboard/bus",
+            label: "Bus Data",
+          },
+        ]
       : []),
     ...(canAccessTransport(roles, "cycle")
-      ? [{ icon: <DirectionsBikeIcon />, path: "/dashboard/cycle", label: "Cycles" }]
+      ? [
+          {
+            icon: <DirectionsBikeIcon />,
+            path: "/dashboard/cycle",
+            label: "Cycles",
+          },
+        ]
       : []),
     ...(canAccessTransport(roles, "car")
       ? [{ icon: <DirectionsCarIcon />, path: "/dashboard/car", label: "Car" }]
