@@ -7,6 +7,8 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
+import { TRANSPORT_ACCESS, getLandingPage } from "@/types";
+import { useAppSelector } from "@/store/hooks";
 
 // Lazy load pages
 const LoginPage = lazy(() =>
@@ -47,6 +49,15 @@ const ResetPasswordPage = lazy(() =>
     default: m.ResetPasswordPage,
   })),
 );
+const TramDashboard = lazy(() =>
+  import("@/pages/TramDashboard").then((m) => ({ default: m.TramDashboard })),
+);
+
+// eslint-disable-next-line react-refresh/only-export-components
+const SmartRedirect = () => {
+  const { roles } = useAppSelector((state) => state.auth);
+  return <Navigate to={getLandingPage(roles)} replace />;
+};
 // Loading fallback
 // eslint-disable-next-line react-refresh/only-export-components
 const LoadingFallback = () => (
@@ -96,7 +107,7 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={["City_Manager"]}>
         <DashboardLayout>
           <LazyWrapper>
             <Dashboard />
@@ -108,7 +119,7 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard/bus",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={TRANSPORT_ACCESS.bus}>
         <DashboardLayout>
           <LazyWrapper>
             <BusDashboard />
@@ -120,7 +131,7 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard/cycle",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={TRANSPORT_ACCESS.cycle}>
         <DashboardLayout>
           <LazyWrapper>
             <CycleDashboard />
@@ -132,7 +143,7 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard/car",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={TRANSPORT_ACCESS.car}>
         <DashboardLayout>
           <LazyWrapper>
             <CarDashboard />
@@ -144,10 +155,22 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard/train",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={TRANSPORT_ACCESS.train}>
         <DashboardLayout>
           <LazyWrapper>
             <TrainDashboard />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/tram",
+    element: (
+      <ProtectedRoute allowedRoles={TRANSPORT_ACCESS.tram}>
+        <DashboardLayout>
+          <LazyWrapper>
+            <TramDashboard />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>
@@ -179,10 +202,10 @@ export const router = createBrowserRouter([
   },
   {
     path: "/",
-    element: <Navigate to="/dashboard" replace />,
+    element: <SmartRedirect />,
   },
   {
     path: "*",
-    element: <Navigate to="/dashboard" replace />,
+    element: <SmartRedirect />,
   },
 ]);
