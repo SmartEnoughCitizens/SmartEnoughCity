@@ -154,7 +154,7 @@ function EventRow({ event, selected, onClick }: { event: EventItem; selected: bo
         px: 2,
         bgcolor: selected ? "rgba(124,58,237,0.10)" : "transparent",
         borderLeft: selected ? "3px solid #7C3AED" : "3px solid transparent",
-        "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
+        "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
         transition: "all 0.12s",
         alignItems: "flex-start",
       }}
@@ -183,7 +183,7 @@ function EventRow({ event, selected, onClick }: { event: EventItem; selected: bo
           sx={{
             fontSize: "0.855rem",
             fontWeight: selected ? 600 : 400,
-            color: selected ? "#e6edf3" : "#c9d1d9",
+            color: selected ? "text.primary" : "text.secondary",
             lineHeight: 1.25,
           }}
         >
@@ -202,7 +202,7 @@ function EventRow({ event, selected, onClick }: { event: EventItem; selected: bo
               border: `1px solid ${color}44`,
             }}
           />
-          <Typography sx={{ fontSize: "0.68rem", color: "#8b949e" }}>
+          <Typography sx={{ fontSize: "0.68rem", color: "text.secondary" }}>
             {formatDate(event.eventDate)} · {formatTime(event.startTime)}
           </Typography>
         </Box>
