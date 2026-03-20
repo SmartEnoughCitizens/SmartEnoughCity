@@ -61,8 +61,8 @@ export const ALLOWED_ROLES = [
  * Mirrors backend CREATE_PERMISSIONS in UserManagementController.
  */
 export const CREATE_PERMISSIONS: Record<string, string[]> = {
-  Government_Admin: ["City_Manager"],
-  City_Manager: ["Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"],
+  Government_Admin: ["City_Manager", "Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"],
+  City_Manager: [],
   Bus_Admin: ["Bus_Provider"],
   Cycle_Admin: ["Cycle_Provider"],
   Train_Admin: ["Train_Provider"],
