@@ -208,14 +208,14 @@ function EventRow({ event, selected, onClick }: { event: EventItem; selected: bo
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.4, mt: 0.2 }}>
-          <LocationOnIcon sx={{ fontSize: 11, color: "#484f58" }} />
-          <Typography noWrap sx={{ fontSize: "0.68rem", color: "#484f58" }}>
+          <LocationOnIcon sx={{ fontSize: 11, color: "text.disabled" }} />
+          <Typography noWrap sx={{ fontSize: "0.68rem", color: "text.disabled" }}>
             {event.venueName}
           </Typography>
           {event.estimatedAttendance != null && (
             <>
-              <PeopleIcon sx={{ fontSize: 11, color: "#484f58", ml: 0.5 }} />
-              <Typography sx={{ fontSize: "0.68rem", color: "#484f58" }}>
+              <PeopleIcon sx={{ fontSize: 11, color: "text.disabled", ml: 0.5 }} />
+              <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }}>
                 {event.estimatedAttendance.toLocaleString()}
               </Typography>
             </>
@@ -238,7 +238,7 @@ function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
         display: "flex",
         alignItems: "center",
         gap: 1.5,
-        borderBottom: "1px solid rgba(48,54,61,0.25)",
+        borderBottom: "1px solid rgba(0,0,0,0.06)",
       }}
     >
       {/* Rank */}
@@ -246,7 +246,7 @@ function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
         sx={{
           fontSize: "0.7rem",
           fontWeight: 700,
-          color: "#484f58",
+          color: "text.disabled",
           width: 18,
           flexShrink: 0,
           textAlign: "right",
@@ -260,7 +260,7 @@ function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.3 }}>
           <Typography
             noWrap
-            sx={{ fontSize: "0.835rem", color: "#c9d1d9", fontWeight: 500, lineHeight: 1.2 }}
+            sx={{ fontSize: "0.835rem", color: "text.primary", fontWeight: 500, lineHeight: 1.2 }}
           >
             {site.siteName}
           </Typography>
@@ -273,7 +273,7 @@ function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
           sx={{
             height: 3,
             borderRadius: 2,
-            bgcolor: "rgba(255,255,255,0.06)",
+            bgcolor: "rgba(0,0,0,0.06)",
             overflow: "hidden",
           }}
         >
@@ -288,7 +288,7 @@ function PedestrianRow({ site, rank }: { site: PedestrianLive; rank: number }) {
           />
         </Box>
         {site.lastUpdated && (
-          <Typography sx={{ fontSize: "0.62rem", color: "#484f58", mt: 0.2 }}>
+          <Typography sx={{ fontSize: "0.62rem", color: "text.disabled", mt: 0.2 }}>
             <AccessTimeIcon sx={{ fontSize: 9, mr: 0.3, verticalAlign: "middle" }} />
             {formatLastUpdated(site.lastUpdated)}
           </Typography>
@@ -357,7 +357,7 @@ export const MiscDashboard = () => {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            background: "background.paper",
+            bgcolor: "background.paper",
             border: "1px solid rgba(0,0,0,0.08)",
             borderRadius: 2,
           }}
@@ -383,8 +383,8 @@ export const MiscDashboard = () => {
             <Box sx={{ flex: 1, overflow: "auto" }}>
               {visibleEvents.length === 0 ? (
                 <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <EventIcon sx={{ fontSize: 32, color: "#30363d", mb: 1 }} />
-                  <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
+                  <EventIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
+                  <Typography sx={{ fontSize: "0.8rem", color: "text.disabled" }}>
                     No upcoming events
                   </Typography>
                 </Box>
@@ -413,8 +413,8 @@ export const MiscDashboard = () => {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 0.5,
-                    borderTop: "1px solid rgba(48,54,61,0.4)",
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.03)" },
+                    borderTop: "1px solid rgba(0,0,0,0.08)",
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
                   }}
                 >
                   <Typography sx={{ fontSize: "0.75rem", color: "#7C3AED" }}>
@@ -427,8 +427,8 @@ export const MiscDashboard = () => {
             </Box>
           )}
 
-          <Box sx={{ px: 2, py: 1, borderTop: "1px solid rgba(48,54,61,0.5)", flexShrink: 0 }}>
-            <Typography variant="caption" sx={{ color: "#30363d", fontSize: "0.62rem" }}>
+          <Box sx={{ px: 2, py: 1, borderTop: "1px solid rgba(0,0,0,0.08)", flexShrink: 0 }}>
+            <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.62rem" }}>
               Source: Ticketmaster · Refreshed every 5 min
             </Typography>
           </Box>
@@ -441,7 +441,7 @@ export const MiscDashboard = () => {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            background: "background.paper",
+            bgcolor: "background.paper",
             border: "1px solid rgba(0,0,0,0.08)",
             borderRadius: 2,
           }}
@@ -465,12 +465,12 @@ export const MiscDashboard = () => {
                 <Typography sx={{ fontSize: "0.62rem", color: "#8b949e" }}>{label}</Typography>
               </Box>
             ))}
-            <Typography sx={{ fontSize: "0.62rem", color: "#484f58", ml: "auto" }}>
+            <Typography sx={{ fontSize: "0.62rem", color: "text.disabled", ml: "auto" }}>
               count / 15 min window
             </Typography>
           </Box>
 
-          <Divider sx={{ borderColor: "rgba(48,54,61,0.4)" }} />
+          <Divider sx={{ borderColor: "rgba(0,0,0,0.08)" }} />
 
           {pedError && (
             <Alert severity="error" sx={{ m: 1.5 }}>
@@ -486,8 +486,8 @@ export const MiscDashboard = () => {
             <Box sx={{ flex: 1, overflow: "auto" }}>
               {pedestrians.length === 0 ? (
                 <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <DirectionsWalkIcon sx={{ fontSize: 32, color: "#30363d", mb: 1 }} />
-                  <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
+                  <DirectionsWalkIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
+                  <Typography sx={{ fontSize: "0.8rem", color: "text.disabled" }}>
                     No pedestrian data available
                   </Typography>
                 </Box>
@@ -508,8 +508,8 @@ export const MiscDashboard = () => {
             </Box>
           )}
 
-          <Box sx={{ px: 2, py: 1, borderTop: "1px solid rgba(48,54,61,0.5)", flexShrink: 0 }}>
-            <Typography variant="caption" sx={{ color: "#30363d", fontSize: "0.62rem" }}>
+          <Box sx={{ px: 2, py: 1, borderTop: "1px solid rgba(0,0,0,0.08)", flexShrink: 0 }}>
+            <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.62rem" }}>
               Source: Eco Counter · Refreshed every 30 s
             </Typography>
           </Box>
