@@ -450,7 +450,8 @@ public class UserManagementControllerTest {
     }
 
     @Test
-    @DisplayName("200 when Government_Admin lists users (returns City_Manager and all service admins)")
+    @DisplayName(
+        "200 when Government_Admin lists users (returns City_Manager and all service admins)")
     void listUsers_govAdmin_returnsAllAdmins() throws Exception {
       mockHasRoleBasedOnJwtClaims();
 
