@@ -13,7 +13,13 @@ import {
   Chip,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-import { MapContainer, TileLayer, CircleMarker, Circle, Popup } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Circle,
+  Popup,
+} from "react-leaflet";
 import {
   useCarFuelTypeStatistics,
   useCarHighTrafficPoints,
@@ -87,7 +93,7 @@ export const CarDashboard = () => {
     useState<TimeSlotFilter>("morning_peak");
   const [mapMode, setMapMode] = useState<MapMode>("traffic");
   const [activeColors, setActiveColors] = useState<Set<ColorBand>>(
-    new Set(["low", "medium", "high"]),
+    () => new Set(["low", "medium", "high"]),
   );
 
   const toggleColor = (band: ColorBand) => {
@@ -182,7 +188,11 @@ export const CarDashboard = () => {
       ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
       : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-  if (statsLoading || trafficLoading || (mapMode === "pollution" && emissionsLoading)) {
+  if (
+    statsLoading ||
+    trafficLoading ||
+    (mapMode === "pollution" && emissionsLoading)
+  ) {
     return (
       <Box
         sx={{
@@ -323,28 +333,28 @@ export const CarDashboard = () => {
               filteredPoints
                 ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
                 .map((point, idx) => (
-                <CircleMarker
-                  key={`traffic-${point.siteId}-${idx}`}
-                  center={[point.lat, point.lon]}
-                  radius={6}
-                  pathOptions={{
-                    color: "#fff",
-                    weight: 1.5,
-                    fillColor: getMarkerColor(point.avgVolume),
-                    fillOpacity: 0.8,
-                  }}
-                >
-                  <Popup>
-                    <strong>Site {point.siteId}</strong>
-                    <br />
-                    Avg Volume: {point.avgVolume.toFixed(2)}
-                    <br />
-                    Day Type: {point.dayType}
-                    <br />
-                    Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                  </Popup>
-                </CircleMarker>
-              ))}
+                  <CircleMarker
+                    key={`traffic-${point.siteId}-${idx}`}
+                    center={[point.lat, point.lon]}
+                    radius={6}
+                    pathOptions={{
+                      color: "#fff",
+                      weight: 1.5,
+                      fillColor: getMarkerColor(point.avgVolume),
+                      fillOpacity: 0.8,
+                    }}
+                  >
+                    <Popup>
+                      <strong>Site {point.siteId}</strong>
+                      <br />
+                      Avg Volume: {point.avgVolume.toFixed(2)}
+                      <br />
+                      Day Type: {point.dayType}
+                      <br />
+                      Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                    </Popup>
+                  </CircleMarker>
+                ))}
 
             {mapMode === "pollution" &&
               filteredEmissions
@@ -352,30 +362,33 @@ export const CarDashboard = () => {
                   activeColors.has(getEmissionBand(p.totalEmissionG)),
                 )
                 .map((point, idx) => (
-                <Circle
-                  key={`pollution-${point.siteId}-${idx}`}
-                  center={[point.lat, point.lon]}
-                  radius={250}
-                  pathOptions={{
-                    color: getEmissionColor(point.totalEmissionG),
-                    weight: 1,
-                    fillColor: getEmissionColor(point.totalEmissionG),
-                    fillOpacity: 0.45,
-                  }}
-                >
-                  <Popup>
-                    <strong>Site {point.siteId}</strong>
-                    <br />
-                    Total Emission: {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
-                    <br />
-                    Car Volume: {point.carVolume.toFixed(0)}
-                    <br />
-                    Day Type: {point.dayType}
-                    <br />
-                    Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                  </Popup>
-                </Circle>
-              ))}
+                  <Circle
+                    key={`pollution-${point.siteId}-${idx}`}
+                    center={[point.lat, point.lon]}
+                    radius={250}
+                    pathOptions={{
+                      color: getEmissionColor(point.totalEmissionG),
+                      weight: 1,
+                      fillColor: getEmissionColor(point.totalEmissionG),
+                      fillOpacity: 0.45,
+                    }}
+                  >
+                    <Popup>
+                      <strong>Site {point.siteId}</strong>
+                      <br />
+                      Total Emission: {(point.totalEmissionG / 1000).toFixed(
+                        2,
+                      )}{" "}
+                      kg CO₂
+                      <br />
+                      Car Volume: {point.carVolume.toFixed(0)}
+                      <br />
+                      Day Type: {point.dayType}
+                      <br />
+                      Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                    </Popup>
+                  </Circle>
+                ))}
           </MapContainer>
         </Paper>
       </Box>

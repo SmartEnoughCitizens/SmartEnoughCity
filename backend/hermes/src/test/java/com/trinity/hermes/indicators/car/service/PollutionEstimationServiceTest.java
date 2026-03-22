@@ -31,8 +31,12 @@ class PollutionEstimationServiceTest {
   void getTrafficVolumeData_delegatesToHighTrafficPointsService() {
     HighTrafficPointsDTO point =
         HighTrafficPointsDTO.builder()
-            .siteId(101).lat(53.34).lon(-6.26).avgVolume(200.0)
-            .dayType("weekday").timeSlot("morning_peak")
+            .siteId(101)
+            .lat(53.34)
+            .lon(-6.26)
+            .avgVolume(200.0)
+            .dayType("weekday")
+            .timeSlot("morning_peak")
             .build();
     when(highTrafficPointsService.getHighTrafficPoints()).thenReturn(List.of(point));
 
@@ -49,7 +53,8 @@ class PollutionEstimationServiceTest {
   void computeFleetComposition_withBandData_returnsCorrectRatios() {
     // privateCarTotal = 800 + 200 = 1000, evCount = 200, totalFleet = 1200
     when(privateCarEmissionsRepository.findEmissionBandCountsForDublin())
-        .thenReturn(List.<Object[]>of(new Object[] {"BAND_A", 800L}, new Object[] {"BAND_B", 200L}));
+        .thenReturn(
+            List.<Object[]>of(new Object[] {"BAND_A", 800L}, new Object[] {"BAND_B", 200L}));
     when(carStatisticsRepository.findElectricVehicleCountFrom2015()).thenReturn(200L);
 
     FleetCompositionData result = pollutionEstimationService.computeFleetComposition();
@@ -160,14 +165,17 @@ class PollutionEstimationServiceTest {
 
     List<JunctionEmissionDTO> result = pollutionEstimationService.computeEmissions();
 
-    JunctionEmissionDTO low = result.stream().filter(d -> d.getSiteId() == 101).findFirst().orElseThrow();
-    JunctionEmissionDTO high = result.stream().filter(d -> d.getSiteId() == 102).findFirst().orElseThrow();
+    JunctionEmissionDTO low =
+        result.stream().filter(d -> d.getSiteId() == 101).findFirst().orElseThrow();
+    JunctionEmissionDTO high =
+        result.stream().filter(d -> d.getSiteId() == 102).findFirst().orElseThrow();
     assertThat(high.getTotalEmissionG()).isGreaterThan(low.getTotalEmissionG());
   }
 
   // --- Helpers ---
 
-  private HighTrafficPointsDTO junction(int siteId, double avgVolume, String dayType, String timeSlot) {
+  private HighTrafficPointsDTO junction(
+      int siteId, double avgVolume, String dayType, String timeSlot) {
     return HighTrafficPointsDTO.builder()
         .siteId(siteId)
         .lat(53.35)
