@@ -32,7 +32,8 @@ class HighTrafficPointsServiceTest {
   void getHighTrafficPoints_weekdayAt0730_classifiedAsMorningPeak() {
     // Monday 2024-01-15 07:30 → weekday, morning_peak (07:00–09:59)
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(101, LocalDateTime.of(2024, 1, 15, 7, 30), 200.0, 53.34, -6.26)));
+        .thenReturn(
+            List.<Object[]>of(row(101, LocalDateTime.of(2024, 1, 15, 7, 30), 200.0, 53.34, -6.26)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
@@ -45,7 +46,8 @@ class HighTrafficPointsServiceTest {
   void getHighTrafficPoints_weekdayAt1200_classifiedAsInterPeak() {
     // Monday 2024-01-15 12:00 → weekday, inter_peak (10:00–15:59)
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(102, LocalDateTime.of(2024, 1, 15, 12, 0), 150.0, 53.34, -6.26)));
+        .thenReturn(
+            List.<Object[]>of(row(102, LocalDateTime.of(2024, 1, 15, 12, 0), 150.0, 53.34, -6.26)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
@@ -58,7 +60,8 @@ class HighTrafficPointsServiceTest {
   void getHighTrafficPoints_weekdayAt1700_classifiedAsEveningPeak() {
     // Monday 2024-01-15 17:00 → weekday, evening_peak (16:00–18:59)
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(103, LocalDateTime.of(2024, 1, 15, 17, 0), 250.0, 53.35, -6.27)));
+        .thenReturn(
+            List.<Object[]>of(row(103, LocalDateTime.of(2024, 1, 15, 17, 0), 250.0, 53.35, -6.27)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
@@ -71,7 +74,8 @@ class HighTrafficPointsServiceTest {
   void getHighTrafficPoints_weekdayAt2200_classifiedAsOffPeak() {
     // Monday 2024-01-15 22:00 → weekday, off_peak (19:00+)
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(104, LocalDateTime.of(2024, 1, 15, 22, 0), 80.0, 53.35, -6.27)));
+        .thenReturn(
+            List.<Object[]>of(row(104, LocalDateTime.of(2024, 1, 15, 22, 0), 80.0, 53.35, -6.27)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
@@ -84,7 +88,8 @@ class HighTrafficPointsServiceTest {
   void getHighTrafficPoints_earlyMorningAt0300_classifiedAsOffPeak() {
     // Monday 2024-01-15 03:00 → weekday, off_peak (before 07:00)
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(105, LocalDateTime.of(2024, 1, 15, 3, 0), 30.0, 53.34, -6.26)));
+        .thenReturn(
+            List.<Object[]>of(row(105, LocalDateTime.of(2024, 1, 15, 3, 0), 30.0, 53.34, -6.26)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
@@ -98,7 +103,8 @@ class HighTrafficPointsServiceTest {
   void getHighTrafficPoints_saturday_classifiedAsWeekend() {
     // Saturday 2024-01-13 09:00 → weekend
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(106, LocalDateTime.of(2024, 1, 13, 9, 0), 120.0, 53.34, -6.26)));
+        .thenReturn(
+            List.<Object[]>of(row(106, LocalDateTime.of(2024, 1, 13, 9, 0), 120.0, 53.34, -6.26)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
@@ -111,7 +117,8 @@ class HighTrafficPointsServiceTest {
   void getHighTrafficPoints_sunday_classifiedAsWeekend() {
     // Sunday 2024-01-14 14:00 → weekend, inter_peak
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(107, LocalDateTime.of(2024, 1, 14, 14, 0), 90.0, 53.34, -6.26)));
+        .thenReturn(
+            List.<Object[]>of(row(107, LocalDateTime.of(2024, 1, 14, 14, 0), 90.0, 53.34, -6.26)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
@@ -162,14 +169,17 @@ class HighTrafficPointsServiceTest {
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 
     assertThat(result).hasSize(2);
-    assertThat(result).extracting(HighTrafficPointsDTO::getTimeSlot)
+    assertThat(result)
+        .extracting(HighTrafficPointsDTO::getTimeSlot)
         .containsExactlyInAnyOrder("morning_peak", "inter_peak");
   }
 
   @Test
   void getHighTrafficPoints_preservesLocationData() {
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
-        .thenReturn(List.<Object[]>of(row(101, LocalDateTime.of(2024, 1, 15, 9, 0), 200.0, 53.3498, -6.2603)));
+        .thenReturn(
+            List.<Object[]>of(
+                row(101, LocalDateTime.of(2024, 1, 15, 9, 0), 200.0, 53.3498, -6.2603)));
 
     List<HighTrafficPointsDTO> result = highTrafficPointsService.getHighTrafficPoints();
 

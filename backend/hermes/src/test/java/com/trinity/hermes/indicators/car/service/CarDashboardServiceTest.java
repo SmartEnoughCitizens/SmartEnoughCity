@@ -21,7 +21,8 @@ class CarDashboardServiceTest {
   @Test
   void getFuelTypeStatistics_returnsMappedDtos() {
     when(carStatisticsRepository.findTotalCountByFuelType())
-        .thenReturn(List.<Object[]>of(new Object[] {"PETROL", 5000L}, new Object[] {"ELECTRIC", 1200L}));
+        .thenReturn(
+            List.<Object[]>of(new Object[] {"PETROL", 5000L}, new Object[] {"ELECTRIC", 1200L}));
 
     List<CarDashboardDTO> result = carDashboardService.getFuelTypeStatistics();
 
@@ -54,7 +55,8 @@ class CarDashboardServiceTest {
     List<CarDashboardDTO> result = carDashboardService.getFuelTypeStatistics();
 
     assertThat(result).hasSize(4);
-    assertThat(result).extracting(CarDashboardDTO::getFuelType)
+    assertThat(result)
+        .extracting(CarDashboardDTO::getFuelType)
         .containsExactly("PETROL", "DIESEL", "ELECTRIC", "HYBRID");
   }
 

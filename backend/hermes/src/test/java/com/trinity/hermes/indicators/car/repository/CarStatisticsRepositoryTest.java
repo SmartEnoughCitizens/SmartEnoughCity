@@ -61,13 +61,11 @@ class CarStatisticsRepositoryTest {
     assertThat(rows).hasSize(3);
 
     // PETROL: 3000 + 2000 = 5000
-    Object[] petrolRow =
-        rows.stream().filter(r -> "PETROL".equals(r[0])).findFirst().orElseThrow();
+    Object[] petrolRow = rows.stream().filter(r -> "PETROL".equals(r[0])).findFirst().orElseThrow();
     assertThat(((Number) petrolRow[1]).longValue()).isEqualTo(5000L);
 
     // DIESEL: 1500
-    Object[] dieselRow =
-        rows.stream().filter(r -> "DIESEL".equals(r[0])).findFirst().orElseThrow();
+    Object[] dieselRow = rows.stream().filter(r -> "DIESEL".equals(r[0])).findFirst().orElseThrow();
     assertThat(((Number) dieselRow[1]).longValue()).isEqualTo(1500L);
 
     // ELECTRIC: 500 + 100 = 600 (all years summed)
