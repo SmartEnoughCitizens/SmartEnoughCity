@@ -40,7 +40,7 @@ public class PollutionEstimationService {
           Map.entry("MOTORCYCLE", 100.0), // Motorcycle
           Map.entry("EV", 0.0) // Electric Vehicle
           );
-    
+
   /**
    * Returns average vehicle volumes per junction, broken down by day type (weekday/weekend) and
    * time slot (morning_peak, inter_peak, evening_peak, off_peak).
@@ -68,8 +68,7 @@ public class PollutionEstimationService {
     List<Object[]> bandRows = privateCarEmissionsRepository.findEmissionBandCountsForDublin();
 
     // Total private car count (sum across all bands)
-    long privateCarTotal =
-        bandRows.stream().mapToLong(r -> ((Number) r[1]).longValue()).sum();
+    long privateCarTotal = bandRows.stream().mapToLong(r -> ((Number) r[1]).longValue()).sum();
 
     // Electric vehicle count from vehicle_yearly, year >= 2015
     Long evCount = carStatisticsRepository.findElectricVehicleCountFrom2015();
@@ -137,32 +136,33 @@ public class PollutionEstimationService {
     double avgVolume = row.getAvgVolume();
 
     // --- Vehicle type volumes ---
-    double carVolume        = 0.75 * avgVolume;
-    double lcvVolume        = 0.12 * avgVolume;
-    double busVolume        = 0.05 * avgVolume;
-    double hgvVolume        = 0.05 * avgVolume;
+    double carVolume = 0.75 * avgVolume;
+    double lcvVolume = 0.12 * avgVolume;
+    double busVolume = 0.05 * avgVolume;
+    double hgvVolume = 0.05 * avgVolume;
     double motorcycleVolume = 0.03 * avgVolume;
 
     // --- Within car volume: 15% EV, 85% ICE distributed by band percentages ---
-    double evVolume      = 0.15 * carVolume;
-    double iceBandTotal  = 0.85 * carVolume;
+    double evVolume = 0.15 * carVolume;
+    double iceBandTotal = 0.85 * carVolume;
 
     // --- Compute total emission across all vehicle types ---
     double totalEmission = 0.0;
 
     // Non-car vehicle types
-    totalEmission += calculateEmission(lcvVolume,        EMISSION_FACTORS_G_PER_KM.get("LCV"));
-    totalEmission += calculateEmission(busVolume,        EMISSION_FACTORS_G_PER_KM.get("BUS"));
-    totalEmission += calculateEmission(hgvVolume,        EMISSION_FACTORS_G_PER_KM.get("HGV"));
-    totalEmission += calculateEmission(motorcycleVolume, EMISSION_FACTORS_G_PER_KM.get("MOTORCYCLE"));
+    totalEmission += calculateEmission(lcvVolume, EMISSION_FACTORS_G_PER_KM.get("LCV"));
+    totalEmission += calculateEmission(busVolume, EMISSION_FACTORS_G_PER_KM.get("BUS"));
+    totalEmission += calculateEmission(hgvVolume, EMISSION_FACTORS_G_PER_KM.get("HGV"));
+    totalEmission +=
+        calculateEmission(motorcycleVolume, EMISSION_FACTORS_G_PER_KM.get("MOTORCYCLE"));
 
     // EV (emission factor = 0, included for completeness)
     totalEmission += calculateEmission(evVolume, EMISSION_FACTORS_G_PER_KM.get("EV"));
 
     // ICE bands A–G using dynamic band percentages
     for (Map.Entry<String, Double> entry : bandPercents.entrySet()) {
-      String band          = entry.getKey();
-      double bandVolume    = entry.getValue() * iceBandTotal;
+      String band = entry.getKey();
+      double bandVolume = entry.getValue() * iceBandTotal;
       Double emissionFactor = EMISSION_FACTORS_G_PER_KM.get(band);
       if (emissionFactor != null) {
         totalEmission += calculateEmission(bandVolume, emissionFactor);
@@ -187,14 +187,14 @@ public class PollutionEstimationService {
   /**
    * Calculates combined moving and idle CO2 emission for a single vehicle type.
    *
-   * <p>Moving: vehicleCount × 0.6 × 0.5 km × emissionFactor (g/km)
-   * <br>Idle: vehicleCount × 0.4 × 1.5 min × idleRate (g/min)
-   * <br>where idleRate = (emissionFactor × 20 km/h) ÷ 60
+   * <p>Moving: vehicleCount × 0.6 × 0.5 km × emissionFactor (g/km) <br>
+   * Idle: vehicleCount × 0.4 × 1.5 min × idleRate (g/min) <br>
+   * where idleRate = (emissionFactor × 20 km/h) ÷ 60
    */
   private double calculateEmission(double vehicleCount, double emissionFactorGPerKm) {
     double movingEmission = vehicleCount * 0.6 * 0.5 * emissionFactorGPerKm;
-    double idleRate       = (emissionFactorGPerKm * 20.0) / 60.0;
-    double idleEmission   = vehicleCount * 0.4 * 1.5 * idleRate;
+    double idleRate = (emissionFactorGPerKm * 20.0) / 60.0;
+    double idleEmission = vehicleCount * 0.4 * 1.5 * idleRate;
     return movingEmission + idleEmission;
   }
 }

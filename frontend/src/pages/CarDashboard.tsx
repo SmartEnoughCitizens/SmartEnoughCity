@@ -10,6 +10,7 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
+  Chip,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup } from "react-leaflet";
@@ -28,6 +29,13 @@ type TimeSlotFilter =
   | "evening_peak"
   | "off_peak";
 type MapMode = "traffic" | "pollution";
+type ColorBand = "low" | "medium" | "high";
+
+const LEGEND_ITEMS: { band: ColorBand; color: string; label: string }[] = [
+  { band: "low", color: "#16a34a", label: "Low" },
+  { band: "medium", color: "#f97316", label: "Medium" },
+  { band: "high", color: "#dc2626", label: "High" },
+];
 
 const FuelTypeTile = ({
   fuelType,
@@ -78,6 +86,23 @@ export const CarDashboard = () => {
   const [timeSlotFilter, setTimeSlotFilter] =
     useState<TimeSlotFilter>("morning_peak");
   const [mapMode, setMapMode] = useState<MapMode>("traffic");
+  const [activeColors, setActiveColors] = useState<Set<ColorBand>>(
+    new Set(["low", "medium", "high"]),
+  );
+
+  const toggleColor = (band: ColorBand) => {
+    setActiveColors((prev) => {
+      const next = new Set(prev);
+      if (next.has(band)) {
+        next.delete(band);
+        // if all deselected, reset to all
+        if (next.size === 0) return new Set(["low", "medium", "high"]);
+      } else {
+        next.add(band);
+      }
+      return next;
+    });
+  };
 
   const { data: emissionPoints, isLoading: emissionsLoading } =
     useCarJunctionEmissions(mapMode === "pollution");
@@ -126,6 +151,23 @@ export const CarDashboard = () => {
     if (ratio > 0.66) return "#dc2626";
     if (ratio > 0.33) return "#f97316";
     return "#16a34a";
+  };
+
+  const getVolumeBand = (volume: number): ColorBand => {
+    const ratio = volume / maxVolume;
+    if (ratio > 0.66) return "high";
+    if (ratio > 0.33) return "medium";
+    return "low";
+  };
+
+  const getEmissionBand = (emission: number): ColorBand => {
+    const ratio =
+      maxEmission > minEmission
+        ? (emission - minEmission) / (maxEmission - minEmission)
+        : 0;
+    if (ratio > 0.66) return "high";
+    if (ratio > 0.33) return "medium";
+    return "low";
   };
 
   const dublinCenter: [number, number] = [53.3498, -6.2603];
@@ -236,6 +278,29 @@ export const CarDashboard = () => {
           </ToggleButtonGroup>
         </Box>
 
+        {/* Legend */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">
+            Filter by intensity:
+          </Typography>
+          {LEGEND_ITEMS.map(({ band, color, label }) => (
+            <Chip
+              key={band}
+              label={label}
+              size="small"
+              onClick={() => toggleColor(band)}
+              sx={{
+                bgcolor: activeColors.has(band) ? color : "transparent",
+                color: activeColors.has(band) ? "#fff" : color,
+                border: `2px solid ${color}`,
+                fontWeight: 600,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.85 },
+              }}
+            />
+          ))}
+        </Box>
+
         <Paper
           elevation={0}
           sx={{
@@ -255,7 +320,9 @@ export const CarDashboard = () => {
             <TileLayer attribution={tileAttribution} url={tileUrl} />
 
             {mapMode === "traffic" &&
-              filteredPoints?.map((point, idx) => (
+              filteredPoints
+                ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
+                .map((point, idx) => (
                 <CircleMarker
                   key={`traffic-${point.siteId}-${idx}`}
                   center={[point.lat, point.lon]}
@@ -280,7 +347,11 @@ export const CarDashboard = () => {
               ))}
 
             {mapMode === "pollution" &&
-              filteredEmissions?.map((point, idx) => (
+              filteredEmissions
+                ?.filter((p) =>
+                  activeColors.has(getEmissionBand(p.totalEmissionG)),
+                )
+                .map((point, idx) => (
                 <Circle
                   key={`pollution-${point.siteId}-${idx}`}
                   center={[point.lat, point.lon]}
