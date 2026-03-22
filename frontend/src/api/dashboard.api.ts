@@ -13,9 +13,11 @@ import type {
   CarFuelTypeStat,
   CycleDashboardResponse,
   CycleStation,
+  EventItem,
   HighTrafficPoint,
   IndicatorType,
   JunctionEmission,
+  PedestrianLive,
   TrainDashboardResponse,
   TrainKpis,
   TrainLiveTrain,
@@ -197,6 +199,30 @@ export const dashboardApi = {
   getTrainServiceStats: async (): Promise<TrainServiceStats> => {
     const { data } = await axiosInstance.get<TrainServiceStats>(
       API_ENDPOINTS.TRAIN_SERVICE_STATS,
+    );
+    return data;
+  },
+
+  /**
+   * Get upcoming events
+   */
+  getEvents: async (limit = 10): Promise<EventItem[]> => {
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS,
+      {
+        params: { limit },
+      },
+    );
+    return data;
+  },
+
+  /**
+   * Get live pedestrian counts per site
+   */
+  getPedestriansLive: async (limit = 20): Promise<PedestrianLive[]> => {
+    const { data } = await axiosInstance.get<PedestrianLive[]>(
+      API_ENDPOINTS.PEDESTRIANS_LIVE,
+      { params: { limit } },
     );
     return data;
   },

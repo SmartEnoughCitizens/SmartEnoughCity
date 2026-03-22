@@ -7,7 +7,12 @@ import com.trinity.hermes.usermanagement.dto.ProfileResponse;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
 import com.trinity.hermes.usermanagement.dto.UpdateProfileRequest;
+import com.trinity.hermes.usermanagement.entity.PasswordResetTokenEntity;
+import com.trinity.hermes.usermanagement.repository.PasswordResetTokenRepository;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
@@ -45,6 +50,7 @@ public class UserManagementService {
   private final Keycloak keycloak;
   private final String realm;
   private final MailService mailService;
+  private final PasswordResetTokenRepository passwordResetTokenRepository;
   private final RestTemplate restTemplate = new RestTemplate();
 
   @Value("${keycloak.server-url}")
@@ -55,6 +61,9 @@ public class UserManagementService {
 
   @Value("${keycloak.client-secret}")
   private String clientSecret;
+
+  @Value("${app.frontend-url}")
+  private String frontendUrl;
 
   private static final Set<String> ALLOWED_ROLES =
       Set.of(
@@ -71,10 +80,12 @@ public class UserManagementService {
   public UserManagementService(
       Keycloak keycloak,
       @Value("${keycloak.realm}") String realm,
-      @Qualifier("getMailService") MailService mailService) {
+      @Qualifier("getMailService") MailService mailService,
+      PasswordResetTokenRepository passwordResetTokenRepository) {
     this.keycloak = keycloak;
     this.realm = realm;
     this.mailService = mailService;
+    this.passwordResetTokenRepository = passwordResetTokenRepository;
   }
 
   private RealmResource getRealmResource() {
@@ -143,13 +154,14 @@ public class UserManagementService {
         userId, request.getUsername(), request.getEmail(), request.getRole(), message);
   }
 
-  /**
-   * Finds a user's Keycloak ID by username.
-   *
-   * @param username the username to search for
-   * @return the Keycloak user ID
-   * @throws RuntimeException if the user is not found
-   */
+  public String getUserEmail(String userId) {
+    return getUsersResource().search(userId, 0, 10).stream()
+        .filter(u -> u.getUsername().equalsIgnoreCase(userId) || u.getId().equals(userId))
+        .findFirst()
+        .map(UserRepresentation::getEmail)
+        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+  }
+
   public String findUserIdByUsername(String username) {
     List<UserRepresentation> users = getUsersResource().search(username, 0, 10);
     return users.stream()
@@ -281,8 +293,79 @@ public class UserManagementService {
     log.info("Password changed for user: {}", LogSanitizer.sanitizeLog(username));
   }
 
+  @Transactional
+  public void initiateForgotPassword(String email) {
+    List<UserRepresentation> users = getUsersResource().searchByEmail(email, true);
+    if (!users.isEmpty()) {
+      UserRepresentation user = users.get(0);
+      String keycloakUserId = user.getId();
+
+      passwordResetTokenRepository.deleteByKeycloakUserId(keycloakUserId);
+
+      String token = UUID.randomUUID().toString();
+      LocalDateTime expiresAt = LocalDateTime.now(ZoneId.of("Europe/Dublin")).plusHours(1);
+
+      PasswordResetTokenEntity resetToken =
+          PasswordResetTokenEntity.builder()
+              .token(token)
+              .keycloakUserId(keycloakUserId)
+              .expiresAt(expiresAt)
+              .build();
+      passwordResetTokenRepository.save(resetToken);
+
+      try {
+        sendPasswordResetEmail(email, token);
+      } catch (Exception e) {
+        log.error("Failed to send password reset email to {}: {}", email, e.getMessage());
+      }
+    }
+    // Always return normally — never reveal whether the email exists
+  }
+
+  @Transactional
+  public void resetPassword(String token, String newPassword) {
+    PasswordResetTokenEntity resetToken =
+        passwordResetTokenRepository
+            .findByToken(token)
+            .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+
+    if (resetToken.getExpiresAt().isBefore(LocalDateTime.now(ZoneId.of("Europe/Dublin")))) {
+      throw new RuntimeException("Token has expired");
+    }
+
+    CredentialRepresentation credential = new CredentialRepresentation();
+    credential.setType(CredentialRepresentation.PASSWORD);
+    credential.setValue(newPassword);
+    credential.setTemporary(false);
+    getUsersResource().get(resetToken.getKeycloakUserId()).resetPassword(credential);
+
+    passwordResetTokenRepository.deleteByToken(token);
+
+    log.info("Password reset for Keycloak user: {}", resetToken.getKeycloakUserId());
+  }
+
   private String generateTempPassword() {
     return UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "!A1";
+  }
+
+  private void sendPasswordResetEmail(String email, String token) {
+    String resetLink = frontendUrl + "/reset-password?token=" + token;
+    String subject = "Reset your SmartEnoughCity password";
+    String html =
+        "<div style='font-family: Arial, sans-serif; max-width: 600px;'>"
+            + "<h2>Password Reset Request</h2>"
+            + "<p>We received a request to reset your SmartEnoughCity password.</p>"
+            + "<p>Click the button below to set a new password. This link expires in 1 hour.</p>"
+            + "<a href='"
+            + resetLink
+            + "' style='display: inline-block; margin: 16px 0; padding: 12px 24px;"
+            + " background-color: #1976d2; color: #fff; text-decoration: none;"
+            + " border-radius: 4px; font-weight: bold;'>Reset Password</a>"
+            + "<p>If you did not request a password reset, you can safely ignore this email.</p>"
+            + "<p style='color: #888; font-size: 12px;'>This link will expire in 1 hour.</p>"
+            + "</div>";
+    mailService.sendEmail(email, subject, html, null);
+    log.info("Password reset email sent to: {}", email);
   }
 
   private void sendWelcomeEmail(

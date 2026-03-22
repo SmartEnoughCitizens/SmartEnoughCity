@@ -36,6 +36,9 @@ keycloak:
   admin-username: admin
   admin-password: admin
 
+app:
+  frontend-url: ${APP_FRONTEND_URL}
+
 management:
   endpoints:
     web:

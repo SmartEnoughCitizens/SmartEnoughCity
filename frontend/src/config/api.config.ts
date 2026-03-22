@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: "/api/auth/login",
   AUTH_HEALTH: "/api/auth/health",
+  AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
+  AUTH_RESET_PASSWORD: "/api/auth/reset-password",
 
   // Public
   PUBLIC_HEALTH: "/api/public/health",
@@ -61,4 +63,8 @@ export const API_ENDPOINTS = {
   // Notifications
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
+
+  // Misc (Events + Pedestrians)
+  EVENTS: "/api/v1/events",
+  PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 };

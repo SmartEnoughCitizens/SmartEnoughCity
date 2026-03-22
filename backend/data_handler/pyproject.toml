@@ -14,6 +14,7 @@ dependencies = [
     "pytest-cov>=7.0.0",
     "geoalchemy2>=0.18.4",
     "shapely>=2.1.2",
+    "osmium>=4.3.0",
 ]
 
 [project.scripts]
@@ -91,12 +92,4 @@ ignore = [
     "FIX002",   # Line contains TODO, consider resolving the issue
     "TD002",    # Missing author in TODO
     "PT011",    # `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
-
-    # TODO: Remove the below rules from ignored
-    # They are ignored temporarily, the errors should be resolved properly
-    "T201",     # `print` found
-    "BLE001",   # Do not catch blind exception: `Exception`
-    "S113",     # Probable use of `requests` call without timeout
-    "S314",     # Using `xml` to parse untrusted data is known to be vulnerable to XML attacks; use `defusedxml` equivalents
-    "PERF401",  # Use `list.extend` to create a transformed list
 ]

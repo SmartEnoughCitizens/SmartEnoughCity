@@ -5,6 +5,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
+export const MISC_KEYS = {
+  events: (limit?: number) => ["misc", "events", { limit }] as const,
+  pedestriansLive: (limit?: number) =>
+    ["misc", "pedestrians", "live", { limit }] as const,
+};
+
 export const DASHBOARD_KEYS = {
   bus: (routeId?: string, limit?: number) =>
     ["dashboard", "bus", { routeId, limit }] as const,
@@ -224,6 +230,32 @@ export const useTrainServiceStats = () => {
     queryFn: () => dashboardApi.getTrainServiceStats(),
     staleTime: 60_000,
     refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get upcoming events (default 10, show 5 initially)
+ */
+export const useEvents = (limit = 10) => {
+  return useQuery({
+    queryKey: MISC_KEYS.events(limit),
+    queryFn: () => dashboardApi.getEvents(limit),
+    staleTime: 300_000, // 5 minutes — events don't change often
+    refetchInterval: 300_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get live pedestrian counts per site
+ */
+export const usePedestriansLive = (limit = 20) => {
+  return useQuery({
+    queryKey: MISC_KEYS.pedestriansLive(limit),
+    queryFn: () => dashboardApi.getPedestriansLive(limit),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: true,
   });
 };
