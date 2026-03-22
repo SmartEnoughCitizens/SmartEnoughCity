@@ -14,4 +14,11 @@ public interface CarStatisticsRepository extends JpaRepository<CarStatistics, Ca
       value = "SELECT fuel_type, SUM(count) FROM external_data.vehicle_yearly GROUP BY fuel_type",
       nativeQuery = true)
   List<Object[]> findTotalCountByFuelType();
+
+  @Query(
+      value =
+          "SELECT SUM(count) FROM external_data.vehicle_yearly "
+              + "WHERE fuel_type = 'ELECTRIC' AND year >= 2015",
+      nativeQuery = true)
+  Long findElectricVehicleCountFrom2015();
 }
