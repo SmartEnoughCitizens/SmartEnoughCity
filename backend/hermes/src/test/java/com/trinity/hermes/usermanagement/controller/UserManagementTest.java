@@ -32,16 +32,14 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class UserManagementTest {
 
   @Container
-  static PostgreSQLContainer<?> postgres =
-      new PostgreSQLContainer<>("postgres:16-alpine")
-          .withDatabaseName("smart_enough_city")
-          .withUsername("backend_user")
-          .withPassword("dev_backend_user_password");
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
+      .withDatabaseName("smart_enough_city")
+      .withUsername("backend_user")
+      .withPassword("dev_backend_user_password");
 
   @Container
-  static KeycloakContainer keycloak =
-      new KeycloakContainer("quay.io/keycloak/keycloak:26.0.0")
-          .withRealmImportFile("realm-test.json");
+  static KeycloakContainer keycloak = new KeycloakContainer("quay.io/keycloak/keycloak:26.0.0")
+      .withRealmImportFile("realm-test.json");
 
   @DynamicPropertySource
   static void props(DynamicPropertyRegistry r) {
@@ -65,16 +63,17 @@ class UserManagementTest {
     r.add("keycloak.admin-password", keycloak::getAdminPassword);
   }
 
-  @Autowired MockMvc mockMvc;
-  @Autowired ObjectMapper objectMapper;
+  @Autowired
+  MockMvc mockMvc;
+  @Autowired
+  ObjectMapper objectMapper;
 
   @org.springframework.test.context.bean.override.mockito.MockitoBean(name = "getMailService")
   MailService mailService;
 
   private String token(String username, String password) {
-    String tokenUrl =
-        keycloak.getAuthServerUrl().replaceAll("/$", "")
-            + "/realms/user-management-realm/protocol/openid-connect/token";
+    String tokenUrl = keycloak.getAuthServerUrl().replaceAll("/$", "")
+        + "/realms/user-management-realm/protocol/openid-connect/token";
 
     var client = new org.springframework.web.client.RestTemplate();
 
@@ -171,9 +170,8 @@ class UserManagementTest {
 
   private void debugToken(String accessToken) {
     // Use issuer-uri JWKS
-    String jwkSetUri =
-        keycloak.getAuthServerUrl().replaceAll("/$", "")
-            + "/realms/user-management-realm/protocol/openid-connect/certs";
+    String jwkSetUri = keycloak.getAuthServerUrl().replaceAll("/$", "")
+        + "/realms/user-management-realm/protocol/openid-connect/certs";
 
     JwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
     Jwt jwt = decoder.decode(accessToken);

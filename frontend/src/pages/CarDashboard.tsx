@@ -1,5 +1,6 @@
 /**
  * Car dashboard — displays fuel type statistics as tiles and high traffic points on a map
+ * Now includes an EV Charging tab AND pollution mode
  */
 
 import { useState } from "react";
@@ -11,8 +12,11 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Chip,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import EvStationIcon from "@mui/icons-material/EvStation";
 import {
   MapContainer,
   TileLayer,
@@ -26,6 +30,7 @@ import {
   useCarJunctionEmissions,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import { EVDashboard } from "./EVDashboard";
 import "leaflet/dist/leaflet.css";
 
 type DayTypeFilter = "weekday" | "weekend";
@@ -83,6 +88,16 @@ const FuelTypeTile = ({
 );
 
 export const CarDashboard = () => {
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('carDashboardActiveTab');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  const handleTabChange = (_: any, newValue: number) => {
+    setActiveTab(newValue);
+    localStorage.setItem('carDashboardActiveTab', newValue.toString());
+  };
+
   const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
   const { data: trafficPoints, isLoading: trafficLoading } =
     useCarHighTrafficPoints();
@@ -210,187 +225,246 @@ export const CarDashboard = () => {
   return (
     <Box
       sx={{
-        p: 3,
         display: "flex",
         flexDirection: "column",
-        gap: 3,
         height: "100%",
       }}
     >
-      {/* Fuel Type Tiles */}
-      <Box sx={{ flexShrink: 0 }}>
-        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
-          Vehicle Statistics by Fuel Type
-        </Typography>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-          {stats?.map((stat) => (
-            <FuelTypeTile
-              key={stat.fuelType}
-              fuelType={stat.fuelType}
-              count={stat.count}
-            />
-          ))}
-        </Box>
+      {/* Main Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: "divider", px: 3, pt: 2 }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          sx={{
+            minHeight: 40,
+            "& .MuiTab-root": {
+              minHeight: 40,
+              py: 1,
+              fontSize: "0.875rem",
+              textTransform: "none",
+              minWidth: "auto",
+              px: 2,
+            },
+          }}
+        >
+          <Tab
+            icon={<DirectionsCarIcon fontSize="small" />}
+            iconPosition="start"
+            label="Traffic & Fuel"
+          />
+          <Tab
+            icon={<EvStationIcon fontSize="small" />}
+            iconPosition="start"
+            label="EV Charging"
+          />
+        </Tabs>
       </Box>
 
-      {/* Map Section */}
-      <Box
-        sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
-      >
+      {/* Tab Content - Both tabs always mounted for seamless switching */}
+      <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 2.5,
-            flexWrap: "wrap",
-            gap: 1,
-          }}
-        >
-          <Typography variant="h6" fontWeight="bold">
-            {mapMode === "traffic"
-              ? "High Traffic Points — Dublin"
-              : "Pollution Estimation — Dublin"}
-          </Typography>
-          <ToggleButtonGroup
-            value={mapMode}
-            exclusive
-            onChange={(_, value) => value && setMapMode(value)}
-            size="small"
-          >
-            <ToggleButton value="traffic">Traffic</ToggleButton>
-            <ToggleButton value="pollution">Pollution</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        {/* Filters */}
-        <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
-          <ToggleButtonGroup
-            value={dayTypeFilter}
-            exclusive
-            onChange={(_, value) => value && setDayTypeFilter(value)}
-            size="small"
-          >
-            <ToggleButton value="weekday">Weekday</ToggleButton>
-            <ToggleButton value="weekend">Weekend</ToggleButton>
-          </ToggleButtonGroup>
-
-          <ToggleButtonGroup
-            value={timeSlotFilter}
-            exclusive
-            onChange={(_, value) => value && setTimeSlotFilter(value)}
-            size="small"
-          >
-            <ToggleButton value="morning_peak">Morning Peak</ToggleButton>
-            <ToggleButton value="inter_peak">Inter Peak</ToggleButton>
-            <ToggleButton value="evening_peak">Evening Peak</ToggleButton>
-            <ToggleButton value="off_peak">Off Peak</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        {/* Legend */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-          <Typography variant="caption" color="text.secondary">
-            Filter by intensity:
-          </Typography>
-          {LEGEND_ITEMS.map(({ band, color, label }) => (
-            <Chip
-              key={band}
-              label={label}
-              size="small"
-              onClick={() => toggleColor(band)}
-              sx={{
-                bgcolor: activeColors.has(band) ? color : "transparent",
-                color: activeColors.has(band) ? "#fff" : color,
-                border: `2px solid ${color}`,
-                fontWeight: 600,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.85 },
-              }}
-            />
-          ))}
-        </Box>
-
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 2,
-            overflow: "hidden",
-            flex: 1,
+            position: "absolute",
+            inset: 0,
+            p: 3,
             display: "flex",
             flexDirection: "column",
+            gap: 3,
+            visibility: activeTab === 0 ? "visible" : "hidden",
+            opacity: activeTab === 0 ? 1 : 0,
+            pointerEvents: activeTab === 0 ? "auto" : "none",
+            transition: "opacity 0.15s ease-in-out",
           }}
         >
-          <MapContainer
-            center={dublinCenter}
-            zoom={12}
-            style={{ flex: 1, width: "100%", minHeight: 0 }}
-            zoomControl={true}
+          {/* Fuel Type Tiles */}
+          <Box sx={{ flexShrink: 0 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
+              Vehicle Statistics by Fuel Type
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+              {stats?.map((stat) => (
+                <FuelTypeTile
+                  key={stat.fuelType}
+                  fuelType={stat.fuelType}
+                  count={stat.count}
+                />
+              ))}
+            </Box>
+          </Box>
+
+          {/* Map Section */}
+          <Box
+            sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
           >
-            <TileLayer attribution={tileAttribution} url={tileUrl} />
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 2.5,
+                flexWrap: "wrap",
+                gap: 1,
+              }}
+            >
+              <Typography variant="h6" fontWeight="bold">
+                {mapMode === "traffic"
+                  ? "High Traffic Points — Dublin"
+                  : "Pollution Estimation — Dublin"}
+              </Typography>
+              <ToggleButtonGroup
+                value={mapMode}
+                exclusive
+                onChange={(_, value) => value && setMapMode(value)}
+                size="small"
+              >
+                <ToggleButton value="traffic">Traffic</ToggleButton>
+                <ToggleButton value="pollution">Pollution</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
 
-            {mapMode === "traffic" &&
-              filteredPoints
-                ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
-                .map((point, idx) => (
-                  <CircleMarker
-                    key={`traffic-${point.siteId}-${idx}`}
-                    center={[point.lat, point.lon]}
-                    radius={6}
-                    pathOptions={{
-                      color: "#fff",
-                      weight: 1.5,
-                      fillColor: getMarkerColor(point.avgVolume),
-                      fillOpacity: 0.8,
-                    }}
-                  >
-                    <Popup>
-                      <strong>Site {point.siteId}</strong>
-                      <br />
-                      Avg Volume: {point.avgVolume.toFixed(2)}
-                      <br />
-                      Day Type: {point.dayType}
-                      <br />
-                      Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                    </Popup>
-                  </CircleMarker>
-                ))}
+            {/* Filters */}
+            <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+              <ToggleButtonGroup
+                value={dayTypeFilter}
+                exclusive
+                onChange={(_, value) => value && setDayTypeFilter(value)}
+                size="small"
+              >
+                <ToggleButton value="weekday">Weekday</ToggleButton>
+                <ToggleButton value="weekend">Weekend</ToggleButton>
+              </ToggleButtonGroup>
 
-            {mapMode === "pollution" &&
-              filteredEmissions
-                ?.filter((p) =>
-                  activeColors.has(getEmissionBand(p.totalEmissionG)),
-                )
-                .map((point, idx) => (
-                  <Circle
-                    key={`pollution-${point.siteId}-${idx}`}
-                    center={[point.lat, point.lon]}
-                    radius={250}
-                    pathOptions={{
-                      color: getEmissionColor(point.totalEmissionG),
-                      weight: 1,
-                      fillColor: getEmissionColor(point.totalEmissionG),
-                      fillOpacity: 0.45,
-                    }}
-                  >
-                    <Popup>
-                      <strong>Site {point.siteId}</strong>
-                      <br />
-                      Total Emission: {(point.totalEmissionG / 1000).toFixed(
-                        2,
-                      )}{" "}
-                      kg CO₂
-                      <br />
-                      Car Volume: {point.carVolume.toFixed(0)}
-                      <br />
-                      Day Type: {point.dayType}
-                      <br />
-                      Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                    </Popup>
-                  </Circle>
-                ))}
-          </MapContainer>
-        </Paper>
+              <ToggleButtonGroup
+                value={timeSlotFilter}
+                exclusive
+                onChange={(_, value) => value && setTimeSlotFilter(value)}
+                size="small"
+              >
+                <ToggleButton value="morning_peak">Morning Peak</ToggleButton>
+                <ToggleButton value="inter_peak">Inter Peak</ToggleButton>
+                <ToggleButton value="evening_peak">Evening Peak</ToggleButton>
+                <ToggleButton value="off_peak">Off Peak</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {/* Legend */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                Filter by intensity:
+              </Typography>
+              {LEGEND_ITEMS.map(({ band, color, label }) => (
+                <Chip
+                  key={band}
+                  label={label}
+                  size="small"
+                  onClick={() => toggleColor(band)}
+                  sx={{
+                    bgcolor: activeColors.has(band) ? color : "transparent",
+                    color: activeColors.has(band) ? "#fff" : color,
+                    border: `2px solid ${color}`,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    "&:hover": { opacity: 0.85 },
+                  }}
+                />
+              ))}
+            </Box>
+
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: 2,
+                overflow: "hidden",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <MapContainer
+                center={dublinCenter}
+                zoom={12}
+                style={{ flex: 1, width: "100%", minHeight: 0 }}
+                zoomControl={true}
+              >
+                <TileLayer attribution={tileAttribution} url={tileUrl} />
+
+                {mapMode === "traffic" &&
+                  filteredPoints
+                    ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
+                    .map((point, idx) => (
+                      <CircleMarker
+                        key={`traffic-${point.siteId}-${idx}`}
+                        center={[point.lat, point.lon]}
+                        radius={6}
+                        pathOptions={{
+                          color: "#fff",
+                          weight: 1.5,
+                          fillColor: getMarkerColor(point.avgVolume),
+                          fillOpacity: 0.8,
+                        }}
+                      >
+                        <Popup>
+                          <strong>Site {point.siteId}</strong>
+                          <br />
+                          Avg Volume: {point.avgVolume.toFixed(2)}
+                          <br />
+                          Day Type: {point.dayType}
+                          <br />
+                          Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                        </Popup>
+                      </CircleMarker>
+                    ))}
+
+                {mapMode === "pollution" &&
+                  filteredEmissions
+                    ?.filter((p) =>
+                      activeColors.has(getEmissionBand(p.totalEmissionG)),
+                    )
+                    .map((point, idx) => (
+                      <Circle
+                        key={`pollution-${point.siteId}-${idx}`}
+                        center={[point.lat, point.lon]}
+                        radius={250}
+                        pathOptions={{
+                          color: getEmissionColor(point.totalEmissionG),
+                          weight: 1,
+                          fillColor: getEmissionColor(point.totalEmissionG),
+                          fillOpacity: 0.45,
+                        }}
+                      >
+                        <Popup>
+                          <strong>Site {point.siteId}</strong>
+                          <br />
+                          Total Emission: {(point.totalEmissionG / 1000).toFixed(
+                            2,
+                          )}{" "}
+                          kg CO₂
+                          <br />
+                          Car Volume: {point.carVolume.toFixed(0)}
+                          <br />
+                          Day Type: {point.dayType}
+                          <br />
+                          Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                        </Popup>
+                      </Circle>
+                    ))}
+              </MapContainer>
+            </Paper>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            visibility: activeTab === 1 ? "visible" : "hidden",
+            opacity: activeTab === 1 ? 1 : 0,
+            pointerEvents: activeTab === 1 ? "auto" : "none",
+            transition: "opacity 0.15s ease-in-out",
+          }}
+        >
+          <EVDashboard />
+        </Box>
       </Box>
     </Box>
   );

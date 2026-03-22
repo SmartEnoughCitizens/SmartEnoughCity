@@ -8,3 +8,4 @@ export * from "./useNotifications";
 export * from "./useODRoutes";
 export * from "./useRecommendation";
 export * from "./useUserManagement";
+export * from "./useEv";
