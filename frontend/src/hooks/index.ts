@@ -7,3 +7,4 @@ export * from "./useDashboard";
 export * from "./useNotifications";
 export * from "./useRecommendation";
 export * from "./useUserManagement";
+export * from "./useEv";

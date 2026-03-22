@@ -1,5 +1,6 @@
 /**
  * Car dashboard — displays fuel type statistics as tiles and high traffic points on a map
+ * Now includes an EV Charging tab
  */
 
 import { useState } from "react";
@@ -10,11 +11,15 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import EvStationIcon from "@mui/icons-material/EvStation";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { useCarFuelTypeStatistics, useCarHighTrafficPoints } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import { EVDashboard } from "./EVDashboard";
 import "leaflet/dist/leaflet.css";
 
 type DayTypeFilter = "weekday" | "weekend";
@@ -64,6 +69,16 @@ const FuelTypeTile = ({
 );
 
 export const CarDashboard = () => {
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('carDashboardActiveTab');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  const handleTabChange = (_: any, newValue: number) => {
+    setActiveTab(newValue);
+    localStorage.setItem('carDashboardActiveTab', newValue.toString());
+  };
+
   const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
   const { data: trafficPoints, isLoading: trafficLoading } =
     useCarHighTrafficPoints();
@@ -122,13 +137,53 @@ export const CarDashboard = () => {
   return (
     <Box
       sx={{
-        p: 3,
         display: "flex",
         flexDirection: "column",
-        gap: 3,
         height: "100%",
       }}
     >
+      {/* Main Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: "divider", px: 3, pt: 2 }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          sx={{
+            minHeight: 40,
+            "& .MuiTab-root": {
+              minHeight: 40,
+              py: 1,
+              fontSize: "0.875rem",
+              textTransform: "none",
+              minWidth: "auto",
+              px: 2,
+            },
+          }}
+        >
+          <Tab
+            icon={<DirectionsCarIcon fontSize="small" />}
+            iconPosition="start"
+            label="Traffic & Fuel"
+          />
+          <Tab
+            icon={<EvStationIcon fontSize="small" />}
+            iconPosition="start"
+            label="EV Charging"
+          />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      <Box sx={{ flex: 1, overflow: "auto" }}>
+        {activeTab === 0 && (
+          <Box
+            sx={{
+              p: 3,
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+              height: "100%",
+            }}
+          >
       {/* Fuel Type Tiles */}
       <Box sx={{ flexShrink: 0 }}>
         <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
@@ -220,6 +275,15 @@ export const CarDashboard = () => {
             ))}
           </MapContainer>
         </Paper>
+      </Box>
+          </Box>
+        )}
+
+        {activeTab === 1 && (
+          <Box sx={{ height: "100%" }}>
+            <EVDashboard />
+          </Box>
+        )}
       </Box>
     </Box>
   );

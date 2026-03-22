@@ -63,7 +63,14 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
 
+<<<<<<< Updated upstream
   // Misc (Events + Pedestrians)
   EVENTS: "/api/v1/events",
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
+=======
+  // EV Charging Indicators
+  EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",
+  EV_CHARGING_DEMAND: "/api/v1/ev/charging-demand",
+  EV_AREAS_GEOJSON: "/api/v1/ev/areas-geojson",
+>>>>>>> Stashed changes
 };

@@ -49,7 +49,11 @@ export const useCycleData = (limit: number = 100) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycle(limit),
     queryFn: () => dashboardApi.getCycleData({ limit }),
-    staleTime: 30_000, // 30 seconds
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
   });
 };
 
@@ -167,7 +171,11 @@ export const useCarFuelTypeStatistics = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carFuelTypeStatistics,
     queryFn: () => dashboardApi.getCarFuelTypeStatistics(),
-    staleTime: 300_000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
   });
 };
 
@@ -178,7 +186,11 @@ export const useCarHighTrafficPoints = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carHighTrafficPoints,
     queryFn: () => dashboardApi.getCarHighTrafficPoints(),
-    staleTime: 300_000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
   });
 };
 

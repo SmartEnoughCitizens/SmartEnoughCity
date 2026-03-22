@@ -10,4 +10,8 @@ export * from "./train.types";
 export * from "./notification.types";
 export * from "./recommendation.types";
 export * from "./usermanagement.types";
+<<<<<<< Updated upstream
 export * from "./misc.types";
+=======
+export * from "./ev.types";
+>>>>>>> Stashed changes
