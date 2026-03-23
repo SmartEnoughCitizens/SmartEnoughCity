@@ -89,13 +89,13 @@ const FuelTypeTile = ({
 
 export const CarDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
-    const saved = localStorage.getItem('carDashboardActiveTab');
-    return saved ? parseInt(saved, 10) : 0;
+    const saved = localStorage.getItem("carDashboardActiveTab");
+    return saved ? Number.parseInt(saved, 10) : 0;
   });
 
-  const handleTabChange = (_: any, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
-    localStorage.setItem('carDashboardActiveTab', newValue.toString());
+    localStorage.setItem("carDashboardActiveTab", newValue.toString());
   };
 
   const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
@@ -294,7 +294,12 @@ export const CarDashboard = () => {
 
           {/* Map Section */}
           <Box
-            sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
           >
             <Box
               sx={{
@@ -348,7 +353,9 @@ export const CarDashboard = () => {
             </Box>
 
             {/* Legend */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
+            >
               <Typography variant="caption" color="text.secondary">
                 Filter by intensity:
               </Typography>
@@ -390,7 +397,9 @@ export const CarDashboard = () => {
 
                 {mapMode === "traffic" &&
                   filteredPoints
-                    ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
+                    ?.filter((p) =>
+                      activeColors.has(getVolumeBand(p.avgVolume)),
+                    )
                     .map((point, idx) => (
                       <CircleMarker
                         key={`traffic-${point.siteId}-${idx}`}
@@ -435,10 +444,8 @@ export const CarDashboard = () => {
                         <Popup>
                           <strong>Site {point.siteId}</strong>
                           <br />
-                          Total Emission: {(point.totalEmissionG / 1000).toFixed(
-                            2,
-                          )}{" "}
-                          kg CO₂
+                          Total Emission:{" "}
+                          {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
                           <br />
                           Car Volume: {point.carVolume.toFixed(0)}
                           <br />

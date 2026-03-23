@@ -41,7 +41,7 @@ import {
 } from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
-import { getCreatableRoles, canAccessTransport } from "@/types";
+import { getCreatableRoles } from "@/types";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import { ChangePasswordDialog } from "@/components/profile/ChangePasswordDialog";
 import sseService from "@/services/sseService";
@@ -55,7 +55,16 @@ import { MiscDashboard } from "@/pages/MiscDashboard";
 import { NotificationsPage } from "@/pages/NotificationsPage";
 import { UserManagementPage } from "@/pages/UserManagementPage";
 
-type DashboardView = 'overview' | 'bus' | 'cycle' | 'car' | 'train' | 'tram' | 'misc' | 'notifications' | 'users';
+type DashboardView =
+  | "overview"
+  | "bus"
+  | "cycle"
+  | "car"
+  | "train"
+  | "tram"
+  | "misc"
+  | "notifications"
+  | "users";
 
 export const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -67,13 +76,13 @@ export const DashboardLayout = () => {
 
   // State to track active dashboard view with persistence
   const [activeView, setActiveView] = useState<DashboardView>(() => {
-    const saved = localStorage.getItem('activeDashboardView');
-    return (saved as DashboardView) || 'overview';
+    const saved = localStorage.getItem("activeDashboardView");
+    return (saved as DashboardView) || "overview";
   });
 
   // Save active view to localStorage
   useEffect(() => {
-    localStorage.setItem('activeDashboardView', activeView);
+    localStorage.setItem("activeDashboardView", activeView);
   }, [activeView]);
 
   // Connect SSE as soon as dashboard loads (user is authenticated)
@@ -116,31 +125,39 @@ export const DashboardLayout = () => {
   };
 
   const navItems = [
-    { icon: <DashboardIcon />, view: 'overview' as DashboardView, label: "Overview" },
-    { icon: <DirectionsBusIcon />, view: 'bus' as DashboardView, label: "Bus Data" },
+    {
+      icon: <DashboardIcon />,
+      view: "overview" as DashboardView,
+      label: "Overview",
+    },
+    {
+      icon: <DirectionsBusIcon />,
+      view: "bus" as DashboardView,
+      label: "Bus Data",
+    },
     {
       icon: <DirectionsBikeIcon />,
-      view: 'cycle' as DashboardView,
+      view: "cycle" as DashboardView,
       label: "Cycles",
     },
     {
       icon: <DirectionsCarIcon />,
-      view: 'car' as DashboardView,
+      view: "car" as DashboardView,
       label: "Car",
     },
     {
       icon: <TrainIcon />,
-      view: 'train' as DashboardView,
+      view: "train" as DashboardView,
       label: "Trains",
     },
     {
       icon: <TramIcon />,
-      view: 'tram' as DashboardView,
+      view: "tram" as DashboardView,
       label: "Trams",
     },
     {
       icon: <EventNoteIcon />,
-      view: 'misc' as DashboardView,
+      view: "misc" as DashboardView,
       label: "Events & Pedestrians",
     },
     {
@@ -154,14 +171,14 @@ export const DashboardLayout = () => {
           <NotificationsIcon />
         </Badge>
       ),
-      view: 'notifications' as DashboardView,
+      view: "notifications" as DashboardView,
       label: "Notifications",
     },
     ...(canManageUsers
       ? [
           {
             icon: <PersonAddIcon />,
-            view: 'users' as DashboardView,
+            view: "users" as DashboardView,
             label: "User Management",
           },
         ]
@@ -205,7 +222,7 @@ export const DashboardLayout = () => {
             mb: 1,
             cursor: "pointer",
           }}
-          onClick={() => setActiveView('overview')}
+          onClick={() => setActiveView("overview")}
         >
           <Typography
             sx={{ color: "#fff", fontWeight: 800, fontSize: "0.9rem" }}
@@ -335,9 +352,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'overview' ? "visible" : "hidden",
-            opacity: activeView === 'overview' ? 1 : 0,
-            pointerEvents: activeView === 'overview' ? "auto" : "none",
+            visibility: activeView === "overview" ? "visible" : "hidden",
+            opacity: activeView === "overview" ? 1 : 0,
+            pointerEvents: activeView === "overview" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -349,9 +366,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'bus' ? "visible" : "hidden",
-            opacity: activeView === 'bus' ? 1 : 0,
-            pointerEvents: activeView === 'bus' ? "auto" : "none",
+            visibility: activeView === "bus" ? "visible" : "hidden",
+            opacity: activeView === "bus" ? 1 : 0,
+            pointerEvents: activeView === "bus" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -363,9 +380,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'cycle' ? "visible" : "hidden",
-            opacity: activeView === 'cycle' ? 1 : 0,
-            pointerEvents: activeView === 'cycle' ? "auto" : "none",
+            visibility: activeView === "cycle" ? "visible" : "hidden",
+            opacity: activeView === "cycle" ? 1 : 0,
+            pointerEvents: activeView === "cycle" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -377,9 +394,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'car' ? "visible" : "hidden",
-            opacity: activeView === 'car' ? 1 : 0,
-            pointerEvents: activeView === 'car' ? "auto" : "none",
+            visibility: activeView === "car" ? "visible" : "hidden",
+            opacity: activeView === "car" ? 1 : 0,
+            pointerEvents: activeView === "car" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -391,9 +408,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'train' ? "visible" : "hidden",
-            opacity: activeView === 'train' ? 1 : 0,
-            pointerEvents: activeView === 'train' ? "auto" : "none",
+            visibility: activeView === "train" ? "visible" : "hidden",
+            opacity: activeView === "train" ? 1 : 0,
+            pointerEvents: activeView === "train" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -405,9 +422,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'tram' ? "visible" : "hidden",
-            opacity: activeView === 'tram' ? 1 : 0,
-            pointerEvents: activeView === 'tram' ? "auto" : "none",
+            visibility: activeView === "tram" ? "visible" : "hidden",
+            opacity: activeView === "tram" ? 1 : 0,
+            pointerEvents: activeView === "tram" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -419,9 +436,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'misc' ? "visible" : "hidden",
-            opacity: activeView === 'misc' ? 1 : 0,
-            pointerEvents: activeView === 'misc' ? "auto" : "none",
+            visibility: activeView === "misc" ? "visible" : "hidden",
+            opacity: activeView === "misc" ? 1 : 0,
+            pointerEvents: activeView === "misc" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -433,9 +450,9 @@ export const DashboardLayout = () => {
           sx={{
             position: "absolute",
             inset: 0,
-            visibility: activeView === 'notifications' ? "visible" : "hidden",
-            opacity: activeView === 'notifications' ? 1 : 0,
-            pointerEvents: activeView === 'notifications' ? "auto" : "none",
+            visibility: activeView === "notifications" ? "visible" : "hidden",
+            opacity: activeView === "notifications" ? 1 : 0,
+            pointerEvents: activeView === "notifications" ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
@@ -448,9 +465,9 @@ export const DashboardLayout = () => {
             sx={{
               position: "absolute",
               inset: 0,
-              visibility: activeView === 'users' ? "visible" : "hidden",
-              opacity: activeView === 'users' ? 1 : 0,
-              pointerEvents: activeView === 'users' ? "auto" : "none",
+              visibility: activeView === "users" ? "visible" : "hidden",
+              opacity: activeView === "users" ? 1 : 0,
+              pointerEvents: activeView === "users" ? "auto" : "none",
               transition: "opacity 0.15s ease-in-out",
             }}
           >

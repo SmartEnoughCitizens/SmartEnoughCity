@@ -12,9 +12,7 @@ ev_stations = pd.read_csv(
     encoding="latin1",
 )
 
-households = pd.read_csv(
-    BASE_DIR / "data" / "Household_data.csv", encoding="utf-8-sig"
-)
+households = pd.read_csv(BASE_DIR / "data" / "Household_data.csv", encoding="utf-8-sig")
 
 car_counts = pd.read_csv(
     BASE_DIR / "data" / "combined_scats_with_locations.csv",

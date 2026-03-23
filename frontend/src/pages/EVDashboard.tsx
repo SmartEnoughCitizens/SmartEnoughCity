@@ -15,19 +15,75 @@ import {
   Paper,
   Typography,
   IconButton,
-  Divider,
 } from "@mui/material";
 import EvStationIcon from "@mui/icons-material/EvStation";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CloseIcon from "@mui/icons-material/Close";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from "react-leaflet";
-import { useEvChargingStations, useEvChargingDemand, useEvAreasGeoJson } from "@/hooks";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  GeoJSON,
+  useMap,
+} from "react-leaflet";
+import {
+  useEvChargingStations,
+  useEvChargingDemand,
+  useEvAreasGeoJson,
+} from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import type { EvAreaDemand } from "@/types";
 import type { PathOptions } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+// ─── TypeScript Interfaces ────────────────────────────────────────────────────
+
+interface GeoJsonFeatureProperties {
+  display_name?: string;
+  charging_demand?: number;
+  registered_ev?: number;
+}
+
+interface GeoJsonGeometry {
+  type: string;
+  coordinates: number[][][];
+}
+
+interface GeoJsonFeature {
+  type: string;
+  properties?: GeoJsonFeatureProperties;
+  geometry: GeoJsonGeometry;
+}
+
+interface GeoJsonData {
+  type: string;
+  features: GeoJsonFeature[];
+}
+
+interface EvStation {
+  address: string;
+  county: string;
+  latitude: number;
+  longitude: number;
+  charger_count: number;
+  open_hours: string;
+}
+
+interface SearchResult {
+  type: "station" | "area";
+  name: string;
+  data: EvStation | string;
+}
+
+interface LeafletMouseEvent {
+  target: L.Layer & {
+    setStyle: (style: PathOptions) => void;
+    openPopup: () => void;
+  };
+}
 
 // ─── Custom Electric Bolt Icon ────────────────────────────────────────────────
 
@@ -59,7 +115,13 @@ const electricBoltIcon = L.divIcon({
 
 // ─── Map Controller for Zoom ──────────────────────────────────────────────────
 
-const MapController = ({ center, zoom }: { center: [number, number] | null; zoom: number }) => {
+const MapController = ({
+  center,
+  zoom,
+}: {
+  center: [number, number] | null;
+  zoom: number;
+}) => {
   const map = useMap();
 
   useEffect(() => {
@@ -71,6 +133,29 @@ const MapController = ({ center, zoom }: { center: [number, number] | null; zoom
   return null;
 };
 
+// ─── Helper Functions for Demand Coloring ─────────────────────────────────────
+
+const getDemandColor = (demand: number, max: number): string => {
+  const ratio = demand / max;
+  if (ratio > 0.66) return "#fca5a5"; // High - pastel red
+  if (ratio > 0.33) return "#fdba74"; // Medium - pastel orange
+  return "#86efac"; // Low - pastel green
+};
+
+const getDemandBorderColor = (demand: number, max: number): string => {
+  const ratio = demand / max;
+  if (ratio > 0.66) return "#f87171"; // High - slightly darker pastel red
+  if (ratio > 0.33) return "#fb923c"; // Medium - slightly darker pastel orange
+  return "#4ade80"; // Low - slightly darker pastel green
+};
+
+const getDemandLevel = (demand: number, max: number): string => {
+  const ratio = demand / max;
+  if (ratio > 0.66) return "high";
+  if (ratio > 0.33) return "medium";
+  return "low";
+};
+
 // ─── Demand Overlay using GeoJSON Polygons ───────────────────────────────────
 
 const DemandOverlay = ({
@@ -80,7 +165,7 @@ const DemandOverlay = ({
   maxDemand,
   demandFilter,
 }: {
-  geoJsonData: any;
+  geoJsonData: GeoJsonData | null;
   demandData: Record<string, EvAreaDemand>;
   show: boolean;
   maxDemand: number;
@@ -88,28 +173,7 @@ const DemandOverlay = ({
 }) => {
   if (!show || !geoJsonData) return null;
 
-  const getDemandColor = (demand: number, max: number): string => {
-    const ratio = demand / max;
-    if (ratio > 0.66) return "#fca5a5"; // High - pastel red
-    if (ratio > 0.33) return "#fdba74"; // Medium - pastel orange
-    return "#86efac"; // Low - pastel green
-  };
-
-  const getDemandBorderColor = (demand: number, max: number): string => {
-    const ratio = demand / max;
-    if (ratio > 0.66) return "#f87171"; // High - slightly darker pastel red
-    if (ratio > 0.33) return "#fb923c"; // Medium - slightly darker pastel orange
-    return "#4ade80"; // Low - slightly darker pastel green
-  };
-
-  const getDemandLevel = (demand: number, max: number): string => {
-    const ratio = demand / max;
-    if (ratio > 0.66) return "high";
-    if (ratio > 0.33) return "medium";
-    return "low";
-  };
-
-  const getFeatureStyle = (feature: any): PathOptions => {
+  const getFeatureStyle = (feature: GeoJsonFeature): PathOptions => {
     const chargingDemand = feature.properties?.charging_demand;
 
     if (!chargingDemand || chargingDemand === null) {
@@ -144,34 +208,34 @@ const DemandOverlay = ({
     };
   };
 
-  const onEachFeature = (feature: any, layer: any) => {
-    const areaName = feature.properties?.display_name || "Unknown Area";
+  const onEachFeature = (feature: GeoJsonFeature, layer: L.Layer) => {
+    const areaName = feature.properties?.display_name ?? "Unknown Area";
     const chargingDemand = feature.properties?.charging_demand;
     const registeredEv = feature.properties?.registered_ev;
 
     if (chargingDemand && chargingDemand !== null) {
       // Show popup on hover
-      layer.bindPopup(`
+      (layer as L.Layer & { bindPopup: (content: string) => void }).bindPopup(`
         <strong>${areaName}</strong><br />
-        Registered EVs: ${registeredEv || 'N/A'}<br />
+        Registered EVs: ${registeredEv ?? "N/A"}<br />
         Charging Demand: ${chargingDemand.toFixed(1)}
       `);
 
       // Highlight more on hover
       layer.on({
-        mouseover: (e: any) => {
-          const layer = e.target;
-          layer.setStyle({
+        mouseover: (e: LeafletMouseEvent) => {
+          const targetLayer = e.target;
+          targetLayer.setStyle({
             fillOpacity: 0.7,
             weight: 3,
             color: getDemandBorderColor(chargingDemand, maxDemand),
             opacity: 1,
           });
-          layer.openPopup();
+          targetLayer.openPopup();
         },
-        mouseout: (e: any) => {
-          const layer = e.target;
-          layer.setStyle({
+        mouseout: (e: LeafletMouseEvent) => {
+          const targetLayer = e.target;
+          targetLayer.setStyle({
             fillOpacity: 0.5,
             weight: 2,
             color: getDemandBorderColor(chargingDemand, maxDemand),
@@ -190,12 +254,18 @@ const DemandOverlay = ({
     hasData: !!geoJsonData,
     featuresCount: geoJsonData?.features?.length || 0,
     maxDemand,
-    demandDataKeys: Object.keys(demandData).length
+    demandDataKeys: Object.keys(demandData).length,
   });
 
-  return <GeoJSON key={`geojson-${show}`} data={geoJsonData} style={getFeatureStyle} onEachFeature={onEachFeature} />;
+  return (
+    <GeoJSON
+      key={`geojson-${show}`}
+      data={geoJsonData}
+      style={getFeatureStyle}
+      onEachFeature={onEachFeature}
+    />
+  );
 };
-
 
 // ─── Search Bar with Autocomplete ────────────────────────────────────────────
 
@@ -212,8 +282,8 @@ const SearchBar = ({
 }: {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  searchResults: { type: "station" | "area"; name: string; data: any }[];
-  onResultClick: (result: any) => void;
+  searchResults: SearchResult[];
+  onResultClick: (result: SearchResult) => void;
   totalStations: number;
   highPriorityAreas: string[];
   isLoading: boolean;
@@ -221,18 +291,21 @@ const SearchBar = ({
   onDemandFilterChange: (filters: string[]) => void;
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const showResults = isFocused && searchQuery.trim().length > 0 && searchResults.length > 0;
+  const showResults =
+    isFocused && searchQuery.trim().length > 0 && searchResults.length > 0;
 
   const toggleFilter = (filter: string) => {
     if (demandFilter.includes(filter)) {
-      onDemandFilterChange(demandFilter.filter(f => f !== filter));
+      onDemandFilterChange(demandFilter.filter((f) => f !== filter));
     } else {
       onDemandFilterChange([...demandFilter, filter]);
     }
   };
 
   return (
-    <Box sx={{ position: "absolute", top: 16, left: 16, zIndex: 1000, width: 400 }}>
+    <Box
+      sx={{ position: "absolute", top: 16, left: 16, zIndex: 1000, width: 400 }}
+    >
       <Paper
         elevation={0}
         sx={{
@@ -256,7 +329,9 @@ const SearchBar = ({
           component="input"
           placeholder="Search stations or areas..."
           value={searchQuery}
-          onChange={(e: any) => onSearchChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onSearchChange(e.target.value)
+          }
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           sx={{
@@ -304,9 +379,13 @@ const SearchBar = ({
                 sx={{
                   fontSize: "0.7rem",
                   height: 22,
-                  bgcolor: demandFilter.includes("high") ? "#fca5a5" : "transparent",
+                  bgcolor: demandFilter.includes("high")
+                    ? "#fca5a5"
+                    : "transparent",
                   border: `1px solid #f87171`,
-                  color: demandFilter.includes("high") ? "#000" : "text.secondary",
+                  color: demandFilter.includes("high")
+                    ? "#000"
+                    : "text.secondary",
                   "&:hover": {
                     bgcolor: "#fca5a5",
                   },
@@ -320,9 +399,13 @@ const SearchBar = ({
                 sx={{
                   fontSize: "0.7rem",
                   height: 22,
-                  bgcolor: demandFilter.includes("medium") ? "#fdba74" : "transparent",
+                  bgcolor: demandFilter.includes("medium")
+                    ? "#fdba74"
+                    : "transparent",
                   border: `1px solid #fb923c`,
-                  color: demandFilter.includes("medium") ? "#000" : "text.secondary",
+                  color: demandFilter.includes("medium")
+                    ? "#000"
+                    : "text.secondary",
                   "&:hover": {
                     bgcolor: "#fdba74",
                   },
@@ -336,9 +419,13 @@ const SearchBar = ({
                 sx={{
                   fontSize: "0.7rem",
                   height: 22,
-                  bgcolor: demandFilter.includes("low") ? "#86efac" : "transparent",
+                  bgcolor: demandFilter.includes("low")
+                    ? "#86efac"
+                    : "transparent",
                   border: `1px solid #4ade80`,
-                  color: demandFilter.includes("low") ? "#000" : "text.secondary",
+                  color: demandFilter.includes("low")
+                    ? "#000"
+                    : "text.secondary",
                   "&:hover": {
                     bgcolor: "#86efac",
                   },
@@ -390,7 +477,11 @@ const SearchBar = ({
                   label={result.type}
                   size="small"
                   color={result.type === "station" ? "primary" : "secondary"}
-                  sx={{ fontSize: "0.7rem", height: 20, textTransform: "capitalize" }}
+                  sx={{
+                    fontSize: "0.7rem",
+                    height: 20,
+                    textTransform: "capitalize",
+                  }}
                 />
                 <Box
                   component="span"
@@ -418,7 +509,7 @@ const SidePanel = ({
   selectedArea,
   onClose,
 }: {
-  stations: any[];
+  stations: EvStation[];
   selectedArea: string | null;
   onClose: () => void;
 }) => (
@@ -490,7 +581,7 @@ const SidePanel = ({
             <Chip
               size="small"
               icon={<ElectricBoltIcon sx={{ fontSize: "12px !important" }} />}
-              label={`${station.charger_count} charger${station.charger_count !== 1 ? "s" : ""}`}
+              label={`${station.charger_count} charger${station.charger_count === 1 ? "" : "s"}`}
               sx={{ fontSize: "0.7rem", height: 20 }}
             />
             <Chip
@@ -525,7 +616,13 @@ const Legend = () => (
           : "rgba(255, 255, 255, 0.95)",
     }}
   >
-    <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 1 }}>
+    <Typography
+      variant="caption"
+      fontWeight={700}
+      color="text.secondary"
+      display="block"
+      sx={{ mb: 1 }}
+    >
       LEGEND
     </Typography>
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
@@ -586,10 +683,14 @@ const Legend = () => (
 export const EVDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
-  const [selectedStations, setSelectedStations] = useState<any[]>([]);
+  const [selectedStations, setSelectedStations] = useState<EvStation[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [mapZoom, setMapZoom] = useState(12);
-  const [demandFilter, setDemandFilter] = useState<string[]>(["high", "medium", "low"]);
+  const [demandFilter, setDemandFilter] = useState<string[]>([
+    "high",
+    "medium",
+    "low",
+  ]);
   const theme = useAppSelector((state) => state.ui.theme);
 
   const { data: stationsData, isLoading: stationsLoading } =
@@ -598,58 +699,69 @@ export const EVDashboard = () => {
   const { data: geoJsonData, isLoading: geoJsonLoading } = useEvAreasGeoJson();
 
   const isLoading = stationsLoading || demandLoading || geoJsonLoading;
-  const allStations = stationsData?.stations ?? [];
+  const allStations = useMemo(
+    () => stationsData?.stations ?? [],
+    [stationsData?.stations],
+  );
   const totalStations = stationsData?.total_stations ?? 0;
   const highPriorityAreas = demandData?.high_priority_areas ?? [];
-  const demandAreas = demandData?.areas ?? [];
+  const demandAreas = useMemo(
+    () => demandData?.areas ?? [],
+    [demandData?.areas],
+  );
 
   // Get unique areas from GeoJSON
   const uniqueAreas = useMemo(() => {
     if (!geoJsonData || !geoJsonData.features) return [];
     const areaNames = geoJsonData.features
-      .map((f: any) => f.properties?.display_name)
-      .filter((name: string) => name && name !== null);
-    return Array.from(new Set(areaNames)).sort();
+      .map((f: GeoJsonFeature) => f.properties?.display_name)
+      .filter(Boolean);
+    return [...new Set(areaNames)].toSorted();
   }, [geoJsonData]);
 
   // Create search results
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
-    const results: { type: "station" | "area"; name: string; data: any }[] = [];
+    const results: SearchResult[] = [];
 
     // Add matching areas from GeoJSON
-    uniqueAreas.forEach((area) => {
+    for (const area of uniqueAreas) {
       if (area.toLowerCase().includes(query)) {
         results.push({ type: "area", name: area, data: area });
       }
-    });
+    }
 
     // Add matching stations
-    allStations.forEach((station) => {
+    for (const station of allStations) {
       if (station.address.toLowerCase().includes(query)) {
         results.push({ type: "station", name: station.address, data: station });
       }
-    });
+    }
 
     return results.slice(0, 10); // Limit to 10 results
   }, [allStations, uniqueAreas, searchQuery]);
 
   // Handle search result click
-  const handleResultClick = (result: any) => {
+  const handleResultClick = (result: SearchResult) => {
     setSearchQuery("");
 
     if (result.type === "area") {
+      const areaName = result.data as string;
       // Find the GeoJSON feature for this area
       const areaFeature = geoJsonData?.features.find(
-        (f: any) => f.properties?.display_name === result.data
+        (f: GeoJsonFeature) => f.properties?.display_name === areaName,
       );
 
       if (areaFeature && areaFeature.geometry.type === "Polygon") {
         // Calculate center of polygon (simple average of all coordinates)
         const coords = areaFeature.geometry.coordinates[0];
-        const avgLng = coords.reduce((sum: number, c: number[]) => sum + c[0], 0) / coords.length;
-        const avgLat = coords.reduce((sum: number, c: number[]) => sum + c[1], 0) / coords.length;
+        const avgLng =
+          coords.reduce((sum: number, c: number[]) => sum + c[0], 0) /
+          coords.length;
+        const avgLat =
+          coords.reduce((sum: number, c: number[]) => sum + c[1], 0) /
+          coords.length;
 
         // Find stations near this area (within a radius)
         const nearbyStations = allStations.filter((station) => {
@@ -658,43 +770,48 @@ export const EVDashboard = () => {
           return latDiff < 0.05 && lngDiff < 0.05; // ~5km radius
         });
 
-        setSelectedArea(result.data);
-        setSelectedStations(nearbyStations.length > 0 ? nearbyStations : allStations.slice(0, 5));
+        setSelectedArea(areaName);
+        setSelectedStations(
+          nearbyStations.length > 0 ? nearbyStations : allStations.slice(0, 5),
+        );
         setMapCenter([avgLat, avgLng]);
         setMapZoom(14);
       }
     } else {
+      const stationData = result.data as EvStation;
       // Single station selected
-      setSelectedArea(result.data.address);
-      setSelectedStations([result.data]);
-      setMapCenter([result.data.latitude, result.data.longitude]);
+      setSelectedArea(stationData.address);
+      setSelectedStations([stationData]);
+      setMapCenter([stationData.latitude, stationData.longitude]);
       setMapZoom(15);
     }
   };
 
   // Filter stations based on search query for display on map
-  const filteredStations = useMemo(() => {
-    if (!searchQuery.trim()) return allStations;
-    const query = searchQuery.toLowerCase();
-    return allStations.filter(
-      (station) =>
-        station.address.toLowerCase().includes(query) ||
-        station.county.toLowerCase().includes(query)
-    );
-  }, [allStations, searchQuery]);
+  // Currently not used but kept for potential future feature
+  // const filteredStations = useMemo(() => {
+  //   if (!searchQuery.trim()) return allStations;
+  //   const query = searchQuery.toLowerCase();
+  //   return allStations.filter(
+  //     (station) =>
+  //       station.address.toLowerCase().includes(query) ||
+  //       station.county.toLowerCase().includes(query)
+  //   );
+  // }, [allStations, searchQuery]);
 
   // Create a map of area name to demand data for quick lookup
   const demandDataMap = useMemo(() => {
     const map: Record<string, EvAreaDemand> = {};
-    demandAreas.forEach((area) => {
+    for (const area of demandAreas) {
       map[area.area] = area;
-    });
+    }
     return map;
   }, [demandAreas]);
 
-  const maxDemand = demandAreas.length
-    ? Math.max(...demandAreas.map((area) => area.charging_demand))
-    : 1;
+  const maxDemand =
+    demandAreas.length > 0
+      ? Math.max(...demandAreas.map((area) => area.charging_demand))
+      : 1;
 
   const dublinCenter: [number, number] = [53.3498, -6.2603];
 
