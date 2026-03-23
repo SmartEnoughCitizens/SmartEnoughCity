@@ -1,25 +1,28 @@
-import pandas as pd
-import os
+"""Analyze pollution data by emission bands across years."""
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+from pathlib import Path
+
+import pandas as pd
+
+BASE_DIR = Path(__file__).parent
 
 # traffic_count = pd.read_csv(
-#     os.path.join(BASE_DIR, "data", "combined_scats_with_locations.csv"),
+#     BASE_DIR / "data" / "combined_scats_with_locations.csv",
 #     encoding='utf-8-sig'
 # )
 
 car_counts1 = pd.read_csv(
-    os.path.join(BASE_DIR, "data", "carscounts2017-2025.csv"), encoding="utf-8-sig"
+    BASE_DIR / "data" / "carscounts2017-2025.csv", encoding="utf-8-sig"
 )
 
 
 car_counts2 = pd.read_csv(
-    os.path.join(BASE_DIR, "data", "carscount2014-15.csv"),  # dein zweiter Dateiname
+    BASE_DIR / "data" / "carscount2014-15.csv",  # dein zweiter Dateiname
     encoding="utf-8-sig",
 )
 
 car_counts3 = pd.read_csv(
-    os.path.join(BASE_DIR, "data", "carscount1998-2013.csv"),  # dein zweiter Dateiname
+    BASE_DIR / "data" / "carscount1998-2013.csv",  # dein zweiter Dateiname
     encoding="utf-8-sig",
 )
 
@@ -90,7 +93,7 @@ final_df = final_df.merge(
 print(final_df)
 
 
-output_path = os.path.join(BASE_DIR, "data", "dublin_car_summary.csv")
+output_path = BASE_DIR / "data" / "dublin_car_summary.csv"
 
 final_df.to_csv(output_path, index=False)
 

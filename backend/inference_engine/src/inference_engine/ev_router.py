@@ -40,7 +40,7 @@ def get_areas_geojson() -> dict:
     Replicates the Python map script logic from ev_charging_estimate.py.
     """
     try:
-        with open(_GEOJSON_PATH, encoding="utf-8") as f:
+        with _GEOJSON_PATH.open(encoding="utf-8") as f:
             geojson = json.load(f)
 
         df = pd.read_csv(
@@ -56,7 +56,7 @@ def get_areas_geojson() -> dict:
         demand_lookup: dict = {}
         for _, row in df.iterrows():
             full_name = str(row["CSO Electoral Divisions 2022"])
-            division = full_name.split(",")[0].strip()
+            division = full_name.split(",", maxsplit=1)[0].strip()
             demand_lookup[_normalize(division)] = {
                 "charging_demand": row["charging_demand"],
                 "registered_ev": row["Registered_ev"],
@@ -78,10 +78,10 @@ def get_areas_geojson() -> dict:
 
             dublin_features.append(feature)
 
-        return {"type": "FeatureCollection", "features": dublin_features}
-
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    else:
+        return {"type": "FeatureCollection", "features": dublin_features}
 
 
 # ── GET /ev/charging-stations ─────────────────────────────────────────────────

@@ -1,20 +1,23 @@
-import pandas as pd
-import os
+"""Calculate optimal EV charging station distribution based on regional data."""
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+from pathlib import Path
+
+import pandas as pd
+
+BASE_DIR = Path(__file__).parent
 
 # --- 0. Read data ---
 ev_stations = pd.read_csv(
-    os.path.join(BASE_DIR, "data", "ESB-EV-charge-point-locations.csv"),
+    BASE_DIR / "data" / "ESB-EV-charge-point-locations.csv",
     encoding="latin1",
 )
 
 households = pd.read_csv(
-    os.path.join(BASE_DIR, "data", "Household_data.csv"), encoding="utf-8-sig"
+    BASE_DIR / "data" / "Household_data.csv", encoding="utf-8-sig"
 )
 
 car_counts = pd.read_csv(
-    os.path.join(BASE_DIR, "data", "combined_scats_with_locations.csv"),
+    BASE_DIR / "data" / "combined_scats_with_locations.csv",
     encoding="utf-8-sig",
 )
 

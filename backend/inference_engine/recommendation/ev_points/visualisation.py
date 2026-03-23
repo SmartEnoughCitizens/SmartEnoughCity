@@ -1,10 +1,13 @@
-import os
-import pandas as pd
+"""Visualize emission band data over time."""
+
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # Path
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-output_path = os.path.join(BASE_DIR, "data", "dublin_car_summary.csv")
+BASE_DIR = Path(__file__).parent
+output_path = BASE_DIR / "data" / "dublin_car_summary.csv"
 
 # Load data
 df = pd.read_csv(output_path)
