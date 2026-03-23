@@ -10,6 +10,7 @@ export const DASHBOARD_KEYS = {
     ["dashboard", "bus", { routeId, limit }] as const,
   cycle: (limit?: number) => ["dashboard", "cycle", { limit }] as const,
   train: (limit?: number) => ["dashboard", "train", { limit }] as const,
+  tram: (limit?: number) => ["dashboard", "tram", { limit }] as const,
   availableBikes: ["dashboard", "cycle", "available-bikes"] as const,
   availableDocks: ["dashboard", "cycle", "available-docks"] as const,
   busRoutes: ["dashboard", "bus", "routes"] as const,
@@ -21,6 +22,10 @@ export const DASHBOARD_KEYS = {
   trainKpis: ["train", "kpis"] as const,
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
+  tramKpis: ["tram", "kpis"] as const,
+  tramLiveForecasts: ["tram", "live-forecasts"] as const,
+  tramDelays: ["tram", "delays"] as const,
+  tramHourlyDistribution: ["tram", "hourly-distribution"] as const,
 };
 
 /**
@@ -53,6 +58,17 @@ export const useTrainData = (limit: number = 200) => {
     queryKey: DASHBOARD_KEYS.train(limit),
     queryFn: () => dashboardApi.getTrainData({ limit }),
     staleTime: 30_000, // 30 seconds
+  });
+};
+
+/**
+ * Get tram stop data
+ */
+export const useTramData = (limit: number = 200) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tram(limit),
+    queryFn: () => dashboardApi.getTramData({ limit }),
+    staleTime: 30_000,
   });
 };
 
@@ -190,3 +206,56 @@ export const useTrainServiceStats = () => {
     refetchIntervalInBackground: true,
   });
 };
+<<<<<<< Updated upstream
+=======
+
+/**
+ * Get tram dashboard KPIs
+ */
+export const useTramKpis = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramKpis,
+    queryFn: () => dashboardApi.getTramKpis(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get live tram forecasts
+ */
+export const useTramLiveForecasts = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramLiveForecasts,
+    queryFn: () => dashboardApi.getTramLiveForecasts(),
+    staleTime: 20_000,
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get tram delays
+ */
+export const useTramDelays = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramDelays,
+    queryFn: () => dashboardApi.getTramDelays(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get tram hourly passenger distribution
+ */
+export const useTramHourlyDistribution = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramHourlyDistribution,
+    queryFn: () => dashboardApi.getTramHourlyDistribution(),
+    staleTime: 300_000, // 5 minutes - CSO data is static
+  });
+};
+>>>>>>> Stashed changes
