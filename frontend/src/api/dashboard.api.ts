@@ -17,6 +17,11 @@ import type {
   TrainKpis,
   TrainLiveTrain,
   TrainServiceStats,
+  TramDashboardResponse,
+  TramKpis,
+  TramLiveForecast,
+  TramDelay,
+  TramHourlyDistribution,
 } from "@/types";
 
 export const dashboardApi = {
@@ -55,6 +60,19 @@ export const dashboardApi = {
   }): Promise<TrainDashboardResponse> => {
     const { data } = await axiosInstance.get<TrainDashboardResponse>(
       API_ENDPOINTS.DASHBOARD_TRAIN,
+      { params },
+    );
+    return data;
+  },
+
+  /**
+   * Get tram stop data for dashboard
+   */
+  getTramData: async (params?: {
+    limit?: number;
+  }): Promise<TramDashboardResponse> => {
+    const { data } = await axiosInstance.get<TramDashboardResponse>(
+      API_ENDPOINTS.DASHBOARD_TRAM,
       { params },
     );
     return data;
@@ -167,4 +185,47 @@ export const dashboardApi = {
     );
     return data;
   },
+<<<<<<< Updated upstream
+=======
+
+  /**
+   * Get tram dashboard KPIs
+   */
+  getTramKpis: async (): Promise<TramKpis> => {
+    const { data } = await axiosInstance.get<TramKpis>(
+      API_ENDPOINTS.TRAM_KPIS,
+    );
+    return data;
+  },
+
+  /**
+   * Get live tram forecasts
+   */
+  getTramLiveForecasts: async (): Promise<TramLiveForecast[]> => {
+    const { data } = await axiosInstance.get<TramLiveForecast[]>(
+      API_ENDPOINTS.TRAM_LIVE_FORECASTS,
+    );
+    return data;
+  },
+
+  /**
+   * Get tram delays
+   */
+  getTramDelays: async (): Promise<TramDelay[]> => {
+    const { data } = await axiosInstance.get<TramDelay[]>(
+      API_ENDPOINTS.TRAM_DELAYS,
+    );
+    return data;
+  },
+
+  /**
+   * Get tram hourly passenger distribution
+   */
+  getTramHourlyDistribution: async (): Promise<TramHourlyDistribution[]> => {
+    const { data } = await axiosInstance.get<TramHourlyDistribution[]>(
+      API_ENDPOINTS.TRAM_HOURLY_DISTRIBUTION,
+    );
+    return data;
+  },
+>>>>>>> Stashed changes
 };
