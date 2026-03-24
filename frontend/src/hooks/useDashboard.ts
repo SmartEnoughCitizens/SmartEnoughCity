@@ -249,6 +249,16 @@ export const useTrainServiceStats = () => {
     refetchIntervalInBackground: true,
   });
 };
+
+/**
+ * Get tram dashboard KPIs
+ */
+export const useTramKpis = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramKpis,
+    queryFn: () => dashboardApi.getTramKpis(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: true,
   });
 };

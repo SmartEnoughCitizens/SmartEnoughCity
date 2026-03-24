@@ -220,6 +220,18 @@ export const dashboardApi = {
     );
     return data;
   },
+
+  /**
+   * Get tram dashboard KPIs
+   */
+  getTramKpis: async (): Promise<TramKpis> => {
+    const { data } = await axiosInstance.get<TramKpis>(
+      API_ENDPOINTS.TRAM_KPIS,
+    );
+    return data;
+  },
+
+  /**
    * Get live tram forecasts
    */
   getTramLiveForecasts: async (): Promise<TramLiveForecast[]> => {
