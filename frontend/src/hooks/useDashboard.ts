@@ -5,6 +5,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
+export const MISC_KEYS = {
+  events: (limit?: number) => ["misc", "events", { limit }] as const,
+  pedestriansLive: (limit?: number) =>
+    ["misc", "pedestrians", "live", { limit }] as const,
+};
+
+
 export const DASHBOARD_KEYS = {
   bus: (routeId?: string, limit?: number) =>
     ["dashboard", "bus", { routeId, limit }] as const,
@@ -19,6 +26,9 @@ export const DASHBOARD_KEYS = {
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
   busSystemPerformance: ["bus", "system-performance"] as const,
+  carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
+  carHighTrafficPoints: ["car", "high-traffic-points"] as const,
+  carJunctionEmissions: ["car", "junction-emissions"] as const,
   trainKpis: ["train", "kpis"] as const,
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
@@ -167,6 +177,39 @@ export const useBusSystemPerformance = () => {
     refetchIntervalInBackground: true,
   });
 };
+/**
+ * Get car fuel type statistics
+ */
+export const useCarFuelTypeStatistics = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.carFuelTypeStatistics,
+    queryFn: () => dashboardApi.getCarFuelTypeStatistics(),
+    staleTime: 300_000,
+  });
+};
+
+/**
+ * Get high traffic points with location and time slot data
+ */
+export const useCarHighTrafficPoints = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.carHighTrafficPoints,
+    queryFn: () => dashboardApi.getCarHighTrafficPoints(),
+    staleTime: 300_000,
+  });
+};
+
+/**
+ * Get junction-level CO2 emission estimates
+ */
+export const useCarJunctionEmissions = (enabled = true) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.carJunctionEmissions,
+    queryFn: () => dashboardApi.getCarJunctionEmissions(),
+    staleTime: 300_000,
+    enabled,
+  });
+};
 
 /**
  * Get train dashboard KPIs
@@ -254,5 +297,31 @@ export const useTramHourlyDistribution = () => {
     queryKey: DASHBOARD_KEYS.tramHourlyDistribution,
     queryFn: () => dashboardApi.getTramHourlyDistribution(),
     staleTime: 300_000, // 5 minutes - CSO data is static
+  });
+};
+
+/**
+ * Get upcoming events (default 10, show 5 initially)
+ */
+export const useEvents = (limit = 10) => {
+  return useQuery({
+    queryKey: MISC_KEYS.events(limit),
+    queryFn: () => dashboardApi.getEvents(limit),
+    staleTime: 300_000, // 5 minutes — events don't change often
+    refetchInterval: 300_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get live pedestrian counts per site
+ */
+export const usePedestriansLive = (limit = 20) => {
+  return useQuery({
+    queryKey: MISC_KEYS.pedestriansLive(limit),
+    queryFn: () => dashboardApi.getPedestriansLive(limit),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
   });
 };
