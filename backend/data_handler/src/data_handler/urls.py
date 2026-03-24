@@ -1,57 +1,88 @@
+import logging
+import shutil
+import tempfile
+import zipfile
+from pathlib import Path
+
+import gdown
 import requests
-import os
-import re
-from data_handler.settings.data_sources_settings import get_data_sources_settings
 
-# Mapping of folder names to their Google Drive folder IDs
+logger = logging.getLogger(__name__)
+
+_DOWNLOAD_TIMEOUT = 300  # seconds
 
 
-folder_ids = get_data_sources_settings()
-
-def download_drive_folder(folder_name: str, base_dir: str) -> str:
+def download_file(url: str, dest_path: str) -> None:
     """
-    Downloads a public Google Drive folder based on a predefined folder name.
+    Downloads a file from a URL and saves it to dest_path.
 
     Args:
-        folder_name: Logical name of the dataset (e.g. "car", "tram", "train", "population")
-        base_dir: Base directory where the folder will be saved (default: "static_data")
-
-    Returns:
-        Path to the downloaded folder
-
-    Raises:
-        ValueError: If the folder_name is not found in FOLDER_IDS
+        url: URL of the file to download
+        dest_path: Full local path to save the file to (including filename)
     """
-    if folder_name not in folder_ids:
-        raise ValueError(f"Unknown folder '{folder_name}'. Available: {list(folder_ids.keys())}")
-
-    folder_id = folder_ids[folder_name]
-    download_dir = os.path.join(base_dir, folder_name)
-    os.makedirs(download_dir, exist_ok=True)
-
-    # Scrape folder contents from public Google Drive page
-    url = f"https://drive.google.com/drive/folders/{folder_id}"
-    response = requests.get(url)
+    logger.info("Downloading %s ...", url)
+    response = requests.get(url, stream=True, timeout=_DOWNLOAD_TIMEOUT)
     response.raise_for_status()
 
-    # Extract and deduplicate file IDs from the HTML
-    file_ids = list(set(re.findall(r'"([a-zA-Z0-9_-]{33})"', response.text)))
-    print(f"[{folder_name}] {len(file_ids)} file(s) found.")
+    dest = Path(dest_path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("wb") as f:
+        f.writelines(response.iter_content(chunk_size=8192))
+    logger.info("  + %s", dest.name)
 
-    for file_id in file_ids:
-        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        r = requests.get(download_url, allow_redirects=True)
-        r.raise_for_status()
 
-        # Read filename from response header, fall back to file ID
-        content_disposition = r.headers.get("Content-Disposition", "")
-        match = re.findall(r'filename="(.+)"', content_disposition)
-        filename = match[0] if match else f"{file_id}.bin"
+def download_and_extract_zip(url: str, extract_dir: str) -> str:
+    """
+    Downloads a ZIP file from a URL and extracts its contents into a local directory.
 
-        filepath = os.path.join(download_dir, filename)
-        with open(filepath, "wb") as f:
-            f.write(r.content)
-        print(f"  ✓ {filename}")
+    Args:
+        url: URL of the ZIP file to download
+        extract_dir: Directory to extract the ZIP contents into
 
-    print(f"[{folder_name}] Done! Saved to: {download_dir}")
+    Returns:
+        Path to the extract directory
+    """
+    Path(extract_dir).mkdir(parents=True, exist_ok=True)
+
+    logger.info("Downloading %s ...", url)
+    response = requests.get(url, stream=True, timeout=_DOWNLOAD_TIMEOUT)
+    response.raise_for_status()
+
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+        tmp.writelines(response.iter_content(chunk_size=8192))
+        tmp_path = tmp.name
+
+    tmp_file = Path(tmp_path)
+    try:
+        with zipfile.ZipFile(tmp_path) as zf:
+            zf.extractall(extract_dir)
+            logger.info("Extracted %d file(s) to %s", len(zf.namelist()), extract_dir)
+    finally:
+        tmp_file.unlink()
+
+    return extract_dir
+
+
+def download_google_drive_folder(folder_id: str, download_dir: str) -> str:
+    """
+    Downloads all files from a Google Drive folder into a local directory.
+
+    Args:
+        folder_id: Google Drive folder ID
+        download_dir: Local directory to download files into
+
+    Returns:
+        Path to the download directory
+    """
+    Path(download_dir).mkdir(parents=True, exist_ok=True)
+    url = f"https://drive.google.com/drive/folders/{folder_id}"
+    logger.info("Downloading Google Drive folder %s to %s ...", folder_id, download_dir)
+    gdown.download_folder(url, output=download_dir, quiet=False, use_cookies=False)
     return download_dir
+
+
+def delete_static_data(download_dir: str) -> None:
+    """Deletes a downloaded static data directory after processing."""
+    if Path(download_dir).exists():
+        shutil.rmtree(download_dir)
+        logger.info("Deleted: %s", download_dir)
