@@ -80,7 +80,6 @@ export const ODFlowMap = ({
   stations,
   odPairs,
   thresholds,
-  filterStationId,
   selectedPairKey,
   routeCache,
   routeProgress,
@@ -100,10 +99,10 @@ export const ODFlowMap = ({
     : null;
 
   const stationFlow = new Map<number, number>();
-  odPairs.forEach((p) => {
+  for (const p of odPairs) {
     stationFlow.set(p.originStationId, (stationFlow.get(p.originStationId) ?? 0) + p.estimatedTrips);
     stationFlow.set(p.destStationId, (stationFlow.get(p.destStationId) ?? 0) + p.estimatedTrips);
-  });
+  }
   const maxFlow = Math.max(...stationFlow.values(), 1);
 
   return (
