@@ -4,6 +4,7 @@
 
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { API_CONFIG, API_ENDPOINTS } from "@/config/api.config";
+import type { LoginResponse } from "@/types";
 
 // Create axios instance
 export const axiosInstance = axios.create({
@@ -35,13 +36,13 @@ let failedQueue: Array<{
 }> = [];
 
 function processQueue(error: unknown, token: string | null) {
-  failedQueue.forEach(({ resolve, reject }) => {
+  for (const { resolve, reject } of failedQueue) {
     if (error) {
       reject(error);
     } else {
       resolve(token!);
     }
-  });
+  }
   failedQueue = [];
 }
 
@@ -87,7 +88,7 @@ axiosInstance.interceptors.response.use(
 
     try {
       // Use raw axios to avoid triggering this interceptor again
-      const { data } = await axios.post(
+      const { data } = await axios.post<LoginResponse>(
         `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_REFRESH}`,
         { refreshToken: storedRefreshToken },
         { headers: { "Content-Type": "application/json" } },
