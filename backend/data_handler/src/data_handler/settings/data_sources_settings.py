@@ -1,6 +1,5 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -33,43 +32,43 @@ class DataSourcesSettings(BaseSettings):
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
 
-    bus_gtfs_static_data_dir: Optional[Path] = Field(
+    bus_gtfs_static_data_dir: Path | None = Field(
         None,
         alias="BUS_GTFS_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the GTFS bus static data",
     )
 
-    car_static_data_dir: Optional[Path] = Field(
+    car_static_data_dir: Path | None = Field(
         None,
         alias="CAR_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the Car static data",
     )
 
-    dublin_bikes_csv_archive_dir: Optional[Path] = Field(
+    dublin_bikes_csv_archive_dir: Path | None = Field(
         None,
         alias="DUBLIN_BIKES_CSV_ARCHIVE_DIR",
         description="Directory containing historical Dublin Bikes CSV archives",
     )
 
-    train_gtfs_static_data_dir: Optional[Path] = Field(
+    train_gtfs_static_data_dir: Path | None = Field(
         None,
         alias="TRAIN_GTFS_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the GTFS train static data",
     )
 
-    tram_gtfs_static_data_dir: Optional[Path] = Field(
+    tram_gtfs_static_data_dir: Path | None = Field(
         None,
         alias="TRAM_GTFS_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the GTFS tram static data",
     )
 
-    tram_cso_static_data_dir: Optional[Path] = Field(
+    tram_cso_static_data_dir: Path | None = Field(
         None,
         alias="TRAM_CSO_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the CSO tram static data",
     )
 
-    population_static_data_dir: Optional[Path] = Field(
+    population_static_data_dir: Path | None = Field(
         None,
         alias="POPULATION_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the population static data",
@@ -85,7 +84,7 @@ class DataSourcesSettings(BaseSettings):
         "population_static_data_dir",
     )
     @classmethod
-    def _ensure_dir_optional(cls, p: Optional[Path]) -> Optional[Path]:
+    def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
         if p is None:
             return None
         if not p.is_dir():
