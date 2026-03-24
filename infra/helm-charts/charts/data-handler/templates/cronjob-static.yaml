@@ -1,23 +1,24 @@
+{{- if .Values.staticDataCron.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Release.Name }}-data-handler
+  name: {{ .Release.Name }}-data-handler-static
   labels:
     app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 4 }}
 spec:
-  schedule: {{ .Values.schedule | quote }}
+  schedule: {{ .Values.staticDataCron.schedule | quote }}
   {{- if .Values.timeZone }}
   timeZone: {{ .Values.timeZone | quote }}
   {{- end }}
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 45
+  startingDeadlineSeconds: 300
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 0
-      activeDeadlineSeconds: 55
+      backoffLimit: 2
+      activeDeadlineSeconds: 900  # 15 minutes for static data
       template:
         metadata:
           labels:
@@ -42,15 +43,16 @@ spec:
           restartPolicy: Never
           terminationGracePeriodSeconds: 10
           containers:
-            - name: data-handler
+            - name: data-handler-static
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["--static"]
               {{- if .Values.containerSecurityContext }}
               securityContext:
 {{- toYaml .Values.containerSecurityContext | nindent 16 }}
               {{- end }}
               resources:
-{{- toYaml .Values.resources | nindent 16 }}
+{{- toYaml .Values.staticDataCron.resources | nindent 16 }}
               env:
                 - name: DB_HOST
                   value: {{ .Values.global.db.host | default (printf "%s-postgresql" .Release.Name) | quote }}
@@ -119,3 +121,4 @@ spec:
                   value: {{ .Values.enableEventsData | default "true" | quote }}
                 - name: ENABLE_POPULATION_DATA
                   value: {{ .Values.enablePopulationData | default "true" | quote }}
+{{- end }}
