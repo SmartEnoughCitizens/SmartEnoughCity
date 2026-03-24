@@ -1,8 +1,11 @@
 package com.trinity.hermes.usermanagement.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
+import com.trinity.hermes.usermanagement.dto.ChangePasswordRequest;
+import com.trinity.hermes.usermanagement.dto.ProfileResponse;
 import com.trinity.hermes.usermanagement.dto.RegisterUserRequest;
 import com.trinity.hermes.usermanagement.dto.RegisterUserResponse;
+import com.trinity.hermes.usermanagement.dto.UpdateProfileRequest;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.Valid;
@@ -40,10 +43,10 @@ public class UserManagementController {
   /** Maps target role → set of caller roles allowed to create it. */
   private static final Map<String, Set<String>> CREATE_PERMISSIONS =
       Map.of(
-          "Cycle_Admin", Set.of("City_Manager"),
-          "Bus_Admin", Set.of("City_Manager"),
-          "Train_Admin", Set.of("City_Manager"),
-          "Tram_Admin", Set.of("City_Manager"),
+          "Cycle_Admin", Set.of("Government_Admin"),
+          "Bus_Admin", Set.of("Government_Admin"),
+          "Train_Admin", Set.of("Government_Admin"),
+          "Tram_Admin", Set.of("Government_Admin"),
           "Cycle_Provider", Set.of("Cycle_Admin"),
           "Bus_Provider", Set.of("Bus_Admin"),
           "Train_Provider", Set.of("Train_Admin"),
@@ -67,8 +70,9 @@ public class UserManagementController {
   /** Maps caller role → set of target roles they can manage (list/delete). */
   private static final Map<String, Set<String>> MANAGE_PERMISSIONS =
       Map.of(
-          "Government_Admin", Set.of("City_Manager"),
-          "City_Manager", Set.of("Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"),
+          "Government_Admin",
+              Set.of("City_Manager", "Bus_Admin", "Cycle_Admin", "Train_Admin", "Tram_Admin"),
+          "City_Manager", Set.of(),
           "Bus_Admin", Set.of("Bus_Provider"),
           "Cycle_Admin", Set.of("Cycle_Provider"),
           "Train_Admin", Set.of("Train_Provider"),
@@ -178,12 +182,44 @@ public class UserManagementController {
     return Set.of();
   }
 
-  /**
-   * Retrieves users that the caller is allowed to manage based on their role.
-   *
-   * @param jwt authenticated JWT of the caller
-   * @return list of manageable users or an error response
-   */
+  @GetMapping("/profile")
+  public ResponseEntity<?> getProfile(@AuthenticationPrincipal Jwt jwt) {
+    String username = jwt.getClaimAsString("preferred_username");
+    try {
+      ProfileResponse profile = userManagementService.getProfile(username);
+      return ResponseEntity.ok(profile);
+    } catch (RuntimeException e) {
+      log.error("Error fetching profile for {}: {}", username, e.getMessage());
+      return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+  }
+
+  @PutMapping("/profile")
+  public ResponseEntity<?> updateProfile(
+      @Valid @RequestBody UpdateProfileRequest request, @AuthenticationPrincipal Jwt jwt) {
+    String username = jwt.getClaimAsString("preferred_username");
+    try {
+      userManagementService.updateProfile(username, request);
+      return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
+    } catch (RuntimeException e) {
+      log.error("Error updating profile for {}: {}", username, e.getMessage());
+      return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+  }
+
+  @PutMapping("/password")
+  public ResponseEntity<?> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request, @AuthenticationPrincipal Jwt jwt) {
+    String username = jwt.getClaimAsString("preferred_username");
+    try {
+      userManagementService.changePassword(username, request);
+      return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+    } catch (RuntimeException e) {
+      log.error("Error changing password for {}: {}", username, e.getMessage());
+      return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+  }
+
   @GetMapping("/users")
   public ResponseEntity<?> getManageableUsers(@AuthenticationPrincipal Jwt jwt) {
 

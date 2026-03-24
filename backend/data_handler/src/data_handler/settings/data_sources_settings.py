@@ -43,10 +43,22 @@ class DataSourcesSettings(BaseSettings):
         description="Filesystem path to the directory containing the Car static data",
     )
 
-    dublin_bikes_csv_archive_dir: Path | None = Field(
+    train_gtfs_static_data_dir: Path | None = Field(
         None,
-        alias="DUBLIN_BIKES_CSV_ARCHIVE_DIR",
-        description="Directory containing historical Dublin Bikes CSV archives",
+        alias="TRAIN_GTFS_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the GTFS train static data",
+    )
+
+    tram_gtfs_static_data_dir: Path | None = Field(
+        None,
+        alias="TRAM_GTFS_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the GTFS tram static data",
+    )
+
+    tram_cso_static_data_dir: Path | None = Field(
+        None,
+        alias="TRAM_CSO_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the CSO tram static data",
     )
 
     train_gtfs_static_data_dir: Path | None = Field(

@@ -1,6 +1,7 @@
 # tests/car/test_car_parsing_utils.py
 
 from datetime import datetime
+from typing import ClassVar
 
 import pytest
 
@@ -11,6 +12,7 @@ from data_handler.car.car_parsing_utils import (
     parse_scats_time,
     parse_year,
 )
+from data_handler.car.process_car_data import parse_traffic_volume_row
 
 
 class TestParseScatsTime:
@@ -186,3 +188,52 @@ class TestParseOpenHours:
         is_24_7, desc = parse_open_hours("")
         assert is_24_7 is False
         assert desc is None
+
+
+class TestParseTrafficVolumeRow:
+    """Tests for parse_traffic_volume_row."""
+
+    _VALID_ROW: ClassVar[dict[str, str]] = {
+        "End_Time": "20250826000000",
+        "Region": "Dublin",
+        "Site": "123",
+        "Detector": "1",
+        "Sum_Volume": "100",
+        "Avg_Volume": "50",
+    }
+
+    def test_valid_row(self) -> None:
+        """Valid row returns a TrafficVolume with correct field values."""
+        result = parse_traffic_volume_row(self._VALID_ROW)
+        assert result is not None
+        assert result.end_time == datetime(2025, 8, 26, 0, 0, 0)
+        assert result.site_id == 123
+        assert result.detector == 1
+        assert result.region == "Dublin"
+        assert result.sum_volume == 100
+        assert result.avg_volume == 50
+
+    def test_none_field_returns_none(self) -> None:
+        """Row with a None field (truncated CSV line) returns None."""
+        row = {**self._VALID_ROW, "Site": None}
+        result = parse_traffic_volume_row(row)
+        assert result is None
+
+    def test_empty_site_returns_none(self) -> None:
+        """Row with empty Site string returns None (int conversion fails)."""
+        row = {**self._VALID_ROW, "Site": ""}
+        result = parse_traffic_volume_row(row)
+        assert result is None
+
+    def test_non_numeric_volume_returns_none(self) -> None:
+        """Row with non-numeric Sum_Volume returns None."""
+        row = {**self._VALID_ROW, "Sum_Volume": "n/a"}
+        result = parse_traffic_volume_row(row)
+        assert result is None
+
+    def test_region_is_stripped(self) -> None:
+        """Whitespace in Region is stripped."""
+        row = {**self._VALID_ROW, "Region": "  Dublin  "}
+        result = parse_traffic_volume_row(row)
+        assert result is not None
+        assert result.region == "Dublin"

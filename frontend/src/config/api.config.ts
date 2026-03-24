@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: "/api/auth/login",
   AUTH_HEALTH: "/api/auth/health",
+  AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
+  AUTH_RESET_PASSWORD: "/api/auth/reset-password",
 
   // Public
   PUBLIC_HEALTH: "/api/public/health",
@@ -22,6 +24,8 @@ export const API_ENDPOINTS = {
   USER_REGISTER: "/api/usermanagement/register",
   USER_LIST: "/api/usermanagement/users",
   USER_DELETE: "/api/usermanagement/delete",
+  USER_PROFILE: "/api/usermanagement/profile",
+  USER_PASSWORD: "/api/usermanagement/password",
   TRAINS: "/api/trains",
   BUSES: "/api/buses",
 
@@ -34,6 +38,11 @@ export const API_ENDPOINTS = {
   DASHBOARD_CYCLE_AVAILABLE_DOCKS: "/api/v1/dashboard/cycle/available-docks",
   DASHBOARD_BUS_ROUTES: "/api/v1/dashboard/bus/routes",
   DASHBOARD_INDICATOR_TYPES: "/api/v1/dashboard/indicators/types",
+
+  // Car Indicators
+  CAR_FUEL_TYPE_STATISTICS: "/api/v1/car/fuel-type-statistics",
+  CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
+  CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
@@ -61,4 +70,8 @@ export const API_ENDPOINTS = {
   // Notifications
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
+
+  // Misc (Events + Pedestrians)
+  EVENTS: "/api/v1/events",
+  PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 };
