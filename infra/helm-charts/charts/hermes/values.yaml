@@ -25,6 +25,11 @@ labels:
   app.kubernetes.io/component: api-server
   app.kubernetes.io/part-of: smart-enough-city
 
+# Frontend public URL for password reset emails, etc.
+frontendUrl: ""
+# Inference engine service URL
+inferenceEngineUrl: ""
+
 db:
   secret:
     name: sec-db-backend-user

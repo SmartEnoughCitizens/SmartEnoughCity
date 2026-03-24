@@ -61,7 +61,7 @@ def process_population_static_data(data_dir: Path) -> None:
         geo_df["sa_code"] = geo_df["sa_code"].astype(str)
 
         csv_df = pd.read_csv(data_dir / "population_census_2022.csv")
-        csv_df = csv_df[["SA_PUB2022", "Total Population (Normalisation)"]]
+        csv_df = csv_df[["GEOGID", "T1_1AGETT"]]
         csv_df.columns = ["sa_code", "total_population"]
         csv_df["sa_code"] = csv_df["sa_code"].astype(str)
 
