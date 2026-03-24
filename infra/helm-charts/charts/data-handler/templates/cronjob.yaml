@@ -23,6 +23,10 @@ spec:
           labels:
             app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 12 }}
+          {{- if .Values.podAnnotations }}
+          annotations:
+{{- toYaml .Values.podAnnotations | nindent 12 }}
+          {{- end }}
         spec:
           {{- if .Values.imagePullSecrets }}
           imagePullSecrets:
@@ -67,8 +71,44 @@ spec:
                   value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
                 - name: HERMES_URL
                   value: "http://{{ .Release.Name }}-hermes:8080"
+                - name: APP_ENV
+                  value: {{ .Values.appEnv | default "prod" | quote }}
+                - name: GTFS_API_BASE_URL
+                  value: {{ .Values.gtfsApiBaseUrl | quote }}
                 - name: GTFS_API_KEY
                   valueFrom:
                     secretKeyRef:
                       name: {{ .Values.secrets.gtfsApiKey.name | quote }}
                       key: GTFS_API_KEY
+                - name: ECO_COUNTER_API_BASE_URL
+                  value: {{ .Values.ecoCounterApiBaseUrl | quote }}
+                - name: ECO_COUNTER_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.ecoCounterApiKey.name | quote }}
+                      key: ECO_COUNTER_API_KEY
+                - name: DUBLIN_BIKES_API_URL
+                  value: {{ .Values.dublinBikesApiUrl | quote }}
+                - name: IRISH_RAIL_BASE_URL
+                  value: {{ .Values.irishRailBaseUrl | quote }}
+                - name: LUAS_FORECAST_BASE_URL
+                  value: {{ .Values.luasForecastBaseUrl | quote }}
+                - name: TICKETMASTER_API_BASE_URL
+                  value: {{ .Values.ticketmasterApiBaseUrl | quote }}
+                - name: TICKETMASTER_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.ticketmasterApiKey.name | quote }}
+                      key: TICKETMASTER_API_KEY
+                - name: ENABLE_GTFS
+                  value: {{ .Values.enableGtfs | default "true" | quote }}
+                - name: ENABLE_ECO_COUNTER
+                  value: {{ .Values.enableEcoCounter | default "true" | quote }}
+                - name: ENABLE_DUBLIN_BIKES
+                  value: {{ .Values.enableDublinBikes | default "true" | quote }}
+                - name: ENABLE_IRISH_RAIL
+                  value: {{ .Values.enableIrishRail | default "true" | quote }}
+                - name: ENABLE_LUAS
+                  value: {{ .Values.enableLuas | default "true" | quote }}
+                - name: ENABLE_TICKETMASTER
+                  value: {{ .Values.enableTicketmaster | default "true" | quote }}
