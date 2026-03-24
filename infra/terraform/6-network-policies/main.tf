@@ -288,3 +288,40 @@ resource "kubernetes_manifest" "allow_cert_manager_http01" {
     }
   }
 }
+
+# 8. Allow data-handler to make HTTP egress for external APIs (Irish Rail, etc.)
+resource "kubernetes_manifest" "allow_data_handler_http_egress" {
+  manifest = {
+    apiVersion = "networking.k8s.io/v1"
+    kind       = "NetworkPolicy"
+    metadata = {
+      name      = "allow-data-handler-http-egress"
+      namespace = var.namespace
+    }
+    spec = {
+      podSelector = {
+        matchLabels = {
+          "app.kubernetes.io/name" = "data-handler"
+        }
+      }
+      policyTypes = ["Egress"]
+      egress = [
+        {
+          ports = [
+            {
+              port     = 80
+              protocol = "TCP"
+            }
+          ]
+          to = [
+            {
+              ipBlock = {
+                cidr = "0.0.0.0/0"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
