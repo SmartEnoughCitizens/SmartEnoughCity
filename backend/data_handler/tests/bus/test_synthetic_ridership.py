@@ -10,14 +10,12 @@ from data_handler.bus.synthetic_ridership import (
     find_nearest_stop_in_trip,
     generate_ridership_for_vehicles,
 )
-from data_handler.settings.data_sources_settings import get_data_sources_settings
 from tests.utils import assert_row_count
 
 
 def _load_static_and_live_data(tests_data_dir: Path) -> None:
     """Helper: load static GTFS data + live vehicle data into the test DB."""
-    sources_settings = get_data_sources_settings()
-    process_bus_static_data(sources_settings.bus_static_data_dir)
+    process_bus_static_data(tests_data_dir / "static_data" / "GTFS")
 
     vehicles_json_path = tests_data_dir / "bus" / "vehicles.json"
     with vehicles_json_path.open() as f:
