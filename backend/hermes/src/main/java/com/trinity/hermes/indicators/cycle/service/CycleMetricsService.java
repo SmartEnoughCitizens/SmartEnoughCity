@@ -50,18 +50,19 @@ public class CycleMetricsService {
     }
 
     int totalStations = toIntOrDefault(row[0], 0);
-    int totalBikes = toIntOrDefault(row[1], 0);
-    int totalDocks = toIntOrDefault(row[2], 0);
-    int disabledBikes = toIntOrDefault(row[3], 0);
-    int disabledDocks = toIntOrDefault(row[4], 0);
-    int emptyStations = toIntOrDefault(row[5], 0);
-    int fullStations = toIntOrDefault(row[6], 0);
-    double avgFullness = toDoubleOrDefault(row[7], 0.0);
-    Instant latestTimestamp = toInstant(row[8]);
+    int activeStations = toIntOrDefault(row[1], 0);
+    int totalBikes = toIntOrDefault(row[2], 0);
+    int totalDocks = toIntOrDefault(row[3], 0);
+    int disabledBikes = toIntOrDefault(row[4], 0);
+    int disabledDocks = toIntOrDefault(row[5], 0);
+    int emptyStations = toIntOrDefault(row[6], 0);
+    int fullStations = toIntOrDefault(row[7], 0);
+    double avgFullness = toDoubleOrDefault(row[8], 0.0);
+    Instant latestTimestamp = toInstant(row[9]);
 
     NetworkSummaryDTO dto = new NetworkSummaryDTO();
     dto.setTotalStations(totalStations);
-    dto.setActiveStations(totalStations);
+    dto.setActiveStations(activeStations);
     dto.setTotalBikesAvailable(totalBikes);
     dto.setTotalDocksAvailable(totalDocks);
     dto.setTotalDisabledBikes(disabledBikes);
@@ -69,7 +70,7 @@ public class CycleMetricsService {
     dto.setEmptyStations(emptyStations);
     dto.setFullStations(fullStations);
     dto.setAvgNetworkFullnessPct(avgFullness);
-    dto.setRebalancingNeedCount(emptyStations);
+    dto.setRebalancingNeedCount(emptyStations + fullStations);
     dto.setDataAsOf(latestTimestamp);
     return dto;
   }
