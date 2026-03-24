@@ -35,7 +35,7 @@ export const TramDelayTable = ({
   maxRows = 50,
   compact = false,
 }: TramDelayTableProps) => {
-  const sorted = [...delays].sort((a, b) => b.delayMins - a.delayMins);
+  const sorted = delays.toSorted((a, b) => b.delayMins - a.delayMins);
   const displayed = sorted.slice(0, maxRows);
 
   return (

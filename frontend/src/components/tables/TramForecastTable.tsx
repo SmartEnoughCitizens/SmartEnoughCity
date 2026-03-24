@@ -66,14 +66,16 @@ export const TramForecastTable = ({
                   variant="body2"
                   fontWeight="bold"
                   color={
-                    f.dueMins !== null && f.dueMins <= 2
-                      ? "success.main"
-                      : f.dueMins !== null && f.dueMins > 10
-                        ? "warning.main"
-                        : "text.primary"
+                    f.dueMins === null
+                      ? "text.primary"
+                      : f.dueMins <= 2
+                        ? "success.main"
+                        : f.dueMins > 10
+                          ? "warning.main"
+                          : "text.primary"
                   }
                 >
-                  {f.dueMins !== null ? f.dueMins : "—"}
+                  {f.dueMins === null ? "—" : f.dueMins}
                 </Typography>
               </TableCell>
               {!compact && (
