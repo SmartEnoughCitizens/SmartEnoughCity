@@ -69,6 +69,10 @@ public class AuthController {
       log.error("Token refresh failed", e);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
           .body(createErrorResponse("Session expired. Please log in again."));
+    } catch (Exception e) {
+      log.error("Unexpected error during token refresh", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(createErrorResponse("An error occurred during token refresh"));
     }
   }
 
