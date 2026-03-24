@@ -39,7 +39,7 @@ export interface CycleDashboardResponse {
   statistics?: CycleStatistics;
 }
 
-// ── New types matching CycleMetricsController DTOs ──────────────────────────
+// ── CycleMetricsController DTOs ──────────────────────────────────────────────
 
 export interface StationLiveDTO {
   stationId: number;
@@ -59,9 +59,7 @@ export interface StationLiveDTO {
   isReturning: boolean;
   lastReported: string;
   snapshotTimestamp: string;
-  /** % of capacity that has bikes available (LOW = RED, station needs restocking) */
   bikeAvailabilityPct: number;
-  /** % of capacity that has empty docks available (LOW = station is full, can't return) */
   dockAvailabilityPct: number;
   statusColor: "RED" | "YELLOW" | "GREEN";
   isEmpty: boolean;
@@ -103,41 +101,29 @@ export interface StationEventDTO {
   eventType: "EMPTY" | "FULL";
 }
 
-export interface StationTimeSeriesDTO {
-  period: string;
-  avgAvailableBikes: number;
-  avgAvailableDocks: number;
-  usageRatePct: number;
+// ── Demand Analysis DTOs ──────────────────────────────────────────────────────
+
+export interface HourlyNetworkProfileDTO {
+  hourOfDay: number;    // 0–23 in Europe/Dublin local time
+  avgUsageRate: number; // network avg of (capacity - available_docks)/capacity * 100
+  stationCount: number;
 }
 
-export interface NetworkKpiDTO {
-  rebalancingNeedCount: number;
-  networkImbalanceScore: number;
-  avgHourlyTurnoverRate: number;
-  dailyTripsEstimate: number;
-  weekdayAvgUsageRate: number;
-  weekendAvgUsageRate: number;
-  hourlyUsageProfile: Record<number, number>;
-  dailyTrend: StationTimeSeriesDTO[];
+export type StationClassification =
+  | "MORNING_PEAK"
+  | "AFTERNOON_PEAK"
+  | "EVENING_PEAK"
+  | "OFF_PEAK";
+
+export interface StationClassificationDTO {
+  stationId: number;
+  name: string;
+  peakHour: number;                     // 0–23
+  peakUsage: number;                    // 0–100 percentage
+  classification: StationClassification;
 }
 
-/** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
-export interface RebalanceSuggestionDTO {
-  sourceStationId: number;
-  sourceName: string;
-  sourceLat: number;
-  sourceLon: number;
-  /** Bikes currently at the full station */
-  sourceBikes: number;
-  targetStationId: number;
-  targetName: string;
-  targetLat: number;
-  targetLon: number;
-  targetCapacity: number;
-  /** Straight-line distance in kilometres */
-  distanceKm: number;
-}
-
+/** Estimated origin → destination trip pair derived from snapshot availability changes. */
 export interface StationODPairDTO {
   originStationId: number;
   originName: string;
@@ -148,4 +134,28 @@ export interface StationODPairDTO {
   destLat: number;
   destLon: number;
   estimatedTrips: number;
+  distanceKm: number;
+}
+
+/** Per-station, per-hour average usage rate — one row per (station, hour) pair. */
+export interface StationHourlyUsageDTO {
+  stationId: number;
+  name: string;
+  hourOfDay: number;       // 0–23 Europe/Dublin local time
+  avgUsageRate: number;    // 0–100 percentage
+}
+
+/** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
+export interface RebalanceSuggestionDTO {
+  sourceStationId: number;
+  sourceName: string;
+  sourceLat: number;
+  sourceLon: number;
+  sourceBikes: number;
+  targetStationId: number;
+  targetName: string;
+  targetLat: number;
+  targetLon: number;
+  targetCapacity: number;
+  distanceKm: number;
 }
