@@ -89,48 +89,52 @@ def main_static() -> None:
 
 
 def main_dynamic() -> None:
-    print("Processing dynamic data...")
+    logger = logging.getLogger(__name__)
+    logger.info("Processing dynamic data...")
 
     db_settings = get_db_settings()
     sources_settings = get_data_sources_settings()
 
-    print(
-        f"Connected to database: {db_settings.name} at {db_settings.host}:{db_settings.port}"
+    logger.info(
+        "Connected to database: %s at %s:%s",
+        db_settings.name,
+        db_settings.host,
+        db_settings.port,
     )
-    print("\nData sources enabled:")
-    print(f"  - Cycle data: {sources_settings.enable_cycle_data}")
-    print(f"  - Car data: {sources_settings.enable_car_data}")
-    print(f"  - Bus data: {sources_settings.enable_bus_data}")
-    print(f"  - Train data: {sources_settings.enable_train_data}")
-    print(f"  - Tram data: {sources_settings.enable_tram_data}")
-    print(f"  - Construction data: {sources_settings.enable_construction_data}")
-    print(f"  - Events data: {sources_settings.enable_events_data}\n")
+    logger.info("Data sources enabled:")
+    logger.info("  - Cycle data: %s", sources_settings.enable_cycle_data)
+    logger.info("  - Car data: %s", sources_settings.enable_car_data)
+    logger.info("  - Bus data: %s", sources_settings.enable_bus_data)
+    logger.info("  - Train data: %s", sources_settings.enable_train_data)
+    logger.info("  - Tram data: %s", sources_settings.enable_tram_data)
+    logger.info("  - Construction data: %s", sources_settings.enable_construction_data)
+    logger.info("  - Events data: %s", sources_settings.enable_events_data)
 
     # Process data sources based on enabled toggles
     if sources_settings.enable_train_data:
-        print("Processing train data...")
+        logger.info("Processing train data...")
         irish_rail_realtime_to_db()
 
     if sources_settings.enable_cycle_data:
-        print("Processing cycle data...")
+        logger.info("Processing cycle data...")
         fetch_and_store_station_snapshots()
 
     if sources_settings.enable_car_data:
-        print("Processing car data...")
+        logger.info("Processing car data...")
 
     if sources_settings.enable_bus_data:
-        print("Processing bus data...")
+        logger.info("Processing bus data...")
         process_bus_live_data()
 
     if sources_settings.enable_tram_data:
-        print("Processing tram data...")
+        logger.info("Processing tram data...")
         luas_forecasts_to_db()
 
     if sources_settings.enable_construction_data:
-        print("Processing construction data...")
+        logger.info("Processing construction data...")
 
     if sources_settings.enable_events_data:
-        print("Processing events data...")
+        logger.info("Processing events data...")
         fetch_and_store_events()
 
 
