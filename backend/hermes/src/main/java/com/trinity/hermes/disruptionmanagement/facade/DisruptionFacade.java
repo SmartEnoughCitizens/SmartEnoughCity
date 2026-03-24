@@ -55,7 +55,7 @@ public class DisruptionFacade {
    * @param request The disruption detection request from Python service
    * @return The compiled solution ready for notification
    */
-  @Transactional
+  @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
   public DisruptionSolution handleDisruptionDetection(DisruptionDetectionRequest request) {
     log.info("=== DISRUPTION DETECTION STARTED ===");
     log.info(
@@ -246,7 +246,7 @@ public class DisruptionFacade {
   public List<DisruptionResponse> getActiveDisruptions() {
     log.debug("Retrieving active disruptions");
 
-    return disruptionRepository.findByStatusOrderByDetectedAtDesc("ACTIVE").stream()
+    return disruptionRepository.findAllActiveOrderByDetectedAtDesc().stream()
         .map(disruptionService::mapToResponse)
         .collect(Collectors.toList());
   }
