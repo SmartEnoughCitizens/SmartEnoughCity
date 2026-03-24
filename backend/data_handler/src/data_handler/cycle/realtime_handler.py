@@ -3,11 +3,12 @@
 import logging
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.cycle.api_client import get_dublin_bikes_client
 from data_handler.cycle.gbfs_parsing_utils import parse_iso_timestamp
-from data_handler.cycle.models import DublinBikesStationSnapshot
+from data_handler.cycle.models import DublinBikesStation, DublinBikesStationSnapshot
 from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,8 @@ def fetch_and_store_station_snapshots() -> None:
 
     This function:
     1. Fetches current status from Dublin Bikes GeoJSON API
-    2. Stores in station_snapshots table
+    2. Filters out stations not present in the stations table
+    3. Stores in station_snapshots table
     """
     logger.info("Fetching real-time station snapshots...")
 
@@ -70,10 +72,44 @@ def fetch_and_store_station_snapshots() -> None:
 
     try:
         with SessionLocal() as session:
-            session.execute(pg_insert(DublinBikesStationSnapshot).values(records))
+            # Get all existing station IDs to filter records
+            existing_station_ids = {
+                station_id
+                for (station_id,) in session.execute(
+                    select(DublinBikesStation.station_id)
+                ).all()
+            }
+
+            # Filter records to only include stations that exist in the database
+            valid_records = [
+                record
+                for record in records
+                if record["station_id"] in existing_station_ids
+            ]
+
+            if len(valid_records) < len(records):
+                missing_count = len(records) - len(valid_records)
+                missing_ids = {
+                    record["station_id"]
+                    for record in records
+                    if record["station_id"] not in existing_station_ids
+                }
+                logger.warning(
+                    "Skipping %d snapshots for stations not in database: %s",
+                    missing_count,
+                    sorted(missing_ids),
+                )
+
+            if not valid_records:
+                logger.warning(
+                    "No valid station snapshots to store (all stations missing from database)"
+                )
+                return
+
+            session.execute(pg_insert(DublinBikesStationSnapshot).values(valid_records))
             session.commit()
 
-        logger.info("Successfully stored %d station snapshots", len(records))
+        logger.info("Successfully stored %d station snapshots", len(valid_records))
 
     except Exception:
         logger.exception("Error storing station snapshots")
