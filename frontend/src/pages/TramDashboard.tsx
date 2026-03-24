@@ -265,15 +265,15 @@ function buildStopMap(forecasts: TramLiveForecast[]) {
   for (const stop of map.values()) {
     const inbound = stop.forecasts
       .filter((f) => f.direction.toLowerCase() === "inbound")
-      .toSorted(dueSorter)
+      .sort(dueSorter)
       .slice(0, 2);
     const outbound = stop.forecasts
       .filter((f) => f.direction.toLowerCase() === "outbound")
-      .toSorted(dueSorter)
+      .sort(dueSorter)
       .slice(0, 2);
     stop.forecasts = [...inbound, ...outbound];
   }
-  return [...map.values()];
+  return Array.from(map.values());
 }
 
 // ── Main Component ───────────────────────────────────────────────────
@@ -347,7 +347,7 @@ export const TramDashboard = () => {
           f.destination.toLowerCase().includes(q),
       );
     }
-    return list.toSorted(
+    return [...list].sort(
       (a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999),
     );
   }, [liveForecasts, lineFilter, search]);
@@ -867,7 +867,7 @@ export const TramDashboard = () => {
                       <Chip
                         size="small"
                         label={
-                          f.dueMins === null ? "No trams" : `${f.dueMins} min`
+                          f.dueMins != null ? `${f.dueMins} min` : "No trams"
                         }
                         sx={{
                           fontSize: "0.62rem",
@@ -875,18 +875,18 @@ export const TramDashboard = () => {
                           ml: 0.5,
                           flexShrink: 0,
                           bgcolor:
-                            f.dueMins === null
-                              ? "rgba(48,54,61,0.6)"
-                              : f.dueMins <= 3
-                                ? "#2ea04320"
-                                : "#d2992220",
+                            f.dueMins != null && f.dueMins <= 3
+                              ? "#2ea04320"
+                              : f.dueMins != null
+                                ? "#d2992220"
+                                : "rgba(48,54,61,0.6)",
                           color:
-                            f.dueMins === null
-                              ? "#8b949e"
-                              : f.dueMins <= 3
-                                ? "#2ea043"
-                                : "#d29922",
-                          border: `1px solid ${f.dueMins === null ? "#484f58" : f.dueMins <= 3 ? "#2ea043" : "#d29922"}40`,
+                            f.dueMins != null && f.dueMins <= 3
+                              ? "#2ea043"
+                              : f.dueMins != null
+                                ? "#d29922"
+                                : "#8b949e",
+                          border: `1px solid ${f.dueMins != null && f.dueMins <= 3 ? "#2ea043" : f.dueMins != null ? "#d29922" : "#484f58"}40`,
                         }}
                       />
                     </ListItemButton>
