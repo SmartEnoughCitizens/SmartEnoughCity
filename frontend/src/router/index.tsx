@@ -52,6 +52,11 @@ const ResetPasswordPage = lazy(() =>
 const MiscDashboard = lazy(() =>
   import("@/pages/MiscDashboard").then((m) => ({ default: m.MiscDashboard })),
 );
+const DisruptionDashboard = lazy(() =>
+  import("@/pages/DisruptionDashboard").then((m) => ({
+    default: m.DisruptionDashboard,
+  })),
+);
 const TramDashboard = lazy(() =>
   import("@/pages/TramDashboard").then((m) => ({ default: m.TramDashboard })),
 );
@@ -186,6 +191,18 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <LazyWrapper>
             <MiscDashboard />
+          </LazyWrapper>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard/disruptions",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LazyWrapper>
+            <DisruptionDashboard />
           </LazyWrapper>
         </DashboardLayout>
       </ProtectedRoute>
