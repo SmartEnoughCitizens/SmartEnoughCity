@@ -45,14 +45,14 @@ export const ODFlowTable = ({
   onPairSelect,
 }: ODFlowTableProps) => {
   // Unique stations for the dropdown filter
-  const stationOptions = Array.from(
-    new Map(
+  const stationOptions = [
+    ...new Map(
       allPairs.flatMap((p) => [
         [p.originStationId, p.originName],
         [p.destStationId, p.destName],
       ]),
     ).entries(),
-  ).sort((a, b) => a[1].localeCompare(b[1]));
+  ].toSorted((a, b) => a[1].localeCompare(b[1]));
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0.5 }}>

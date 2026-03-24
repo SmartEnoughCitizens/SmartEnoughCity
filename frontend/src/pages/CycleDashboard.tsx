@@ -91,7 +91,7 @@ export const CycleDashboard = () => {
   // Compute intensity thresholds from the actual data distribution (percentile-based)
   const odThresholds = (() => {
     if (allOdPairs.length === 0) return { low: 1, high: 1 };
-    const sorted = [...allOdPairs].sort((a, b) => a.estimatedTrips - b.estimatedTrips);
+    const sorted = allOdPairs.toSorted((a, b) => a.estimatedTrips - b.estimatedTrips);
     const p33 = sorted[Math.floor(sorted.length * 0.33)]?.estimatedTrips ?? 1;
     const p66 = sorted[Math.floor(sorted.length * 0.66)]?.estimatedTrips ?? 1;
     return { low: p33, high: p66 };
