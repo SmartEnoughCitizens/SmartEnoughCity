@@ -6,8 +6,8 @@ import static org.mockito.Mockito.*;
 
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
-import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
+import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationHourlyUsageDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
@@ -48,95 +48,135 @@ public class CycleMetricsServiceTest {
   }
 
   /**
-   * Snapshot row matching findLatestSnapshotPerStation columns:
-   * 0:station_id 1:name 2:short_name 3:address 4:latitude 5:longitude 6:capacity 7:region_id
-   * 8:available_bikes 9:available_docks 10:disabled_bikes 11:disabled_docks 12:is_installed
-   * 13:is_renting 14:is_returning 15:last_reported 16:snapshot_timestamp
+   * Snapshot row matching findLatestSnapshotPerStation columns: 0:station_id 1:name 2:short_name
+   * 3:address 4:latitude 5:longitude 6:capacity 7:region_id 8:available_bikes 9:available_docks
+   * 10:disabled_bikes 11:disabled_docks 12:is_installed 13:is_renting 14:is_returning
+   * 15:last_reported 16:snapshot_timestamp
    */
-  private Object[] buildSnapshotRow(int stationId, int availableBikes, int availableDocks, int capacity) {
+  private Object[] buildSnapshotRow(
+      int stationId, int availableBikes, int availableDocks, int capacity) {
     Timestamp now = Timestamp.from(Instant.now());
-    return new Object[]{
-        stationId, "Station " + stationId, "S" + stationId, "Address " + stationId,
-        53.3498, -6.2603, capacity, "DUBLIN_CITY",
-        availableBikes, availableDocks, 0, 0,
-        true, true, true, now, now
+    return new Object[] {
+      stationId,
+      "Station " + stationId,
+      "S" + stationId,
+      "Address " + stationId,
+      53.3498,
+      -6.2603,
+      capacity,
+      "DUBLIN_CITY",
+      availableBikes,
+      availableDocks,
+      0,
+      0,
+      true,
+      true,
+      true,
+      now,
+      now
     };
   }
 
   /**
-   * Network summary row matching findNetworkSummary columns:
-   * 0:total_stations 1:total_bikes 2:total_docks 3:disabled_bikes 4:disabled_docks
-   * 5:empty_stations 6:full_stations 7:avg_fullness 8:latest_timestamp
+   * Network summary row matching findNetworkSummary columns: 0:total_stations 1:total_bikes
+   * 2:total_docks 3:disabled_bikes 4:disabled_docks 5:empty_stations 6:full_stations 7:avg_fullness
+   * 8:latest_timestamp
    */
-  private Object[] buildNetworkSummaryRow(int totalStations, int totalBikes, int totalDocks,
-      int disabledBikes, int disabledDocks, int emptyStations, int fullStations, double avgFullness) {
-    return new Object[]{
-        totalStations, totalBikes, totalDocks, disabledBikes, disabledDocks,
-        emptyStations, fullStations, avgFullness, Timestamp.from(Instant.now())
+  private Object[] buildNetworkSummaryRow(
+      int totalStations,
+      int totalBikes,
+      int totalDocks,
+      int disabledBikes,
+      int disabledDocks,
+      int emptyStations,
+      int fullStations,
+      double avgFullness) {
+    return new Object[] {
+      totalStations,
+      totalBikes,
+      totalDocks,
+      disabledBikes,
+      disabledDocks,
+      emptyStations,
+      fullStations,
+      avgFullness,
+      Timestamp.from(Instant.now())
     };
   }
 
   /**
-   * Region row matching findRegionMetrics columns:
-   * 0:region_id 1:station_count 2:total_capacity 3:avg_usage_rate
-   * 4:avg_available_bikes 5:avg_available_docks 6:empty_stations 7:full_stations
+   * Region row matching findRegionMetrics columns: 0:region_id 1:station_count 2:total_capacity
+   * 3:avg_usage_rate 4:avg_available_bikes 5:avg_available_docks 6:empty_stations 7:full_stations
    */
-  private Object[] buildRegionRow(String regionId, long stationCount, long capacity, double usageRate) {
-    return new Object[]{regionId, stationCount, capacity, usageRate, 12.0, 18.0, 1L, 0L};
+  private Object[] buildRegionRow(
+      String regionId, long stationCount, long capacity, double usageRate) {
+    return new Object[] {regionId, stationCount, capacity, usageRate, 12.0, 18.0, 1L, 0L};
   }
 
-  /** Ranking row matching findBusiestStations / findLeastUsedStations: 0:station_id 1:name 2:avg_usage_rate */
+  /**
+   * Ranking row matching findBusiestStations / findLeastUsedStations: 0:station_id 1:name
+   * 2:avg_usage_rate
+   */
   private Object[] buildRankingRow(int stationId, double avgUsageRate) {
-    return new Object[]{stationId, "Station " + stationId, avgUsageRate};
+    return new Object[] {stationId, "Station " + stationId, avgUsageRate};
   }
 
   /**
-   * Rebalancing row matching findRebalancingSuggestions columns:
-   * 0:source_station_id 1:source_name 2:source_lat 3:source_lon 4:source_bikes
-   * 5:target_station_id 6:target_name 7:target_lat 8:target_lon 9:target_capacity 10:distance_km
+   * Rebalancing row matching findRebalancingSuggestions columns: 0:source_station_id 1:source_name
+   * 2:source_lat 3:source_lon 4:source_bikes 5:target_station_id 6:target_name 7:target_lat
+   * 8:target_lon 9:target_capacity 10:distance_km
    */
   private Object[] buildRebalancingRow(int sourceId, int targetId) {
-    return new Object[]{
-        sourceId, "Source " + sourceId, 53.3498, -6.2603, 15,
-        targetId, "Target " + targetId, 53.3510, -6.2590, 20, 0.8
+    return new Object[] {
+      sourceId,
+      "Source " + sourceId,
+      53.3498,
+      -6.2603,
+      15,
+      targetId,
+      "Target " + targetId,
+      53.3510,
+      -6.2590,
+      20,
+      0.8
     };
   }
 
   /**
-   * Hourly network profile row matching findNetworkHourlyProfile:
-   * 0:hour_of_day 1:avg_usage_rate 2:station_count
+   * Hourly network profile row matching findNetworkHourlyProfile: 0:hour_of_day 1:avg_usage_rate
+   * 2:station_count
    */
   private Object[] buildHourlyProfileRow(int hour, double usageRate, long stationCount) {
-    return new Object[]{hour, usageRate, stationCount};
+    return new Object[] {hour, usageRate, stationCount};
   }
 
   /**
-   * Station classification row matching findStationClassification:
-   * 0:station_id 1:name 2:peak_hour 3:peak_usage 4:classification
+   * Station classification row matching findStationClassification: 0:station_id 1:name 2:peak_hour
+   * 3:peak_usage 4:classification
    */
-  private Object[] buildClassificationRow(int stationId, int peakHour, double peakUsage, String classification) {
-    return new Object[]{stationId, "Station " + stationId, peakHour, peakUsage, classification};
+  private Object[] buildClassificationRow(
+      int stationId, int peakHour, double peakUsage, String classification) {
+    return new Object[] {stationId, "Station " + stationId, peakHour, peakUsage, classification};
   }
 
   /**
-   * OD pair row matching findODPairs:
-   * 0:origin_station_id 1:origin_name 2:origin_lat 3:origin_lon
+   * OD pair row matching findODPairs: 0:origin_station_id 1:origin_name 2:origin_lat 3:origin_lon
    * 4:dest_station_id 5:dest_name 6:dest_lat 7:dest_lon 8:estimated_trips 9:distance_km
    */
   private Object[] buildODPairRow(int originId, int destId, int trips, double distanceKm) {
-    return new Object[]{
-        originId, "Station " + originId, 53.3498, -6.2603,
-        destId, "Station " + destId, 53.3510, -6.2590,
-        trips, distanceKm
+    return new Object[] {
+      originId, "Station " + originId, 53.3498, -6.2603,
+      destId, "Station " + destId, 53.3510, -6.2590,
+      trips, distanceKm
     };
   }
 
   /**
-   * Station hourly usage row matching findStationHourlyUsage:
-   * 0:station_id 1:name 2:hour_of_day 3:avg_usage_rate
+   * Station hourly usage row matching findStationHourlyUsage: 0:station_id 1:name 2:hour_of_day
+   * 3:avg_usage_rate
    */
   private Object[] buildStationHourlyRow(int stationId, int hour, double usageRate) {
-    return new Object[]{stationId, "Station " + stationId, hour, usageRate};
+    return new Object[] {stationId, "Station " + stationId, hour, usageRate};
   }
 
   // =========================================================
@@ -283,9 +323,11 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("maps region rows to RegionMetricsDTOs")
     void getRegionMetrics_mapsRowsToDto() {
-      when(snapshotRepository.findRegionMetrics()).thenReturn(
-          rows(buildRegionRow("DUBLIN_CITY", 20L, 600L, 40.0),
-              buildRegionRow("DUBLIN_NORTH", 10L, 300L, 55.0)));
+      when(snapshotRepository.findRegionMetrics())
+          .thenReturn(
+              rows(
+                  buildRegionRow("DUBLIN_CITY", 20L, 600L, 40.0),
+                  buildRegionRow("DUBLIN_NORTH", 10L, 300L, 55.0)));
 
       List<RegionMetricsDTO> result = service.getRegionMetrics();
 
@@ -354,8 +396,7 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("maps ranking rows to StationRankingDTOs")
     void getLeastUsedStations_mapsRowsToDto() {
-      when(snapshotRepository.findLeastUsedStations(10))
-          .thenReturn(rows(buildRankingRow(99, 5.0)));
+      when(snapshotRepository.findLeastUsedStations(10)).thenReturn(rows(buildRankingRow(99, 5.0)));
 
       List<StationRankingDTO> result = service.getLeastUsedStations(10);
 
@@ -430,8 +471,9 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("maps rows to HourlyNetworkProfileDTOs")
     void getNetworkHourlyProfile_mapsRowsToDto() {
-      when(snapshotRepository.findNetworkHourlyProfile(30)).thenReturn(
-          rows(buildHourlyProfileRow(8, 65.0, 100L), buildHourlyProfileRow(17, 82.0, 100L)));
+      when(snapshotRepository.findNetworkHourlyProfile(30))
+          .thenReturn(
+              rows(buildHourlyProfileRow(8, 65.0, 100L), buildHourlyProfileRow(17, 82.0, 100L)));
 
       List<HourlyNetworkProfileDTO> result = service.getNetworkHourlyProfile(30);
 
@@ -472,9 +514,11 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("maps rows to StationClassificationDTOs")
     void getStationClassification_mapsRowsToDto() {
-      when(snapshotRepository.findStationClassification(30)).thenReturn(
-          rows(buildClassificationRow(1, 8, 78.0, "MORNING_PEAK"),
-              buildClassificationRow(2, 17, 82.0, "EVENING_PEAK")));
+      when(snapshotRepository.findStationClassification(30))
+          .thenReturn(
+              rows(
+                  buildClassificationRow(1, 8, 78.0, "MORNING_PEAK"),
+                  buildClassificationRow(2, 17, 82.0, "EVENING_PEAK")));
 
       List<StationClassificationDTO> result = service.getStationClassification(30);
 
@@ -515,8 +559,8 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("maps rows to StationODPairDTOs")
     void getODPairs_mapsRowsToDto() {
-      when(snapshotRepository.findODPairs(30, 50)).thenReturn(
-          rows(buildODPairRow(1, 2, 120, 1.5), buildODPairRow(3, 4, 80, 2.0)));
+      when(snapshotRepository.findODPairs(30, 50))
+          .thenReturn(rows(buildODPairRow(1, 2, 120, 1.5), buildODPairRow(3, 4, 80, 2.0)));
 
       List<StationODPairDTO> result = service.getODPairs(30, 50);
 
@@ -551,9 +595,8 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("handles null lat/lon values gracefully")
     void getODPairs_nullCoordinates_handledGracefully() {
-      Object[] rowWithNullCoords = new Object[]{
-          1, "Station 1", null, null, 2, "Station 2", null, null, 50, 0.9
-      };
+      Object[] rowWithNullCoords =
+          new Object[] {1, "Station 1", null, null, 2, "Station 2", null, null, 50, 0.9};
       when(snapshotRepository.findODPairs(30, 50)).thenReturn(rows(rowWithNullCoords));
 
       List<StationODPairDTO> result = service.getODPairs(30, 50);
@@ -575,10 +618,12 @@ public class CycleMetricsServiceTest {
     @Test
     @DisplayName("maps rows to StationHourlyUsageDTOs")
     void getStationHourlyUsage_mapsRowsToDto() {
-      when(snapshotRepository.findStationHourlyUsage(30, 30)).thenReturn(
-          rows(buildStationHourlyRow(1, 8, 72.5),
-              buildStationHourlyRow(1, 9, 88.0),
-              buildStationHourlyRow(2, 17, 60.0)));
+      when(snapshotRepository.findStationHourlyUsage(30, 30))
+          .thenReturn(
+              rows(
+                  buildStationHourlyRow(1, 8, 72.5),
+                  buildStationHourlyRow(1, 9, 88.0),
+                  buildStationHourlyRow(2, 17, 60.0)));
 
       List<StationHourlyUsageDTO> result = service.getStationHourlyUsage(30, 30);
 

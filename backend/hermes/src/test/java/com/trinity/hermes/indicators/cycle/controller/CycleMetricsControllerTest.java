@@ -7,8 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
-import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
+import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationHourlyUsageDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
@@ -53,7 +53,9 @@ public class CycleMetricsControllerTest {
 
     @Bean
     JwtDecoder jwtDecoder() {
-      return token -> { throw new JwtException("Not used in tests"); };
+      return token -> {
+        throw new JwtException("Not used in tests");
+      };
     }
   }
 
@@ -201,7 +203,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getLiveStations())
           .thenReturn(List.of(buildStationLiveDTO(1), buildStationLiveDTO(2)));
 
-      mockMvc.perform(get("/api/v1/cycle/stations/live"))
+      mockMvc
+          .perform(get("/api/v1/cycle/stations/live"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].stationId").value(1))
@@ -216,7 +219,8 @@ public class CycleMetricsControllerTest {
     void getLiveStations_emptyList_returnsOk() throws Exception {
       when(cycleMetricsService.getLiveStations()).thenReturn(List.of());
 
-      mockMvc.perform(get("/api/v1/cycle/stations/live"))
+      mockMvc
+          .perform(get("/api/v1/cycle/stations/live"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -226,7 +230,8 @@ public class CycleMetricsControllerTest {
     void getLiveStations_serviceThrows_returns500() throws Exception {
       when(cycleMetricsService.getLiveStations()).thenThrow(new RuntimeException("DB error"));
 
-      mockMvc.perform(get("/api/v1/cycle/stations/live"))
+      mockMvc
+          .perform(get("/api/v1/cycle/stations/live"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -243,7 +248,8 @@ public class CycleMetricsControllerTest {
     void getNetworkSummary_returnsOk() throws Exception {
       when(cycleMetricsService.getNetworkSummary()).thenReturn(buildNetworkSummaryDTO());
 
-      mockMvc.perform(get("/api/v1/cycle/network/summary"))
+      mockMvc
+          .perform(get("/api/v1/cycle/network/summary"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.totalStations").value(100))
           .andExpect(jsonPath("$.totalBikesAvailable").value(500))
@@ -259,7 +265,8 @@ public class CycleMetricsControllerTest {
     void getNetworkSummary_serviceThrows_returns500() throws Exception {
       when(cycleMetricsService.getNetworkSummary()).thenThrow(new RuntimeException("Query failed"));
 
-      mockMvc.perform(get("/api/v1/cycle/network/summary"))
+      mockMvc
+          .perform(get("/api/v1/cycle/network/summary"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -275,9 +282,11 @@ public class CycleMetricsControllerTest {
     @DisplayName("200 with region metrics list")
     void getRegionMetrics_returnsOk() throws Exception {
       when(cycleMetricsService.getRegionMetrics())
-          .thenReturn(List.of(buildRegionMetricsDTO("DUBLIN_CITY"), buildRegionMetricsDTO("DUBLIN_NORTH")));
+          .thenReturn(
+              List.of(buildRegionMetricsDTO("DUBLIN_CITY"), buildRegionMetricsDTO("DUBLIN_NORTH")));
 
-      mockMvc.perform(get("/api/v1/cycle/regions"))
+      mockMvc
+          .perform(get("/api/v1/cycle/regions"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].regionId").value("DUBLIN_CITY"))
@@ -292,8 +301,7 @@ public class CycleMetricsControllerTest {
     void getRegionMetrics_serviceThrows_returns500() throws Exception {
       when(cycleMetricsService.getRegionMetrics()).thenThrow(new RuntimeException("Query failed"));
 
-      mockMvc.perform(get("/api/v1/cycle/regions"))
-          .andExpect(status().isInternalServerError());
+      mockMvc.perform(get("/api/v1/cycle/regions")).andExpect(status().isInternalServerError());
     }
   }
 
@@ -310,7 +318,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getBusiestStations(10))
           .thenReturn(List.of(buildRankingDTO(1), buildRankingDTO(2)));
 
-      mockMvc.perform(get("/api/v1/cycle/rankings/busiest"))
+      mockMvc
+          .perform(get("/api/v1/cycle/rankings/busiest"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].stationId").value(1))
@@ -324,7 +333,8 @@ public class CycleMetricsControllerTest {
     void getBusiestStations_customLimit_returnsOk() throws Exception {
       when(cycleMetricsService.getBusiestStations(5)).thenReturn(List.of(buildRankingDTO(10)));
 
-      mockMvc.perform(get("/api/v1/cycle/rankings/busiest").param("limit", "5"))
+      mockMvc
+          .perform(get("/api/v1/cycle/rankings/busiest").param("limit", "5"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1));
 
@@ -334,9 +344,11 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("500 when service throws exception")
     void getBusiestStations_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getBusiestStations(anyInt())).thenThrow(new RuntimeException("DB error"));
+      when(cycleMetricsService.getBusiestStations(anyInt()))
+          .thenThrow(new RuntimeException("DB error"));
 
-      mockMvc.perform(get("/api/v1/cycle/rankings/busiest"))
+      mockMvc
+          .perform(get("/api/v1/cycle/rankings/busiest"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -353,7 +365,8 @@ public class CycleMetricsControllerTest {
     void getLeastUsedStations_defaultParams_returnsOk() throws Exception {
       when(cycleMetricsService.getLeastUsedStations(10)).thenReturn(List.of(buildRankingDTO(50)));
 
-      mockMvc.perform(get("/api/v1/cycle/rankings/underused"))
+      mockMvc
+          .perform(get("/api/v1/cycle/rankings/underused"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1))
           .andExpect(jsonPath("$[0].stationId").value(50));
@@ -364,9 +377,11 @@ public class CycleMetricsControllerTest {
     @Test
     @DisplayName("500 when service throws exception")
     void getLeastUsedStations_serviceThrows_returns500() throws Exception {
-      when(cycleMetricsService.getLeastUsedStations(anyInt())).thenThrow(new RuntimeException("DB error"));
+      when(cycleMetricsService.getLeastUsedStations(anyInt()))
+          .thenThrow(new RuntimeException("DB error"));
 
-      mockMvc.perform(get("/api/v1/cycle/rankings/underused"))
+      mockMvc
+          .perform(get("/api/v1/cycle/rankings/underused"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -384,7 +399,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getRebalancingSuggestions(30))
           .thenReturn(List.of(buildRebalancingDTO(10, 20), buildRebalancingDTO(11, 21)));
 
-      mockMvc.perform(get("/api/v1/cycle/network/rebalancing"))
+      mockMvc
+          .perform(get("/api/v1/cycle/network/rebalancing"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].sourceStationId").value(10))
@@ -400,7 +416,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getRebalancingSuggestions(10))
           .thenReturn(List.of(buildRebalancingDTO(5, 6)));
 
-      mockMvc.perform(get("/api/v1/cycle/network/rebalancing").param("limit", "10"))
+      mockMvc
+          .perform(get("/api/v1/cycle/network/rebalancing").param("limit", "10"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1));
 
@@ -412,7 +429,8 @@ public class CycleMetricsControllerTest {
     void getRebalancing_empty_returnsOk() throws Exception {
       when(cycleMetricsService.getRebalancingSuggestions(30)).thenReturn(List.of());
 
-      mockMvc.perform(get("/api/v1/cycle/network/rebalancing"))
+      mockMvc
+          .perform(get("/api/v1/cycle/network/rebalancing"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -423,7 +441,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getRebalancingSuggestions(anyInt()))
           .thenThrow(new RuntimeException("DB error"));
 
-      mockMvc.perform(get("/api/v1/cycle/network/rebalancing"))
+      mockMvc
+          .perform(get("/api/v1/cycle/network/rebalancing"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -441,7 +460,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getNetworkHourlyProfile(30))
           .thenReturn(List.of(buildHourlyProfileDTO(8), buildHourlyProfileDTO(17)));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/network-hourly"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/network-hourly"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].hourOfDay").value(8))
@@ -457,7 +477,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getNetworkHourlyProfile(7))
           .thenReturn(List.of(buildHourlyProfileDTO(9)));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/network-hourly").param("days", "7"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/network-hourly").param("days", "7"))
           .andExpect(status().isOk());
 
       verify(cycleMetricsService).getNetworkHourlyProfile(7);
@@ -468,7 +489,8 @@ public class CycleMetricsControllerTest {
     void getNetworkHourly_emptyResult_returnsOk() throws Exception {
       when(cycleMetricsService.getNetworkHourlyProfile(30)).thenReturn(List.of());
 
-      mockMvc.perform(get("/api/v1/cycle/demand/network-hourly"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/network-hourly"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -479,7 +501,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getNetworkHourlyProfile(anyInt()))
           .thenThrow(new RuntimeException("Query failed"));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/network-hourly"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/network-hourly"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -495,11 +518,13 @@ public class CycleMetricsControllerTest {
     @DisplayName("200 with default days=30")
     void getClassification_defaultDays_returnsOk() throws Exception {
       when(cycleMetricsService.getStationClassification(30))
-          .thenReturn(List.of(
-              buildClassificationDTO(1, "MORNING_PEAK"),
-              buildClassificationDTO(2, "EVENING_PEAK")));
+          .thenReturn(
+              List.of(
+                  buildClassificationDTO(1, "MORNING_PEAK"),
+                  buildClassificationDTO(2, "EVENING_PEAK")));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/classification"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/classification"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].stationId").value(1))
@@ -515,7 +540,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getStationClassification(90))
           .thenReturn(List.of(buildClassificationDTO(5, "OFF_PEAK")));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/classification").param("days", "90"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/classification").param("days", "90"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$[0].classification").value("OFF_PEAK"));
 
@@ -528,7 +554,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getStationClassification(anyInt()))
           .thenThrow(new RuntimeException("Query failed"));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/classification"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/classification"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -546,7 +573,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getODPairs(30, 50))
           .thenReturn(List.of(buildODPairDTO(1, 2), buildODPairDTO(3, 4)));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/od-pairs"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/od-pairs"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].originStationId").value(1))
@@ -562,7 +590,8 @@ public class CycleMetricsControllerTest {
     void getODPairs_customParams_returnsOk() throws Exception {
       when(cycleMetricsService.getODPairs(7, 20)).thenReturn(List.of(buildODPairDTO(5, 6)));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/od-pairs").param("days", "7").param("limit", "20"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/od-pairs").param("days", "7").param("limit", "20"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1));
 
@@ -574,7 +603,8 @@ public class CycleMetricsControllerTest {
     void getODPairs_emptyResult_returnsOk() throws Exception {
       when(cycleMetricsService.getODPairs(30, 50)).thenReturn(List.of());
 
-      mockMvc.perform(get("/api/v1/cycle/demand/od-pairs"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/od-pairs"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -585,7 +615,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getODPairs(anyInt(), anyInt()))
           .thenThrow(new RuntimeException("OD query failed"));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/od-pairs"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/od-pairs"))
           .andExpect(status().isInternalServerError());
     }
   }
@@ -601,12 +632,14 @@ public class CycleMetricsControllerTest {
     @DisplayName("200 with default days=30, limit=30")
     void getStationHourly_defaultParams_returnsOk() throws Exception {
       when(cycleMetricsService.getStationHourlyUsage(30, 30))
-          .thenReturn(List.of(
-              buildStationHourlyDTO(1, 8),
-              buildStationHourlyDTO(1, 9),
-              buildStationHourlyDTO(2, 17)));
+          .thenReturn(
+              List.of(
+                  buildStationHourlyDTO(1, 8),
+                  buildStationHourlyDTO(1, 9),
+                  buildStationHourlyDTO(2, 17)));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/station-hourly"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/station-hourly"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(3))
           .andExpect(jsonPath("$[0].stationId").value(1))
@@ -624,7 +657,9 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getStationHourlyUsage(7, 10))
           .thenReturn(List.of(buildStationHourlyDTO(5, 12)));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/station-hourly").param("days", "7").param("limit", "10"))
+      mockMvc
+          .perform(
+              get("/api/v1/cycle/demand/station-hourly").param("days", "7").param("limit", "10"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1))
           .andExpect(jsonPath("$[0].stationId").value(5));
@@ -637,7 +672,8 @@ public class CycleMetricsControllerTest {
     void getStationHourly_emptyResult_returnsOk() throws Exception {
       when(cycleMetricsService.getStationHourlyUsage(30, 30)).thenReturn(List.of());
 
-      mockMvc.perform(get("/api/v1/cycle/demand/station-hourly"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/station-hourly"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -648,7 +684,8 @@ public class CycleMetricsControllerTest {
       when(cycleMetricsService.getStationHourlyUsage(anyInt(), anyInt()))
           .thenThrow(new RuntimeException("Query failed"));
 
-      mockMvc.perform(get("/api/v1/cycle/demand/station-hourly"))
+      mockMvc
+          .perform(get("/api/v1/cycle/demand/station-hourly"))
           .andExpect(status().isInternalServerError());
     }
   }

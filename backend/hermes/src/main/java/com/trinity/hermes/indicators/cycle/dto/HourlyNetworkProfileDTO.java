@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class HourlyNetworkProfileDTO {
 
-  private int hourOfDay;       // 0–23 in Europe/Dublin local time
+  private int hourOfDay; // 0–23 in Europe/Dublin local time
   private double avgUsageRate; // network average of (capacity - available_docks)/capacity * 100
-  private long stationCount;   // number of distinct stations contributing to that hour
+  private long stationCount; // number of distinct stations contributing to that hour
 }
