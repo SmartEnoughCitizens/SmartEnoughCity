@@ -174,6 +174,9 @@ def main_dynamic() -> None:
 
     if sources_settings.enable_cycle_data:
         logger.info("Processing cycle data...")
+        logger.info("Loading Dublin Bikes station information...")
+        process_station_information()
+        logger.info("Fetching Dublin Bikes station snapshots...")
         fetch_and_store_station_snapshots()
 
     if sources_settings.enable_car_data:

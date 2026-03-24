@@ -73,6 +73,8 @@ spec:
                   value: "http://{{ .Release.Name }}-hermes:8080"
                 - name: APP_ENV
                   value: {{ .Values.appEnv | default "prod" | quote }}
+                - name: BASE_STATIC_DATA_DIR
+                  value: "/tmp/static_data"
                 - name: GTFS_API_BASE_URL
                   value: {{ .Values.gtfsApiBaseUrl | quote }}
                 - name: GTFS_API_KEY
