@@ -155,8 +155,8 @@ public class TramDashboardService {
   // ── Helpers ─────────────────────────────────────────────────────
 
   /**
-   * Returns expected tram frequency in minutes based on time of day.
-   * Luas runs every ~4-5 min at peak, ~7-10 min off-peak, ~12-15 min late night.
+   * Returns expected tram frequency in minutes based on time of day. Luas runs every ~4-5 min at
+   * peak, ~7-10 min off-peak, ~12-15 min late night.
    */
   private int getExpectedFrequency(int hour) {
     if ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 19)) {
