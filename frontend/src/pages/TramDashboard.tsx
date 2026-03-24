@@ -347,9 +347,7 @@ export const TramDashboard = () => {
           f.destination.toLowerCase().includes(q),
       );
     }
-    return list.toSorted(
-      (a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999),
-    );
+    return list.toSorted((a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999));
   }, [liveForecasts, lineFilter, search]);
 
   // Filtered delays for panel
@@ -438,8 +436,7 @@ export const TramDashboard = () => {
                       key={i}
                       sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}
                     >
-                      → {f.destination}:{" "}
-                      <strong>{f.dueMins ?? "—"} min</strong>{" "}
+                      → {f.destination}: <strong>{f.dueMins ?? "—"} min</strong>{" "}
                       <span style={{ color: "#8b949e" }}>({f.direction})</span>
                     </Typography>
                   ))}
@@ -634,7 +631,11 @@ export const TramDashboard = () => {
             {(
               [
                 { key: "live", label: "Live", count: filteredForecasts.length },
-                { key: "delays", label: "Delays", count: filteredDelays.length },
+                {
+                  key: "delays",
+                  label: "Delays",
+                  count: filteredDelays.length,
+                },
                 { key: "hourly", label: "Hourly", count: null },
               ] as { key: PanelTab; label: string; count: number | null }[]
             ).map(({ key, label, count }) => {
@@ -706,7 +707,7 @@ export const TramDashboard = () => {
                 const label =
                   key === "" ? "All" : key === "red" ? "Red" : "Green";
                 const accent =
-                  key === "" ? "#1565C0" : LINE_COLORS[key] ?? "#607D8B";
+                  key === "" ? "#1565C0" : (LINE_COLORS[key] ?? "#607D8B");
                 return (
                   <Chip
                     key={key || "all"}

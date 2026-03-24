@@ -11,7 +11,6 @@ export const MISC_KEYS = {
     ["misc", "pedestrians", "live", { limit }] as const,
 };
 
-
 export const DASHBOARD_KEYS = {
   bus: (routeId?: string, limit?: number) =>
     ["dashboard", "bus", { routeId, limit }] as const,

@@ -45,7 +45,9 @@ export const TramForecastTable = ({
         </TableHead>
         <TableBody>
           {displayed.map((f, idx) => (
-            <TableRow key={`${f.stopId}-${f.direction}-${f.destination}-${idx}`}>
+            <TableRow
+              key={`${f.stopId}-${f.direction}-${f.destination}-${idx}`}
+            >
               <TableCell>
                 <Chip
                   label={f.line}

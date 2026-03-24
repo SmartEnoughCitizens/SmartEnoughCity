@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,53 +32,47 @@ class DataSourcesSettings(BaseSettings):
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
-    enable_population_data: bool = Field(True, alias="ENABLE_POPULATION_DATA")
 
-    base_static_data_dir: Path = Field(
-        Path("static_data"), alias="BASE_STATIC_DATA_DIR"
+    bus_gtfs_static_data_dir: Optional[Path] = Field(
+        None,
+        alias="BUS_GTFS_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the GTFS bus static data",
     )
 
-    # GTFS ZIP URLs (TfI public data)
-    bus_gtfs_static_zip_url: str = Field(
-        "https://www.transportforireland.ie/transitData/Data/GTFS_All.zip",
-        alias="BUS_GTFS_STATIC_ZIP_URL",
+    car_static_data_dir: Optional[Path] = Field(
+        None,
+        alias="CAR_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the Car static data",
     )
 
-    dublin_bikes_csv_archive_dir: Path | None = Field(
+    dublin_bikes_csv_archive_dir: Optional[Path] = Field(
         None,
         alias="DUBLIN_BIKES_CSV_ARCHIVE_DIR",
         description="Directory containing historical Dublin Bikes CSV archives",
     )
 
-    train_gtfs_static_data_dir: Path | None = Field(
+    train_gtfs_static_data_dir: Optional[Path] = Field(
         None,
         alias="TRAIN_GTFS_STATIC_DATA_DIR",
         description="Filesystem path to the directory containing the GTFS train static data",
-    train_gtfs_zip_url: str = Field(
-        "https://www.transportforireland.ie/transitData/Data/GTFS_Irish_Rail.zip",
-        alias="TRAIN_GTFS_ZIP_URL",
-    )
-    tram_gtfs_zip_url: str = Field(
-        "https://www.transportforireland.ie/transitData/Data/GTFS_LUAS.zip",
-        alias="TRAM_GTFS_ZIP_URL",
     )
 
-    # Tram CSO dataset URLs (CSO PxStat API)
-    tram_cso_tii03_url: str = Field(
-        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TII03/CSV/1.0/en",
-        alias="TRAM_CSO_TII03_URL",
+    tram_gtfs_static_data_dir: Optional[Path] = Field(
+        None,
+        alias="TRAM_GTFS_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the GTFS tram static data",
     )
-    tram_cso_toa11_url: str = Field(
-        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TOA11/CSV/1.0/en",
-        alias="TRAM_CSO_TOA11_URL",
+
+    tram_cso_static_data_dir: Optional[Path] = Field(
+        None,
+        alias="TRAM_CSO_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the CSO tram static data",
     )
-    tram_cso_toa09_url: str = Field(
-        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TOA09/CSV/1.0/en",
-        alias="TRAM_CSO_TOA09_URL",
-    )
-    tram_cso_toa02_url: str = Field(
-        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TOA02/CSV/1.0/en",
-        alias="TRAM_CSO_TOA02_URL",
+
+    population_static_data_dir: Optional[Path] = Field(
+        None,
+        alias="POPULATION_STATIC_DATA_DIR",
+        description="Filesystem path to the directory containing the population static data",
     )
 
     @field_validator(
@@ -88,23 +83,14 @@ class DataSourcesSettings(BaseSettings):
         "tram_gtfs_static_data_dir",
         "tram_cso_static_data_dir",
         "population_static_data_dir",
-    # Population data URLs
-    population_boundaries_url: str = Field(
-        "https://data-osi.opendata.arcgis.com/api/download/v1/items/9472cff586d74f2ba3c240d4344c5720/geojson?layers=0",
-        alias="POPULATION_BOUNDARIES_URL",
     )
-    population_census_url: str = Field(
-        "https://www.cso.ie/en/media/csoie/census/census2022/SAPS_2022_Small_Area_UR_171024.csv",
-        alias="POPULATION_CENSUS_URL",
-    )
-
-    # Car static data — Google Drive folder ID
-    car_gdrive_folder_id: str | None = Field(None, alias="CAR_GDRIVE_FOLDER_ID")
-
-    @field_validator("base_static_data_dir")
     @classmethod
-    def _ensure_base_dir(cls, p: Path) -> Path:
-        p.mkdir(parents=True, exist_ok=True)
+    def _ensure_dir_optional(cls, p: Optional[Path]) -> Optional[Path]:
+        if p is None:
+            return None
+        if not p.is_dir():
+            msg = f"Path is not a directory: {p}"
+            raise ValueError(msg)
         return p
 
     model_config = SettingsConfigDict(

@@ -32,10 +32,16 @@ export const TramStopMap = ({
   // Deduplicate by stopId, keeping the first forecast per stop for the marker
   const stopMap = new Map<
     string,
-    { lat: number; lon: number; name: string; line: string; forecasts: TramLiveForecast[] }
+    {
+      lat: number;
+      lon: number;
+      name: string;
+      line: string;
+      forecasts: TramLiveForecast[];
+    }
   >();
-  forecasts.forEach((f) => {
-    if (f.lat == null || f.lon == null) return;
+  for (const f of forecasts) {
+    if (f.lat == null || f.lon == null) continue;
     if (!stopMap.has(f.stopId)) {
       stopMap.set(f.stopId, {
         lat: f.lat,
@@ -46,9 +52,9 @@ export const TramStopMap = ({
       });
     }
     stopMap.get(f.stopId)!.forecasts.push(f);
-  });
+  }
 
-  const stops = Array.from(stopMap.values());
+  const stops = [...stopMap.values()];
 
   return (
     <MapContainer
@@ -76,7 +82,10 @@ export const TramStopMap = ({
             </Typography>
             <Typography
               variant="caption"
-              sx={{ textTransform: "capitalize", color: stop.line === "red" ? "#ef4444" : "#22c55e" }}
+              sx={{
+                textTransform: "capitalize",
+                color: stop.line === "red" ? "#ef4444" : "#22c55e",
+              }}
             >
               {stop.line} line
             </Typography>
@@ -87,7 +96,11 @@ export const TramStopMap = ({
               </div>
             ))}
             {stop.forecasts[0]?.message && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: "block" }}
+              >
                 {stop.forecasts[0].message}
               </Typography>
             )}

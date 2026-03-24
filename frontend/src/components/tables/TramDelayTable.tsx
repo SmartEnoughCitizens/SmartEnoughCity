@@ -54,7 +54,9 @@ export const TramDelayTable = ({
         </TableHead>
         <TableBody>
           {displayed.map((d, idx) => (
-            <TableRow key={`${d.stopId}-${d.direction}-${d.destination}-${idx}`}>
+            <TableRow
+              key={`${d.stopId}-${d.direction}-${d.destination}-${idx}`}
+            >
               <TableCell>
                 <Chip
                   label={d.line}

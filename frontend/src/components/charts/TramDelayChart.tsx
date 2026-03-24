@@ -73,7 +73,9 @@ export const TramDelayChart = ({
         />
         <Tooltip
           formatter={(value, _name, props) => {
-            const payload = props?.payload as { line?: string; affected?: number } | undefined;
+            const payload = props?.payload as
+              | { line?: string; affected?: number }
+              | undefined;
             return [
               `${Number(value ?? 0)} min (est. ${payload?.affected ?? 0} affected)`,
               `${payload?.line ?? ""} line delay`,
