@@ -121,7 +121,7 @@ def main_dynamic() -> None:
         process_bus_live_data()
 
     if sources_settings.enable_tram_data:
-        print("Processing tram data...")
+        logger.info("Processing tram data...")
         luas_forecasts_to_db()
 
     if sources_settings.enable_construction_data:
