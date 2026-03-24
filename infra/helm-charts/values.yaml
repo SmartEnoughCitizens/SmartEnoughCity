@@ -95,6 +95,8 @@ keycloak:
 
 hermes:
   enabled: true
+  frontendUrl: ""
+  inferenceEngineUrl: ""
   keycloak:
     realm: *keycloakRealmName
     clientId: *keycloakClientId
