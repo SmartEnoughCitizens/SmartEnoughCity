@@ -14,6 +14,29 @@ resources:
     cpu: "500m"
     memory: "256Mi"
 
+# Init job for static data loading (runs once on install/upgrade)
+initJob:
+  enabled: true
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+
+# Daily static data refresh CronJob
+staticDataCron:
+  enabled: true
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+
 labels:
   app.kubernetes.io/name: data-handler
   app.kubernetes.io/component: batch-run
