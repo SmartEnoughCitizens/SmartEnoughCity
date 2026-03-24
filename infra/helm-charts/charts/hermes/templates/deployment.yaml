@@ -71,6 +71,10 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.keycloak.secret.name }}
                   key: {{ .Values.keycloak.secret.key }}
+            - name: APP_FRONTEND_URL
+              value: {{ .Values.frontendUrl | quote }}
+            - name: INFERENCE_ENGINE_URL
+              value: {{ .Values.inferenceEngineUrl | quote }}
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.livenessProbe }}
