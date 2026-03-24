@@ -170,8 +170,10 @@ public class AuthService {
 
   private String extractUsernameFromJwt(String jwtToken) {
     try {
-      String[] parts = jwtToken.split("\\.");
-      byte[] payloadBytes = Base64.getUrlDecoder().decode(parts[1]);
+      int firstDot = jwtToken.indexOf('.');
+      int secondDot = jwtToken.indexOf('.', firstDot + 1);
+      String payloadBase64 = jwtToken.substring(firstDot + 1, secondDot);
+      byte[] payloadBytes = Base64.getUrlDecoder().decode(payloadBase64);
       @SuppressWarnings("unchecked")
       Map<String, Object> claims = new ObjectMapper().readValue(payloadBytes, Map.class);
       Object preferred = claims.get("preferred_username");
