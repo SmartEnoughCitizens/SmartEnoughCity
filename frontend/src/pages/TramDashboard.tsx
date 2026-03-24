@@ -44,7 +44,7 @@ import { TramHourlyChart } from "@/components/charts/TramHourlyChart";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import type { TramLiveForecast, TramDelay } from "@/types";
+import type { TramLiveForecast } from "@/types";
 
 // ── Constants ───────────────────────────────────────────────────────
 
