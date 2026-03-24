@@ -20,9 +20,7 @@ public class TramController {
 
   private final TramFacade tramFacade;
 
-  /**
-   * Station list — under /api/v1/dashboard for frontend compatibility.
-   */
+  /** Station list — under /api/v1/dashboard for frontend compatibility. */
   @GetMapping("/api/v1/dashboard/tram")
   public ResponseEntity<Map<String, Object>> getTramData(
       @RequestParam(defaultValue = "200") Integer limit) {
