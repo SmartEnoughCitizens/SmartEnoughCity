@@ -5,8 +5,11 @@ import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationHourlyProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationPeakHourDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
@@ -253,6 +256,103 @@ public class CycleMetricsController {
       return ResponseEntity.ok(cycleMetricsService.getODHeatmap(limit));
     } catch (Exception e) {
       log.error("Error fetching OD heatmap: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Hourly Demand Patterns
+  // -------------------------------------------------------------------------
+
+  /**
+   * Feature 1 — Per-station hourly demand profiles.
+   * Returns each station's average usage rate for every hour of the day present in the history
+   * window. Suitable for a per-station 24-hour bar chart. days: lookback window (default 30).
+   */
+  @GetMapping("/demand/hourly-by-station")
+  public ResponseEntity<List<StationHourlyProfileDTO>> getHourlyByStation(
+      @RequestParam(defaultValue = "30") int days) {
+    log.info("GET /api/v1/cycle/demand/hourly-by-station days={}", LogSanitizer.sanitizeLog(days));
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getStationHourlyProfiles(days));
+    } catch (Exception e) {
+      log.error("Error fetching per-station hourly profiles: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  /**
+   * Feature 2 — Peak hour per station.
+   * Returns each station's single busiest hour of day by average usage rate. Suitable for a map
+   * overlay showing when each station is at maximum demand. days: lookback window (default 30).
+   */
+  @GetMapping("/demand/peak-hours")
+  public ResponseEntity<List<StationPeakHourDTO>> getPeakHours(
+      @RequestParam(defaultValue = "30") int days) {
+    log.info("GET /api/v1/cycle/demand/peak-hours days={}", LogSanitizer.sanitizeLog(days));
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getStationPeakHours(days));
+    } catch (Exception e) {
+      log.error("Error fetching station peak hours: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  /**
+   * Feature 3 — Hourly demand heatmap matrix.
+   * Returns stationId → { hour(0–23) → avgUsageRate }. Intended for a station×hour heatmap
+   * visualisation. days: lookback window (default 30).
+   */
+  @GetMapping("/demand/heatmap")
+  public ResponseEntity<Map<Integer, Map<Integer, Double>>> getDemandHeatmap(
+      @RequestParam(defaultValue = "30") int days) {
+    log.info("GET /api/v1/cycle/demand/heatmap days={}", LogSanitizer.sanitizeLog(days));
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getDemandHeatmap(days));
+    } catch (Exception e) {
+      log.error("Error building demand heatmap: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  /**
+   * Feature 4 — Top stations by a specific hour of day.
+   * Returns the highest-demand stations ranked by their average usage rate at the given hour.
+   * hour: 0–23 (required), limit: max results (default 10), days: lookback window (default 30).
+   */
+  @GetMapping("/demand/top-stations-by-hour")
+  public ResponseEntity<List<StationRankingDTO>> getTopStationsByHour(
+      @RequestParam int hour,
+      @RequestParam(defaultValue = "10") int limit,
+      @RequestParam(defaultValue = "30") int days) {
+    log.info(
+        "GET /api/v1/cycle/demand/top-stations-by-hour hour={} limit={} days={}",
+        LogSanitizer.sanitizeLog(hour),
+        LogSanitizer.sanitizeLog(limit),
+        LogSanitizer.sanitizeLog(days));
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getTopStationsByHour(hour, limit, days));
+    } catch (Exception e) {
+      log.error("Error fetching top stations by hour: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  /**
+   * Feature 5 — Time-of-day station classification.
+   * Classifies each station as MORNING_PEAK (06–09), LUNCH_PEAK (10–14), EVENING_PEAK (15–20),
+   * or OFF_PEAK based on the hour with the highest average demand.
+   * days: lookback window (default 30).
+   */
+  @GetMapping("/demand/station-classification")
+  public ResponseEntity<List<StationClassificationDTO>> getStationClassification(
+      @RequestParam(defaultValue = "30") int days) {
+    log.info(
+        "GET /api/v1/cycle/demand/station-classification days={}", LogSanitizer.sanitizeLog(days));
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getStationClassifications(days));
+    } catch (Exception e) {
+      log.error("Error fetching station classifications: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }

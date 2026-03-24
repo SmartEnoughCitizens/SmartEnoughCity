@@ -305,6 +305,73 @@ public interface DublinBikesHistoryRepository extends JpaRepository<DublinBikesH
   List<Object[]> findTotalTripEstimate(@Param("from") Instant from, @Param("to") Instant to);
 
   // -------------------------------------------------------------------------
+  // Hourly demand patterns per station
+  // -------------------------------------------------------------------------
+
+  /**
+   * Hourly demand profile for every station. Returns one row per (station, hour) combination.
+   * Object[] columns: station_id, name, latitude, longitude, capacity, region_id, hour_of_day,
+   * avg_usage_rate
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              h.station_id,
+              st.name,
+              st.latitude,
+              st.longitude,
+              st.capacity,
+              st.region_id,
+              EXTRACT(HOUR FROM h.timestamp)::int                                       AS hour_of_day,
+              AVG((st.capacity - h.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
+          FROM external_data.dublin_bikes_station_history h
+          JOIN external_data.dublin_bikes_stations st ON h.station_id = st.station_id
+          WHERE h.timestamp >= :since
+          GROUP BY h.station_id, st.name, st.latitude, st.longitude, st.capacity, st.region_id, hour_of_day
+          ORDER BY h.station_id, hour_of_day
+          """,
+      nativeQuery = true)
+  List<Object[]> findHourlyDemandPerStation(@Param("since") Instant since);
+
+  /**
+   * Peak hour (highest avg usage rate) for each station. Uses a window RANK to pick the single
+   * busiest hour per station. Object[] columns: station_id, name, latitude, longitude, region_id,
+   * peak_hour, peak_usage_rate
+   */
+  @Query(
+      value =
+          """
+          WITH hourly AS (
+              SELECT
+                  h.station_id,
+                  st.name,
+                  st.latitude,
+                  st.longitude,
+                  st.region_id,
+                  EXTRACT(HOUR FROM h.timestamp)::int                                       AS hour_of_day,
+                  AVG((st.capacity - h.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
+              FROM external_data.dublin_bikes_station_history h
+              JOIN external_data.dublin_bikes_stations st ON h.station_id = st.station_id
+              WHERE h.timestamp >= :since
+              GROUP BY h.station_id, st.name, st.latitude, st.longitude, st.region_id, hour_of_day
+          ),
+          ranked AS (
+              SELECT *,
+                     RANK() OVER (PARTITION BY station_id ORDER BY avg_usage_rate DESC) AS rk
+              FROM hourly
+          )
+          SELECT station_id, name, latitude, longitude, region_id,
+                 hour_of_day AS peak_hour,
+                 avg_usage_rate AS peak_usage_rate
+          FROM ranked
+          WHERE rk = 1
+          ORDER BY peak_usage_rate DESC
+          """,
+      nativeQuery = true)
+  List<Object[]> findPeakHourPerStation(@Param("since") Instant since);
+
+  // -------------------------------------------------------------------------
   // Origin-Destination pairs
   // -------------------------------------------------------------------------
 
