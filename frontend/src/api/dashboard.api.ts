@@ -5,7 +5,7 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
- BusDashboardResponse,
+  BusDashboardResponse,
   BusKpis,
   BusLiveVehicle,
   BusRouteUtilization,
@@ -160,13 +160,6 @@ export const dashboardApi = {
     );
     return data;
   },
- getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
-    const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
-      API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
-    );
-    return data;
-  },
-
   /**
    * Get high traffic points with location and time slot data
    */
@@ -280,5 +273,5 @@ export const dashboardApi = {
     );
     return data;
   },
-  
+
 };
