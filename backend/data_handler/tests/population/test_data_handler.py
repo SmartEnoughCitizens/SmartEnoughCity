@@ -1,15 +1,17 @@
+from pathlib import Path
+
 from sqlalchemy.orm import Session
 
 from data_handler.population.data_handler import process_population_static_data
-from data_handler.settings.data_sources_settings import get_data_sources_settings
 from tests.utils import ANY, assert_row_count, assert_rows
 
 
-def test_process_bus_static_data(db_session: Session) -> None:
+def test_process_population_static_data(
+    db_session: Session, tests_data_dir: Path
+) -> None:
     assert_row_count(db_session, "small_areas", 0)
 
-    sources_settings = get_data_sources_settings()
-    process_population_static_data(sources_settings.population_static_data_dir)
+    process_population_static_data(tests_data_dir / "static_data" / "population")
 
     assert_row_count(db_session, "small_areas", 3)
     assert_rows(
