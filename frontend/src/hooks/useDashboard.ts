@@ -22,15 +22,20 @@ export const DASHBOARD_KEYS = {
   indicatorTypes: ["dashboard", "indicator-types"] as const,
   cycleStationsLive: ["cycle", "stations", "live"] as const,
   cycleNetworkSummary: ["cycle", "network", "summary"] as const,
-  cycleNetworkKpi: ["cycle", "network", "kpi"] as const,
   cycleBusiestStations: (limit?: number) =>
     ["cycle", "rankings", "busiest", { limit }] as const,
   cycleUnderusedStations: (limit?: number) =>
     ["cycle", "rankings", "underused", { limit }] as const,
   cycleRebalancing: (limit?: number) =>
     ["cycle", "network", "rebalancing", { limit }] as const,
-  cycleODHeatmap: (limit?: number) =>
-    ["cycle", "od", "heatmap", { limit }] as const,
+  cycleNetworkHourlyProfile: (days?: number) =>
+    ["cycle", "demand", "network-hourly", { days }] as const,
+  cycleStationClassification: (days?: number) =>
+    ["cycle", "demand", "classification", { days }] as const,
+  cycleODPairs: (days?: number, limit?: number) =>
+    ["cycle", "demand", "od-pairs", { days, limit }] as const,
+  cycleStationHourlyUsage: (days?: number, limit?: number) =>
+    ["cycle", "demand", "station-hourly", { days, limit }] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
@@ -265,15 +270,6 @@ export const useCycleNetworkSummary = () => {
   });
 };
 
-export const useCycleNetworkKpi = () => {
-  return useQuery({
-    queryKey: DASHBOARD_KEYS.cycleNetworkKpi,
-    queryFn: () => dashboardApi.getCycleNetworkKpi(),
-    staleTime: 60_000,
-    refetchInterval: 60_000,
-  });
-};
-
 export const useCycleBusiestStations = (limit = 10) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycleBusiestStations(limit),
@@ -301,12 +297,39 @@ export const useCycleRebalancing = (limit = 30) => {
   });
 };
 
-export const useCycleODHeatmap = (limit = 50) => {
+export const useCycleNetworkHourlyProfile = (days = 30) => {
   return useQuery({
-    queryKey: DASHBOARD_KEYS.cycleODHeatmap(limit),
-    queryFn: () => dashboardApi.getCycleODHeatmap({ limit }),
+    queryKey: DASHBOARD_KEYS.cycleNetworkHourlyProfile(days),
+    queryFn: () => dashboardApi.getCycleNetworkHourlyProfile({ days }),
     staleTime: 300_000,
-    refetchInterval: 300_000, // 5 min — historical data changes slowly
+    refetchInterval: 300_000,
+  });
+};
+
+export const useCycleStationClassification = (days = 30) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleStationClassification(days),
+    queryFn: () => dashboardApi.getCycleStationClassification({ days }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+export const useCycleODPairs = (days = 30, limit = 50) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleODPairs(days, limit),
+    queryFn: () => dashboardApi.getCycleODPairs({ days, limit }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+export const useCycleStationHourlyUsage = (days = 30, limit = 30) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleStationHourlyUsage(days, limit),
+    queryFn: () => dashboardApi.getCycleStationHourlyUsage({ days, limit }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
   });
 };
 

@@ -15,13 +15,15 @@ import type {
   CycleStation,
   EventItem,
   HighTrafficPoint,
+  HourlyNetworkProfileDTO,
   IndicatorType,
+  StationClassificationDTO,
+  StationHourlyUsageDTO,
   StationLiveDTO,
   NetworkSummaryDTO,
-  NetworkKpiDTO,
   RebalanceSuggestionDTO,
-  StationRankingDTO,
   StationODPairDTO,
+  StationRankingDTO,
   JunctionEmission,
   PedestrianLive,
   TrainDashboardResponse,
@@ -225,13 +227,6 @@ export const dashboardApi = {
     return data;
   },
 
-  getCycleNetworkKpi: async (): Promise<NetworkKpiDTO> => {
-    const { data } = await axiosInstance.get<NetworkKpiDTO>(
-      API_ENDPOINTS.CYCLE_NETWORK_KPI,
-    );
-    return data;
-  },
-
   getCycleBusiestStations: async (params?: {
     limit?: number;
   }): Promise<StationRankingDTO[]> => {
@@ -262,11 +257,43 @@ export const dashboardApi = {
     return data;
   },
 
-  getCycleODHeatmap: async (params?: {
+  getCycleNetworkHourlyProfile: async (params?: {
+    days?: number;
+  }): Promise<HourlyNetworkProfileDTO[]> => {
+    const { data } = await axiosInstance.get<HourlyNetworkProfileDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_NETWORK_HOURLY,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleStationClassification: async (params?: {
+    days?: number;
+  }): Promise<StationClassificationDTO[]> => {
+    const { data } = await axiosInstance.get<StationClassificationDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_CLASSIFICATION,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleODPairs: async (params?: {
+    days?: number;
     limit?: number;
   }): Promise<StationODPairDTO[]> => {
     const { data } = await axiosInstance.get<StationODPairDTO[]>(
-      API_ENDPOINTS.CYCLE_OD_HEATMAP,
+      API_ENDPOINTS.CYCLE_DEMAND_OD_PAIRS,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleStationHourlyUsage: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationHourlyUsageDTO[]> => {
+    const { data } = await axiosInstance.get<StationHourlyUsageDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_STATION_HOURLY,
       { params },
     );
     return data;

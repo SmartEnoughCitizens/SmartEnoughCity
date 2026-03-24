@@ -1,48 +1,42 @@
 /**
- * Origin-Destination flow table with station filter
+ * OD Flow table — lists origin→destination pairs with station filter + intensity filter.
  */
 
 import {
   Box,
+  Chip,
+  MenuItem,
+  Select,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Typography,
-  Chip,
-  Autocomplete,
-  TextField,
-  IconButton,
-  Tooltip,
-  ToggleButtonGroup,
   ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from "@mui/material";
-import ClearIcon from "@mui/icons-material/Clear";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import type { StationODPairDTO } from "@/types";
 
-export type IntensityFilter = "extreme" | "medium" | "low" | "all";
+export type IntensityFilter = "all" | "low" | "medium" | "extreme";
 
 interface ODFlowTableProps {
   odPairs: StationODPairDTO[];
   allPairs: StationODPairDTO[];
+  thresholds: { low: number; high: number };
   filterStationId: number | null;
   intensityFilter: IntensityFilter;
   selectedPairKey: string | null;
-  onFilterChange: (stationId: number | null) => void;
-  onIntensityFilterChange: (level: IntensityFilter) => void;
+  onFilterChange: (id: number | null) => void;
+  onIntensityFilterChange: (f: IntensityFilter) => void;
   onPairSelect: (key: string | null) => void;
-}
-
-interface StationOption {
-  id: number;
-  label: string;
 }
 
 export const ODFlowTable = ({
   odPairs,
   allPairs,
+  thresholds,
   filterStationId,
   intensityFilter,
   selectedPairKey,
@@ -50,242 +44,118 @@ export const ODFlowTable = ({
   onIntensityFilterChange,
   onPairSelect,
 }: ODFlowTableProps) => {
-  // Build unique station list from all pairs (unfiltered) for the autocomplete
-  const stationMap = new Map<number, string>();
-  for (const pair of allPairs) {
-    stationMap.set(pair.originStationId, pair.originName);
-    stationMap.set(pair.destStationId, pair.destName);
-  }
-  const stationOptions: StationOption[] = [...stationMap.entries()]
-    .map(([id, label]) => ({ id, label }))
-    .toSorted((a, b) => a.label.localeCompare(b.label));
-
-  const visiblePairs = filterStationId
-    ? odPairs.filter(
-        (p) =>
-          p.originStationId === filterStationId ||
-          p.destStationId === filterStationId,
-      )
-    : odPairs;
-
-  const maxTrips = Math.max(...allPairs.map((p) => p.estimatedTrips), 1);
-
-  const selectedOption =
-    stationOptions.find((o) => o.id === filterStationId) ?? null;
+  // Unique stations for the dropdown filter
+  const stationOptions = Array.from(
+    new Map(
+      allPairs.flatMap((p) => [
+        [p.originStationId, p.originName],
+        [p.destStationId, p.destName],
+      ]),
+    ).entries(),
+  ).sort((a, b) => a[1].localeCompare(b[1]));
 
   return (
-    <Box>
-      {/* Intensity filter */}
-      <Box sx={{ px: 1, pt: 1, pb: 0.5 }}>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mb: 0.5 }}
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0.5 }}>
+      {/* Filters */}
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+        <Select
+          size="small"
+          displayEmpty
+          value={filterStationId ?? ""}
+          onChange={(e) => onFilterChange(e.target.value === "" ? null : Number(e.target.value))}
+          sx={{ fontSize: "0.7rem", minWidth: 140, flex: 1 }}
         >
-          Show flows with intensity ≥
-        </Typography>
+          <MenuItem value="">All stations</MenuItem>
+          {stationOptions.map(([id, name]) => (
+            <MenuItem key={id} value={id} sx={{ fontSize: "0.7rem" }}>
+              {name}
+            </MenuItem>
+          ))}
+        </Select>
+
         <ToggleButtonGroup
           value={intensityFilter}
           exclusive
-          onChange={(_, val) => {
-            if (val) onIntensityFilterChange(val as IntensityFilter);
-          }}
+          onChange={(_, v) => v && onIntensityFilterChange(v)}
           size="small"
-          fullWidth
-          sx={{
-            "& .MuiToggleButton-root": {
-              fontSize: "0.65rem",
-              py: 0.4,
-              textTransform: "none",
-            },
-          }}
+          sx={{ "& .MuiToggleButton-root": { px: 0.75, py: 0.25, fontSize: "0.6rem" } }}
         >
-          <ToggleButton
-            value="extreme"
-            sx={{
-              "&.Mui-selected": {
-                bgcolor: "#dc2626",
-                color: "#fff",
-                "&:hover": { bgcolor: "#b91c1c" },
-              },
-            }}
-          >
-            Extreme
-          </ToggleButton>
-          <ToggleButton
-            value="medium"
-            sx={{
-              "&.Mui-selected": {
-                bgcolor: "#f97316",
-                color: "#fff",
-                "&:hover": { bgcolor: "#ea6c0a" },
-              },
-            }}
-          >
-            Medium
-          </ToggleButton>
-          <ToggleButton
-            value="low"
-            sx={{
-              "&.Mui-selected": {
-                bgcolor: "#4ade80",
-                color: "#000",
-                "&:hover": { bgcolor: "#22c55e" },
-              },
-            }}
-          >
+          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton value="low" sx={{ color: "#22c55e", "&.Mui-selected": { bgcolor: "#22c55e22" } }}>
             Low
           </ToggleButton>
-          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton value="medium" sx={{ color: "#f97316", "&.Mui-selected": { bgcolor: "#f9731622" } }}>
+            Med
+          </ToggleButton>
+          <ToggleButton value="extreme" sx={{ color: "#ef4444", "&.Mui-selected": { bgcolor: "#ef444422" } }}>
+            High
+          </ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
-      {/* Station filter */}
-      <Box
-        sx={{ px: 1, pb: 0.5, display: "flex", gap: 0.5, alignItems: "center" }}
-      >
-        <Autocomplete
+      {filterStationId !== null && (
+        <Chip
+          label={`Filtered: ${stationOptions.find(([id]) => id === filterStationId)?.[1] ?? filterStationId}`}
           size="small"
-          options={stationOptions}
-          value={selectedOption}
-          onChange={(_, opt) => onFilterChange(opt?.id ?? null)}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Filter by station"
-              variant="outlined"
-            />
-          )}
-          sx={{ flex: 1 }}
-          clearOnEscape
+          onDelete={() => onFilterChange(null)}
+          sx={{ fontSize: "0.65rem", alignSelf: "flex-start" }}
         />
-        {filterStationId && (
-          <Tooltip title="Clear filter">
-            <IconButton size="small" onClick={() => onFilterChange(null)}>
-              <ClearIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-      </Box>
+      )}
 
-      {/* Summary */}
-      <Box sx={{ px: 1, pb: 0.5 }}>
-        <Typography variant="caption" color="text.secondary">
-          {filterStationId
-            ? `${visiblePairs.length} flows involving this station`
-            : `${odPairs.length} flows shown (last 30 days)`}
+      {odPairs.length === 0 ? (
+        <Typography variant="caption" color="text.secondary" sx={{ py: 2, textAlign: "center", display: "block" }}>
+          No OD pairs match the current filters.
         </Typography>
-      </Box>
-
-      {/* Table */}
-      <TableContainer sx={{ maxHeight: 420 }}>
+      ) : (
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>Origin</TableCell>
-              <TableCell>Destination</TableCell>
-              <TableCell align="right">Trips</TableCell>
+              <TableCell sx={{ fontSize: "0.65rem", py: 0.5 }}>Origin → Destination</TableCell>
+              <TableCell align="right" sx={{ fontSize: "0.65rem", py: 0.5 }}>Trips</TableCell>
+              <TableCell align="right" sx={{ fontSize: "0.65rem", py: 0.5 }}>Dist</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {visiblePairs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} align="center">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ py: 2 }}
-                  >
-                    No flows found
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              visiblePairs.map((pair, idx) => {
-                const key = `${pair.originStationId}-${pair.destStationId}`;
-                const intensity = pair.estimatedTrips / maxTrips;
-                const pct = Math.round(intensity * 100);
-                const chipColor =
-                  intensity >= 0.66
-                    ? "#dc2626"
-                    : intensity >= 0.33
-                      ? "#f97316"
-                      : "#4ade80";
-                const isSelected = selectedPairKey === key;
-                const isOrigin = pair.originStationId === filterStationId;
-                const isDest = pair.destStationId === filterStationId;
-                return (
-                  <TableRow
-                    key={`${key}-${idx}`}
-                    hover
-                    onClick={() => onPairSelect(isSelected ? null : key)}
-                    sx={{
-                      cursor: "pointer",
-                      ...(isSelected
-                        ? {
-                            bgcolor: "primary.main",
-                            "& td": { color: "#fff" },
-                            "&:hover": { bgcolor: "primary.dark" },
-                          }
-                        : filterStationId && (isOrigin || isDest)
-                          ? { bgcolor: "action.selected" }
-                          : undefined),
-                    }}
-                  >
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        fontWeight={isOrigin || isSelected ? 700 : 400}
-                      >
+            {odPairs.slice(0, 50).map((pair) => {
+              const pairKey = `${pair.originStationId}-${pair.destStationId}`;
+              const isSelected = pairKey === selectedPairKey;
+              const trips = pair.estimatedTrips;
+              const dotColor =
+                trips >= thresholds.high ? "#ef4444"
+                : trips >= thresholds.low ? "#f97316"
+                : "#22c55e";
+              return (
+                <TableRow
+                  key={pairKey}
+                  hover
+                  selected={isSelected}
+                  onClick={() => onPairSelect(isSelected ? null : pairKey)}
+                  sx={{ cursor: "pointer" }}
+                >
+                  <TableCell sx={{ fontSize: "0.65rem", py: 0.25 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: dotColor, flexShrink: 0 }} />
+                      <Typography variant="inherit" noWrap sx={{ maxWidth: 85 }}>
                         {pair.originName}
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        fontWeight={isDest || isSelected ? 700 : 400}
-                      >
+                      <SwapHorizIcon sx={{ fontSize: "0.75rem", color: "text.disabled", flexShrink: 0 }} />
+                      <Typography variant="inherit" noWrap sx={{ maxWidth: 85 }}>
                         {pair.destName}
                       </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "flex-end",
-                          gap: 0.5,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: `${Math.max(pct * 0.4, 4)}px`,
-                            height: 6,
-                            borderRadius: 1,
-                            bgcolor: chipColor,
-                            opacity: 0.7,
-                          }}
-                        />
-                        <Chip
-                          label={pair.estimatedTrips}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            borderColor: chipColor,
-                            color: chipColor,
-                            fontWeight: 600,
-                          }}
-                        />
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontSize: "0.65rem", py: 0.25 }}>
+                    {pair.estimatedTrips}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontSize: "0.65rem", py: 0.25 }}>
+                    {pair.distanceKm.toFixed(1)} km
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
-      </TableContainer>
+      )}
     </Box>
   );
 };
