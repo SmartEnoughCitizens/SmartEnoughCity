@@ -5,8 +5,11 @@ import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationHourlyProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationPeakHourDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.entity.DublinBikesStation;
@@ -191,6 +194,113 @@ public class CycleMetricsService {
   }
 
   // -------------------------------------------------------------------------
+  // Hourly Demand Patterns (Features 1–5)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Feature 1 — Per-station hourly demand profiles.
+   * Returns each station's average usage rate for every hour of day present in the history window.
+   */
+  @Transactional(readOnly = true)
+  public List<StationHourlyProfileDTO> getStationHourlyProfiles(int days) {
+    log.debug("Fetching per-station hourly demand profiles, {} day window", days);
+    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
+    List<Object[]> rows = historyRepository.findHourlyDemandPerStation(since);
+
+    // Group rows by stationId, building the hourlyRates map per station
+    Map<Integer, StationHourlyProfileDTO> byStation = new LinkedHashMap<>();
+    for (Object[] row : rows) {
+      Integer stationId = toInt(row[0]);
+      StationHourlyProfileDTO dto =
+          byStation.computeIfAbsent(
+              stationId,
+              id -> {
+                StationHourlyProfileDTO d = new StationHourlyProfileDTO();
+                d.setStationId(id);
+                d.setName((String) row[1]);
+                d.setLatitude(row[2] != null ? new BigDecimal(row[2].toString()) : null);
+                d.setLongitude(row[3] != null ? new BigDecimal(row[3].toString()) : null);
+                d.setCapacity(toInt(row[4]));
+                d.setRegionId((String) row[5]);
+                d.setHourlyRates(new LinkedHashMap<>());
+                return d;
+              });
+      dto.getHourlyRates().put(toInt(row[6]), toDouble(row[7]));
+    }
+    return List.copyOf(byStation.values());
+  }
+
+  /**
+   * Feature 2 — Peak hour per station.
+   * Returns each station with the single hour of day that has the highest average usage rate.
+   */
+  @Transactional(readOnly = true)
+  public List<StationPeakHourDTO> getStationPeakHours(int days) {
+    log.debug("Fetching peak hour per station, {} day window", days);
+    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
+    List<Object[]> rows = historyRepository.findPeakHourPerStation(since);
+    return rows.stream().map(this::mapToPeakHourDTO).collect(Collectors.toList());
+  }
+
+  /**
+   * Feature 3 — Hourly demand heatmap matrix.
+   * Returns a map of stationId → { hour(0–23) → avgUsageRate } suitable for a station×hour heatmap.
+   */
+  @Transactional(readOnly = true)
+  public Map<Integer, Map<Integer, Double>> getDemandHeatmap(int days) {
+    log.debug("Building demand heatmap, {} day window", days);
+    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
+    List<Object[]> rows = historyRepository.findHourlyDemandPerStation(since);
+
+    Map<Integer, Map<Integer, Double>> heatmap = new LinkedHashMap<>();
+    for (Object[] row : rows) {
+      Integer stationId = toInt(row[0]);
+      heatmap.computeIfAbsent(stationId, id -> new LinkedHashMap<>())
+          .put(toInt(row[6]), toDouble(row[7]));
+    }
+    return heatmap;
+  }
+
+  /**
+   * Feature 4 — Top stations by a specific hour of day.
+   * Returns the highest-demand stations for the given hour, ranked by avg usage rate.
+   */
+  @Transactional(readOnly = true)
+  public List<StationRankingDTO> getTopStationsByHour(int hour, int limit, int days) {
+    log.debug("Fetching top {} stations at hour {}, {} day window", limit, hour, days);
+    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
+    List<Object[]> rows = historyRepository.findHourlyDemandPerStation(since);
+
+    return rows.stream()
+        .filter(row -> toInt(row[6]) == hour)
+        .sorted((a, b) -> Double.compare(toDoubleOrDefault(b[7], 0.0), toDoubleOrDefault(a[7], 0.0)))
+        .limit(limit)
+        .map(row -> {
+          StationRankingDTO dto = new StationRankingDTO();
+          dto.setStationId(toInt(row[0]));
+          dto.setName((String) row[1]);
+          dto.setRegionId((String) row[5]);
+          dto.setCapacity(toInt(row[4]));
+          dto.setAvgUsageRate(toDouble(row[7]));
+          return dto;
+        })
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Feature 5 — Time-of-day station classification.
+   * Classifies each station by the time period (MORNING_PEAK, LUNCH_PEAK, EVENING_PEAK, OFF_PEAK)
+   * that contains its peak demand hour.
+   */
+  @Transactional(readOnly = true)
+  public List<StationClassificationDTO> getStationClassifications(int days) {
+    log.debug("Classifying stations by peak time-of-day, {} day window", days);
+    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
+    List<Object[]> rows = historyRepository.findPeakHourPerStation(since);
+    return rows.stream().map(this::mapToClassificationDTO).collect(Collectors.toList());
+  }
+
+  // -------------------------------------------------------------------------
   // Network KPIs
   // -------------------------------------------------------------------------
 
@@ -344,6 +454,45 @@ public class CycleMetricsService {
     dto.setStationId(toInt(row[0]));
     dto.setName((String) row[1]);
     dto.setAvgUsageRate(toDouble(row[2]));
+    return dto;
+  }
+
+  private StationPeakHourDTO mapToPeakHourDTO(Object[] row) {
+    // 0:station_id, 1:name, 2:latitude, 3:longitude, 4:region_id, 5:peak_hour, 6:peak_usage_rate
+    StationPeakHourDTO dto = new StationPeakHourDTO();
+    dto.setStationId(toInt(row[0]));
+    dto.setName((String) row[1]);
+    dto.setLatitude(row[2] != null ? new BigDecimal(row[2].toString()) : null);
+    dto.setLongitude(row[3] != null ? new BigDecimal(row[3].toString()) : null);
+    dto.setRegionId((String) row[4]);
+    dto.setPeakHour(toInt(row[5]));
+    dto.setPeakUsageRate(toDouble(row[6]));
+    return dto;
+  }
+
+  private StationClassificationDTO mapToClassificationDTO(Object[] row) {
+    // 0:station_id, 1:name, 2:latitude, 3:longitude, 4:region_id, 5:peak_hour, 6:peak_usage_rate
+    int peakHour = toInt(row[5]);
+    String classification;
+    if (peakHour >= 6 && peakHour <= 9) {
+      classification = "MORNING_PEAK";
+    } else if (peakHour >= 10 && peakHour <= 14) {
+      classification = "LUNCH_PEAK";
+    } else if (peakHour >= 15 && peakHour <= 20) {
+      classification = "EVENING_PEAK";
+    } else {
+      classification = "OFF_PEAK";
+    }
+
+    StationClassificationDTO dto = new StationClassificationDTO();
+    dto.setStationId(toInt(row[0]));
+    dto.setName((String) row[1]);
+    dto.setLatitude(row[2] != null ? new BigDecimal(row[2].toString()) : null);
+    dto.setLongitude(row[3] != null ? new BigDecimal(row[3].toString()) : null);
+    dto.setRegionId((String) row[4]);
+    dto.setClassification(classification);
+    dto.setPeakHour(peakHour);
+    dto.setPeakUsageRate(toDouble(row[6]));
     return dto;
   }
 
