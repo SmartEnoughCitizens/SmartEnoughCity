@@ -67,4 +67,9 @@ export const API_ENDPOINTS = {
   // Misc (Events + Pedestrians)
   EVENTS: "/api/v1/events",
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
+
+  // Disruptions
+  DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
+  DISRUPTIONS_ALL: "/api/v1/disruptions",
+  DISRUPTION_RESOLVE: (id: number) => `/api/v1/disruptions/${id}/resolve`,
 };
