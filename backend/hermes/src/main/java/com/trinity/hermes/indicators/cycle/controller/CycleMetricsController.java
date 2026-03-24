@@ -1,37 +1,27 @@
 package com.trinity.hermes.indicators.cycle.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
-import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
+import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationHourlyProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationHourlyUsageDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationPeakHourDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Comprehensive cycle (Dublin Bikes) metrics controller. Covers live data, historical statistics,
- * rankings, and derived KPIs.
- */
 @RestController
 @RequestMapping("/api/v1/cycle")
 @RequiredArgsConstructor
@@ -45,10 +35,6 @@ public class CycleMetricsController {
   // Live Station Data
   // -------------------------------------------------------------------------
 
-  /**
-   * All stations with their latest snapshot data, fullness %, and status colour. Suitable for the
-   * map view and station list.
-   */
   @GetMapping("/stations/live")
   public ResponseEntity<List<StationLiveDTO>> getLiveStations() {
     log.info("GET /api/v1/cycle/stations/live");
@@ -60,7 +46,6 @@ public class CycleMetricsController {
     }
   }
 
-  /** Network-level summary: total bikes, docks, empty/full counts, avg fullness. */
   @GetMapping("/network/summary")
   public ResponseEntity<NetworkSummaryDTO> getNetworkSummary() {
     log.info("GET /api/v1/cycle/network/summary");
@@ -72,7 +57,6 @@ public class CycleMetricsController {
     }
   }
 
-  /** Region-level aggregations: station count, capacity, avg usage, empty/full counts. */
   @GetMapping("/regions")
   public ResponseEntity<List<RegionMetricsDTO>> getRegionMetrics() {
     log.info("GET /api/v1/cycle/regions");
@@ -85,115 +69,9 @@ public class CycleMetricsController {
   }
 
   // -------------------------------------------------------------------------
-  // Historical Time-series
-  // -------------------------------------------------------------------------
-
-  /**
-   * Time-series data for a single station. granularity: hour | day (default) | week from / to:
-   * ISO-8601 instants (defaults to last 7 days)
-   */
-  @GetMapping("/stations/{stationId}/history")
-  public ResponseEntity<List<StationTimeSeriesDTO>> getStationHistory(
-      @PathVariable Integer stationId,
-      @RequestParam(defaultValue = "day") String granularity,
-      @RequestParam(required = false) Instant from,
-      @RequestParam(required = false) Instant to) {
-
-    log.info(
-        "GET /api/v1/cycle/stations/{}/history granularity={}",
-        LogSanitizer.sanitizeLog(stationId),
-        LogSanitizer.sanitizeLog(granularity));
-
-    Instant resolvedFrom = from != null ? from : Instant.now().minus(7, ChronoUnit.DAYS);
-    Instant resolvedTo = to != null ? to : Instant.now();
-
-    try {
-      return ResponseEntity.ok(
-          cycleMetricsService.getStationTimeSeries(
-              stationId, granularity, resolvedFrom, resolvedTo));
-    } catch (Exception e) {
-      log.error("Error fetching station history: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // Network Trends
-  // -------------------------------------------------------------------------
-
-  /** Hourly usage profile across the whole network (0–23). days: lookback window (default 30). */
-  @GetMapping("/trends/hourly")
-  public ResponseEntity<Map<Integer, Double>> getHourlyProfile(
-      @RequestParam(defaultValue = "30") int days) {
-    log.info("GET /api/v1/cycle/trends/hourly days={}", LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getHourlyUsageProfile(days));
-    } catch (Exception e) {
-      log.error("Error fetching hourly profile: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /**
-   * Day-of-week usage profile across the network (0=Sunday … 6=Saturday). days: lookback window
-   * (default 90).
-   */
-  @GetMapping("/trends/weekly")
-  public ResponseEntity<Map<Integer, Double>> getWeeklyProfile(
-      @RequestParam(defaultValue = "90") int days) {
-    log.info("GET /api/v1/cycle/trends/weekly days={}", LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getWeeklyUsageProfile(days));
-    } catch (Exception e) {
-      log.error("Error fetching weekly profile: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /** Weekday vs weekend average usage comparison. days: lookback window (default 90). */
-  @GetMapping("/trends/weekday-vs-weekend")
-  public ResponseEntity<Map<String, Double>> getWeekdayVsWeekend(
-      @RequestParam(defaultValue = "90") int days) {
-    log.info("GET /api/v1/cycle/trends/weekday-vs-weekend days={}", LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getWeekdayVsWeekendUsage(days));
-    } catch (Exception e) {
-      log.error("Error fetching weekday vs weekend: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /** Daily network trend. days: lookback window (default 30). */
-  @GetMapping("/trends/daily")
-  public ResponseEntity<List<StationTimeSeriesDTO>> getDailyTrend(
-      @RequestParam(defaultValue = "30") int days) {
-    log.info("GET /api/v1/cycle/trends/daily days={}", LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getNetworkDailyTrend(days));
-    } catch (Exception e) {
-      log.error("Error fetching daily trend: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /** Monthly network trend. months: lookback window (default 12). */
-  @GetMapping("/trends/monthly")
-  public ResponseEntity<List<StationTimeSeriesDTO>> getMonthlyTrend(
-      @RequestParam(defaultValue = "12") int months) {
-    log.info("GET /api/v1/cycle/trends/monthly months={}", LogSanitizer.sanitizeLog(months));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getNetworkMonthlyTrend(months));
-    } catch (Exception e) {
-      log.error("Error fetching monthly trend: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  // -------------------------------------------------------------------------
   // Station Rankings
   // -------------------------------------------------------------------------
 
-  /** Top N busiest stations by avg usage rate today. limit: max results. */
   @GetMapping("/rankings/busiest")
   public ResponseEntity<List<StationRankingDTO>> getBusiestStations(
       @RequestParam(defaultValue = "10") int limit) {
@@ -206,7 +84,6 @@ public class CycleMetricsController {
     }
   }
 
-  /** Top N least used stations by avg usage rate today. limit: max results. */
   @GetMapping("/rankings/underused")
   public ResponseEntity<List<StationRankingDTO>> getLeastUsedStations(
       @RequestParam(defaultValue = "10") int limit) {
@@ -223,10 +100,6 @@ public class CycleMetricsController {
   // Rebalancing Suggestions
   // -------------------------------------------------------------------------
 
-  /**
-   * Pairs full stations (no available docks) with their nearest empty station (no available bikes)
-   * from the latest snapshot. limit: max suggestions returned (default 30).
-   */
   @GetMapping("/network/rebalancing")
   public ResponseEntity<List<RebalanceSuggestionDTO>> getRebalancingSuggestions(
       @RequestParam(defaultValue = "30") int limit) {
@@ -240,138 +113,57 @@ public class CycleMetricsController {
   }
 
   // -------------------------------------------------------------------------
-  // Origin-Destination Heatmap
+  // Demand Analysis
   // -------------------------------------------------------------------------
 
-  /**
-   * Top N inferred origin-destination pairs based on correlated departures and arrivals within a
-   * 30-minute window. Data covers the previous full calendar month. limit: max pairs returned
-   * (default 50).
-   */
-  @GetMapping("/od/heatmap")
-  public ResponseEntity<List<StationODPairDTO>> getODHeatmap(
-      @RequestParam(defaultValue = "50") int limit) {
-    log.info("GET /api/v1/cycle/od/heatmap limit={}", LogSanitizer.sanitizeLog(limit));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getODHeatmap(limit));
-    } catch (Exception e) {
-      log.error("Error fetching OD heatmap: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // Hourly Demand Patterns
-  // -------------------------------------------------------------------------
-
-  /**
-   * Feature 1 — Per-station hourly demand profiles.
-   * Returns each station's average usage rate for every hour of the day present in the history
-   * window. Suitable for a per-station 24-hour bar chart. days: lookback window (default 30).
-   */
-  @GetMapping("/demand/hourly-by-station")
-  public ResponseEntity<List<StationHourlyProfileDTO>> getHourlyByStation(
+  @GetMapping("/demand/network-hourly")
+  public ResponseEntity<List<HourlyNetworkProfileDTO>> getNetworkHourlyProfile(
       @RequestParam(defaultValue = "30") int days) {
-    log.info("GET /api/v1/cycle/demand/hourly-by-station days={}", LogSanitizer.sanitizeLog(days));
+    log.info("GET /api/v1/cycle/demand/network-hourly days={}", LogSanitizer.sanitizeLog(days));
     try {
-      return ResponseEntity.ok(cycleMetricsService.getStationHourlyProfiles(days));
+      return ResponseEntity.ok(cycleMetricsService.getNetworkHourlyProfile(days));
     } catch (Exception e) {
-      log.error("Error fetching per-station hourly profiles: {}", e.getMessage(), e);
+      log.error("Error fetching network hourly profile: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
-  /**
-   * Feature 2 — Peak hour per station.
-   * Returns each station's single busiest hour of day by average usage rate. Suitable for a map
-   * overlay showing when each station is at maximum demand. days: lookback window (default 30).
-   */
-  @GetMapping("/demand/peak-hours")
-  public ResponseEntity<List<StationPeakHourDTO>> getPeakHours(
-      @RequestParam(defaultValue = "30") int days) {
-    log.info("GET /api/v1/cycle/demand/peak-hours days={}", LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getStationPeakHours(days));
-    } catch (Exception e) {
-      log.error("Error fetching station peak hours: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /**
-   * Feature 3 — Hourly demand heatmap matrix.
-   * Returns stationId → { hour(0–23) → avgUsageRate }. Intended for a station×hour heatmap
-   * visualisation. days: lookback window (default 30).
-   */
-  @GetMapping("/demand/heatmap")
-  public ResponseEntity<Map<Integer, Map<Integer, Double>>> getDemandHeatmap(
-      @RequestParam(defaultValue = "30") int days) {
-    log.info("GET /api/v1/cycle/demand/heatmap days={}", LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getDemandHeatmap(days));
-    } catch (Exception e) {
-      log.error("Error building demand heatmap: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /**
-   * Feature 4 — Top stations by a specific hour of day.
-   * Returns the highest-demand stations ranked by their average usage rate at the given hour.
-   * hour: 0–23 (required), limit: max results (default 10), days: lookback window (default 30).
-   */
-  @GetMapping("/demand/top-stations-by-hour")
-  public ResponseEntity<List<StationRankingDTO>> getTopStationsByHour(
-      @RequestParam int hour,
-      @RequestParam(defaultValue = "10") int limit,
-      @RequestParam(defaultValue = "30") int days) {
-    log.info(
-        "GET /api/v1/cycle/demand/top-stations-by-hour hour={} limit={} days={}",
-        LogSanitizer.sanitizeLog(hour),
-        LogSanitizer.sanitizeLog(limit),
-        LogSanitizer.sanitizeLog(days));
-    try {
-      return ResponseEntity.ok(cycleMetricsService.getTopStationsByHour(hour, limit, days));
-    } catch (Exception e) {
-      log.error("Error fetching top stations by hour: {}", e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  /**
-   * Feature 5 — Time-of-day station classification.
-   * Classifies each station as MORNING_PEAK (06–09), LUNCH_PEAK (10–14), EVENING_PEAK (15–20),
-   * or OFF_PEAK based on the hour with the highest average demand.
-   * days: lookback window (default 30).
-   */
-  @GetMapping("/demand/station-classification")
+  @GetMapping("/demand/classification")
   public ResponseEntity<List<StationClassificationDTO>> getStationClassification(
       @RequestParam(defaultValue = "30") int days) {
-    log.info(
-        "GET /api/v1/cycle/demand/station-classification days={}", LogSanitizer.sanitizeLog(days));
+    log.info("GET /api/v1/cycle/demand/classification days={}", LogSanitizer.sanitizeLog(days));
     try {
-      return ResponseEntity.ok(cycleMetricsService.getStationClassifications(days));
+      return ResponseEntity.ok(cycleMetricsService.getStationClassification(days));
     } catch (Exception e) {
-      log.error("Error fetching station classifications: {}", e.getMessage(), e);
+      log.error("Error fetching station classification: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Network KPIs
-  // -------------------------------------------------------------------------
-
-  /**
-   * Comprehensive network KPIs: rebalancing need, imbalance score, turnover rate, daily trip
-   * estimate, weekday vs weekend usage, hourly profile, 30-day trend.
-   */
-  @GetMapping("/network/kpi")
-  public ResponseEntity<NetworkKpiDTO> getNetworkKpi() {
-    log.info("GET /api/v1/cycle/network/kpi");
+  @GetMapping("/demand/od-pairs")
+  public ResponseEntity<List<StationODPairDTO>> getODPairs(
+      @RequestParam(defaultValue = "30") int days,
+      @RequestParam(defaultValue = "50") int limit) {
+    log.info("GET /api/v1/cycle/demand/od-pairs days={} limit={}",
+        LogSanitizer.sanitizeLog(days), LogSanitizer.sanitizeLog(limit));
     try {
-      return ResponseEntity.ok(cycleMetricsService.getNetworkKpi());
+      return ResponseEntity.ok(cycleMetricsService.getODPairs(days, limit));
     } catch (Exception e) {
-      log.error("Error fetching network KPIs: {}", e.getMessage(), e);
+      log.error("Error fetching OD pairs: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  @GetMapping("/demand/station-hourly")
+  public ResponseEntity<List<StationHourlyUsageDTO>> getStationHourlyUsage(
+      @RequestParam(defaultValue = "30") int days,
+      @RequestParam(defaultValue = "30") int limit) {
+    log.info("GET /api/v1/cycle/demand/station-hourly days={} limit={}",
+        LogSanitizer.sanitizeLog(days), LogSanitizer.sanitizeLog(limit));
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getStationHourlyUsage(days, limit));
+    } catch (Exception e) {
+      log.error("Error fetching station hourly usage: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
