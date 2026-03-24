@@ -11,11 +11,14 @@ import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
+@Validated
 public class CycleMetricsController {
 
   private final CycleMetricsService cycleMetricsService;
@@ -74,7 +78,7 @@ public class CycleMetricsController {
 
   @GetMapping("/rankings/busiest")
   public ResponseEntity<List<StationRankingDTO>> getBusiestStations(
-      @RequestParam(defaultValue = "10") int limit) {
+      @RequestParam(defaultValue = "10") @Min(1) @Max(200) int limit) {
     log.info("GET /api/v1/cycle/rankings/busiest limit={}", LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(cycleMetricsService.getBusiestStations(limit));
@@ -86,7 +90,7 @@ public class CycleMetricsController {
 
   @GetMapping("/rankings/underused")
   public ResponseEntity<List<StationRankingDTO>> getLeastUsedStations(
-      @RequestParam(defaultValue = "10") int limit) {
+      @RequestParam(defaultValue = "10") @Min(1) @Max(200) int limit) {
     log.info("GET /api/v1/cycle/rankings/underused limit={}", LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(cycleMetricsService.getLeastUsedStations(limit));
@@ -102,7 +106,7 @@ public class CycleMetricsController {
 
   @GetMapping("/network/rebalancing")
   public ResponseEntity<List<RebalanceSuggestionDTO>> getRebalancingSuggestions(
-      @RequestParam(defaultValue = "30") int limit) {
+      @RequestParam(defaultValue = "30") @Min(1) @Max(200) int limit) {
     log.info("GET /api/v1/cycle/network/rebalancing limit={}", LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(cycleMetricsService.getRebalancingSuggestions(limit));
@@ -118,7 +122,7 @@ public class CycleMetricsController {
 
   @GetMapping("/demand/network-hourly")
   public ResponseEntity<List<HourlyNetworkProfileDTO>> getNetworkHourlyProfile(
-      @RequestParam(defaultValue = "30") int days) {
+      @RequestParam(defaultValue = "30") @Min(1) @Max(365) int days) {
     log.info("GET /api/v1/cycle/demand/network-hourly days={}", LogSanitizer.sanitizeLog(days));
     try {
       return ResponseEntity.ok(cycleMetricsService.getNetworkHourlyProfile(days));
@@ -130,7 +134,7 @@ public class CycleMetricsController {
 
   @GetMapping("/demand/classification")
   public ResponseEntity<List<StationClassificationDTO>> getStationClassification(
-      @RequestParam(defaultValue = "30") int days) {
+      @RequestParam(defaultValue = "30") @Min(1) @Max(365) int days) {
     log.info("GET /api/v1/cycle/demand/classification days={}", LogSanitizer.sanitizeLog(days));
     try {
       return ResponseEntity.ok(cycleMetricsService.getStationClassification(days));
@@ -142,7 +146,8 @@ public class CycleMetricsController {
 
   @GetMapping("/demand/od-pairs")
   public ResponseEntity<List<StationODPairDTO>> getODPairs(
-      @RequestParam(defaultValue = "30") int days, @RequestParam(defaultValue = "50") int limit) {
+      @RequestParam(defaultValue = "30") @Min(1) @Max(365) int days,
+      @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit) {
     log.info(
         "GET /api/v1/cycle/demand/od-pairs days={} limit={}",
         LogSanitizer.sanitizeLog(days),
@@ -157,7 +162,8 @@ public class CycleMetricsController {
 
   @GetMapping("/demand/station-hourly")
   public ResponseEntity<List<StationHourlyUsageDTO>> getStationHourlyUsage(
-      @RequestParam(defaultValue = "30") int days, @RequestParam(defaultValue = "30") int limit) {
+      @RequestParam(defaultValue = "30") @Min(1) @Max(365) int days,
+      @RequestParam(defaultValue = "30") @Min(1) @Max(200) int limit) {
     log.info(
         "GET /api/v1/cycle/demand/station-hourly days={} limit={}",
         LogSanitizer.sanitizeLog(days),
