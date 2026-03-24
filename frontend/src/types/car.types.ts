@@ -15,3 +15,17 @@ export interface HighTrafficPoint {
   dayType: string;
   timeSlot: string;
 }
+
+export interface JunctionEmission {
+  siteId: number;
+  lat: number;
+  lon: number;
+  dayType: string;
+  timeSlot: string;
+  carVolume: number;
+  lcvVolume: number;
+  busVolume: number;
+  hgvVolume: number;
+  motorcycleVolume: number;
+  totalEmissionG: number;
+}
