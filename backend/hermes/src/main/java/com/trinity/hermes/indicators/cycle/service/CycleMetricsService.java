@@ -1,29 +1,21 @@
 package com.trinity.hermes.indicators.cycle.service;
 
-import com.trinity.hermes.common.logging.LogSanitizer;
-import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
+import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationHourlyProfileDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationHourlyUsageDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationPeakHourDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationTimeSeriesDTO;
 import com.trinity.hermes.indicators.cycle.entity.DublinBikesStation;
-import com.trinity.hermes.indicators.cycle.repository.DublinBikesHistoryRepository;
 import com.trinity.hermes.indicators.cycle.repository.DublinBikesSnapshotRepository;
 import com.trinity.hermes.indicators.cycle.repository.DublinBikesStationRepository;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +29,6 @@ public class CycleMetricsService {
 
   private final DublinBikesStationRepository stationRepository;
   private final DublinBikesSnapshotRepository snapshotRepository;
-  private final DublinBikesHistoryRepository historyRepository;
 
   // -------------------------------------------------------------------------
   // Live Station Data
@@ -105,248 +96,19 @@ public class CycleMetricsService {
   }
 
   // -------------------------------------------------------------------------
-  // Historical Time-series
-  // -------------------------------------------------------------------------
-
-  @Transactional(readOnly = true)
-  public List<StationTimeSeriesDTO> getStationTimeSeries(
-      Integer stationId, String granularity, Instant from, Instant to) {
-    log.debug(
-        "Fetching {} time series for station {}",
-        LogSanitizer.sanitizeLog(granularity),
-        LogSanitizer.sanitizeLog(stationId));
-
-    List<Object[]> rows =
-        switch (granularity.toLowerCase(Locale.ROOT)) {
-          case "hour" -> historyRepository.findHourlyTimeSeriesForStation(stationId, from, to);
-          case "week" -> historyRepository.findWeeklyTimeSeriesForStation(stationId, from, to);
-          default -> historyRepository.findDailyTimeSeriesForStation(stationId, from, to);
-        };
-
-    return rows.stream().map(this::mapToTimeSeriesDTO).collect(Collectors.toList());
-  }
-
-  @Transactional(readOnly = true)
-  public List<StationTimeSeriesDTO> getNetworkDailyTrend(int days) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findNetworkDailyTrend(since);
-    return rows.stream().map(this::mapToTimeSeriesDTO).collect(Collectors.toList());
-  }
-
-  @Transactional(readOnly = true)
-  public List<StationTimeSeriesDTO> getNetworkMonthlyTrend(int months) {
-    Instant since = Instant.now().minus(months * 30L, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findNetworkMonthlyTrend(since);
-    return rows.stream().map(this::mapToTimeSeriesDTO).collect(Collectors.toList());
-  }
-
-  // -------------------------------------------------------------------------
-  // Usage Profiles
-  // -------------------------------------------------------------------------
-
-  @Transactional(readOnly = true)
-  public Map<Integer, Double> getHourlyUsageProfile(int days) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findHourlyUsageProfile(since);
-    Map<Integer, Double> profile = new LinkedHashMap<>();
-    for (Object[] row : rows) {
-      profile.put(toInt(row[0]), toDouble(row[1]));
-    }
-    return profile;
-  }
-
-  @Transactional(readOnly = true)
-  public Map<Integer, Double> getWeeklyUsageProfile(int days) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findWeeklyUsageProfile(since);
-    Map<Integer, Double> profile = new LinkedHashMap<>();
-    for (Object[] row : rows) {
-      profile.put(toInt(row[0]), toDouble(row[1]));
-    }
-    return profile;
-  }
-
-  @Transactional(readOnly = true)
-  public Map<String, Double> getWeekdayVsWeekendUsage(int days) {
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findWeekdayVsWeekendUsage(since);
-    Map<String, Double> result = new LinkedHashMap<>();
-    for (Object[] row : rows) {
-      result.put((String) row[0], toDouble(row[1]));
-    }
-    return result;
-  }
-
-  // -------------------------------------------------------------------------
   // Station Rankings
   // -------------------------------------------------------------------------
 
   @Transactional(readOnly = true)
   public List<StationRankingDTO> getBusiestStations(int limit) {
-    List<Object[]> rows = historyRepository.findBusiestStations(limit);
+    List<Object[]> rows = snapshotRepository.findBusiestStations(limit);
     return rows.stream().map(this::mapToRankingDTO).collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public List<StationRankingDTO> getLeastUsedStations(int limit) {
-    List<Object[]> rows = historyRepository.findLeastUsedStations(limit);
+    List<Object[]> rows = snapshotRepository.findLeastUsedStations(limit);
     return rows.stream().map(this::mapToRankingDTO).collect(Collectors.toList());
-  }
-
-  // -------------------------------------------------------------------------
-  // Hourly Demand Patterns (Features 1–5)
-  // -------------------------------------------------------------------------
-
-  /**
-   * Feature 1 — Per-station hourly demand profiles.
-   * Returns each station's average usage rate for every hour of day present in the history window.
-   */
-  @Transactional(readOnly = true)
-  public List<StationHourlyProfileDTO> getStationHourlyProfiles(int days) {
-    log.debug("Fetching per-station hourly demand profiles, {} day window", days);
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findHourlyDemandPerStation(since);
-
-    // Group rows by stationId, building the hourlyRates map per station
-    Map<Integer, StationHourlyProfileDTO> byStation = new LinkedHashMap<>();
-    for (Object[] row : rows) {
-      Integer stationId = toInt(row[0]);
-      StationHourlyProfileDTO dto =
-          byStation.computeIfAbsent(
-              stationId,
-              id -> {
-                StationHourlyProfileDTO d = new StationHourlyProfileDTO();
-                d.setStationId(id);
-                d.setName((String) row[1]);
-                d.setLatitude(row[2] != null ? new BigDecimal(row[2].toString()) : null);
-                d.setLongitude(row[3] != null ? new BigDecimal(row[3].toString()) : null);
-                d.setCapacity(toInt(row[4]));
-                d.setRegionId((String) row[5]);
-                d.setHourlyRates(new LinkedHashMap<>());
-                return d;
-              });
-      dto.getHourlyRates().put(toInt(row[6]), toDouble(row[7]));
-    }
-    return List.copyOf(byStation.values());
-  }
-
-  /**
-   * Feature 2 — Peak hour per station.
-   * Returns each station with the single hour of day that has the highest average usage rate.
-   */
-  @Transactional(readOnly = true)
-  public List<StationPeakHourDTO> getStationPeakHours(int days) {
-    log.debug("Fetching peak hour per station, {} day window", days);
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findPeakHourPerStation(since);
-    return rows.stream().map(this::mapToPeakHourDTO).collect(Collectors.toList());
-  }
-
-  /**
-   * Feature 3 — Hourly demand heatmap matrix.
-   * Returns a map of stationId → { hour(0–23) → avgUsageRate } suitable for a station×hour heatmap.
-   */
-  @Transactional(readOnly = true)
-  public Map<Integer, Map<Integer, Double>> getDemandHeatmap(int days) {
-    log.debug("Building demand heatmap, {} day window", days);
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findHourlyDemandPerStation(since);
-
-    Map<Integer, Map<Integer, Double>> heatmap = new LinkedHashMap<>();
-    for (Object[] row : rows) {
-      Integer stationId = toInt(row[0]);
-      heatmap.computeIfAbsent(stationId, id -> new LinkedHashMap<>())
-          .put(toInt(row[6]), toDouble(row[7]));
-    }
-    return heatmap;
-  }
-
-  /**
-   * Feature 4 — Top stations by a specific hour of day.
-   * Returns the highest-demand stations for the given hour, ranked by avg usage rate.
-   */
-  @Transactional(readOnly = true)
-  public List<StationRankingDTO> getTopStationsByHour(int hour, int limit, int days) {
-    log.debug("Fetching top {} stations at hour {}, {} day window", limit, hour, days);
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findHourlyDemandPerStation(since);
-
-    return rows.stream()
-        .filter(row -> toInt(row[6]) == hour)
-        .sorted((a, b) -> Double.compare(toDoubleOrDefault(b[7], 0.0), toDoubleOrDefault(a[7], 0.0)))
-        .limit(limit)
-        .map(row -> {
-          StationRankingDTO dto = new StationRankingDTO();
-          dto.setStationId(toInt(row[0]));
-          dto.setName((String) row[1]);
-          dto.setRegionId((String) row[5]);
-          dto.setCapacity(toInt(row[4]));
-          dto.setAvgUsageRate(toDouble(row[7]));
-          return dto;
-        })
-        .collect(Collectors.toList());
-  }
-
-  /**
-   * Feature 5 — Time-of-day station classification.
-   * Classifies each station by the time period (MORNING_PEAK, LUNCH_PEAK, EVENING_PEAK, OFF_PEAK)
-   * that contains its peak demand hour.
-   */
-  @Transactional(readOnly = true)
-  public List<StationClassificationDTO> getStationClassifications(int days) {
-    log.debug("Classifying stations by peak time-of-day, {} day window", days);
-    Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
-    List<Object[]> rows = historyRepository.findPeakHourPerStation(since);
-    return rows.stream().map(this::mapToClassificationDTO).collect(Collectors.toList());
-  }
-
-  // -------------------------------------------------------------------------
-  // Network KPIs
-  // -------------------------------------------------------------------------
-
-  @Transactional(readOnly = true)
-  public NetworkKpiDTO getNetworkKpi() {
-    log.debug("Computing network KPIs");
-
-    Object[] imbalanceRow = firstRow(snapshotRepository.findNetworkImbalanceScore());
-    double imbalanceScore = imbalanceRow != null ? toDouble(imbalanceRow[0]) : 0.0;
-
-    Object[] turnoverRow = firstRow(historyRepository.findAvgHourlyTurnoverRate());
-    double turnoverRate = turnoverRow != null ? toDouble(turnoverRow[0]) : 0.0;
-
-    Instant dayStart = Instant.now().truncatedTo(ChronoUnit.DAYS);
-    Object[] tripsRow = firstRow(historyRepository.findTotalTripEstimate(dayStart, Instant.now()));
-    long dailyTrips = tripsRow != null ? toLong(tripsRow[0]) : 0L;
-
-    Instant since90 = Instant.now().minus(90, ChronoUnit.DAYS);
-    List<Object[]> dayTypeRows = historyRepository.findWeekdayVsWeekendUsage(since90);
-    double weekdayRate = 0.0;
-    double weekendRate = 0.0;
-    for (Object[] row : dayTypeRows) {
-      if ("weekday".equals(row[0])) weekdayRate = toDouble(row[1]);
-      else if ("weekend".equals(row[0])) weekendRate = toDouble(row[1]);
-    }
-
-    Map<Integer, Double> hourlyProfile = getHourlyUsageProfile(30);
-    List<StationTimeSeriesDTO> dailyTrend = getNetworkDailyTrend(30);
-
-    Object[] summaryRow = firstRow(snapshotRepository.findNetworkSummary());
-    int rebalancingNeed = 0;
-    if (summaryRow != null) {
-      int emptyStations = toInt(summaryRow[5]);
-      rebalancingNeed = emptyStations;
-    }
-
-    NetworkKpiDTO dto = new NetworkKpiDTO();
-    dto.setRebalancingNeedCount(rebalancingNeed);
-    dto.setNetworkImbalanceScore(imbalanceScore);
-    dto.setAvgHourlyTurnoverRate(turnoverRate);
-    dto.setDailyTripsEstimate(dailyTrips);
-    dto.setWeekdayAvgUsageRate(weekdayRate);
-    dto.setWeekendAvgUsageRate(weekendRate);
-    dto.setHourlyUsageProfile(hourlyProfile);
-    dto.setDailyTrend(dailyTrend);
-    return dto;
   }
 
   // -------------------------------------------------------------------------
@@ -361,19 +123,36 @@ public class CycleMetricsService {
   }
 
   // -------------------------------------------------------------------------
-  // Origin-Destination Heatmap
-  // -------------------------------------------------------------------------
+  // Demand Analysis
 
   @Transactional(readOnly = true)
-  public List<StationODPairDTO> getODHeatmap(int limit) {
-    Instant to = Instant.now();
-    Instant from = to.minus(30, ChronoUnit.DAYS);
-    log.debug("Computing OD heatmap for last 30 days ({} to {}), top {} pairs", from, to, limit);
-    List<Object[]> rows = historyRepository.findODPairs(from, to, limit);
+  public List<HourlyNetworkProfileDTO> getNetworkHourlyProfile(int days) {
+    log.debug("Fetching network hourly profile for last {} days", days);
+    List<Object[]> rows = snapshotRepository.findNetworkHourlyProfile(days);
+    return rows.stream().map(this::mapToHourlyNetworkProfileDTO).collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<StationClassificationDTO> getStationClassification(int days) {
+    log.debug("Fetching station classification for last {} days", days);
+    List<Object[]> rows = snapshotRepository.findStationClassification(days);
+    return rows.stream().map(this::mapToStationClassificationDTO).collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<StationODPairDTO> getODPairs(int days, int limit) {
+    log.debug("Fetching OD pairs for last {} days, limit {}", days, limit);
+    List<Object[]> rows = snapshotRepository.findODPairs(days, limit);
     return rows.stream().map(this::mapToODPairDTO).collect(Collectors.toList());
   }
 
-  // -------------------------------------------------------------------------
+  @Transactional(readOnly = true)
+  public List<StationHourlyUsageDTO> getStationHourlyUsage(int days, int stationLimit) {
+    log.debug("Fetching station hourly usage for last {} days, top {} stations", days, stationLimit);
+    List<Object[]> rows = snapshotRepository.findStationHourlyUsage(days, stationLimit);
+    return rows.stream().map(this::mapToStationHourlyUsageDTO).collect(Collectors.toList());
+  }
+
   // Fleet
   // -------------------------------------------------------------------------
 
@@ -387,12 +166,6 @@ public class CycleMetricsService {
   // -------------------------------------------------------------------------
 
   private StationLiveDTO mapToStationLiveDTO(Object[] row) {
-    // Column order from findLatestSnapshotPerStation:
-    // 0:station_id, 1:name, 2:short_name, 3:address, 4:latitude, 5:longitude,
-    // 6:capacity, 7:region_id, 8:available_bikes, 9:available_docks,
-    // 10:disabled_bikes, 11:disabled_docks, 12:is_installed, 13:is_renting,
-    // 14:is_returning, 15:last_reported, 16:snapshot_timestamp
-
     Integer stationId = toInt(row[0]);
     Integer capacity = toInt(row[6]);
     Integer availableBikes = toInt(row[8]);
@@ -401,12 +174,8 @@ public class CycleMetricsService {
     double bikeAvailabilityPct = 0.0;
     double dockAvailabilityPct = 0.0;
     if (capacity != null && capacity > 0) {
-      if (availableBikes != null) {
-        bikeAvailabilityPct = (double) availableBikes / capacity * 100.0;
-      }
-      if (availableDocks != null) {
-        dockAvailabilityPct = (double) availableDocks / capacity * 100.0;
-      }
+      if (availableBikes != null) bikeAvailabilityPct = (double) availableBikes / capacity * 100.0;
+      if (availableDocks != null) dockAvailabilityPct = (double) availableDocks / capacity * 100.0;
     }
 
     String statusColor =
@@ -438,18 +207,7 @@ public class CycleMetricsService {
     return dto;
   }
 
-  private StationTimeSeriesDTO mapToTimeSeriesDTO(Object[] row) {
-    // 0:period, 1:avg_available_bikes, 2:avg_available_docks, 3:usage_rate_pct
-    StationTimeSeriesDTO dto = new StationTimeSeriesDTO();
-    dto.setPeriod(toInstant(row[0]));
-    dto.setAvgAvailableBikes(toDouble(row[1]));
-    dto.setAvgAvailableDocks(toDouble(row[2]));
-    dto.setUsageRatePct(toDouble(row[3]));
-    return dto;
-  }
-
   private StationRankingDTO mapToRankingDTO(Object[] row) {
-    // 0:station_id, 1:name, 2:avg_usage_rate
     StationRankingDTO dto = new StationRankingDTO();
     dto.setStationId(toInt(row[0]));
     dto.setName((String) row[1]);
@@ -457,58 +215,61 @@ public class CycleMetricsService {
     return dto;
   }
 
-  private StationPeakHourDTO mapToPeakHourDTO(Object[] row) {
-    // 0:station_id, 1:name, 2:latitude, 3:longitude, 4:region_id, 5:peak_hour, 6:peak_usage_rate
-    StationPeakHourDTO dto = new StationPeakHourDTO();
-    dto.setStationId(toInt(row[0]));
-    dto.setName((String) row[1]);
-    dto.setLatitude(row[2] != null ? new BigDecimal(row[2].toString()) : null);
-    dto.setLongitude(row[3] != null ? new BigDecimal(row[3].toString()) : null);
-    dto.setRegionId((String) row[4]);
-    dto.setPeakHour(toInt(row[5]));
-    dto.setPeakUsageRate(toDouble(row[6]));
+  private RebalanceSuggestionDTO mapToRebalanceSuggestionDTO(Object[] row) {
+    RebalanceSuggestionDTO dto = new RebalanceSuggestionDTO();
+    dto.setSourceStationId(toInt(row[0]));
+    dto.setSourceName((String) row[1]);
+    dto.setSourceLat(row[2] != null ? new BigDecimal(row[2].toString()) : null);
+    dto.setSourceLon(row[3] != null ? new BigDecimal(row[3].toString()) : null);
+    dto.setSourceBikes(toInt(row[4]));
+    dto.setTargetStationId(toInt(row[5]));
+    dto.setTargetName((String) row[6]);
+    dto.setTargetLat(row[7] != null ? new BigDecimal(row[7].toString()) : null);
+    dto.setTargetLon(row[8] != null ? new BigDecimal(row[8].toString()) : null);
+    dto.setTargetCapacity(toInt(row[9]));
+    dto.setDistanceKm(toDouble(row[10]));
     return dto;
   }
 
-  private StationClassificationDTO mapToClassificationDTO(Object[] row) {
-    // 0:station_id, 1:name, 2:latitude, 3:longitude, 4:region_id, 5:peak_hour, 6:peak_usage_rate
-    int peakHour = toInt(row[5]);
-    String classification;
-    if (peakHour >= 6 && peakHour <= 9) {
-      classification = "MORNING_PEAK";
-    } else if (peakHour >= 10 && peakHour <= 14) {
-      classification = "LUNCH_PEAK";
-    } else if (peakHour >= 15 && peakHour <= 20) {
-      classification = "EVENING_PEAK";
-    } else {
-      classification = "OFF_PEAK";
-    }
+  private HourlyNetworkProfileDTO mapToHourlyNetworkProfileDTO(Object[] row) {
+    HourlyNetworkProfileDTO dto = new HourlyNetworkProfileDTO();
+    dto.setHourOfDay(toIntOrDefault(row[0], 0));
+    dto.setAvgUsageRate(toDoubleOrDefault(row[1], 0.0));
+    dto.setStationCount(toLong(row[2]));
+    return dto;
+  }
 
+  private StationClassificationDTO mapToStationClassificationDTO(Object[] row) {
     StationClassificationDTO dto = new StationClassificationDTO();
-    dto.setStationId(toInt(row[0]));
+    dto.setStationId(toIntOrDefault(row[0], 0));
     dto.setName((String) row[1]);
-    dto.setLatitude(row[2] != null ? new BigDecimal(row[2].toString()) : null);
-    dto.setLongitude(row[3] != null ? new BigDecimal(row[3].toString()) : null);
-    dto.setRegionId((String) row[4]);
-    dto.setClassification(classification);
-    dto.setPeakHour(peakHour);
-    dto.setPeakUsageRate(toDouble(row[6]));
+    dto.setPeakHour(toIntOrDefault(row[2], 0));
+    dto.setPeakUsage(toDoubleOrDefault(row[3], 0.0));
+    dto.setClassification((String) row[4]);
+    return dto;
+  }
+
+  private StationHourlyUsageDTO mapToStationHourlyUsageDTO(Object[] row) {
+    StationHourlyUsageDTO dto = new StationHourlyUsageDTO();
+    dto.setStationId(toIntOrDefault(row[0], 0));
+    dto.setName((String) row[1]);
+    dto.setHourOfDay(toIntOrDefault(row[2], 0));
+    dto.setAvgUsageRate(toDoubleOrDefault(row[3], 0.0));
     return dto;
   }
 
   private StationODPairDTO mapToODPairDTO(Object[] row) {
-    // 0:origin_station_id, 1:origin_name, 2:origin_lat, 3:origin_lon,
-    // 4:dest_station_id, 5:dest_name, 6:dest_lat, 7:dest_lon, 8:estimated_trips
     StationODPairDTO dto = new StationODPairDTO();
-    dto.setOriginStationId(toInt(row[0]));
+    dto.setOriginStationId(toIntOrDefault(row[0], 0));
     dto.setOriginName((String) row[1]);
     dto.setOriginLat(row[2] != null ? new BigDecimal(row[2].toString()) : null);
     dto.setOriginLon(row[3] != null ? new BigDecimal(row[3].toString()) : null);
-    dto.setDestStationId(toInt(row[4]));
+    dto.setDestStationId(toIntOrDefault(row[4], 0));
     dto.setDestName((String) row[5]);
     dto.setDestLat(row[6] != null ? new BigDecimal(row[6].toString()) : null);
     dto.setDestLon(row[7] != null ? new BigDecimal(row[7].toString()) : null);
-    dto.setEstimatedTrips(toLong(row[8]));
+    dto.setEstimatedTrips(toIntOrDefault(row[8], 0));
+    dto.setDistanceKm(toDoubleOrDefault(row[9], 0.0));
     return dto;
   }
 
@@ -546,25 +307,6 @@ public class CycleMetricsService {
     return Instant.parse(value.toString());
   }
 
-  private RebalanceSuggestionDTO mapToRebalanceSuggestionDTO(Object[] row) {
-    // 0:source_station_id, 1:source_name, 2:source_lat, 3:source_lon, 4:source_bikes,
-    // 5:target_station_id, 6:target_name, 7:target_lat, 8:target_lon, 9:target_capacity,
-    // 10:distance_km
-    RebalanceSuggestionDTO dto = new RebalanceSuggestionDTO();
-    dto.setSourceStationId(toInt(row[0]));
-    dto.setSourceName((String) row[1]);
-    dto.setSourceLat(row[2] != null ? new BigDecimal(row[2].toString()) : null);
-    dto.setSourceLon(row[3] != null ? new BigDecimal(row[3].toString()) : null);
-    dto.setSourceBikes(toInt(row[4]));
-    dto.setTargetStationId(toInt(row[5]));
-    dto.setTargetName((String) row[6]);
-    dto.setTargetLat(row[7] != null ? new BigDecimal(row[7].toString()) : null);
-    dto.setTargetLon(row[8] != null ? new BigDecimal(row[8].toString()) : null);
-    dto.setTargetCapacity(toInt(row[9]));
-    dto.setDistanceKm(toDouble(row[10]));
-    return dto;
-  }
-
   private int toIntOrDefault(Object value, int defaultValue) {
     Integer result = toInt(value);
     return result != null ? result : defaultValue;
@@ -575,7 +317,6 @@ public class CycleMetricsService {
     return result != null ? result : defaultValue;
   }
 
-  /** Returns the first row of a single-row native query result, or null if the list is empty. */
   private Object[] firstRow(List<Object[]> rows) {
     return (rows == null || rows.isEmpty()) ? null : rows.get(0);
   }
