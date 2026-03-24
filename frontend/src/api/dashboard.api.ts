@@ -10,14 +10,9 @@ import type {
   BusLiveVehicle,
   BusRouteUtilization,
   BusSystemPerformance,
-  CarFuelTypeStat,
   CycleDashboardResponse,
   CycleStation,
-  EventItem,
-  HighTrafficPoint,
   IndicatorType,
-  JunctionEmission,
-  PedestrianLive,
   TrainDashboardResponse,
   TrainKpis,
   TrainLiveTrain,
@@ -162,36 +157,6 @@ export const dashboardApi = {
   },
 
   /**
-   * Get car fuel type statistics
-   */
-  getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
-    const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
-      API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
-    );
-    return data;
-  },
-
-  /**
-   * Get high traffic points with location and time slot data
-   */
-  getCarHighTrafficPoints: async (): Promise<HighTrafficPoint[]> => {
-    const { data } = await axiosInstance.get<HighTrafficPoint[]>(
-      API_ENDPOINTS.CAR_HIGH_TRAFFIC_POINTS,
-    );
-    return data;
-  },
-
-  /**
-   * Get junction-level CO2 emission estimates
-   */
-  getCarJunctionEmissions: async (): Promise<JunctionEmission[]> => {
-    const { data } = await axiosInstance.get<JunctionEmission[]>(
-      API_ENDPOINTS.CAR_JUNCTION_EMISSIONS,
-    );
-    return data;
-  },
-
-  /**
    * Get train dashboard KPIs
    */
   getTrainKpis: async (): Promise<TrainKpis> => {
@@ -257,15 +222,6 @@ export const dashboardApi = {
   getTramHourlyDistribution: async (): Promise<TramHourlyDistribution[]> => {
     const { data } = await axiosInstance.get<TramHourlyDistribution[]>(
       API_ENDPOINTS.TRAM_HOURLY_DISTRIBUTION,
-    );
-    return data;
-  },
-   * Get live pedestrian counts per site
-   */
-  getPedestriansLive: async (limit = 20): Promise<PedestrianLive[]> => {
-    const { data } = await axiosInstance.get<PedestrianLive[]>(
-      API_ENDPOINTS.PEDESTRIANS_LIVE,
-      { params: { limit } },
     );
     return data;
   },
