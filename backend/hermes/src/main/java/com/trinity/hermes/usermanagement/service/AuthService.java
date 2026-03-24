@@ -110,6 +110,59 @@ public class AuthService {
     }
   }
 
+  public LoginResponse refreshToken(String refreshToken) {
+    try {
+      log.info("Attempting to refresh access token");
+
+      String tokenUrl = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+      MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+      body.add("client_id", clientId);
+      body.add("client_secret", clientSecret);
+      body.add("grant_type", "refresh_token");
+      body.add("refresh_token", refreshToken);
+
+      HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+      ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+
+      Map<String, Object> tokenResponse = response.getBody();
+      if (response.getStatusCode() == HttpStatus.OK && tokenResponse != null) {
+
+        Object accessTokenObj = tokenResponse.get("access_token");
+        Object tokenTypeObj = tokenResponse.get("token_type");
+        Object expiresInObj = tokenResponse.get("expires_in");
+        Object refreshTokenObj = tokenResponse.get("refresh_token");
+
+        if (!(accessTokenObj instanceof String accessToken)
+            || !(tokenTypeObj instanceof String tokenType)
+            || !(expiresInObj instanceof Integer expiresIn)
+            || !(refreshTokenObj instanceof String newRefreshToken)) {
+          throw new RuntimeException("Invalid token response from Keycloak");
+        }
+
+        LoginResponse loginResponse = new LoginResponse();
+        loginResponse.setAccessToken(accessToken);
+        loginResponse.setTokenType(tokenType);
+        loginResponse.setExpiresIn(expiresIn);
+        loginResponse.setRefreshToken(newRefreshToken);
+        loginResponse.setMessage("Token refreshed successfully");
+
+        log.info("Access token refreshed successfully");
+        return loginResponse;
+      } else {
+        throw new RuntimeException("Token refresh failed");
+      }
+
+    } catch (RuntimeException e) {
+      log.error("Error during token refresh", e);
+      throw e;
+    }
+  }
+
   /** Get admin access token for Keycloak Admin API calls */
   private String getAdminToken() {
     try {
