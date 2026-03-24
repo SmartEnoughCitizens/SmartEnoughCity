@@ -10,3 +10,4 @@ export * from "./train.types";
 export * from "./notification.types";
 export * from "./recommendation.types";
 export * from "./usermanagement.types";
+export * from "./misc.types";

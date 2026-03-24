@@ -13,6 +13,7 @@ import type {
   CarFuelTypeStat,
   CycleDashboardResponse,
   CycleStation,
+  EventItem,
   HighTrafficPoint,
   IndicatorType,
   StationLiveDTO,
@@ -21,6 +22,8 @@ import type {
   RebalanceSuggestionDTO,
   StationRankingDTO,
   StationODPairDTO,
+  JunctionEmission,
+  PedestrianLive,
   TrainDashboardResponse,
   TrainKpis,
   TrainLiveTrain,
@@ -167,6 +170,16 @@ export const dashboardApi = {
   },
 
   /**
+   * Get junction-level CO2 emission estimates
+   */
+  getCarJunctionEmissions: async (): Promise<JunctionEmission[]> => {
+    const { data } = await axiosInstance.get<JunctionEmission[]>(
+      API_ENDPOINTS.CAR_JUNCTION_EMISSIONS,
+    );
+    return data;
+  },
+
+  /**
    * Get train dashboard KPIs
    */
   getTrainKpis: async (): Promise<TrainKpis> => {
@@ -255,6 +268,30 @@ export const dashboardApi = {
     const { data } = await axiosInstance.get<StationODPairDTO[]>(
       API_ENDPOINTS.CYCLE_OD_HEATMAP,
       { params },
+    );
+    return data;
+  },
+
+  /**
+   * Get upcoming events
+   */
+  getEvents: async (limit = 10): Promise<EventItem[]> => {
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS,
+      {
+        params: { limit },
+      },
+    );
+    return data;
+  },
+
+  /**
+   * Get live pedestrian counts per site
+   */
+  getPedestriansLive: async (limit = 20): Promise<PedestrianLive[]> => {
+    const { data } = await axiosInstance.get<PedestrianLive[]>(
+      API_ENDPOINTS.PEDESTRIANS_LIVE,
+      { params: { limit } },
     );
     return data;
   },
