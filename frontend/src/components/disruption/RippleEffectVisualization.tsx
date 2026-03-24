@@ -32,14 +32,18 @@ interface ModeImpact {
 
 function severityScore(s: string): number {
   switch (s) {
-    case "CRITICAL":
+    case "CRITICAL": {
       return 4;
-    case "HIGH":
+    }
+    case "HIGH": {
       return 3;
-    case "MEDIUM":
+    }
+    case "MEDIUM": {
       return 2;
-    default:
+    }
+    default: {
       return 1;
+    }
   }
 }
 
@@ -51,10 +55,9 @@ function computeImpacts(disruptions: ActiveDisruption[]): ModeImpact[] {
     const modes = d.affectedTransportModes ?? [];
     const score = severityScore(d.severity);
     for (const m of modes) {
-      const key = m as TransportMode;
-      if (!counts[key]) counts[key] = { count: 0, max: 0 };
-      counts[key]!.count += 1;
-      counts[key]!.max = Math.max(counts[key]!.max, score);
+      if (!counts[m]) counts[m] = { count: 0, max: 0 };
+      counts[m].count += 1;
+      counts[m].max = Math.max(counts[m].max, score);
     }
   }
 
@@ -119,7 +122,8 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: totalActive > 0 ? "0 0 12px rgba(239,68,68,0.5)" : "none",
+              boxShadow:
+                totalActive > 0 ? "0 0 12px rgba(239,68,68,0.5)" : "none",
               transition: "all 0.3s",
             }}
           >
@@ -140,7 +144,7 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
           mt: -1,
         }}
       >
-        active disruption{totalActive !== 1 ? "s" : ""}
+        active disruption{totalActive === 1 ? "" : "s"}
       </Typography>
 
       {/* Mode impact bars */}
@@ -151,7 +155,10 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
           const isAffected = count > 0;
 
           return (
-            <Box key={mode} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              key={mode}
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
               {/* Mode label */}
               <Typography
                 sx={{
@@ -205,10 +212,19 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
               </Box>
 
               {/* Count + severity chip */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, width: 56 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  width: 56,
+                }}
+              >
                 {isAffected ? (
                   <>
-                    <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color }}>
+                    <Typography
+                      sx={{ fontSize: "0.7rem", fontWeight: 700, color }}
+                    >
                       {count}
                     </Typography>
                     <Chip
@@ -225,7 +241,9 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
                     />
                   </>
                 ) : (
-                  <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }}>
+                  <Typography
+                    sx={{ fontSize: "0.68rem", color: "text.disabled" }}
+                  >
                     —
                   </Typography>
                 )}

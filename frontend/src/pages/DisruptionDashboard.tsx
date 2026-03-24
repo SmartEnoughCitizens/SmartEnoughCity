@@ -24,7 +24,11 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { useActiveDisruptions } from "@/hooks";
-import type { ActiveDisruption, DisruptionSeverity, DisruptionType } from "@/types";
+import type {
+  ActiveDisruption,
+  DisruptionSeverity,
+  DisruptionType,
+} from "@/types";
 import { NetworkImpactMap } from "@/components/disruption/NetworkImpactMap";
 import { RippleEffectVisualization } from "@/components/disruption/RippleEffectVisualization";
 
@@ -105,10 +109,14 @@ function KpiCard({
         textAlign: "center",
       }}
     >
-      <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, color, lineHeight: 1.1 }}>
+      <Typography
+        sx={{ fontSize: "1.5rem", fontWeight: 800, color, lineHeight: 1.1 }}
+      >
         {value}
       </Typography>
-      <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", mt: 0.2 }}>
+      <Typography
+        sx={{ fontSize: "0.65rem", color: "text.secondary", mt: 0.2 }}
+      >
         {label}
       </Typography>
     </Box>
@@ -166,7 +174,15 @@ function DisruptionRow({
             {disruption.name}
           </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.3, flexWrap: "wrap" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              mt: 0.3,
+              flexWrap: "wrap",
+            }}
+          >
             <Chip
               size="small"
               label={disruption.severity}
@@ -180,7 +196,10 @@ function DisruptionRow({
             />
             <Chip
               size="small"
-              label={TYPE_LABELS[disruption.disruptionType] ?? disruption.disruptionType}
+              label={
+                TYPE_LABELS[disruption.disruptionType] ??
+                disruption.disruptionType
+              }
               sx={{ fontSize: "0.6rem", height: 16 }}
             />
             {(disruption.affectedTransportModes ?? []).slice(0, 2).map((m) => (
@@ -194,12 +213,17 @@ function DisruptionRow({
           </Box>
 
           {disruption.affectedArea && (
-            <Typography sx={{ fontSize: "0.68rem", color: "text.disabled", mt: 0.2 }} noWrap>
+            <Typography
+              sx={{ fontSize: "0.68rem", color: "text.disabled", mt: 0.2 }}
+              noWrap
+            >
               {disruption.affectedArea}
             </Typography>
           )}
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 0.3 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 0.3 }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.3 }}>
               <AccessTimeIcon sx={{ fontSize: 10, color: "text.disabled" }} />
               <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>
@@ -221,7 +245,9 @@ function DisruptionRow({
 
         {disruption.notificationSent && (
           <Tooltip title="Notification sent" placement="left" arrow>
-            <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "#10B981", mt: 0.3 }} />
+            <CheckCircleOutlineIcon
+              sx={{ fontSize: 14, color: "#10B981", mt: 0.3 }}
+            />
           </Tooltip>
         )}
       </Box>
@@ -279,7 +305,9 @@ export const DisruptionDashboard = () => {
             Live Disruptions
           </Typography>
           {!isLoading && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, ml: 1 }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 0.5, ml: 1 }}
+            >
               <FiberManualRecordIcon
                 sx={{
                   fontSize: 8,
@@ -364,7 +392,8 @@ export const DisruptionDashboard = () => {
                 width: 34,
                 height: 34,
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #EF4444 0%, #EF4444bb 100%)",
+                background:
+                  "linear-gradient(135deg, #EF4444 0%, #EF4444bb 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -386,7 +415,8 @@ export const DisruptionDashboard = () => {
                 variant="caption"
                 sx={{ color: "text.secondary", fontSize: "0.62rem" }}
               >
-                {disruptions.length} disruption{disruptions.length !== 1 ? "s" : ""} detected
+                {disruptions.length} disruption
+                {disruptions.length === 1 ? "" : "s"} detected
               </Typography>
             </Box>
           </Box>
@@ -403,10 +433,14 @@ export const DisruptionDashboard = () => {
                   <CheckCircleOutlineIcon
                     sx={{ fontSize: 32, color: "#10B981", mb: 1 }}
                   />
-                  <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+                  <Typography
+                    sx={{ fontSize: "0.8rem", color: "text.secondary" }}
+                  >
                     No active disruptions
                   </Typography>
-                  <Typography sx={{ fontSize: "0.7rem", color: "text.disabled", mt: 0.5 }}>
+                  <Typography
+                    sx={{ fontSize: "0.7rem", color: "text.disabled", mt: 0.5 }}
+                  >
                     Network is operating normally
                   </Typography>
                 </Box>

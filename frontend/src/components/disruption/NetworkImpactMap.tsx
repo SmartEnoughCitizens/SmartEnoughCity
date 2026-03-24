@@ -89,7 +89,14 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
                   >
                     {d.name}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 0.5,
+                      flexWrap: "wrap",
+                      mb: 0.5,
+                    }}
+                  >
                     <Chip
                       size="small"
                       label={d.severity}
@@ -108,7 +115,9 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
                     />
                   </Box>
                   {d.description && (
-                    <Typography sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.5 }}>
+                    <Typography
+                      sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.5 }}
+                    >
                       {d.description}
                     </Typography>
                   )}
@@ -122,7 +131,9 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
                       Delay: ~{d.delayMinutes} min
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: "0.68rem", color: "#9CA3AF", mt: 0.5 }}>
+                  <Typography
+                    sx={{ fontSize: "0.68rem", color: "#9CA3AF", mt: 0.5 }}
+                  >
                     Detected: {formatTime(d.detectedAt)}
                   </Typography>
                 </Box>
@@ -151,7 +162,10 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
       >
         {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as DisruptionSeverity[]).map(
           (s) => (
-            <Box key={s} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+            <Box
+              key={s}
+              sx={{ display: "flex", alignItems: "center", gap: 0.6 }}
+            >
               <Box
                 sx={{
                   width: 10,

@@ -18,8 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Scheduled service that automatically detects live disruptions every 5 minutes by correlating
- * data from all transport modes, scoring severity, and triggering notifications for high-severity
+ * Scheduled service that automatically detects live disruptions every 5 minutes by correlating data
+ * from all transport modes, scoring severity, and triggering notifications for high-severity
  * events.
  */
 @Service
@@ -113,8 +113,7 @@ public class DisruptionDetectionService {
     return (int) (avgDelaySeconds / 60.0);
   }
 
-  private String scoreBusSeverity(
-      com.trinity.hermes.indicators.bus.entity.BusRouteMetrics m) {
+  private String scoreBusSeverity(com.trinity.hermes.indicators.bus.entity.BusRouteMetrics m) {
     double late = m.getLateArrivalPct() != null ? m.getLateArrivalPct() : 0;
     double avgDelay = m.getAvgDelaySeconds() != null ? m.getAvgDelaySeconds() : 0;
     if (late > 70 || avgDelay > BUS_AVG_DELAY_THRESHOLD_SECONDS * 2) return "CRITICAL";
@@ -230,8 +229,7 @@ public class DisruptionDetectionService {
         disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
             disruptionType, affectedArea, dedupCutoff);
     if (!recent.isEmpty()) {
-      log.debug(
-          "Skipping duplicate disruption: type={}, area={}", disruptionType, affectedArea);
+      log.debug("Skipping duplicate disruption: type={}, area={}", disruptionType, affectedArea);
       return false;
     }
 
@@ -241,8 +239,16 @@ public class DisruptionDetectionService {
       return false;
     }
 
-    DisruptionDetectionRequest request = buildRequest(
-        disruptionType, transportMode, affectedArea, severity, delayMinutes, sourceRef, lat, lon);
+    DisruptionDetectionRequest request =
+        buildRequest(
+            disruptionType,
+            transportMode,
+            affectedArea,
+            severity,
+            delayMinutes,
+            sourceRef,
+            lat,
+            lon);
 
     try {
       disruptionFacade.handleDisruptionDetection(request);
@@ -253,7 +259,10 @@ public class DisruptionDetectionService {
           affectedArea);
       return true;
     } catch (Exception e) {
-      log.error("Failed to process auto-detected disruption for area={}: {}", affectedArea, e.getMessage());
+      log.error(
+          "Failed to process auto-detected disruption for area={}: {}",
+          affectedArea,
+          e.getMessage());
       return false;
     }
   }
@@ -284,7 +293,7 @@ public class DisruptionDetectionService {
     // Parse comma-separated transport modes
     List<String> modes = new ArrayList<>();
     if (transportMode != null) {
-      for (String m : transportMode.split(",")) {
+      for (String m : transportMode.split(",", -1)) {
         modes.add(m.trim());
       }
     }
@@ -295,8 +304,7 @@ public class DisruptionDetectionService {
     return req;
   }
 
-  private String buildDescription(
-      String type, String severity, String area, int delayMinutes) {
+  private String buildDescription(String type, String severity, String area, int delayMinutes) {
     return switch (type) {
       case "DELAY" ->
           String.format(
@@ -304,14 +312,10 @@ public class DisruptionDetectionService {
               severity,
               area,
               delayMinutes > 0 ? " — estimated " + delayMinutes + " min average delay" : "");
-      case "CONGESTION" ->
-          String.format(
-              "%s traffic congestion detected at %s.", severity, area);
+      case "CONGESTION" -> String.format("%s traffic congestion detected at %s.", severity, area);
       case "EVENT" ->
-          String.format(
-              "Large event at %s may impact nearby transport services.", area);
-      default ->
-          String.format("%s disruption detected in %s.", severity, area);
+          String.format("Large event at %s may impact nearby transport services.", area);
+      default -> String.format("%s disruption detected in %s.", severity, area);
     };
   }
 
