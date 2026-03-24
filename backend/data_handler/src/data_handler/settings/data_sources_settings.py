@@ -127,3 +127,4 @@ def get_data_sources_settings() -> DataSourcesSettings:
         return DataSourcesSettings(_env_file=".env.test", _env_file_encoding="utf-8")
 
     return DataSourcesSettings()
+    
