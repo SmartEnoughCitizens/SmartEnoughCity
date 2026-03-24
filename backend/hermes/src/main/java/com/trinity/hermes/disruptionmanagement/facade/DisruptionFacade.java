@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Facade layer for Disruption Management Engine. Orchestrates the complete disruption response
@@ -54,6 +55,7 @@ public class DisruptionFacade {
    * @param request The disruption detection request from Python service
    * @return The compiled solution ready for notification
    */
+  @Transactional
   public DisruptionSolution handleDisruptionDetection(DisruptionDetectionRequest request) {
     log.info("=== DISRUPTION DETECTION STARTED ===");
     log.info(

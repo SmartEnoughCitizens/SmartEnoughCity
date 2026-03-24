@@ -48,7 +48,6 @@ public class DisruptionDetectionService {
    * creates disruptions for any anomalies detected.
    */
   @Scheduled(fixedRate = 300_000, initialDelay = 15_000)
-  @Transactional
   public void detectDisruptions() {
     log.info("=== DISRUPTION AUTO-DETECTION CYCLE STARTED ===");
     int detected = 0;
@@ -68,7 +67,7 @@ public class DisruptionDetectionService {
     int count = 0;
     try {
       List<com.trinity.hermes.indicators.bus.entity.BusRouteMetrics> metrics =
-          busRouteMetricsRepository.findAll();
+          busRouteMetricsRepository.findCandidatesForDisruptionDetection();
 
       for (com.trinity.hermes.indicators.bus.entity.BusRouteMetrics m : metrics) {
         String area = buildBusArea(m);
@@ -213,7 +212,8 @@ public class DisruptionDetectionService {
         disruptionType, transportMode, affectedArea, severity, delayMinutes, sourceRef, null, null);
   }
 
-  private boolean processIfNewWithCoords(
+  @Transactional
+  boolean processIfNewWithCoords(
       String disruptionType,
       String transportMode,
       String affectedArea,
