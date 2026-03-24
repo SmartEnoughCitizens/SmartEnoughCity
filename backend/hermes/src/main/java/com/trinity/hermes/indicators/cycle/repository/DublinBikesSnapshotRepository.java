@@ -62,7 +62,8 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               ORDER BY s.station_id, s.timestamp DESC
           )
           SELECT
-              COUNT(*)                                                                     AS total_stations,
+              (SELECT COUNT(*) FROM external_data.dublin_bikes_stations)                   AS total_stations,
+              COUNT(*)                                                                     AS active_stations,
               COALESCE(SUM(l.available_bikes), 0)                                          AS total_bikes,
               COALESCE(SUM(l.available_docks), 0)                                          AS total_docks,
               COALESCE(SUM(l.disabled_bikes), 0)                                           AS disabled_bikes,
@@ -228,7 +229,9 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               e.longitude                                                            AS target_lon,
               e.capacity                                                             AS target_capacity,
               SQRT(POWER((s.latitude::float - e.latitude::float), 2)
-                 + POWER((s.longitude::float - e.longitude::float), 2)) * 111.0     AS distance_km
+                 + POWER((s.longitude::float - e.longitude::float)
+                     * COS(RADIANS((s.latitude::float + e.latitude::float) / 2.0)), 2)
+                 ) * 111.0                                                           AS distance_km
           FROM empty_stations e
           CROSS JOIN surplus_stations s
           WHERE e.station_id != s.station_id
@@ -398,11 +401,15 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               d.longitude                                                                       AS dest_lon,
               GREATEST(ROUND(SQRT(o.departures * d.arrivals))::int, 1)                         AS estimated_trips,
               SQRT(POWER((o.latitude::float - d.latitude::float), 2)
-                 + POWER((o.longitude::float - d.longitude::float), 2)) * 111.0                AS distance_km
+                 + POWER((o.longitude::float - d.longitude::float)
+                     * COS(RADIANS((o.latitude::float + d.latitude::float) / 2.0)), 2)
+                 ) * 111.0                                                                    AS distance_km
           FROM station_info o
           JOIN station_info d ON o.station_id != d.station_id
             AND SQRT(POWER((o.latitude::float - d.latitude::float), 2)
-                   + POWER((o.longitude::float - d.longitude::float), 2)) * 111.0 <= 5.0
+                   + POWER((o.longitude::float - d.longitude::float)
+                       * COS(RADIANS((o.latitude::float + d.latitude::float) / 2.0)), 2)
+                   ) * 111.0 <= 5.0
           ORDER BY estimated_trips DESC
           LIMIT :limitVal
           """,

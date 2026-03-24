@@ -78,12 +78,13 @@ public class CycleMetricsServiceTest {
   }
 
   /**
-   * Network summary row matching findNetworkSummary columns: 0:total_stations 1:total_bikes
-   * 2:total_docks 3:disabled_bikes 4:disabled_docks 5:empty_stations 6:full_stations 7:avg_fullness
-   * 8:latest_timestamp
+   * Network summary row matching findNetworkSummary columns: 0:total_stations 1:active_stations
+   * 2:total_bikes 3:total_docks 4:disabled_bikes 5:disabled_docks 6:empty_stations 7:full_stations
+   * 8:avg_fullness 9:latest_timestamp
    */
   private Object[] buildNetworkSummaryRow(
       int totalStations,
+      int activeStations,
       int totalBikes,
       int totalDocks,
       int disabledBikes,
@@ -93,6 +94,7 @@ public class CycleMetricsServiceTest {
       double avgFullness) {
     return new Object[] {
       totalStations,
+      activeStations,
       totalBikes,
       totalDocks,
       disabledBikes,
@@ -277,28 +279,29 @@ public class CycleMetricsServiceTest {
     @DisplayName("maps summary row to NetworkSummaryDTO")
     void getNetworkSummary_mapsRowToDto() {
       when(snapshotRepository.findNetworkSummary())
-          .thenReturn(rows(buildNetworkSummaryRow(100, 500, 2500, 5, 3, 4, 2, 35.5)));
+          .thenReturn(rows(buildNetworkSummaryRow(110, 100, 500, 2500, 5, 3, 4, 2, 35.5)));
 
       NetworkSummaryDTO result = service.getNetworkSummary();
 
-      assertEquals(100, result.getTotalStations());
+      assertEquals(110, result.getTotalStations());
+      assertEquals(100, result.getActiveStations());
       assertEquals(500, result.getTotalBikesAvailable());
       assertEquals(2500, result.getTotalDocksAvailable());
       assertEquals(5, result.getTotalDisabledBikes());
       assertEquals(4, result.getEmptyStations());
       assertEquals(2, result.getFullStations());
       assertEquals(35.5, result.getAvgNetworkFullnessPct());
-      assertEquals(4, result.getRebalancingNeedCount()); // emptyStations
+      assertEquals(6, result.getRebalancingNeedCount()); // emptyStations + fullStations = 4 + 2
       assertNotNull(result.getDataAsOf());
     }
 
     @Test
-    @DisplayName("rebalancingNeedCount equals emptyStations only")
-    void getNetworkSummary_rebalancingNeedCount_isEmptyStations() {
+    @DisplayName("rebalancingNeedCount equals emptyStations plus fullStations")
+    void getNetworkSummary_rebalancingNeedCount_isEmptyPlusFull() {
       when(snapshotRepository.findNetworkSummary())
-          .thenReturn(rows(buildNetworkSummaryRow(50, 200, 800, 0, 0, 10, 5, 40.0)));
+          .thenReturn(rows(buildNetworkSummaryRow(55, 50, 200, 800, 0, 0, 10, 5, 40.0)));
 
-      assertEquals(10, service.getNetworkSummary().getRebalancingNeedCount());
+      assertEquals(15, service.getNetworkSummary().getRebalancingNeedCount()); // 10 + 5
     }
 
     @Test
