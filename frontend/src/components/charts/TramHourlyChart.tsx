@@ -43,15 +43,15 @@ export const TramHourlyChart = ({
 
   // Pivot data: { timeLabel, Red: %, Green: % }
   const pivoted: Record<string, { timeLabel: string; Red?: number; Green?: number }> = {};
-  data.forEach((d) => {
+  for (const d of data) {
     if (!pivoted[d.timeLabel]) {
       pivoted[d.timeLabel] = { timeLabel: d.timeLabel };
     }
     const lineKey = d.line.includes("Red") ? "Red" : "Green";
     pivoted[d.timeLabel][lineKey] = d.percentage ?? 0;
-  });
+  }
 
-  const chartData = Object.values(pivoted).sort((a, b) =>
+  const chartData = Object.values(pivoted).toSorted((a, b) =>
     a.timeLabel.localeCompare(b.timeLabel),
   );
 

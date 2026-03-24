@@ -34,8 +34,8 @@ export const TramStopMap = ({
     string,
     { lat: number; lon: number; name: string; line: string; forecasts: TramLiveForecast[] }
   >();
-  forecasts.forEach((f) => {
-    if (f.lat == null || f.lon == null) return;
+  for (const f of forecasts) {
+    if (f.lat == null || f.lon == null) continue;
     if (!stopMap.has(f.stopId)) {
       stopMap.set(f.stopId, {
         lat: f.lat,
@@ -46,9 +46,9 @@ export const TramStopMap = ({
       });
     }
     stopMap.get(f.stopId)!.forecasts.push(f);
-  });
+  }
 
-  const stops = Array.from(stopMap.values());
+  const stops = [...stopMap.values()];
 
   return (
     <MapContainer

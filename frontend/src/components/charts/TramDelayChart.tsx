@@ -25,19 +25,16 @@ export const TramDelayChart = ({
   height = 260,
 }: TramDelayChartProps) => {
   // Aggregate delays by stop, pick the worst delay per stop
-  const byStop = delays.reduce(
-    (acc, d) => {
-      const existing = acc[d.stopName];
-      if (!existing || d.delayMins > existing.delayMins) {
-        acc[d.stopName] = d;
-      }
-      return acc;
-    },
-    {} as Record<string, TramDelay>,
-  );
+  const byStop: Record<string, TramDelay> = {};
+  for (const d of delays) {
+    const existing = byStop[d.stopName];
+    if (!existing || d.delayMins > existing.delayMins) {
+      byStop[d.stopName] = d;
+    }
+  }
 
   const chartData = Object.values(byStop)
-    .sort((a, b) => b.delayMins - a.delayMins)
+    .toSorted((a, b) => b.delayMins - a.delayMins)
     .slice(0, 15)
     .map((d) => ({
       name: d.stopName,
@@ -78,7 +75,7 @@ export const TramDelayChart = ({
           formatter={(value, _name, props) => {
             const payload = props?.payload as { line?: string; affected?: number } | undefined;
             return [
-              `${value ?? 0} min (est. ${payload?.affected ?? 0} affected)`,
+              `${Number(value ?? 0)} min (est. ${payload?.affected ?? 0} affected)`,
               `${payload?.line ?? ""} line delay`,
             ];
           }}
