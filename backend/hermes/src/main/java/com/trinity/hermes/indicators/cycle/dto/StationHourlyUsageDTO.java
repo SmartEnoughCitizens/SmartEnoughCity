@@ -12,6 +12,6 @@ public class StationHourlyUsageDTO {
 
   private int stationId;
   private String name;
-  private int hourOfDay;       // 0–23 Europe/Dublin local time
+  private int hourOfDay; // 0–23 Europe/Dublin local time
   private double avgUsageRate; // 0–100 percentage
 }
