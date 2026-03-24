@@ -42,7 +42,10 @@ export const TramHourlyChart = ({
   }
 
   // Pivot data: { timeLabel, Red: %, Green: % }
-  const pivoted: Record<string, { timeLabel: string; Red?: number; Green?: number }> = {};
+  const pivoted: Record<
+    string,
+    { timeLabel: string; Red?: number; Green?: number }
+  > = {};
   for (const d of data) {
     if (!pivoted[d.timeLabel]) {
       pivoted[d.timeLabel] = { timeLabel: d.timeLabel };
@@ -57,7 +60,10 @@ export const TramHourlyChart = ({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+      <LineChart
+        data={chartData}
+        margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+      >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
           dataKey="timeLabel"
@@ -65,7 +71,11 @@ export const TramHourlyChart = ({
           interval="preserveStartEnd"
         />
         <YAxis unit="%" tick={{ fontSize: 11 }} />
-        <Tooltip formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`]} />
+        <Tooltip
+          formatter={(value: number | undefined) => [
+            `${(value ?? 0).toFixed(1)}%`,
+          ]}
+        />
         <Legend />
         <Line
           type="monotone"

@@ -5,7 +5,7 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
- BusDashboardResponse,
+  BusDashboardResponse,
   BusKpis,
   BusLiveVehicle,
   BusRouteUtilization,
@@ -160,7 +160,7 @@ export const dashboardApi = {
     );
     return data;
   },
- getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
+  getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
     const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
       API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
     );
@@ -186,7 +186,6 @@ export const dashboardApi = {
     );
     return data;
   },
-
 
   /**
    * Get train dashboard KPIs
@@ -222,9 +221,7 @@ export const dashboardApi = {
    * Get tram dashboard KPIs
    */
   getTramKpis: async (): Promise<TramKpis> => {
-    const { data } = await axiosInstance.get<TramKpis>(
-      API_ENDPOINTS.TRAM_KPIS,
-    );
+    const { data } = await axiosInstance.get<TramKpis>(API_ENDPOINTS.TRAM_KPIS);
     return data;
   },
 
@@ -257,7 +254,7 @@ export const dashboardApi = {
     );
     return data;
   },
-   /**
+  /**
    * Get upcoming events
    */
   getEvents: async (limit = 10): Promise<EventItem[]> => {
@@ -280,5 +277,4 @@ export const dashboardApi = {
     );
     return data;
   },
-  
 };
