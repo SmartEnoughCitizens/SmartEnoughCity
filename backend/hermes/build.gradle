@@ -127,6 +127,7 @@ spotbugs {
     ignoreFailures = false
     effort = 'max'
     reportLevel = 'default'
+    excludeFilter = file('config/spotbugs/exclude.xml')
 }
 
 tasks.withType(JavaCompile) {
