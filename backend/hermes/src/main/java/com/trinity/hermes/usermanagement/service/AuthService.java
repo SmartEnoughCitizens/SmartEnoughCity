@@ -1,7 +1,9 @@
 package com.trinity.hermes.usermanagement.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trinity.hermes.usermanagement.dto.LoginRequest;
 import com.trinity.hermes.usermanagement.dto.LoginResponse;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -144,11 +146,14 @@ public class AuthService {
           throw new RuntimeException("Invalid token response from Keycloak");
         }
 
+        String username = extractUsernameFromJwt(accessToken);
+
         LoginResponse loginResponse = new LoginResponse();
         loginResponse.setAccessToken(accessToken);
         loginResponse.setTokenType(tokenType);
         loginResponse.setExpiresIn(expiresIn);
         loginResponse.setRefreshToken(newRefreshToken);
+        loginResponse.setUsername(username);
         loginResponse.setMessage("Token refreshed successfully");
 
         log.info("Access token refreshed successfully");
@@ -160,6 +165,20 @@ public class AuthService {
     } catch (RuntimeException e) {
       log.error("Error during token refresh", e);
       throw e;
+    }
+  }
+
+  private String extractUsernameFromJwt(String jwtToken) {
+    try {
+      String[] parts = jwtToken.split("\\.");
+      byte[] payloadBytes = Base64.getUrlDecoder().decode(parts[1]);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> claims = new ObjectMapper().readValue(payloadBytes, Map.class);
+      Object preferred = claims.get("preferred_username");
+      return preferred instanceof String s ? s : null;
+    } catch (Exception e) {
+      log.warn("Could not extract username from JWT", e);
+      return null;
     }
   }
 
