@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(wait)",
-      "Bash(bash check.sh)",
-      "Bash(bash check.sh --python)"
-    ]
-  }
-}
