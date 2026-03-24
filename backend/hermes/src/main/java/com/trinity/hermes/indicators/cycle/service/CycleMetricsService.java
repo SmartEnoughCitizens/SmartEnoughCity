@@ -148,7 +148,8 @@ public class CycleMetricsService {
 
   @Transactional(readOnly = true)
   public List<StationHourlyUsageDTO> getStationHourlyUsage(int days, int stationLimit) {
-    log.debug("Fetching station hourly usage for last {} days, top {} stations", days, stationLimit);
+    log.debug(
+        "Fetching station hourly usage for last {} days, top {} stations", days, stationLimit);
     List<Object[]> rows = snapshotRepository.findStationHourlyUsage(days, stationLimit);
     return rows.stream().map(this::mapToStationHourlyUsageDTO).collect(Collectors.toList());
   }

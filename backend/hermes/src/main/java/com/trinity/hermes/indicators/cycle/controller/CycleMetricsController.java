@@ -6,8 +6,8 @@ import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationHourlyUsageDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
@@ -142,10 +142,11 @@ public class CycleMetricsController {
 
   @GetMapping("/demand/od-pairs")
   public ResponseEntity<List<StationODPairDTO>> getODPairs(
-      @RequestParam(defaultValue = "30") int days,
-      @RequestParam(defaultValue = "50") int limit) {
-    log.info("GET /api/v1/cycle/demand/od-pairs days={} limit={}",
-        LogSanitizer.sanitizeLog(days), LogSanitizer.sanitizeLog(limit));
+      @RequestParam(defaultValue = "30") int days, @RequestParam(defaultValue = "50") int limit) {
+    log.info(
+        "GET /api/v1/cycle/demand/od-pairs days={} limit={}",
+        LogSanitizer.sanitizeLog(days),
+        LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(cycleMetricsService.getODPairs(days, limit));
     } catch (Exception e) {
@@ -156,10 +157,11 @@ public class CycleMetricsController {
 
   @GetMapping("/demand/station-hourly")
   public ResponseEntity<List<StationHourlyUsageDTO>> getStationHourlyUsage(
-      @RequestParam(defaultValue = "30") int days,
-      @RequestParam(defaultValue = "30") int limit) {
-    log.info("GET /api/v1/cycle/demand/station-hourly days={} limit={}",
-        LogSanitizer.sanitizeLog(days), LogSanitizer.sanitizeLog(limit));
+      @RequestParam(defaultValue = "30") int days, @RequestParam(defaultValue = "30") int limit) {
+    log.info(
+        "GET /api/v1/cycle/demand/station-hourly days={} limit={}",
+        LogSanitizer.sanitizeLog(days),
+        LogSanitizer.sanitizeLog(limit));
     try {
       return ResponseEntity.ok(cycleMetricsService.getStationHourlyUsage(days, limit));
     } catch (Exception e) {
