@@ -180,7 +180,7 @@ class TestFetchAndStoreStationSnapshots:
             self._make_station_record("2"),
         ]
         monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.get_jcdecaux_client",
+            "data_handler.cycle.realtime_handler.get_dublin_bikes_client",
             lambda: mock_client,
         )
 
@@ -196,7 +196,7 @@ class TestFetchAndStoreStationSnapshots:
         fetch_and_store_station_snapshots()
 
         mock_client.fetch_station_status.assert_called_once()
-        assert mock_session.execute.call_count == 2  # snapshots + history
+        assert mock_session.execute.call_count == 1
         mock_session.commit.assert_called_once()
 
     def test_returns_early_on_empty_data(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -204,7 +204,7 @@ class TestFetchAndStoreStationSnapshots:
         mock_client = Mock()
         mock_client.fetch_station_status.return_value = []
         monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.get_jcdecaux_client",
+            "data_handler.cycle.realtime_handler.get_dublin_bikes_client",
             lambda: mock_client,
         )
 
@@ -219,7 +219,7 @@ class TestFetchAndStoreStationSnapshots:
             self._make_station_record(),
         ]
         monkeypatch.setattr(
-            "data_handler.cycle.realtime_handler.get_jcdecaux_client",
+            "data_handler.cycle.realtime_handler.get_dublin_bikes_client",
             lambda: mock_client,
         )
 

@@ -1,4 +1,4 @@
-"""JCDecaux GBFS API client for Dublin Bikes."""
+"""Dublin Bikes GeoJSON API client."""
 
 import logging
 from typing import Any
@@ -11,68 +11,73 @@ from data_handler.settings.api_settings import get_api_settings
 logger = logging.getLogger(__name__)
 
 
-class JCDecauxGBFSClient:
-    """Client for JCDecaux Dublin Bikes GBFS API."""
+class DublinBikesClient:
+    """Client for the Dublin Bikes GeoJSON API (data.smartdublin.ie)."""
 
-    def __init__(
-        self,
-        api_key: str | None = None,
-        base_url: str | None = None,
-    ) -> None:
-        self.api_key = api_key
-        self.base_url = base_url.rstrip("/") if base_url else ""
+    def __init__(self, url: str) -> None:
+        self.url = url
 
-    def _make_request(self, endpoint: str, timeout: int = 10) -> dict[str, Any]:
-        """Make HTTP request to GBFS API."""
-        url = f"{self.base_url}/{endpoint}"
-
-        params = {}
-        if self.api_key:
-            params["apiKey"] = self.api_key
-
-        logger.info("Fetching data from %s", url)
-
+    def _fetch_features(self) -> list[dict[str, Any]]:
+        """Fetch GeoJSON FeatureCollection and return the features list."""
+        logger.info("Fetching data from %s", self.url)
         try:
-            response = requests.get(url, params=params, timeout=timeout)
+            response = requests.get(self.url, timeout=10)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
         except requests.RequestException:
-            logger.exception("Failed to fetch data from %s", url)
+            logger.exception("Failed to fetch data from %s", self.url)
             raise
 
-    def fetch_station_information(self) -> list[dict[str, Any]]:
-        """Fetch static station information."""
-        data = self._make_request("station_information.json")
-
-        if "data" not in data or "stations" not in data["data"]:
-            msg = "Invalid API response structure for station_information"
+        if data.get("type") != "FeatureCollection" or "features" not in data:
+            msg = "Invalid GeoJSON response: expected FeatureCollection with features"
             raise ValueError(msg)
 
-        stations = data["data"]["stations"]
-        logger.info("Fetched %d station information records", len(stations))
-        return stations
+        return data["features"]
+
+    def fetch_station_information(self) -> list[dict[str, Any]]:
+        """Return station metadata records (name, location, capacity)."""
+        features = self._fetch_features()
+        records = []
+        for feature in features:
+            props = feature["properties"]
+            lon, lat = feature["geometry"]["coordinates"]
+            records.append(
+                {
+                    "station_id": props["station_id"],
+                    "name": props["name"],
+                    "short_name": props.get("short_name") or None,
+                    "address": props.get("address") or None,
+                    "lat": lat,
+                    "lon": lon,
+                    "capacity": props["capacity"],
+                    "region_id": props.get("region_id") or None,
+                }
+            )
+        logger.info("Fetched %d station information records", len(records))
+        return records
 
     def fetch_station_status(self) -> list[dict[str, Any]]:
-        """Fetch real-time station status."""
-        data = self._make_request("station_status.json")
-
-        if "data" not in data or "stations" not in data["data"]:
-            msg = "Invalid API response structure for station_status"
-            raise ValueError(msg)
-
-        stations = data["data"]["stations"]
-
-        for station in stations:
+        """Return real-time station status records."""
+        features = self._fetch_features()
+        stations = []
+        for feature in features:
+            props = feature["properties"]
+            station = {
+                "station_id": props["station_id"],
+                "num_bikes_available": props["num_bikes_available"],
+                "num_docks_available": props["num_docks_available"],
+                "is_installed": props["is_installed"],
+                "is_renting": props["is_renting"],
+                "is_returning": props["is_returning"],
+                "last_reported": props["last_reported"],
+            }
             validate_station_status_record(station)
-
+            stations.append(station)
         logger.info("Fetched %d station status records", len(stations))
         return stations
 
 
-def get_jcdecaux_client() -> JCDecauxGBFSClient:
-    """Factory function to create API client with settings."""
+def get_dublin_bikes_client() -> DublinBikesClient:
+    """Factory function to create the API client with settings."""
     settings = get_api_settings()
-    return JCDecauxGBFSClient(
-        api_key=settings.jcdecaux_api_key,
-        base_url=settings.jcdecaux_api_base_url,
-    )
+    return DublinBikesClient(url=settings.dublin_bikes_api_url)
