@@ -141,8 +141,8 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   // -------------------------------------------------------------------------
 
   /**
-   * Today's station rankings ordered by avg usage rate descending (busiest first).
-   * Window: midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
+   * Today's station rankings ordered by avg usage rate descending (busiest first). Window: midnight
+   * UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
    */
   @Query(
       value =
@@ -162,8 +162,8 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   List<Object[]> findBusiestStations(@Param("limitVal") int limit);
 
   /**
-   * Today's station rankings ordered by avg usage rate ascending (least used first).
-   * Window: midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
+   * Today's station rankings ordered by avg usage rate ascending (least used first). Window:
+   * midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
    */
   @Query(
       value =
@@ -243,9 +243,9 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   // -------------------------------------------------------------------------
 
   /**
-   * Network-wide average usage rate grouped by hour-of-day (Europe/Dublin timezone).
-   * Covers the last {@code days} days. Returns Object[] rows:
-   * hour_of_day (int), avg_usage_rate (double), station_count (long)
+   * Network-wide average usage rate grouped by hour-of-day (Europe/Dublin timezone). Covers the
+   * last {@code days} days. Returns Object[] rows: hour_of_day (int), avg_usage_rate (double),
+   * station_count (long)
    */
   @Query(
       value =
@@ -267,9 +267,9 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   List<Object[]> findNetworkHourlyProfile(@Param("days") int days);
 
   /**
-   * Per-station peak-hour classification based on the last {@code days} days of snapshots.
-   * Returns Object[] rows: station_id (int), name (String), peak_hour (int),
-   * peak_usage (double), classification (String)
+   * Per-station peak-hour classification based on the last {@code days} days of snapshots. Returns
+   * Object[] rows: station_id (int), name (String), peak_hour (int), peak_usage (double),
+   * classification (String)
    */
   @Query(
       value =
@@ -316,7 +316,8 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
 
   /**
    * Per-station, per-hour average usage rate for the top {@code stationLimit} busiest stations.
-   * Returns Object[] rows: station_id (int), name (String), hour_of_day (int), avg_usage_rate (double)
+   * Returns Object[] rows: station_id (int), name (String), hour_of_day (int), avg_usage_rate
+   * (double)
    */
   @Query(
       value =
@@ -347,14 +348,15 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
           ORDER BY s.station_id, hour_of_day
           """,
       nativeQuery = true)
-  List<Object[]> findStationHourlyUsage(@Param("days") int days, @Param("stationLimit") int stationLimit);
+  List<Object[]> findStationHourlyUsage(
+      @Param("days") int days, @Param("stationLimit") int stationLimit);
 
   /**
    * Estimates origin–destination trip flows using a gravity model over snapshot availability
-   * changes. Departure events (available_bikes decreasing) at one station are distributed to
-   * nearby arrival events (available_bikes increasing) proportional to arrival volume.
-   * Returns Object[] rows: origin_station_id, origin_name, origin_lat, origin_lon,
-   * dest_station_id, dest_name, dest_lat, dest_lon, estimated_trips, distance_km
+   * changes. Departure events (available_bikes decreasing) at one station are distributed to nearby
+   * arrival events (available_bikes increasing) proportional to arrival volume. Returns Object[]
+   * rows: origin_station_id, origin_name, origin_lat, origin_lon, dest_station_id, dest_name,
+   * dest_lat, dest_lon, estimated_trips, distance_km
    */
   @Query(
       value =
