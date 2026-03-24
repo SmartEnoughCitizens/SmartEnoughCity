@@ -1,5 +1,6 @@
 package com.trinity.hermes.notification.util;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.notification.model.Notification;
 import java.io.IOException;
 import java.util.Base64;
@@ -33,7 +34,7 @@ public class SseManager {
     emitter.onTimeout(() -> emitters.remove(userId, emitter));
     emitter.onError(e -> emitters.remove(userId, emitter));
 
-    log.info("SSE emitter registered for user {}", userId);
+    log.info("SSE emitter registered for user {}", LogSanitizer.sanitizeLog(userId));
     return emitter;
   }
 
