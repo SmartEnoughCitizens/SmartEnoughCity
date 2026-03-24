@@ -15,6 +15,7 @@ dependencies = [
     "geoalchemy2>=0.18.4",
     "shapely>=2.1.2",
     "osmium>=4.3.0",
+    "gdown>=5.0.0",
 ]
 
 [project.scripts]
