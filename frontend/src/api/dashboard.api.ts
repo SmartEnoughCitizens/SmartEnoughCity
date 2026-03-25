@@ -224,6 +224,11 @@ export const dashboardApi = {
   getTrainFrequentDelays: async (): Promise<TrainDelay[]> => {
     const { data } = await axiosInstance.get<TrainDelay[]>(
       API_ENDPOINTS.TRAIN_FREQUENT_DELAYS,
+    );
+    return data;
+  },
+
+  /**
    * Get tram dashboard KPIs
    */
   getTramKpis: async (): Promise<TramKpis> => {
