@@ -17,6 +17,7 @@ from data_handler.car.car_parsing_utils import (
 )
 from data_handler.car.models import (
     EmissionBand,
+    EVChargingDemand,
     EVChargingPoint,
     FuelType,
     PrivateCarEmission,
@@ -304,6 +305,22 @@ _EMISSION_REQUIRED_HEADERS = [
 _EV_CSV_FILE = "ESB-_EV-charge-point-locations.csv"
 _EV_CSV_REQUIRED_HEADERS = ["County", "Latitude", "Longitude"]
 
+_CHARGING_DEMAND_CSV_FILE = "charging_demand.csv"
+_CHARGING_DEMAND_CSV_REQUIRED_HEADERS = [
+    "CSO Electoral Divisions 2022",
+    "Bed-Sit",
+    "Flat/Apartment",
+    "House/Bungalow",
+    "Total",
+    "Registered_ev",
+    "Bed-Sit_Percentage",
+    "Flat/Apartment_Percentage",
+    "House/Bungalow_Percentage",
+    "home_charge_percentage",
+    "charge_frequency",
+    "charging_demand",
+]
+
 _TRAFFIC_VOLUME_FILE = "SCATSAugust2025.csv"
 _TRAFFIC_VOLUME_REQUIRED_HEADERS = [
     "End_Time",
@@ -314,6 +331,29 @@ _TRAFFIC_VOLUME_REQUIRED_HEADERS = [
     "Avg_Volume",
 ]
 _TRAFFIC_VOLUME_CHUNK_SIZE = 10_000
+
+
+def _process_charging_demand(session: Session, path: Path) -> None:
+    """Read charging_demand.csv and bulk-add rows to session."""
+    logger.info("Processing %s...", path.name)
+    rows = []
+    for row in read_csv_file(path, _CHARGING_DEMAND_CSV_REQUIRED_HEADERS):
+        rows.append(EVChargingDemand(
+            electoral_division=row["CSO Electoral Divisions 2022"].strip(),
+            bed_sit_count=int(row["Bed-Sit"]),
+            flat_apartment_count=int(row["Flat/Apartment"]),
+            house_bungalow_count=int(row["House/Bungalow"]),
+            total_dwellings=int(row["Total"]),
+            registered_ev=float(row["Registered_ev"]) if row["Registered_ev"] else None,
+            bed_sit_pct=float(row["Bed-Sit_Percentage"]),
+            flat_apartment_pct=float(row["Flat/Apartment_Percentage"]),
+            house_bungalow_pct=float(row["House/Bungalow_Percentage"]),
+            home_charge_pct=float(row["home_charge_percentage"]),
+            charge_frequency=float(row["charge_frequency"]),
+            charging_demand=float(row["charging_demand"]),
+        ))
+    session.add_all(rows)
+    logger.info("  Added %d charging demand rows", len(rows))
 
 
 def _validate_files(data_dir: Path, ev_csv_path: Path) -> None:
@@ -332,6 +372,11 @@ def _validate_files(data_dir: Path, ev_csv_path: Path) -> None:
         msg = f"Required file not found: {ev_csv_path}"
         raise FileNotFoundError(msg)
 
+    charging_demand_path = data_dir / _CHARGING_DEMAND_CSV_FILE
+    if not charging_demand_path.exists():
+        msg = f"Required file not found: {charging_demand_path}"
+        raise FileNotFoundError(msg)
+
 
 def _clear_existing_data(session: Session) -> None:
     """Delete all existing car data in dependency order."""
@@ -344,6 +389,7 @@ def _clear_existing_data(session: Session) -> None:
         VehicleYearly,
         PrivateCarEmission,
         EVChargingPoint,
+        EVChargingDemand,
         ScatsSite,
     ):
         session.execute(delete(model))
@@ -502,6 +548,7 @@ def process_car_static_data(data_dir: Path) -> None:
 
         _process_emission_files(session, data_dir)
         _process_ev_charging_points(session, ev_csv_path)
+        _process_charging_demand(session, data_dir / _CHARGING_DEMAND_CSV_FILE)
         _process_traffic_volumes(session, data_dir)
 
         logger.info("Committing changes to database...")
