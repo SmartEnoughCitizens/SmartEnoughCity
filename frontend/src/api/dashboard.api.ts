@@ -19,6 +19,7 @@ import type {
   JunctionEmission,
   PedestrianLive,
   TrainDashboardResponse,
+  TrainDelay,
   TrainKpis,
   TrainLiveTrain,
   TrainServiceStats,
@@ -213,6 +214,16 @@ export const dashboardApi = {
   getTrainServiceStats: async (): Promise<TrainServiceStats> => {
     const { data } = await axiosInstance.get<TrainServiceStats>(
       API_ENDPOINTS.TRAIN_SERVICE_STATS,
+    );
+    return data;
+  },
+
+  /**
+   * Get frequently delayed trains ordered by total average delay descending
+   */
+  getTrainFrequentDelays: async (): Promise<TrainDelay[]> => {
+    const { data } = await axiosInstance.get<TrainDelay[]>(
+      API_ENDPOINTS.TRAIN_FREQUENT_DELAYS,
     );
     return data;
   },
