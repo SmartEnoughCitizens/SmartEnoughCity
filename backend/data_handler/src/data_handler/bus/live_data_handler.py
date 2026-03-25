@@ -6,10 +6,13 @@ from datetime import datetime
 import requests
 from pydantic import BaseModel
 
+from sqlalchemy import select
+
 from data_handler.bus.models import (
     BusLiveTripStopTimeUpdate,
     BusLiveTripUpdate,
     BusLiveVehicle,
+    BusTrip,
     ScheduleRelationship,
 )
 from data_handler.bus.synthetic_ridership import generate_ridership_for_vehicles
@@ -235,9 +238,14 @@ def process_bus_vehicles_live_data(json_string: str) -> None:
 
     with SessionLocal() as session:
         try:
-            session.add_all(rows)
+            valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
+            filtered = [r for r in rows if r.trip_id in valid_trip_ids]
+            skipped = len(rows) - len(filtered)
+            if skipped:
+                logger.warning("Skipping %d vehicle record(s) with unknown trip_id.", skipped)
+            session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live vehicle record(s).", len(rows))
+            logger.info("Persisted %d bus live vehicle record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live vehicle data.")
@@ -269,9 +277,14 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
 
     with SessionLocal() as session:
         try:
-            session.add_all(rows)
+            valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
+            filtered = [r for r in rows if r.trip_id in valid_trip_ids]
+            skipped = len(rows) - len(filtered)
+            if skipped:
+                logger.warning("Skipping %d trip update record(s) with unknown trip_id.", skipped)
+            session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live trip update record(s).", len(rows))
+            logger.info("Persisted %d bus live trip update record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live trip update data.")
