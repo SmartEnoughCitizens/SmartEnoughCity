@@ -547,11 +547,17 @@ def irish_rail_train_movements_to_db() -> None:
         session.execute(delete(IrishRailTrainMovement))
 
         all_movements = []
+        skipped = 0
         for train_code, train_date in trains:
             movements = fetch_train_movements(train_code, train_date)
             for m in movements:
                 movement = _parse_train_movement_dict(m, fetched_at)
+                if movement.location_type is None:
+                    skipped += 1
+                    continue
                 all_movements.append(movement)
+        if skipped:
+            logger.warning("Skipped %d movement record(s) with null location_type.", skipped)
 
         if all_movements:
             session.add_all(all_movements)
