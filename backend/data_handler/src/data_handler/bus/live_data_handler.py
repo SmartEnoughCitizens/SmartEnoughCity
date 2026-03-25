@@ -5,7 +5,6 @@ from datetime import datetime
 
 import requests
 from pydantic import BaseModel
-
 from sqlalchemy import select
 
 from data_handler.bus.models import (
@@ -242,7 +241,9 @@ def process_bus_vehicles_live_data(json_string: str) -> None:
             filtered = [r for r in rows if r.trip_id in valid_trip_ids]
             skipped = len(rows) - len(filtered)
             if skipped:
-                logger.warning("Skipping %d vehicle record(s) with unknown trip_id.", skipped)
+                logger.warning(
+                    "Skipping %d vehicle record(s) with unknown trip_id.", skipped
+                )
             session.add_all(filtered)
             session.commit()
             logger.info("Persisted %d bus live vehicle record(s).", len(filtered))
@@ -281,7 +282,9 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
             filtered = [r for r in rows if r.trip_id in valid_trip_ids]
             skipped = len(rows) - len(filtered)
             if skipped:
-                logger.warning("Skipping %d trip update record(s) with unknown trip_id.", skipped)
+                logger.warning(
+                    "Skipping %d trip update record(s) with unknown trip_id.", skipped
+                )
             session.add_all(filtered)
             session.commit()
             logger.info("Persisted %d bus live trip update record(s).", len(filtered))
