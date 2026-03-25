@@ -20,10 +20,10 @@ timeZone: "Europe/Dublin"
 resources:
   requests:
     cpu: "100m"
-    memory: "128Mi"
+    memory: "256Mi"
   limits:
     cpu: "500m"
-    memory: "256Mi"
+    memory: "512Mi"
 
 # Init job for static data loading (runs once on install/upgrade)
 initJob:
