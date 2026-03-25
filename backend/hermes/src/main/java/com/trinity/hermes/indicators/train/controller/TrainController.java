@@ -2,6 +2,7 @@ package com.trinity.hermes.indicators.train.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.train.dto.TrainDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDelayDTO;
 import com.trinity.hermes.indicators.train.dto.TrainKpiDTO;
 import com.trinity.hermes.indicators.train.dto.TrainLiveDTO;
 import com.trinity.hermes.indicators.train.dto.TrainServiceStatsDTO;
@@ -61,5 +62,16 @@ public class TrainController {
   public ResponseEntity<TrainServiceStatsDTO> getServiceStats() {
     log.info("GET /api/v1/train/service-stats");
     return ResponseEntity.ok(trainFacade.getServiceStats());
+  }
+
+  @GetMapping("/api/v1/train/frequent-delays")
+  public ResponseEntity<List<TrainDelayDTO>> getFrequentlyDelayedTrains() {
+    log.info("GET /api/v1/train/frequent-delays");
+    try {
+      return ResponseEntity.ok(trainFacade.getFrequentlyDelayedTrains());
+    } catch (Exception e) {
+      log.error("Error fetching frequently delayed trains: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
   }
 }

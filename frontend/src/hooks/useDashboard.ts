@@ -30,6 +30,7 @@ export const DASHBOARD_KEYS = {
   trainKpis: ["train", "kpis"] as const,
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
+  trainFrequentDelays: ["train", "frequent-delays"] as const,
 };
 
 /**
@@ -228,6 +229,19 @@ export const useTrainServiceStats = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.trainServiceStats,
     queryFn: () => dashboardApi.getTrainServiceStats(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get frequently delayed trains
+ */
+export const useTrainFrequentDelays = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainFrequentDelays,
+    queryFn: () => dashboardApi.getTrainFrequentDelays(),
     staleTime: 60_000,
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,

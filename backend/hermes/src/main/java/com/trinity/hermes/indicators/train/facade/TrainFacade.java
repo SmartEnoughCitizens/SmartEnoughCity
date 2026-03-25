@@ -1,6 +1,7 @@
 package com.trinity.hermes.indicators.train.facade;
 
 import com.trinity.hermes.indicators.train.dto.TrainDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDelayDTO;
 import com.trinity.hermes.indicators.train.dto.TrainKpiDTO;
 import com.trinity.hermes.indicators.train.dto.TrainLiveDTO;
 import com.trinity.hermes.indicators.train.dto.TrainServiceStatsDTO;
@@ -31,5 +32,9 @@ public class TrainFacade {
 
   public TrainServiceStatsDTO getServiceStats() {
     return trainDashboardService.getServiceStats();
+  }
+
+  public List<TrainDelayDTO> getFrequentlyDelayedTrains() {
+    return trainDashboardService.getFrequentlyDelayedTrains();
   }
 }
