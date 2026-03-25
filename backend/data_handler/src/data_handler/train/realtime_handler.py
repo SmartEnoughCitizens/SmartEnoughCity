@@ -557,7 +557,9 @@ def irish_rail_train_movements_to_db() -> None:
                     continue
                 all_movements.append(movement)
         if skipped:
-            logger.warning("Skipped %d movement record(s) with null location_type.", skipped)
+            logger.warning(
+                "Skipped %d movement record(s) with null location_type.", skipped
+            )
 
         if all_movements:
             session.add_all(all_movements)
