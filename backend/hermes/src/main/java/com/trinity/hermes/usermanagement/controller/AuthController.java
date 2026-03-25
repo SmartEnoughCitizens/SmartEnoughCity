@@ -3,6 +3,7 @@ package com.trinity.hermes.usermanagement.controller;
 import com.trinity.hermes.usermanagement.dto.ForgotPasswordRequest;
 import com.trinity.hermes.usermanagement.dto.LoginRequest;
 import com.trinity.hermes.usermanagement.dto.LoginResponse;
+import com.trinity.hermes.usermanagement.dto.RefreshTokenRequest;
 import com.trinity.hermes.usermanagement.dto.ResetPasswordRequest;
 import com.trinity.hermes.usermanagement.service.AuthService;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
@@ -53,6 +54,25 @@ public class AuthController {
       log.error("Unexpected error during login", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(createErrorResponse("An error occurred during login"));
+    }
+  }
+
+  @PostMapping("/refresh")
+  public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest request) {
+    try {
+      if (request.getRefreshToken() == null || request.getRefreshToken().isEmpty()) {
+        return ResponseEntity.badRequest().body(createErrorResponse("Refresh token is required"));
+      }
+      LoginResponse response = authService.refreshToken(request.getRefreshToken());
+      return ResponseEntity.ok(response);
+    } catch (RuntimeException e) {
+      log.error("Token refresh failed", e);
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(createErrorResponse("Session expired. Please log in again."));
+    } catch (Exception e) {
+      log.error("Unexpected error during token refresh", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(createErrorResponse("An error occurred during token refresh"));
     }
   }
 

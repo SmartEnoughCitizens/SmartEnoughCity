@@ -1,15 +1,15 @@
 # tests/car/test_car_static_data.py
 
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from data_handler.car.process_car_data import process_car_static_data
-from data_handler.settings.data_sources_settings import get_data_sources_settings
 from tests.utils import assert_row_count, assert_rows
 
 
-def test_process_car_static_data(db_session: Session) -> None:
+def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> None:
     """Test complete car static data import process."""
 
     # ARRANGE: Verify all tables are empty
@@ -23,8 +23,7 @@ def test_process_car_static_data(db_session: Session) -> None:
     assert_row_count(db_session, "ev_charging_points", 0)
 
     # ACT: Import car data
-    sources_settings = get_data_sources_settings()
-    process_car_static_data(sources_settings.car_static_data_dir)
+    process_car_static_data(tests_data_dir / "static_data" / "car")
 
     # ASSERT: Verify row counts
     assert_row_count(db_session, "scats_sites", 3)
