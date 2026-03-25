@@ -98,6 +98,8 @@ spec:
                   value: {{ .Values.irishRailBaseUrl | quote }}
                 - name: LUAS_FORECAST_BASE_URL
                   value: {{ .Values.luasForecastBaseUrl | quote }}
+                - name: CAR_GDRIVE_FOLDER_ID
+                  value: {{ .Values.carGdriveFolderId | default "" | quote }}
                 - name: TICKETMASTER_API_BASE_URL
                   value: {{ .Values.ticketmasterApiBaseUrl | quote }}
                 - name: TICKETMASTER_API_KEY

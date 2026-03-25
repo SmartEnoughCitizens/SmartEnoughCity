@@ -170,38 +170,59 @@ def main_dynamic() -> None:
     logger.info("  - Construction data: %s", sources_settings.enable_construction_data)
     logger.info("  - Events data: %s", sources_settings.enable_events_data)
 
-    # Process data sources based on enabled toggles
+    # Process data sources based on enabled toggles — failures are isolated per source
     if sources_settings.enable_train_data:
-        logger.info("Processing train data...")
-        irish_rail_realtime_to_db()
+        try:
+            logger.info("Processing train data...")
+            irish_rail_realtime_to_db()
+        except Exception:
+            logger.exception("Train data processing failed — skipping.")
 
     if sources_settings.enable_cycle_data:
-        logger.info("Processing cycle data...")
-        with SessionLocal() as session:
-            station_count = session.scalar(select(func.count()).select_from(DublinBikesStation))
-        if station_count == 0:
-            logger.info("No stations found, seeding station information...")
-            process_station_information()
-        logger.info("Fetching Dublin Bikes station snapshots...")
-        fetch_and_store_station_snapshots()
+        try:
+            logger.info("Processing cycle data...")
+            with SessionLocal() as session:
+                station_count = session.scalar(select(func.count()).select_from(DublinBikesStation))
+            if station_count == 0:
+                logger.info("No stations found, seeding station information...")
+                process_station_information()
+            logger.info("Fetching Dublin Bikes station snapshots...")
+            fetch_and_store_station_snapshots()
+        except Exception:
+            logger.exception("Cycle data processing failed — skipping.")
 
     if sources_settings.enable_car_data:
-        logger.info("Processing car data...")
+        try:
+            logger.info("Processing car data...")
+        except Exception:
+            logger.exception("Car data processing failed — skipping.")
 
     if sources_settings.enable_bus_data:
-        logger.info("Processing bus data...")
-        process_bus_live_data()
+        try:
+            logger.info("Processing bus data...")
+            process_bus_live_data()
+        except Exception:
+            logger.exception("Bus data processing failed — skipping.")
 
     if sources_settings.enable_tram_data:
-        logger.info("Processing tram data...")
-        luas_forecasts_to_db()
+        try:
+            logger.info("Processing tram data...")
+            luas_forecasts_to_db()
+        except Exception:
+            logger.exception("Tram data processing failed — skipping.")
 
     if sources_settings.enable_construction_data:
-        logger.info("Processing construction data...")
+        try:
+            logger.info("Processing construction data...")
+        except Exception:
+            logger.exception("Construction data processing failed — skipping.")
 
     if sources_settings.enable_events_data:
-        logger.info("Processing events data...")
-        fetch_and_store_events()
+        try:
+            logger.info("Processing events data...")
+            fetch_and_store_events()
+        except Exception:
+            logger.exception("Events data processing failed — skipping.")
 
 
 def main() -> None:
