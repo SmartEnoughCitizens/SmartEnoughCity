@@ -202,7 +202,10 @@ def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate |
             departure_delay = stu.departure.delay if stu.departure else None
             if arrival_delay is None and departure_delay is None:
                 continue
-            stop_schedule_rel = _parse_schedule_relationship(stu.schedule_relationship or "scheduled") or ScheduleRelationship.scheduled
+            stop_schedule_rel = (
+                _parse_schedule_relationship(stu.schedule_relationship or "scheduled")
+                or ScheduleRelationship.scheduled
+            )
             trip_update.stop_time_updates.append(
                 BusLiveTripStopTimeUpdate(
                     stop_id=stu.stop_id.strip(),
@@ -234,7 +237,9 @@ def process_bus_vehicles_live_data(json_string: str) -> None:
         raise ValueError(msg) from e
 
     rows: list[BusLiveVehicle] = [
-        r for entity in feed.entity if (r := _entity_to_live_vehicle(entity)) is not None
+        r
+        for entity in feed.entity
+        if (r := _entity_to_live_vehicle(entity)) is not None
     ]
 
     with SessionLocal() as session:
@@ -275,17 +280,24 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
         raise ValueError(msg) from e
 
     rows: list[BusLiveTripUpdate] = [
-        r for entity in feed.entity if (r := _entity_to_live_trip_update(entity)) is not None
+        r
+        for entity in feed.entity
+        if (r := _entity_to_live_trip_update(entity)) is not None
     ]
 
     with SessionLocal() as session:
         try:
             valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
-            filtered = [r for r in rows if r.trip_id in valid_trip_ids and r.vehicle_id is not None]
+            filtered = [
+                r
+                for r in rows
+                if r.trip_id in valid_trip_ids and r.vehicle_id is not None
+            ]
             skipped = len(rows) - len(filtered)
             if skipped:
                 logger.warning(
-                    "Skipping %d trip update record(s) with unknown trip_id or missing vehicle_id.", skipped
+                    "Skipping %d trip update record(s) with unknown trip_id or missing vehicle_id.",
+                    skipped,
                 )
             session.add_all(filtered)
             session.commit()
