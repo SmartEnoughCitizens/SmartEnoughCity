@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from sqlalchemy import delete
@@ -21,7 +22,7 @@ from data_handler.db import SessionLocal
 logger = logging.getLogger(__name__)
 
 _CHUNKED_FILES = {"shapes.txt", "stop_times.txt", "trips.txt"}
-_CHUNK_SIZE = 10_000
+_MAX_WORKERS = 16
 
 
 def parse_agency_row(row: dict[str, str]) -> dict[str, object]:
@@ -105,8 +106,25 @@ def parse_stop_time_row(row: dict[str, str]) -> dict[str, object]:
     }
 
 
+def _upsert_chunk(
+    chunk: list[dict[str, object]],
+    model: type[DeclarativeBase],
+    conflict_target: list[str] | str | None,
+    update_cols: list[str],
+) -> None:
+    stmt = pg_insert(model).values(chunk)
+    if conflict_target is not None:
+        set_ = {col: getattr(stmt.excluded, col) for col in update_cols}
+        if isinstance(conflict_target, str):
+            stmt = stmt.on_conflict_do_update(constraint=conflict_target, set_=set_)
+        else:
+            stmt = stmt.on_conflict_do_update(index_elements=conflict_target, set_=set_)
+    with SessionLocal() as session:
+        session.execute(stmt)
+        session.commit()
+
+
 def _execute_batch(
-    session: Session,
     model: type[DeclarativeBase],
     batch: list[dict[str, object]],
     conflict_target: list[str] | str | None,
@@ -115,17 +133,14 @@ def _execute_batch(
     if not batch:
         return
     chunk_size = max(1, 65535 // len(batch[0]))
-    for i in range(0, len(batch), chunk_size):
-        chunk = batch[i : i + chunk_size]
-        stmt = pg_insert(model).values(chunk)
-        if conflict_target is not None:
-            set_ = {col: getattr(stmt.excluded, col) for col in update_cols}
-            if isinstance(conflict_target, str):
-                stmt = stmt.on_conflict_do_update(constraint=conflict_target, set_=set_)
-            else:
-                stmt = stmt.on_conflict_do_update(index_elements=conflict_target, set_=set_)
-        session.execute(stmt)
-    session.commit()
+    chunks = [batch[i : i + chunk_size] for i in range(0, len(batch), chunk_size)]
+    with ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(_upsert_chunk, chunk, model, conflict_target, update_cols)
+            for chunk in chunks
+        ]
+        for future in as_completed(futures):
+            future.result()
 
 
 def process_bus_static_data(gtfs_dir: Path) -> None:
@@ -267,25 +282,34 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
 
             if filename in _CHUNKED_FILES:
                 chunk: list[dict[str, object]] = []
+                chunk_size: int | None = None
+                futures = []
                 total = 0
-                for row in read_csv_file(file_path, required_headers):
-                    chunk.append(parse_row(row))
-                    if len(chunk) >= _CHUNK_SIZE:
-                        _execute_batch(
-                            session, model, chunk, conflict_target, update_cols
+                with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
+                    for row in read_csv_file(file_path, required_headers):
+                        parsed = parse_row(row)
+                        if chunk_size is None:
+                            chunk_size = max(1, 65535 // len(parsed))
+                        chunk.append(parsed)
+                        if len(chunk) >= chunk_size:
+                            futures.append(
+                                executor.submit(_upsert_chunk, list(chunk), model, conflict_target, update_cols)
+                            )
+                            total += len(chunk)
+                            chunk = []
+                    if chunk:
+                        futures.append(
+                            executor.submit(_upsert_chunk, chunk, model, conflict_target, update_cols)
                         )
                         total += len(chunk)
-                        chunk = []
-                        logger.info("  Committed %d rows...", total)
-                if chunk:
-                    _execute_batch(session, model, chunk, conflict_target, update_cols)
-                    total += len(chunk)
+                    for f in as_completed(futures):
+                        f.result()
                 logger.info("  Total: %d rows from %s", total, filename)
             else:
                 rows = [
                     parse_row(row) for row in read_csv_file(file_path, required_headers)
                 ]
-                _execute_batch(session, model, rows, conflict_target, update_cols)
+                _execute_batch(model, rows, conflict_target, update_cols)
 
         logger.info("Successfully processed static bus data.")
 
