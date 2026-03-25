@@ -259,6 +259,11 @@ export const useTrainFrequentDelays = () => {
     queryFn: () => dashboardApi.getTrainFrequentDelays(),
     staleTime: 60_000,
     refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
  * Get tram dashboard KPIs
  */
 export const useTramKpis = () => {
