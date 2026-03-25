@@ -1,6 +1,7 @@
 package com.trinity.hermes.indicators.train.service;
 
 import com.trinity.hermes.indicators.train.dto.TrainDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDelayDTO;
 import com.trinity.hermes.indicators.train.dto.TrainKpiDTO;
 import com.trinity.hermes.indicators.train.dto.TrainLiveDTO;
 import com.trinity.hermes.indicators.train.dto.TrainServiceStatsDTO;
@@ -92,6 +93,21 @@ public class TrainDashboardService {
         .lateArrivalPct(latePct)
         .avgDueMinutes(avgDueMinutes != null ? avgDueMinutes : 0.0)
         .build();
+  }
+
+  @Transactional(readOnly = true)
+  public List<TrainDelayDTO> getFrequentlyDelayedTrains() {
+    log.info("Fetching frequently delayed trains");
+    return trainStationDataRepository.findFrequentlyDelayedTrains().stream()
+        .map(
+            p ->
+                new TrainDelayDTO(
+                    p.getTrainCode(),
+                    p.getOrigin(),
+                    p.getDestination(),
+                    p.getDirection(),
+                    p.getTotalAvgDelayMinutes()))
+        .collect(Collectors.toList());
   }
 
   // ── Mapping helpers ──────────────────────────────────────────────
