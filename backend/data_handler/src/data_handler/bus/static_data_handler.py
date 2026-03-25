@@ -275,7 +275,9 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
                         chunk_size = max(1, 65535 // len(parsed))
                     chunk.append(parsed)
                     if len(chunk) >= chunk_size:
-                        _execute_batch(session, model, chunk, conflict_target, update_cols)
+                        _execute_batch(
+                            session, model, chunk, conflict_target, update_cols
+                        )
                         total += len(chunk)
                         chunk = []
                         logger.info("  Flushed %d rows...", total)
@@ -289,6 +291,7 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
                 ]
                 _execute_batch(session, model, rows, conflict_target, update_cols)
 
+        session.commit()
         logger.info("Successfully processed static bus data.")
 
     except Exception:
