@@ -21,6 +21,7 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
     assert_row_count(db_session, "vehicle_yearly", 0)
     assert_row_count(db_session, "private_car_emissions", 0)
     assert_row_count(db_session, "ev_charging_points", 0)
+    assert_row_count(db_session, "ev_charging_demand", 0)
 
     # ACT: Import car data
     process_car_static_data(tests_data_dir / "static_data" / "car")
@@ -36,6 +37,7 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
     assert_row_count(db_session, "vehicle_yearly", 3)
     assert_row_count(db_session, "private_car_emissions", 3)
     assert_row_count(db_session, "ev_charging_points", 2)  # Only Dublin (Cork filtered)
+    assert_row_count(db_session, "ev_charging_demand", 3)
 
     # ASSERT: Verify SCATS sites data
     assert_rows(
@@ -156,6 +158,39 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
                 "power_rating_of_ac_fast_kw": 43.0,
                 "power_rating_of_standard_ac_socket_kw": 7.4,
                 "is_24_7": False,
+            },
+        ],
+    )
+
+    # ASSERT: Verify EV charging demand data (including null registered_ev)
+    assert_rows(
+        db_session,
+        "ev_charging_demand",
+        [
+            {
+                "electoral_division": "Arran Quay A, Dublin City",
+                "bed_sit_count": 1,
+                "flat_apartment_count": 220,
+                "house_bungalow_count": 476,
+                "total_dwellings": 697,
+                "registered_ev": 217.0,
+                "home_charge_pct": 0.6048780487804878,
+                "charge_frequency": 0.06717073170731708,
+                "charging_demand": 4.0,
+            },
+            {
+                "electoral_division": "Arran Quay B, Dublin City",
+                "bed_sit_count": 5,
+                "flat_apartment_count": 1280,
+                "house_bungalow_count": 420,
+                "total_dwellings": 1705,
+                "registered_ev": 481.0,
+                "charging_demand": 11.0,
+            },
+            {
+                "electoral_division": "Arran Quay C, Dublin City",
+                "registered_ev": None,  # blank in CSV
+                "charging_demand": 13.0,
             },
         ],
     )
