@@ -2,7 +2,7 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [data-handler-fix-2]
 
 concurrency:
   group: cd-main
