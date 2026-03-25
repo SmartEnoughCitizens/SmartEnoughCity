@@ -12,7 +12,7 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   backoffLimit: 3
-  activeDeadlineSeconds: 900  # 15 minutes for static data load (GTFS files are large)
+  activeDeadlineSeconds: 3600  # 1 hour for static data load (GTFS files are large)
   template:
     metadata:
       labels:
