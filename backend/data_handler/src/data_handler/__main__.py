@@ -6,7 +6,10 @@ from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
-from data_handler.db import Base, engine
+from sqlalchemy import select, func
+
+from data_handler.cycle.models import DublinBikesStation
+from data_handler.db import Base, SessionLocal, engine
 from data_handler.events.data_handler import (
     fetch_and_store_events,
     fetch_and_store_venues,
@@ -174,8 +177,11 @@ def main_dynamic() -> None:
 
     if sources_settings.enable_cycle_data:
         logger.info("Processing cycle data...")
-        logger.info("Loading Dublin Bikes station information...")
-        process_station_information()
+        with SessionLocal() as session:
+            station_count = session.scalar(select(func.count()).select_from(DublinBikesStation))
+        if station_count == 0:
+            logger.info("No stations found, seeding station information...")
+            process_station_information()
         logger.info("Fetching Dublin Bikes station snapshots...")
         fetch_and_store_station_snapshots()
 
