@@ -70,7 +70,7 @@ class TripUpdateFeedHeader(BaseModel):
 
 
 class TripUpdateTrip(BaseModel):
-    trip_id: str
+    trip_id: str | None = None
     start_time: str
     start_date: str
     schedule_relationship: str
@@ -87,7 +87,7 @@ class StopTimeEvent(BaseModel):
 class StopTimeUpdate(BaseModel):
     stop_sequence: int
     stop_id: str
-    schedule_relationship: str
+    schedule_relationship: str | None = None
     arrival: StopTimeEvent | None = None
     departure: StopTimeEvent | None = None
 
@@ -163,7 +163,7 @@ def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate:
     tu = entity.trip_update
     trip = tu.trip
 
-    trip_id = trip.trip_id.strip()
+    trip_id = trip.trip_id.strip() if trip.trip_id else ""
     if not trip_id:
         msg = "trip_id must be a non-empty string."
         raise ValueError(msg)
