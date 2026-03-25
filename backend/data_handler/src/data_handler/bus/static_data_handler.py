@@ -1,4 +1,6 @@
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from sqlalchemy import delete
@@ -20,7 +22,7 @@ from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-_CHUNKED_FILES = {"shapes.txt", "stop_times.txt", "trips.txt"}
+_CHUNKED_FILES = {"shapes.txt", "stop_times.txt", "trips.txt", "stops.txt"}
 
 
 def parse_agency_row(row: dict[str, str]) -> dict[str, object]:
@@ -193,19 +195,6 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
             ["id"],
             ["code", "name", "description", "lat", "lon"],
         ),
-        "shapes.txt": (
-            [
-                "shape_id",
-                "shape_pt_lat",
-                "shape_pt_lon",
-                "shape_pt_sequence",
-                "shape_dist_traveled",
-            ],
-            parse_shape_row,
-            BusTripShape,
-            "uq_shape_sequence",
-            ["pt_lat", "pt_lon", "dist_traveled"],
-        ),
         "trips.txt": (
             [
                 "route_id",
@@ -234,6 +223,19 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
             BusStopTime,
             None,
             [],
+        ),
+        "shapes.txt": (
+            [
+                "shape_id",
+                "shape_pt_lat",
+                "shape_pt_lon",
+                "shape_pt_sequence",
+                "shape_dist_traveled",
+            ],
+            parse_shape_row,
+            BusTripShape,
+            "uq_shape_sequence",
+            ["pt_lat", "pt_lon", "dist_traveled"],
         ),
     }
 
@@ -267,20 +269,28 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
             if filename in _CHUNKED_FILES:
                 chunk: list[dict[str, object]] = []
                 chunk_size: int | None = None
+                futures = []
                 total = 0
-                for row in read_csv_file(file_path, required_headers):
-                    parsed = parse_row(row)
-                    if chunk_size is None:
-                        chunk_size = max(1, 65535 // len(parsed))
-                    chunk.append(parsed)
-                    if len(chunk) >= chunk_size:
-                        _execute_batch(model, chunk, conflict_target, update_cols)
+                workers = min(32, (os.cpu_count() or 1) + 4)
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    for row in read_csv_file(file_path, required_headers):
+                        parsed = parse_row(row)
+                        if chunk_size is None:
+                            chunk_size = max(1, 65535 // len(parsed))
+                        chunk.append(parsed)
+                        if len(chunk) >= chunk_size:
+                            futures.append(
+                                executor.submit(_execute_batch, model, list(chunk), conflict_target, update_cols)
+                            )
+                            total += len(chunk)
+                            chunk = []
+                    if chunk:
+                        futures.append(
+                            executor.submit(_execute_batch, model, chunk, conflict_target, update_cols)
+                        )
                         total += len(chunk)
-                        chunk = []
-                        logger.info("  Committed %d rows...", total)
-                if chunk:
-                    _execute_batch(model, chunk, conflict_target, update_cols)
-                    total += len(chunk)
+                    for f in as_completed(futures):
+                        f.result()
                 logger.info("  Total: %d rows from %s", total, filename)
             else:
                 rows = [
