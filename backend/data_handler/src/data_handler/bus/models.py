@@ -202,6 +202,7 @@ class ScheduleRelationship(enum.Enum):
     added = "added"
     skipped = "skipped"
     no_data = "no_data"
+    canceled = "canceled"
 
 
 class BusLiveVehicle(Base):
