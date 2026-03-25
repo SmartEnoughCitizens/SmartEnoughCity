@@ -281,11 +281,11 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
     with SessionLocal() as session:
         try:
             valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
-            filtered = [r for r in rows if r.trip_id in valid_trip_ids]
+            filtered = [r for r in rows if r.trip_id in valid_trip_ids and r.vehicle_id is not None]
             skipped = len(rows) - len(filtered)
             if skipped:
                 logger.warning(
-                    "Skipping %d trip update record(s) with unknown trip_id.", skipped
+                    "Skipping %d trip update record(s) with unknown trip_id or missing vehicle_id.", skipped
                 )
             session.add_all(filtered)
             session.commit()

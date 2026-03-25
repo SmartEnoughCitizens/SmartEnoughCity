@@ -268,7 +268,7 @@ class BusLiveTripUpdate(Base):
         SQLEnum(ScheduleRelationship, schema=DB_SCHEMA), nullable=False
     )
     direction_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    vehicle_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    vehicle_id: Mapped[int] = mapped_column(Integer, nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     # Relationships
