@@ -54,6 +54,7 @@ export const API_ENDPOINTS = {
   TRAIN_KPIS: "/api/v1/train/kpis",
   TRAIN_LIVE_TRAINS: "/api/v1/train/live-trains",
   TRAIN_SERVICE_STATS: "/api/v1/train/service-stats",
+  TRAIN_FREQUENT_DELAYS: "/api/v1/train/frequent-delays",
 
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
