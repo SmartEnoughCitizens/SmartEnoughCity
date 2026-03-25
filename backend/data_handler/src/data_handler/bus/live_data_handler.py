@@ -159,14 +159,13 @@ def _entity_to_live_vehicle(entity: VehiclePositionEntity) -> BusLiveVehicle:
     )
 
 
-def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate:
+def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate | None:
     tu = entity.trip_update
     trip = tu.trip
 
     trip_id = trip.trip_id.strip() if trip.trip_id else ""
     if not trip_id:
-        msg = "trip_id must be a non-empty string."
-        raise ValueError(msg)
+        return None
 
     start_time = parse_gtfs_time(trip.start_time)
     start_date = parse_gtfs_date(trip.start_date)
@@ -273,7 +272,7 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
         raise ValueError(msg) from e
 
     rows: list[BusLiveTripUpdate] = [
-        _entity_to_live_trip_update(entity) for entity in feed.entity
+        r for entity in feed.entity if (r := _entity_to_live_trip_update(entity)) is not None
     ]
 
     with SessionLocal() as session:
