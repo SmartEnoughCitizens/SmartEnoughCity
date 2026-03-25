@@ -336,9 +336,8 @@ _TRAFFIC_VOLUME_CHUNK_SIZE = 10_000
 def _process_charging_demand(session: Session, path: Path) -> None:
     """Read charging_demand.csv and bulk-add rows to session."""
     logger.info("Processing %s...", path.name)
-    rows = []
-    for row in read_csv_file(path, _CHARGING_DEMAND_CSV_REQUIRED_HEADERS):
-        rows.append(EVChargingDemand(
+    rows = [
+        EVChargingDemand(
             electoral_division=row["CSO Electoral Divisions 2022"].strip(),
             bed_sit_count=int(row["Bed-Sit"]),
             flat_apartment_count=int(row["Flat/Apartment"]),
@@ -351,7 +350,9 @@ def _process_charging_demand(session: Session, path: Path) -> None:
             home_charge_pct=float(row["home_charge_percentage"]),
             charge_frequency=float(row["charge_frequency"]),
             charging_demand=float(row["charging_demand"]),
-        ))
+        )
+        for row in read_csv_file(path, _CHARGING_DEMAND_CSV_REQUIRED_HEADERS)
+    ]
     session.add_all(rows)
     logger.info("  Added %d charging demand rows", len(rows))
 
