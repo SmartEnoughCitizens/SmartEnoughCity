@@ -5,7 +5,7 @@ from pathlib import Path
 
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import DeclarativeBase
 
 from data_handler.bus.models import (
     BusAgency,
@@ -123,7 +123,9 @@ def _execute_batch(
             if isinstance(conflict_target, str):
                 stmt = stmt.on_conflict_do_update(constraint=conflict_target, set_=set_)
             else:
-                stmt = stmt.on_conflict_do_update(index_elements=conflict_target, set_=set_)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=conflict_target, set_=set_
+                )
         with SessionLocal() as session:
             session.execute(stmt)
             session.commit()
@@ -280,13 +282,25 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
                         chunk.append(parsed)
                         if len(chunk) >= chunk_size:
                             futures.append(
-                                executor.submit(_execute_batch, model, list(chunk), conflict_target, update_cols)
+                                executor.submit(
+                                    _execute_batch,
+                                    model,
+                                    list(chunk),
+                                    conflict_target,
+                                    update_cols,
+                                )
                             )
                             total += len(chunk)
                             chunk = []
                     if chunk:
                         futures.append(
-                            executor.submit(_execute_batch, model, chunk, conflict_target, update_cols)
+                            executor.submit(
+                                _execute_batch,
+                                model,
+                                chunk,
+                                conflict_target,
+                                update_cols,
+                            )
                         )
                         total += len(chunk)
                     for f in as_completed(futures):
