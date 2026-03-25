@@ -53,4 +53,44 @@ public interface TrainStationDataRepository extends JpaRepository<TrainStationDa
             WHERE sd.dueInMinutes IS NOT NULL
             """)
   Double findAverageDueInMinutes();
+
+  /**
+   * Frequently delayed trains — one row per unique (train_code, origin, destination, direction).
+   *
+   * <p>Method:
+   *
+   * <ol>
+   *   <li>CTE computes the average delay per stop per train (excludes ORIGIN stops).
+   *   <li>Outer query sums those per-stop averages into a total average delay for the train.
+   * </ol>
+   */
+  @Query(
+      value =
+          """
+          WITH per_stop_avg AS (
+              SELECT
+                  train_code,
+                  station_code,
+                  origin,
+                  destination,
+                  COALESCE(direction, 'Unknown') AS direction,
+                  AVG(late_minutes)              AS avg_delay_at_stop
+              FROM external_data.irish_rail_station_data
+              WHERE late_minutes   IS NOT NULL
+                AND location_type != 'ORIGIN'
+              GROUP BY train_code, station_code, origin, destination,
+                       COALESCE(direction, 'Unknown')
+          )
+          SELECT
+              train_code                                          AS train_code,
+              origin,
+              destination,
+              direction,
+              ROUND(CAST(SUM(avg_delay_at_stop) AS numeric), 2)  AS total_avg_delay_minutes
+          FROM per_stop_avg
+          GROUP BY train_code, origin, destination, direction
+          ORDER BY total_avg_delay_minutes DESC
+          """,
+      nativeQuery = true)
+  List<TrainDelayProjection> findFrequentlyDelayedTrains();
 }
