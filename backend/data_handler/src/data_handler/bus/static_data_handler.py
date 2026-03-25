@@ -114,14 +114,17 @@ def _execute_batch(
 ) -> None:
     if not batch:
         return
-    stmt = pg_insert(model).values(batch)
-    if conflict_target is not None:
-        set_ = {col: getattr(stmt.excluded, col) for col in update_cols}
-        if isinstance(conflict_target, str):
-            stmt = stmt.on_conflict_do_update(constraint=conflict_target, set_=set_)
-        else:
-            stmt = stmt.on_conflict_do_update(index_elements=conflict_target, set_=set_)
-    session.execute(stmt)
+    chunk_size = max(1, 65535 // len(batch[0]))
+    for i in range(0, len(batch), chunk_size):
+        chunk = batch[i : i + chunk_size]
+        stmt = pg_insert(model).values(chunk)
+        if conflict_target is not None:
+            set_ = {col: getattr(stmt.excluded, col) for col in update_cols}
+            if isinstance(conflict_target, str):
+                stmt = stmt.on_conflict_do_update(constraint=conflict_target, set_=set_)
+            else:
+                stmt = stmt.on_conflict_do_update(index_elements=conflict_target, set_=set_)
+        session.execute(stmt)
     session.commit()
 
 
