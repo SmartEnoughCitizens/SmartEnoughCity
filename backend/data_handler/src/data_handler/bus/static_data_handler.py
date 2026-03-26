@@ -20,8 +20,8 @@ from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-_CHUNKED_FILES = {"shapes.txt", "stop_times.txt", "trips.txt"}
-_CHUNK_SIZE = 10_000
+_CHUNKED_FILES = {"shapes.txt", "stop_times.txt", "trips.txt", "stops.txt"}
+_CHUNK_SIZE = 9_000
 
 
 def parse_agency_row(row: dict[str, str]) -> dict[str, object]:

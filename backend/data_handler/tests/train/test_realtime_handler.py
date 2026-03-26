@@ -21,8 +21,8 @@ from data_handler.train.realtime_handler import (
     fetch_train_movements,
     irish_rail_current_trains_to_db,
     irish_rail_station_data_to_db,
-    process_train_station_info,
     irish_rail_train_movements_to_db,
+    process_train_station_info,
 )
 from tests.utils import assert_row_count
 
