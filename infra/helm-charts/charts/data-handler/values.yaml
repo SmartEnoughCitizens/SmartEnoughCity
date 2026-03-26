@@ -3,16 +3,50 @@ image:
   tag: dev
   pullPolicy: Never
 
-schedule: "* * * * *"
+realtimeCron:
+  enabled: true
+  schedule: "*/2 * * * *"
+
+cycleCron:
+  enabled: true
+  schedule: "*/5 * * * *"
+
+eventsCron:
+  enabled: true
+  schedule: "*/30 * * * *"
+
 timeZone: "Europe/Dublin"
 
 resources:
   requests:
     cpu: "100m"
-    memory: "128Mi"
+    memory: "256Mi"
   limits:
     cpu: "500m"
-    memory: "256Mi"
+    memory: "512Mi"
+
+# Init job for static data loading (runs once on install/upgrade)
+initJob:
+  enabled: true
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "3000m"
+      memory: "8Gi"
+
+# Daily static data refresh CronJob
+staticDataCron:
+  enabled: true
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
 
 labels:
   app.kubernetes.io/name: data-handler

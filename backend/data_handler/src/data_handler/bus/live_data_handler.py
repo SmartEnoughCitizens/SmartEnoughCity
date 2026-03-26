@@ -5,11 +5,13 @@ from datetime import datetime
 
 import requests
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from data_handler.bus.models import (
     BusLiveTripStopTimeUpdate,
     BusLiveTripUpdate,
     BusLiveVehicle,
+    BusTrip,
     ScheduleRelationship,
 )
 from data_handler.bus.synthetic_ridership import generate_ridership_for_vehicles
@@ -68,7 +70,7 @@ class TripUpdateFeedHeader(BaseModel):
 
 
 class TripUpdateTrip(BaseModel):
-    trip_id: str
+    trip_id: str | None = None
     start_time: str
     start_date: str
     schedule_relationship: str
@@ -85,7 +87,7 @@ class StopTimeEvent(BaseModel):
 class StopTimeUpdate(BaseModel):
     stop_sequence: int
     stop_id: str
-    schedule_relationship: str
+    schedule_relationship: str | None = None
     arrival: StopTimeEvent | None = None
     departure: StopTimeEvent | None = None
 
@@ -96,8 +98,8 @@ class TripUpdateVehicle(BaseModel):
 
 class TripUpdatePayload(BaseModel):
     trip: TripUpdateTrip
-    stop_time_update: list[StopTimeUpdate]
-    vehicle: TripUpdateVehicle
+    stop_time_update: list[StopTimeUpdate] = []
+    vehicle: TripUpdateVehicle | None = None
     timestamp: str | int
 
 
@@ -111,17 +113,16 @@ class TripUpdateFeed(BaseModel):
     entity: list[TripUpdateEntity]
 
 
-def _parse_schedule_relationship(value: str) -> ScheduleRelationship:
+def _parse_schedule_relationship(value: str) -> ScheduleRelationship | None:
     normalized = value.strip().lower()
     try:
         return ScheduleRelationship(normalized)
     except ValueError:
-        valid = [e.value for e in ScheduleRelationship]
-        msg = f"Invalid schedule_relationship: {value!r}. Expected one of: {valid}."
-        raise ValueError(msg) from None
+        logger.warning("Unknown schedule_relationship %r — skipping record.", value)
+        return None
 
 
-def _entity_to_live_vehicle(entity: VehiclePositionEntity) -> BusLiveVehicle:
+def _entity_to_live_vehicle(entity: VehiclePositionEntity) -> BusLiveVehicle | None:
     v = entity.vehicle
     trip = v.trip
     pos = v.position
@@ -135,6 +136,8 @@ def _entity_to_live_vehicle(entity: VehiclePositionEntity) -> BusLiveVehicle:
     start_time = parse_gtfs_time(trip.start_time)
     start_date = parse_gtfs_date(trip.start_date)
     schedule_relationship = _parse_schedule_relationship(trip.schedule_relationship)
+    if schedule_relationship is None:
+        return None
 
     ts = v.timestamp
     if isinstance(ts, str):
@@ -157,20 +160,25 @@ def _entity_to_live_vehicle(entity: VehiclePositionEntity) -> BusLiveVehicle:
     )
 
 
-def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate:
+def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate | None:
     tu = entity.trip_update
     trip = tu.trip
 
-    trip_id = trip.trip_id.strip()
+    trip_id = trip.trip_id.strip() if trip.trip_id else ""
     if not trip_id:
-        msg = "trip_id must be a non-empty string."
-        raise ValueError(msg)
+        return None
 
     start_time = parse_gtfs_time(trip.start_time)
     start_date = parse_gtfs_date(trip.start_date)
     schedule_relationship = _parse_schedule_relationship(trip.schedule_relationship)
+    if schedule_relationship is None:
+        return None
 
-    vehicle_id = tu.vehicle.id if isinstance(tu.vehicle.id, int) else int(tu.vehicle.id)
+    vehicle_id = (
+        (tu.vehicle.id if isinstance(tu.vehicle.id, int) else int(tu.vehicle.id))
+        if tu.vehicle
+        else None
+    )
 
     ts = tu.timestamp
     if isinstance(ts, str):
@@ -194,7 +202,10 @@ def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate:
             departure_delay = stu.departure.delay if stu.departure else None
             if arrival_delay is None and departure_delay is None:
                 continue
-            stop_schedule_rel = _parse_schedule_relationship(stu.schedule_relationship)
+            stop_schedule_rel = (
+                _parse_schedule_relationship(stu.schedule_relationship or "scheduled")
+                or ScheduleRelationship.scheduled
+            )
             trip_update.stop_time_updates.append(
                 BusLiveTripStopTimeUpdate(
                     stop_id=stu.stop_id.strip(),
@@ -226,14 +237,23 @@ def process_bus_vehicles_live_data(json_string: str) -> None:
         raise ValueError(msg) from e
 
     rows: list[BusLiveVehicle] = [
-        _entity_to_live_vehicle(entity) for entity in feed.entity
+        r
+        for entity in feed.entity
+        if (r := _entity_to_live_vehicle(entity)) is not None
     ]
 
     with SessionLocal() as session:
         try:
-            session.add_all(rows)
+            valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
+            filtered = [r for r in rows if r.trip_id in valid_trip_ids]
+            skipped = len(rows) - len(filtered)
+            if skipped:
+                logger.warning(
+                    "Skipping %d vehicle record(s) with unknown trip_id.", skipped
+                )
+            session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live vehicle record(s).", len(rows))
+            logger.info("Persisted %d bus live vehicle record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live vehicle data.")
@@ -260,14 +280,28 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
         raise ValueError(msg) from e
 
     rows: list[BusLiveTripUpdate] = [
-        _entity_to_live_trip_update(entity) for entity in feed.entity
+        r
+        for entity in feed.entity
+        if (r := _entity_to_live_trip_update(entity)) is not None
     ]
 
     with SessionLocal() as session:
         try:
-            session.add_all(rows)
+            valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
+            filtered = [
+                r
+                for r in rows
+                if r.trip_id in valid_trip_ids and r.vehicle_id is not None
+            ]
+            skipped = len(rows) - len(filtered)
+            if skipped:
+                logger.warning(
+                    "Skipping %d trip update record(s) with unknown trip_id or missing vehicle_id.",
+                    skipped,
+                )
+            session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live trip update record(s).", len(rows))
+            logger.info("Persisted %d bus live trip update record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live trip update data.")

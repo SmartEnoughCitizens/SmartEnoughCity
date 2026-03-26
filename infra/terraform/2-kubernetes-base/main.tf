@@ -81,12 +81,12 @@ resource "kubernetes_limit_range" "dev_limits" {
 
       default = {
         cpu    = "500m"
-        memory = "512Mi"
+        memory = "1Gi"
       }
 
       default_request = {
         cpu    = "100m"
-        memory = "128Mi"
+        memory = "256Mi"
       }
     }
   }

@@ -13,16 +13,6 @@ class DataSourcesSettings(BaseSettings):
 
     This class manages which data sources should be enabled/disabled.
     Allows toggling API calls for different data sources via environment variables.
-
-    Attributes:
-        enable_cycle_data: Toggle for cycle data source (from ENABLE_CYCLE_DATA)
-        enable_car_data: Toggle for car data source (from ENABLE_CAR_DATA)
-        enable_bus_data: Toggle for bus data source (from ENABLE_BUS_DATA)
-        enable_train_data: Toggle for train data source (from ENABLE_TRAIN_DATA)
-        enable_tram_data: Toggle for tram data source (from ENABLE_TRAM_DATA)
-        enable_construction_data: Toggle for construction data source (from ENABLE_CONSTRUCTION_DATA)
-        enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
-        enable_pedestrian_data: Toggle for pedestrian data source (from ENABLE_PEDESTRIAN_DATA)
     """
 
     enable_cycle_data: bool = Field(True, alias="ENABLE_CYCLE_DATA")
@@ -33,58 +23,61 @@ class DataSourcesSettings(BaseSettings):
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
     enable_pedestrian_data: bool = Field(True, alias="ENABLE_PEDESTRIAN_DATA")
+    enable_population_data: bool = Field(True, alias="ENABLE_POPULATION_DATA")
 
-    bus_gtfs_static_data_dir: Path | None = Field(
-        None,
-        alias="BUS_GTFS_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the GTFS bus static data",
+    base_static_data_dir: Path = Field(
+        Path("static_data"), alias="BASE_STATIC_DATA_DIR"
     )
 
-    car_static_data_dir: Path | None = Field(
-        None,
-        alias="CAR_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the Car static data",
+    # GTFS ZIP URLs (TfI public data)
+    bus_gtfs_static_zip_url: str = Field(
+        "https://www.transportforireland.ie/transitData/Data/GTFS_All.zip",
+        alias="BUS_GTFS_STATIC_ZIP_URL",
+    )
+    train_gtfs_zip_url: str = Field(
+        "https://www.transportforireland.ie/transitData/Data/GTFS_Irish_Rail.zip",
+        alias="TRAIN_GTFS_ZIP_URL",
+    )
+    tram_gtfs_zip_url: str = Field(
+        "https://www.transportforireland.ie/transitData/Data/GTFS_LUAS.zip",
+        alias="TRAM_GTFS_ZIP_URL",
     )
 
-    train_gtfs_static_data_dir: Path | None = Field(
-        None,
-        alias="TRAIN_GTFS_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the GTFS train static data",
+    # Tram CSO dataset URLs (CSO PxStat API)
+    tram_cso_tii03_url: str = Field(
+        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TII03/CSV/1.0/en",
+        alias="TRAM_CSO_TII03_URL",
+    )
+    tram_cso_toa11_url: str = Field(
+        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TOA11/CSV/1.0/en",
+        alias="TRAM_CSO_TOA11_URL",
+    )
+    tram_cso_toa09_url: str = Field(
+        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TOA09/CSV/1.0/en",
+        alias="TRAM_CSO_TOA09_URL",
+    )
+    tram_cso_toa02_url: str = Field(
+        "https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/TOA02/CSV/1.0/en",
+        alias="TRAM_CSO_TOA02_URL",
     )
 
-    tram_gtfs_static_data_dir: Path | None = Field(
-        None,
-        alias="TRAM_GTFS_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the GTFS tram static data",
+    # Population data URLs
+    population_boundaries_url: str = Field(
+        "https://data-osi.opendata.arcgis.com/api/download/v1/items/9472cff586d74f2ba3c240d4344c5720/geojson?layers=0",
+        alias="POPULATION_BOUNDARIES_URL",
+    )
+    population_census_url: str = Field(
+        "https://www.cso.ie/en/media/csoie/census/census2022/SAPS_2022_Small_Area_UR_171024.csv",
+        alias="POPULATION_CENSUS_URL",
     )
 
-    tram_cso_static_data_dir: Path | None = Field(
-        None,
-        alias="TRAM_CSO_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the CSO tram static data",
-    )
+    # Car static data — Google Drive folder ID
+    car_gdrive_folder_id: str | None = Field(None, alias="CAR_GDRIVE_FOLDER_ID")
 
-    population_static_data_dir: Path | None = Field(
-        None,
-        alias="POPULATION_STATIC_DATA_DIR",
-        description="Filesystem path to the directory containing the population static data",
-    )
-
-    @field_validator(
-        "bus_gtfs_static_data_dir",
-        "car_static_data_dir",
-        "train_gtfs_static_data_dir",
-        "tram_gtfs_static_data_dir",
-        "tram_cso_static_data_dir",
-        "population_static_data_dir",
-    )
+    @field_validator("base_static_data_dir")
     @classmethod
-    def _ensure_dir_optional(cls, p: Path | None) -> Path | None:
-        if p is None:
-            return None
-        if not p.is_dir():
-            msg = f"Path is not a directory: {p}"
-            raise ValueError(msg)
+    def _ensure_base_dir(cls, p: Path) -> Path:
+        p.mkdir(parents=True, exist_ok=True)
         return p
 
     model_config = SettingsConfigDict(
