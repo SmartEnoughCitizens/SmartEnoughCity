@@ -1,6 +1,5 @@
 package com.trinity.hermes.indicators.cycle.service;
 
-import com.trinity.hermes.indicators.cycle.dto.NetworkKpiDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
@@ -69,7 +68,6 @@ public class CycleMetricsSnapshotService {
 
     try {
       NetworkSummaryDTO summary = metricsService.getNetworkSummary();
-      NetworkKpiDTO kpi = metricsService.getNetworkKpi();
 
       CycleNetworkKpiSnapshot snapshot = new CycleNetworkKpiSnapshot();
       snapshot.setSnapshotAt(hourKey);
@@ -79,12 +77,7 @@ public class CycleMetricsSnapshotService {
       snapshot.setEmptyStations(summary.getEmptyStations());
       snapshot.setFullStations(summary.getFullStations());
       snapshot.setAvgNetworkFullnessPct(summary.getAvgNetworkFullnessPct());
-      snapshot.setRebalancingNeedCount(kpi.getRebalancingNeedCount());
-      snapshot.setNetworkImbalanceScore(kpi.getNetworkImbalanceScore());
-      snapshot.setAvgHourlyTurnoverRate(kpi.getAvgHourlyTurnoverRate());
-      snapshot.setDailyTripsEstimate(kpi.getDailyTripsEstimate());
-      snapshot.setWeekdayAvgUsageRate(kpi.getWeekdayAvgUsageRate());
-      snapshot.setWeekendAvgUsageRate(kpi.getWeekendAvgUsageRate());
+      snapshot.setRebalancingNeedCount(summary.getRebalancingNeedCount());
 
       kpiSnapshotRepo.save(snapshot);
       log.info("Saved network KPI snapshot for {}", hourKey);
@@ -166,7 +159,7 @@ public class CycleMetricsSnapshotService {
     }
 
     try {
-      List<StationODPairDTO> pairs = metricsService.getODHeatmap(OD_LIMIT);
+      List<StationODPairDTO> pairs = metricsService.getODPairs(30, OD_LIMIT);
       List<CycleOdFlowSnapshot> rows = new ArrayList<>(pairs.size());
       for (StationODPairDTO pair : pairs) {
         CycleOdFlowSnapshot row = new CycleOdFlowSnapshot();
@@ -175,7 +168,7 @@ public class CycleMetricsSnapshotService {
         row.setOriginName(pair.getOriginName());
         row.setDestStationId(pair.getDestStationId());
         row.setDestName(pair.getDestName());
-        row.setEstimatedTrips(pair.getEstimatedTrips());
+        row.setEstimatedTrips((long) pair.getEstimatedTrips());
         rows.add(row);
       }
       odFlowRepo.saveAll(rows);
