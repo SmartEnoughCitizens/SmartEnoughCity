@@ -64,6 +64,19 @@ export const API_ENDPOINTS = {
   TRAM_DELAYS: "/api/v1/tram/delays",
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
 
+  // Cycle Metrics (CycleMetricsController)
+  CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
+  CYCLE_NETWORK_SUMMARY: "/api/v1/cycle/network/summary",
+  CYCLE_RANKINGS_BUSIEST: "/api/v1/cycle/rankings/busiest",
+  CYCLE_RANKINGS_UNDERUSED: "/api/v1/cycle/rankings/underused",
+  CYCLE_NETWORK_REBALANCING: "/api/v1/cycle/network/rebalancing",
+
+  // Cycle Demand Analysis
+  CYCLE_DEMAND_NETWORK_HOURLY: "/api/v1/cycle/demand/network-hourly",
+  CYCLE_DEMAND_CLASSIFICATION: "/api/v1/cycle/demand/classification",
+  CYCLE_DEMAND_OD_PAIRS: "/api/v1/cycle/demand/od-pairs",
+  CYCLE_DEMAND_STATION_HOURLY: "/api/v1/cycle/demand/station-hourly",
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
