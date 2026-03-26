@@ -32,22 +32,12 @@ class PedestrianGranularity(enum.Enum):
 class MobilityType(enum.Enum):
     BIKE = "BIKE"
     PEDESTRIAN = "PEDESTRIAN"
-    CAR = "CAR"
     UNDEFINED = "UNDEFINED"
-
-    @classmethod
-    def _missing_(cls, value: object) -> "MobilityType":
-        return cls.UNDEFINED
 
 
 class ChannelDirection(enum.Enum):
     IN = "IN"
     OUT = "OUT"
-    UNKNOWN = "UNKNOWN"
-
-    @classmethod
-    def _missing_(cls, value: object) -> "ChannelDirection":
-        return cls.UNKNOWN
 
 
 class PedestrianCounterSite(Base):
