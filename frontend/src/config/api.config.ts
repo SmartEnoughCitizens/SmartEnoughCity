@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: "/api/auth/login",
   AUTH_HEALTH: "/api/auth/health",
+  AUTH_REFRESH: "/api/auth/refresh",
   AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
   AUTH_RESET_PASSWORD: "/api/auth/reset-password",
 
@@ -55,6 +56,7 @@ export const API_ENDPOINTS = {
   TRAIN_KPIS: "/api/v1/train/kpis",
   TRAIN_LIVE_TRAINS: "/api/v1/train/live-trains",
   TRAIN_SERVICE_STATS: "/api/v1/train/service-stats",
+  TRAIN_FREQUENT_DELAYS: "/api/v1/train/frequent-delays",
 
   // Tram Indicators
   TRAM_KPIS: "/api/v1/tram/kpis",
