@@ -5,12 +5,9 @@ from datetime import UTC, datetime
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from data_handler.cycle.api_client import get_jcdecaux_client
+from data_handler.cycle.api_client import get_dublin_bikes_client
 from data_handler.cycle.gbfs_parsing_utils import parse_iso_timestamp
-from data_handler.cycle.models import (
-    DublinBikesStationHistory,
-    DublinBikesStationSnapshot,
-)
+from data_handler.cycle.models import DublinBikesStationSnapshot
 from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -56,13 +53,12 @@ def process_cycle_live_data() -> None:
     """Fetch and store real-time station status.
 
     This function:
-    1. Fetches current status from JCDecaux API
+    1. Fetches current status from Dublin Bikes GeoJSON API
     2. Stores in station_snapshots table
-    3. Archives to station_history table (with ON CONFLICT DO NOTHING)
     """
     logger.info("Fetching real-time station snapshots...")
 
-    client = get_jcdecaux_client()
+    client = get_dublin_bikes_client()
     stations = client.fetch_station_status()
 
     if not stations:
@@ -72,28 +68,12 @@ def process_cycle_live_data() -> None:
     fetch_timestamp = datetime.now(UTC)
     records = _transform_station_records(stations, fetch_timestamp)
 
-    # History records exclude disabled_bikes and disabled_docks
-    history_records = [
-        {k: v for k, v in r.items() if k not in ("disabled_bikes", "disabled_docks")}
-        for r in records
-    ]
-
     try:
         with SessionLocal() as session:
             session.execute(pg_insert(DublinBikesStationSnapshot).values(records))
-
-            stmt = pg_insert(DublinBikesStationHistory).values(history_records)
-            stmt = stmt.on_conflict_do_nothing(
-                constraint="uq_station_timestamp",
-            )
-            session.execute(stmt)
-
             session.commit()
 
-        logger.info(
-            "Successfully stored %d station snapshots and archived to history",
-            len(records),
-        )
+        logger.info("Successfully stored %d station snapshots", len(records))
 
     except Exception:
         logger.exception("Error storing station snapshots")

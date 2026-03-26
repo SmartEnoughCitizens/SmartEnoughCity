@@ -109,7 +109,7 @@ class TestProcessStationInformation:
             },
         ]
         monkeypatch.setattr(
-            "data_handler.cycle.static_data_handler.get_jcdecaux_client",
+            "data_handler.cycle.static_data_handler.get_dublin_bikes_client",
             lambda: mock_client,
         )
 
@@ -139,7 +139,7 @@ class TestProcessStationInformation:
             },
         ]
         monkeypatch.setattr(
-            "data_handler.cycle.static_data_handler.get_jcdecaux_client",
+            "data_handler.cycle.static_data_handler.get_dublin_bikes_client",
             lambda: mock_client,
         )
 
@@ -161,7 +161,7 @@ class TestProcessStationInformation:
         mock_client = Mock()
         mock_client.fetch_station_information.return_value = []
         monkeypatch.setattr(
-            "data_handler.cycle.static_data_handler.get_jcdecaux_client",
+            "data_handler.cycle.static_data_handler.get_dublin_bikes_client",
             lambda: mock_client,
         )
 

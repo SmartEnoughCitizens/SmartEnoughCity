@@ -17,6 +17,7 @@ import { useLogin } from "@/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { setAuthenticated } from "@/store/slices/authSlice";
 import { getRolesFromToken } from "@/utils/jwt";
+import { getLandingPage } from "@/types";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 export const LoginForm = () => {
@@ -40,15 +41,17 @@ export const LoginForm = () => {
         password,
       });
 
+      const roles = getRolesFromToken(response.accessToken);
+
       dispatch(
         setAuthenticated({
           accessToken: response.accessToken,
           username: response.username,
-          roles: getRolesFromToken(response.accessToken),
+          roles,
         }),
       );
 
-      navigate("/dashboard");
+      navigate(getLandingPage(roles));
     } catch {
       // Error is handled by mutation
     }
