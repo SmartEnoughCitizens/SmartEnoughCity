@@ -1,24 +1,24 @@
-{{- if .Values.realtimeCron.enabled }}
+{{- if .Values.staticDataCron.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Release.Name }}-data-handler-realtime
+  name: {{ .Release.Name }}-data-handler-static
   labels:
     app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 4 }}
 spec:
-  schedule: {{ .Values.realtimeCron.schedule | quote }}
+  schedule: {{ .Values.staticDataCron.schedule | quote }}
   {{- if .Values.timeZone }}
   timeZone: {{ .Values.timeZone | quote }}
   {{- end }}
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 90
+  startingDeadlineSeconds: 300
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 0
-      activeDeadlineSeconds: 110
+      backoffLimit: 2
+      activeDeadlineSeconds: 900  # 15 minutes for static data
       template:
         metadata:
           labels:
@@ -43,15 +43,16 @@ spec:
           restartPolicy: Never
           terminationGracePeriodSeconds: 10
           containers:
-            - name: data-handler
+            - name: data-handler-static
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["--static"]
               {{- if .Values.containerSecurityContext }}
               securityContext:
 {{- toYaml .Values.containerSecurityContext | nindent 16 }}
               {{- end }}
               resources:
-{{- toYaml .Values.resources | nindent 16 }}
+{{- toYaml .Values.staticDataCron.resources | nindent 16 }}
               env:
                 - name: DB_HOST
                   value: {{ .Values.global.db.host | default (printf "%s-postgresql" .Release.Name) | quote }}
@@ -97,6 +98,8 @@ spec:
                   value: {{ .Values.irishRailBaseUrl | quote }}
                 - name: LUAS_FORECAST_BASE_URL
                   value: {{ .Values.luasForecastBaseUrl | quote }}
+                - name: CAR_GDRIVE_FOLDER_ID
+                  value: {{ .Values.carGdriveFolderId | default "" | quote }}
                 - name: TICKETMASTER_API_BASE_URL
                   value: {{ .Values.ticketmasterApiBaseUrl | quote }}
                 - name: TICKETMASTER_API_KEY
@@ -104,20 +107,20 @@ spec:
                     secretKeyRef:
                       name: {{ .Values.secrets.ticketmasterApiKey.name | quote }}
                       key: TICKETMASTER_API_KEY
-                - name: ENABLE_BUS_DATA
-                  value: "true"
-                - name: ENABLE_TRAIN_DATA
-                  value: "true"
-                - name: ENABLE_TRAM_DATA
-                  value: "true"
                 - name: ENABLE_CYCLE_DATA
-                  value: "false"
+                  value: {{ .Values.enableCycleData | default "true" | quote }}
                 - name: ENABLE_CAR_DATA
-                  value: "false"
+                  value: {{ .Values.enableCarData | default "true" | quote }}
+                - name: ENABLE_BUS_DATA
+                  value: {{ .Values.enableBusData | default "true" | quote }}
+                - name: ENABLE_TRAIN_DATA
+                  value: {{ .Values.enableTrainData | default "true" | quote }}
+                - name: ENABLE_TRAM_DATA
+                  value: {{ .Values.enableTramData | default "true" | quote }}
                 - name: ENABLE_CONSTRUCTION_DATA
-                  value: "false"
+                  value: {{ .Values.enableConstructionData | default "true" | quote }}
                 - name: ENABLE_EVENTS_DATA
-                  value: "false"
+                  value: {{ .Values.enableEventsData | default "true" | quote }}
                 - name: ENABLE_POPULATION_DATA
-                  value: "false"
+                  value: {{ .Values.enablePopulationData | default "true" | quote }}
 {{- end }}

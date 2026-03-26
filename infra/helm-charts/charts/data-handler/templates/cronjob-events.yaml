@@ -1,24 +1,24 @@
-{{- if .Values.realtimeCron.enabled }}
+{{- if .Values.eventsCron.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Release.Name }}-data-handler-realtime
+  name: {{ .Release.Name }}-data-handler-events
   labels:
     app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 4 }}
 spec:
-  schedule: {{ .Values.realtimeCron.schedule | quote }}
+  schedule: {{ .Values.eventsCron.schedule | quote }}
   {{- if .Values.timeZone }}
   timeZone: {{ .Values.timeZone | quote }}
   {{- end }}
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 90
+  startingDeadlineSeconds: 1500
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       backoffLimit: 0
-      activeDeadlineSeconds: 110
+      activeDeadlineSeconds: 50
       template:
         metadata:
           labels:
@@ -104,19 +104,19 @@ spec:
                     secretKeyRef:
                       name: {{ .Values.secrets.ticketmasterApiKey.name | quote }}
                       key: TICKETMASTER_API_KEY
+                - name: ENABLE_EVENTS_DATA
+                  value: "true"
                 - name: ENABLE_BUS_DATA
-                  value: "true"
-                - name: ENABLE_TRAIN_DATA
-                  value: "true"
-                - name: ENABLE_TRAM_DATA
-                  value: "true"
-                - name: ENABLE_CYCLE_DATA
                   value: "false"
                 - name: ENABLE_CAR_DATA
                   value: "false"
-                - name: ENABLE_CONSTRUCTION_DATA
+                - name: ENABLE_TRAIN_DATA
                   value: "false"
-                - name: ENABLE_EVENTS_DATA
+                - name: ENABLE_TRAM_DATA
+                  value: "false"
+                - name: ENABLE_CYCLE_DATA
+                  value: "false"
+                - name: ENABLE_CONSTRUCTION_DATA
                   value: "false"
                 - name: ENABLE_POPULATION_DATA
                   value: "false"
