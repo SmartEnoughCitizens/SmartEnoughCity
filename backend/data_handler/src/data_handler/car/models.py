@@ -263,3 +263,27 @@ class EVChargingPoint(Base):
 
     # Operating hours
     is_24_7: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class EVChargingDemand(Base):
+    """EV charging demand estimates per CSO electoral division."""
+
+    __tablename__ = "ev_charging_demand"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_ev_charging_demand_electoral_division", "electoral_division"),
+        {"schema": DB_SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    electoral_division: Mapped[str] = mapped_column(String, nullable=False)
+    bed_sit_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    flat_apartment_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    house_bungalow_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_dwellings: Mapped[int] = mapped_column(Integer, nullable=False)
+    registered_ev: Mapped[float | None] = mapped_column(Float)
+    bed_sit_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    flat_apartment_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    house_bungalow_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    home_charge_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    charge_frequency: Mapped[float] = mapped_column(Float, nullable=False)
+    charging_demand: Mapped[float] = mapped_column(Float, nullable=False)
