@@ -52,10 +52,9 @@ def _migrate_enums(schema: str) -> None:
         f"ALTER TYPE {schema}.channeldirection ADD VALUE IF NOT EXISTS 'UNKNOWN'",
         f"ALTER TYPE {schema}.mobilitytype ADD VALUE IF NOT EXISTS 'CAR'",
     ]
-    with engine.connect() as conn:
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         for stmt in statements:
             conn.execute(text(stmt))
-        conn.commit()
 
 
 def init_db() -> None:
