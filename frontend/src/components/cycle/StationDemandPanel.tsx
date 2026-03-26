@@ -409,7 +409,7 @@ export const StationDemandPanel = () => {
                         ticks={[0, 25, 50, 75, 100]}
                       />
                       <Tooltip
-                        formatter={(value: number) => [`${value.toFixed(1)}%`, "Avg Usage"]}
+                        formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`, "Avg Usage"]}
                         labelFormatter={(h) => `${h}:00–${h}:59`}
                         contentStyle={{ fontSize: "0.72rem" }}
                       />
