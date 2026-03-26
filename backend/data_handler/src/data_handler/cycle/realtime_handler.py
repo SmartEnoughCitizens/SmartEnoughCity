@@ -3,11 +3,13 @@
 import logging
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 
 from data_handler.cycle.api_client import get_dublin_bikes_client
 from data_handler.cycle.gbfs_parsing_utils import parse_iso_timestamp
-from data_handler.cycle.models import DublinBikesStationSnapshot
+from data_handler.cycle.models import DublinBikesStation, DublinBikesStationSnapshot
 from data_handler.db import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -55,6 +57,9 @@ def fetch_and_store_station_snapshots() -> None:
     This function:
     1. Fetches current status from Dublin Bikes GeoJSON API
     2. Stores in station_snapshots table
+
+    Note: Requires that static station data has been loaded first via
+    process_station_information() to avoid foreign key violations.
     """
     logger.info("Fetching real-time station snapshots...")
 
@@ -70,11 +75,29 @@ def fetch_and_store_station_snapshots() -> None:
 
     try:
         with SessionLocal() as session:
-            session.execute(pg_insert(DublinBikesStationSnapshot).values(records))
-            session.commit()
+            valid_ids = set(
+                session.scalars(select(DublinBikesStation.station_id)).all()
+            )
+            filtered = [r for r in records if r["station_id"] in valid_ids]
+            skipped = len(records) - len(filtered)
+            if skipped:
+                logger.warning(
+                    "Skipping %d snapshot(s) for unknown station_id(s).", skipped
+                )
+            if filtered:
+                session.execute(pg_insert(DublinBikesStationSnapshot).values(filtered))
+                session.commit()
 
-        logger.info("Successfully stored %d station snapshots", len(records))
+        logger.info("Successfully stored %d station snapshots", len(filtered))
 
+    except IntegrityError as e:
+        error_msg = str(e.orig) if hasattr(e, "orig") else str(e)
+        if "foreign key" in error_msg.lower():
+            logger.exception(
+                "Foreign key violation: Station data must be loaded first. "
+                "Run process_station_information() before fetching snapshots."
+            )
+        raise
     except Exception:
         logger.exception("Error storing station snapshots")
         raise

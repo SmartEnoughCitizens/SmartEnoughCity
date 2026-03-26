@@ -1,7 +1,9 @@
 package com.trinity.hermes.usermanagement.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trinity.hermes.usermanagement.dto.LoginRequest;
 import com.trinity.hermes.usermanagement.dto.LoginResponse;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -107,6 +109,78 @@ public class AuthService {
     } catch (RuntimeException e) {
       log.error("Error during authentication for user: {}", loginRequest.getUsername(), e);
       throw e;
+    }
+  }
+
+  public LoginResponse refreshToken(String refreshToken) {
+    try {
+      log.info("Attempting to refresh access token");
+
+      String tokenUrl = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+      MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+      body.add("client_id", clientId);
+      body.add("client_secret", clientSecret);
+      body.add("grant_type", "refresh_token");
+      body.add("refresh_token", refreshToken);
+
+      HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+      ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+
+      Map<String, Object> tokenResponse = response.getBody();
+      if (response.getStatusCode() == HttpStatus.OK && tokenResponse != null) {
+
+        Object accessTokenObj = tokenResponse.get("access_token");
+        Object tokenTypeObj = tokenResponse.get("token_type");
+        Object expiresInObj = tokenResponse.get("expires_in");
+        Object refreshTokenObj = tokenResponse.get("refresh_token");
+
+        if (!(accessTokenObj instanceof String accessToken)
+            || !(tokenTypeObj instanceof String tokenType)
+            || !(expiresInObj instanceof Integer expiresIn)
+            || !(refreshTokenObj instanceof String newRefreshToken)) {
+          throw new RuntimeException("Invalid token response from Keycloak");
+        }
+
+        String username = extractUsernameFromJwt(accessToken);
+
+        LoginResponse loginResponse = new LoginResponse();
+        loginResponse.setAccessToken(accessToken);
+        loginResponse.setTokenType(tokenType);
+        loginResponse.setExpiresIn(expiresIn);
+        loginResponse.setRefreshToken(newRefreshToken);
+        loginResponse.setUsername(username);
+        loginResponse.setMessage("Token refreshed successfully");
+
+        log.info("Access token refreshed successfully");
+        return loginResponse;
+      } else {
+        throw new RuntimeException("Token refresh failed");
+      }
+
+    } catch (RuntimeException e) {
+      log.error("Error during token refresh", e);
+      throw e;
+    }
+  }
+
+  private String extractUsernameFromJwt(String jwtToken) {
+    try {
+      int firstDot = jwtToken.indexOf('.');
+      int secondDot = jwtToken.indexOf('.', firstDot + 1);
+      String payloadBase64 = jwtToken.substring(firstDot + 1, secondDot);
+      byte[] payloadBytes = Base64.getUrlDecoder().decode(payloadBase64);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> claims = new ObjectMapper().readValue(payloadBytes, Map.class);
+      Object preferred = claims.get("preferred_username");
+      return preferred instanceof String s ? s : null;
+    } catch (Exception e) {
+      log.warn("Could not extract username from JWT", e);
+      return null;
     }
   }
 

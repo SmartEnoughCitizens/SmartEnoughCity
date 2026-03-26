@@ -40,3 +40,11 @@ export interface TrainServiceStats {
   lateArrivalPct: number;
   avgDueMinutes: number;
 }
+
+export interface TrainDelay {
+  trainCode: string;
+  origin: string;
+  destination: string;
+  direction: string;
+  totalAvgDelayMinutes: number;
+}
