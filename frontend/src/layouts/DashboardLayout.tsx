@@ -21,6 +21,7 @@ import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import TrainIcon from "@mui/icons-material/Train";
+import TramIcon from "@mui/icons-material/Tram";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -29,6 +30,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
@@ -37,7 +39,7 @@ import {
 } from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
-import { getCreatableRoles } from "@/types";
+import { getCreatableRoles, canAccessTransport } from "@/types";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import { ChangePasswordDialog } from "@/components/profile/ChangePasswordDialog";
 import sseService from "@/services/sseService";
@@ -95,22 +97,40 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const navItems = [
-    { icon: <DashboardIcon />, path: "/dashboard", label: "Overview" },
-    { icon: <DirectionsBusIcon />, path: "/dashboard/bus", label: "Bus Data" },
+    ...(roles.includes("City_Manager")
+      ? [{ icon: <DashboardIcon />, path: "/dashboard", label: "Overview" }]
+      : []),
+    ...(canAccessTransport(roles, "bus")
+      ? [
+          {
+            icon: <DirectionsBusIcon />,
+            path: "/dashboard/bus",
+            label: "Bus Data",
+          },
+        ]
+      : []),
+    ...(canAccessTransport(roles, "cycle")
+      ? [
+          {
+            icon: <DirectionsBikeIcon />,
+            path: "/dashboard/cycle",
+            label: "Cycles",
+          },
+        ]
+      : []),
+    ...(canAccessTransport(roles, "car")
+      ? [{ icon: <DirectionsCarIcon />, path: "/dashboard/car", label: "Car" }]
+      : []),
+    ...(canAccessTransport(roles, "train")
+      ? [{ icon: <TrainIcon />, path: "/dashboard/train", label: "Trains" }]
+      : []),
+    ...(canAccessTransport(roles, "tram")
+      ? [{ icon: <TramIcon />, path: "/dashboard/tram", label: "Tram" }]
+      : []),
     {
-      icon: <DirectionsBikeIcon />,
-      path: "/dashboard/cycle",
-      label: "Cycles",
-    },
-    {
-      icon: <DirectionsCarIcon />,
-      path: "/dashboard/car",
-      label: "Car",
-    },
-    {
-      icon: <TrainIcon />,
-      path: "/dashboard/train",
-      label: "Trains",
+      icon: <EventNoteIcon />,
+      path: "/dashboard/misc",
+      label: "Misc",
     },
     {
       icon: (

@@ -9,8 +9,22 @@ data-handler:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
     pullPolicy: IfNotPresent
-#  cronjob:
-#    suspend: true
+  #  cronjob:
+  #    suspend: true
+  appEnv: "prod"
+  gtfsApiBaseUrl: "https://api.nationaltransport.ie/gtfsr/v2"
+  ecoCounterApiBaseUrl: "https://api.eco-counter.com/api/v2"
+  dublinBikesApiUrl: "https://data.smartdublin.ie/dublinbikes-api/bikes/dublin_bikes/current/stations.geojson"
+  irishRailBaseUrl: "http://api.irishrail.ie/realtime/realtime.asmx"
+  luasForecastBaseUrl: "https://luasforecasts.rpa.ie/xml/get.ashx"
+  ticketmasterApiBaseUrl: "https://app.ticketmaster.com/discovery/v2"
+  secrets:
+    ecoCounterApiKey:
+      name: sec-eco-counter-api-key
+    ticketmasterApiKey:
+      name: sec-ticketmaster-api-key
+  podAnnotations:
+    sidecar.istio.io/inject: "false"
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -51,6 +65,8 @@ hermes:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
     tag: latest
     pullPolicy: IfNotPresent
+  frontendUrl: "https://dev.citycontrol.me"
+  inferenceEngineUrl: "http://sec-inference-engine:8000"
   # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
   livenessProbe: null
   readinessProbe: null

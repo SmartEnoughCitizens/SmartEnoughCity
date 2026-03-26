@@ -6,7 +6,7 @@ from decimal import Decimal
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from data_handler.cycle.api_client import get_jcdecaux_client
+from data_handler.cycle.api_client import get_dublin_bikes_client
 from data_handler.cycle.models import DublinBikesStation
 from data_handler.db import SessionLocal
 
@@ -40,7 +40,7 @@ def process_cycle_station_info() -> None:
     """
     logger.info("Processing static station information...")
 
-    client = get_jcdecaux_client()
+    client = get_dublin_bikes_client()
     stations_data = client.fetch_station_information()
 
     records = [parse_station_information_record(r) for r in stations_data]

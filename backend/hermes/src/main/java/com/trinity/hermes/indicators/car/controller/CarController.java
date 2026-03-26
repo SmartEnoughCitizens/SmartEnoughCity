@@ -2,6 +2,7 @@ package com.trinity.hermes.indicators.car.controller;
 
 import com.trinity.hermes.indicators.car.dto.CarDashboardDTO;
 import com.trinity.hermes.indicators.car.dto.HighTrafficPointsDTO;
+import com.trinity.hermes.indicators.car.dto.JunctionEmissionDTO;
 import com.trinity.hermes.indicators.car.facade.CarFacade;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -28,5 +29,11 @@ public class CarController {
   public ResponseEntity<List<HighTrafficPointsDTO>> getHighTrafficPoints() {
     log.info("GET /api/v1/car/high-traffic-points");
     return ResponseEntity.ok(carFacade.getHighTrafficPoints());
+  }
+
+  @GetMapping("/junction-emissions")
+  public ResponseEntity<List<JunctionEmissionDTO>> getJunctionEmissions() {
+    log.info("GET /api/v1/car/junction-emissions");
+    return ResponseEntity.ok(carFacade.getJunctionEmissions());
   }
 }

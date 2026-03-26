@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
   // Car Indicators
   CAR_FUEL_TYPE_STATISTICS: "/api/v1/car/fuel-type-statistics",
   CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
+  CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
@@ -62,4 +63,8 @@ export const API_ENDPOINTS = {
   // Notifications
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
+
+  // Misc (Events + Pedestrians)
+  EVENTS: "/api/v1/events",
+  PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 };

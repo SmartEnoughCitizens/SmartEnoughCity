@@ -8,7 +8,6 @@ from data_handler.bus.live_data_handler import (
     process_bus_vehicles_live_data,
 )
 from data_handler.bus.static_data_handler import process_bus_static_data
-from data_handler.settings.data_sources_settings import get_data_sources_settings
 from tests.utils import ANY, assert_row_count, assert_rows
 
 
@@ -16,8 +15,7 @@ def test_process_bus_vehicles_live_data(
     db_session: Session, tests_data_dir: Path
 ) -> None:
     # Static data needed for live data due to foreign key constraints
-    sources_settings = get_data_sources_settings()
-    process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
+    process_bus_static_data(tests_data_dir / "static_data" / "GTFS")
 
     vehicles_json_path = tests_data_dir / "bus" / "vehicles.json"
     with vehicles_json_path.open() as f:
@@ -64,8 +62,7 @@ def test_process_bus_trip_updates_live_data(
     db_session: Session, tests_data_dir: Path
 ) -> None:
     # Static data needed for live data due to foreign key constraints
-    sources_settings = get_data_sources_settings()
-    process_bus_static_data(sources_settings.bus_gtfs_static_data_dir)
+    process_bus_static_data(tests_data_dir / "static_data" / "GTFS")
 
     trip_updates_json_path = tests_data_dir / "bus" / "TripUpdates.json"
     with trip_updates_json_path.open() as f:
