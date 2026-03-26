@@ -2,3 +2,7 @@
 dist
 
 .ruff_cache
+
+# Exclude .env files from production Docker image
+.env*
+!.env.example
