@@ -233,7 +233,11 @@ def main_dynamic() -> None:
         (sources_settings.enable_bus_data, _run_bus_dynamic, "Bus"),
         (sources_settings.enable_tram_data, _run_tram_dynamic, "Tram"),
         (sources_settings.enable_events_data, _run_events_dynamic, "Events"),
-        (sources_settings.enable_pedestrian_data, _run_pedestrian_dynamic, "Pedestrian"),
+        (
+            sources_settings.enable_pedestrian_data,
+            _run_pedestrian_dynamic,
+            "Pedestrian",
+        ),
     ]:
         if enabled:
             try:
