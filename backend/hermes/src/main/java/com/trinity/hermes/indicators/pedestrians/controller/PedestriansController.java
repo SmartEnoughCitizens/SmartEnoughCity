@@ -24,6 +24,7 @@ public class PedestriansController {
   @GetMapping("/api/v1/pedestrians/live")
   public ResponseEntity<List<PedestrianLiveDTO>> getLivePedestrianCounts(
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(500) Integer limit) {
+    try {
       return ResponseEntity.ok(pedestriansFacade.getLiveCounts(limit));
     } catch (Exception e) {
       log.error("Error fetching pedestrian live counts: {}", e.getMessage(), e);
