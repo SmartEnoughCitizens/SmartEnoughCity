@@ -33,7 +33,10 @@ import { NetworkSummaryChart } from "@/components/charts/NetworkSummaryChart";
 import { LiveCycleStationTable } from "@/components/tables/LiveCycleStationTable";
 import { CycleRankingTable } from "@/components/tables/CycleRankingTable";
 import { RebalancingTable } from "@/components/tables/RebalancingTable";
-import { ODFlowTable, type IntensityFilter } from "@/components/tables/ODFlowTable";
+import {
+  ODFlowTable,
+  type IntensityFilter,
+} from "@/components/tables/ODFlowTable";
 import { LiveCycleStationMap } from "@/components/map/LiveCycleStationMap";
 import { ODFlowMap } from "@/components/map/ODFlowMap";
 import { StationDemandPanel } from "@/components/cycle/StationDemandPanel";
@@ -46,8 +49,11 @@ const GAP = 16;
 export const CycleDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const [rankingSubTab, setRankingSubTab] = useState(0);
-  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(null);
-  const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>("all");
+  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(
+    null,
+  );
+  const [intensityFilter, setIntensityFilter] =
+    useState<IntensityFilter>("all");
   const [selectedPairKey, setSelectedPairKey] = useState<string | null>(null);
 
   const handleIntensityFilterChange = (f: IntensityFilter) => {
@@ -69,18 +75,32 @@ export const CycleDashboard = () => {
     error,
   } = useCycleStationsLive();
   const { data: summary } = useCycleNetworkSummary();
-  const { data: busiest, isLoading: busiestLoading } = useCycleBusiestStations(10);
-  const { data: underused, isLoading: underusedLoading } = useCycleUnderusedStations(10);
-  const { data: rebalancing, isLoading: rebalancingLoading } = useCycleRebalancing(30);
+  const { data: busiest, isLoading: busiestLoading } =
+    useCycleBusiestStations(10);
+  const { data: underused, isLoading: underusedLoading } =
+    useCycleUnderusedStations(10);
+  const { data: rebalancing, isLoading: rebalancingLoading } =
+    useCycleRebalancing(30);
   const { data: odPairs, isLoading: odLoading } = useCycleODPairs(30, 50);
   const { routeCache, progress: routeProgress } = useODRoutes(odPairs ?? []);
 
   const isLoading =
-    stationsLoading || busiestLoading || underusedLoading || rebalancingLoading || odLoading;
+    stationsLoading ||
+    busiestLoading ||
+    underusedLoading ||
+    rebalancingLoading ||
+    odLoading;
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -91,7 +111,9 @@ export const CycleDashboard = () => {
   // Compute intensity thresholds from the actual data distribution (percentile-based)
   const odThresholds = (() => {
     if (allOdPairs.length === 0) return { low: 1, high: 1 };
-    const sorted = allOdPairs.toSorted((a, b) => a.estimatedTrips - b.estimatedTrips);
+    const sorted = allOdPairs.toSorted(
+      (a, b) => a.estimatedTrips - b.estimatedTrips,
+    );
     const p33 = sorted[Math.floor(sorted.length * 0.33)]?.estimatedTrips ?? 1;
     const p66 = sorted[Math.floor(sorted.length * 0.66)]?.estimatedTrips ?? 1;
     return { low: p33, high: p66 };
@@ -100,13 +122,20 @@ export const CycleDashboard = () => {
   const filteredOdPairs = (() => {
     const byStation = odFilterStationId
       ? allOdPairs.filter(
-          (p) => p.originStationId === odFilterStationId || p.destStationId === odFilterStationId,
+          (p) =>
+            p.originStationId === odFilterStationId ||
+            p.destStationId === odFilterStationId,
         )
       : allOdPairs;
     if (intensityFilter === "all") return byStation;
     return byStation.filter((p) => {
-      if (intensityFilter === "extreme") return p.estimatedTrips >= odThresholds.high;
-      if (intensityFilter === "medium") return p.estimatedTrips >= odThresholds.low && p.estimatedTrips < odThresholds.high;
+      if (intensityFilter === "extreme")
+        return p.estimatedTrips >= odThresholds.high;
+      if (intensityFilter === "medium")
+        return (
+          p.estimatedTrips >= odThresholds.low &&
+          p.estimatedTrips < odThresholds.high
+        );
       if (intensityFilter === "low") return p.estimatedTrips < odThresholds.low;
       return true;
     });
@@ -114,7 +143,6 @@ export const CycleDashboard = () => {
 
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
-
       {/* ── Full-viewport map ─────────────────────────────────────── */}
       {tabValue === 3 ? (
         <ODFlowMap
@@ -215,7 +243,11 @@ export const CycleDashboard = () => {
             sx={{
               minHeight: 36,
               px: 1,
-              "& .MuiTab-root": { minHeight: 36, fontSize: "0.7rem", textTransform: "none" },
+              "& .MuiTab-root": {
+                minHeight: 36,
+                fontSize: "0.7rem",
+                textTransform: "none",
+              },
             }}
           >
             <Tab label={`Stations (${stations?.length ?? 0})`} />
@@ -225,7 +257,9 @@ export const CycleDashboard = () => {
           </Tabs>
 
           <Box sx={{ flex: 1, overflow: "auto", px: 1, pt: 0.5 }}>
-            {tabValue === 0 && <LiveCycleStationTable stations={stations ?? []} compact />}
+            {tabValue === 0 && (
+              <LiveCycleStationTable stations={stations ?? []} compact />
+            )}
 
             {tabValue === 1 && (
               <>
@@ -236,18 +270,28 @@ export const CycleDashboard = () => {
                   sx={{
                     minHeight: 32,
                     mb: 0.5,
-                    "& .MuiTab-root": { minHeight: 32, fontSize: "0.7rem", textTransform: "none" },
+                    "& .MuiTab-root": {
+                      minHeight: 32,
+                      fontSize: "0.7rem",
+                      textTransform: "none",
+                    },
                   }}
                 >
                   <Tab label="Busiest" />
                   <Tab label="Underused" />
                 </Tabs>
-                {rankingSubTab === 0 && <CycleRankingTable stations={busiest ?? []} />}
-                {rankingSubTab === 1 && <CycleRankingTable stations={underused ?? []} />}
+                {rankingSubTab === 0 && (
+                  <CycleRankingTable stations={busiest ?? []} />
+                )}
+                {rankingSubTab === 1 && (
+                  <CycleRankingTable stations={underused ?? []} />
+                )}
               </>
             )}
 
-            {tabValue === 2 && <RebalancingTable suggestions={rebalancing ?? []} />}
+            {tabValue === 2 && (
+              <RebalancingTable suggestions={rebalancing ?? []} />
+            )}
 
             {tabValue === 3 && (
               <ODFlowTable
@@ -331,7 +375,6 @@ export const CycleDashboard = () => {
           </Box>
         </Paper>
       )}
-
     </Box>
   );
 };
