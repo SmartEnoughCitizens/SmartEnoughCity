@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from data_handler.events.data_handler import (
     _upsert_events,
     _upsert_venues,
-    process_events_data,
     process_event_venue_info,
+    process_events_data,
 )
 from data_handler.events.parsing_utils import ParsedEvent, ParsedVenue
 from tests.utils import ANY, assert_row_count, assert_rows

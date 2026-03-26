@@ -1,22 +1,37 @@
 import logging
 import os
 import sys
+from collections.abc import Callable
 
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
-from data_handler.congestion_and_construction.data_handler import process_traffic_live_data
-from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
-from data_handler.cycle.static_data_handler import process_station_information
+from data_handler.congestion_and_construction.data_handler import (
+    process_traffic_live_data,
+)
+from data_handler.cycle.realtime_handler import process_cycle_live_data
+from data_handler.cycle.static_data_handler import process_cycle_station_info
 from data_handler.db import Base, engine
-from data_handler.events.data_handler import process_event_venue_info, process_events_data
+from data_handler.events.data_handler import (
+    process_event_venue_info,
+    process_events_data,
+)
 from data_handler.logging2 import configure_logging
 from data_handler.pedestrians.live_data_handler import process_pedestrian_live_data
 from data_handler.population.data_handler import process_population_static_data
-from data_handler.settings.data_sources_settings import get_data_sources_settings
-from data_handler.train.realtime_handler import process_train_live_data, process_train_station_info
+from data_handler.settings.data_sources_settings import (
+    DataSourcesSettings,
+    get_data_sources_settings,
+)
+from data_handler.train.realtime_handler import (
+    process_train_live_data,
+    process_train_station_info,
+)
 from data_handler.train.static_data_handler import process_train_static_data
-from data_handler.tram.forecast_handler import process_tram_live_data, process_tram_stop_info
+from data_handler.tram.forecast_handler import (
+    process_tram_live_data,
+    process_tram_stop_info,
+)
 from data_handler.tram.static_data_handler import process_tram_static_data
 from data_handler.urls import (
     delete_static_data,
@@ -25,7 +40,14 @@ from data_handler.urls import (
     download_google_drive_folder,
 )
 
-_RUN_VARS = ["RUN_1_MIN", "RUN_5_MIN", "RUN_15_MIN", "RUN_DAILY", "RUN_MONTHLY", "RUN_STATIC"]
+_RUN_VARS = [
+    "RUN_1_MIN",
+    "RUN_5_MIN",
+    "RUN_15_MIN",
+    "RUN_DAILY",
+    "RUN_MONTHLY",
+    "RUN_STATIC",
+]
 
 
 def _is_set(var: str) -> bool:
@@ -36,21 +58,28 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
 
 
+def _run_handler(logger: logging.Logger, name: str, fn: "Callable[[], None]") -> None:  # type: ignore[type-arg]
+    try:
+        fn()
+    except Exception:
+        logger.exception("Handler %s failed — continuing.", name)
+
+
 def main_1_min() -> None:
     logger = logging.getLogger(__name__)
     settings = get_data_sources_settings()
     if settings.enable_cycle_data:
         logger.info("Processing cycle live data...")
-        fetch_and_store_station_snapshots()
+        _run_handler(logger, "cycle_live", process_cycle_live_data)
     if settings.enable_bus_data:
         logger.info("Processing bus live data...")
-        process_bus_live_data()
+        _run_handler(logger, "bus_live", process_bus_live_data)
     if settings.enable_tram_data:
         logger.info("Processing tram live data...")
-        process_tram_live_data()
+        _run_handler(logger, "tram_live", process_tram_live_data)
     if settings.enable_train_data:
         logger.info("Processing train live data...")
-        process_train_live_data()
+        _run_handler(logger, "train_live", process_train_live_data)
 
 
 def main_5_min() -> None:
@@ -58,7 +87,7 @@ def main_5_min() -> None:
     settings = get_data_sources_settings()
     if settings.enable_construction_data:
         logger.info("Processing traffic live data...")
-        process_traffic_live_data()
+        _run_handler(logger, "traffic_live", process_traffic_live_data)
 
 
 def main_15_min() -> None:
@@ -66,7 +95,7 @@ def main_15_min() -> None:
     settings = get_data_sources_settings()
     if settings.enable_pedestrian_data:
         logger.info("Processing pedestrian live data...")
-        process_pedestrian_live_data()
+        _run_handler(logger, "pedestrian_live", process_pedestrian_live_data)
 
 
 def main_daily() -> None:
@@ -74,10 +103,10 @@ def main_daily() -> None:
     settings = get_data_sources_settings()
     if settings.enable_cycle_data:
         logger.info("Processing cycle station info...")
-        process_station_information()
+        _run_handler(logger, "cycle_station_info", process_cycle_station_info)
     if settings.enable_events_data:
         logger.info("Processing events data...")
-        process_events_data()
+        _run_handler(logger, "events_data", process_events_data)
 
 
 def main_monthly() -> None:
@@ -85,16 +114,16 @@ def main_monthly() -> None:
     settings = get_data_sources_settings()
     if settings.enable_train_data:
         logger.info("Processing train station info...")
-        process_train_station_info()
+        _run_handler(logger, "train_station_info", process_train_station_info)
     if settings.enable_tram_data:
         logger.info("Processing tram stop info...")
-        process_tram_stop_info()
+        _run_handler(logger, "tram_stop_info", process_tram_stop_info)
     if settings.enable_events_data:
         logger.info("Processing event venue info...")
-        process_event_venue_info()
+        _run_handler(logger, "event_venue_info", process_event_venue_info)
 
 
-def _run_bus_static(settings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_bus_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
     if not settings.enable_bus_data:
         logger.info("Skipping bus static data...")
         return
@@ -104,7 +133,7 @@ def _run_bus_static(settings, logger: logging.Logger) -> None:  # type: ignore[t
     delete_static_data(bus_dir)
 
 
-def _run_car_static(settings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_car_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
     if not settings.enable_car_data or not settings.car_gdrive_folder_id:
         logger.info("Skipping car static data...")
         return
@@ -114,15 +143,15 @@ def _run_car_static(settings, logger: logging.Logger) -> None:  # type: ignore[t
     delete_static_data(car_dir)
 
 
-def _run_cycle_static(settings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_cycle_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
     if not settings.enable_cycle_data:
         logger.info("Skipping cycle static data...")
         return
     logger.info("Processing Dublin Bikes station info...")
-    process_station_information()
+    process_cycle_station_info()
 
 
-def _run_train_static(settings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
     if not settings.enable_train_data:
         logger.info("Skipping train static data...")
         return
@@ -132,7 +161,7 @@ def _run_train_static(settings, logger: logging.Logger) -> None:  # type: ignore
     delete_static_data(train_dir)
 
 
-def _run_tram_static(settings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_tram_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
     if not settings.enable_tram_data:
         logger.info("Skipping tram static data...")
         return
@@ -150,7 +179,9 @@ def _run_tram_static(settings, logger: logging.Logger) -> None:  # type: ignore[
     delete_static_data(tram_dir_str)
 
 
-def _run_population_static(settings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_population_static(
+    settings: DataSourcesSettings, logger: logging.Logger
+) -> None:  # type: ignore[type-arg]
     if not settings.enable_population_data:
         logger.info("Skipping population static data...")
         return
