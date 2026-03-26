@@ -31,8 +31,8 @@ postgres:
     existingSecret: sec-db-root
   
   storage:
-    volumeName: "postgres-data" 
-    requestedSize: "10Gi"
+    volumeName: "postgres-data"
+    requestedSize: "100Gi"
 
 db:
   # Passwords auto-generated if empty
@@ -95,6 +95,8 @@ keycloak:
 
 hermes:
   enabled: true
+  frontendUrl: ""
+  inferenceEngineUrl: ""
   keycloak:
     realm: *keycloakRealmName
     clientId: *keycloakClientId
@@ -109,6 +111,10 @@ data-handler:
       name: sec-db-data-handler-user
     gtfsApiKey:
       name: sec-gtfs-api-key
+  initJob:
+    enabled: true
+  staticDataCron:
+    enabled: true
 
 inference-engine:
   enabled: true

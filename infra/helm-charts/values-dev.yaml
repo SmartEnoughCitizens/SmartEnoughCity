@@ -8,9 +8,24 @@ data-handler:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
-    pullPolicy: IfNotPresent
-#  cronjob:
-#    suspend: true
+    pullPolicy: Always
+  #  cronjob:
+  #    suspend: true
+  appEnv: "prod"
+  gtfsApiBaseUrl: "https://api.nationaltransport.ie/gtfsr/v2"
+  ecoCounterApiBaseUrl: "https://api.eco-counter.com/api/v2"
+  dublinBikesApiUrl: "https://data.smartdublin.ie/dublinbikes-api/bikes/dublin_bikes/current/stations.geojson"
+  irishRailBaseUrl: "http://api.irishrail.ie/realtime/realtime.asmx"
+  luasForecastBaseUrl: "https://luasforecasts.rpa.ie/xml/get.ashx"
+  ticketmasterApiBaseUrl: "https://app.ticketmaster.com/discovery/v2"
+  carGdriveFolderId: "1rit5LjXJiknktSpWMip60qkuaEZ0Nsnt"
+  secrets:
+    ecoCounterApiKey:
+      name: sec-eco-counter-api-key
+    ticketmasterApiKey:
+      name: sec-ticketmaster-api-key
+  podAnnotations:
+    sidecar.istio.io/inject: "false"
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -30,7 +45,7 @@ frontend:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/frontend
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   securityContext:
     fsGroup: 1000
     runAsNonRoot: true
@@ -50,7 +65,9 @@ hermes:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
+  frontendUrl: "https://dev.citycontrol.me"
+  inferenceEngineUrl: "http://sec-inference-engine:8000"
   # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
   livenessProbe: null
   readinessProbe: null
@@ -73,7 +90,7 @@ inference-engine:
   image:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   livenessProbe:
     httpGet:
       path: /docs
@@ -108,6 +125,13 @@ postgres:
   primary:
     podAnnotations:
       sidecar.istio.io/inject: "false"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "4Gi"
 
 # Exclude PostgreSQL init job from Istio - Jobs can't complete with sidecars
 postgresqlInit:
