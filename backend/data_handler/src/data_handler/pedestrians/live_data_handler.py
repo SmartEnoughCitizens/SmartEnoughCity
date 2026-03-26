@@ -87,30 +87,7 @@ def _payload_to_site(payload: PedestrianSitePayload) -> PedestrianCounterSite:
 _sites_adapter = TypeAdapter(list[PedestrianSitePayload])
 
 
-def process_pedestrian_sites(json_string: str) -> list[int]:
-    """
-    Parse, validate, and persist pedestrian counter sites from JSON.
-
-    Expects a JSON array of site objects matching the API shape (camelCase).
-    If a site id already exists in the database, the row is updated with the
-    new data; otherwise a new row is inserted.
-
-    Args:
-        json_string: Raw JSON string (array of site objects).
-
-    Returns:
-        A list of site ids that were updated or inserted.
-
-    Raises:
-        ValueError: If JSON is invalid or a required field is invalid.
-        ValidationError: If the structure does not match (Pydantic validation).
-    """
-    try:
-        payloads = _sites_adapter.validate_json(json_string)
-    except json.JSONDecodeError as e:
-        msg = "Invalid JSON"
-        raise ValueError(msg) from e
-
+def _persist_pedestrian_sites(payloads: list[PedestrianSitePayload]) -> list[int]:
     valid_payloads = [
         p for p in payloads if p.location.lat is not None and p.location.lon is not None
     ]
@@ -138,6 +115,32 @@ def process_pedestrian_sites(json_string: str) -> list[int]:
 
     logger.info("Persisted %d pedestrian counter site record(s).", len(updated_ids))
     return updated_ids
+
+
+def process_pedestrian_sites(json_string: str) -> list[int]:
+    """
+    Parse, validate, and persist pedestrian counter sites from JSON.
+
+    Expects a JSON array of site objects matching the API shape (camelCase).
+    If a site id already exists in the database, the row is updated with the
+    new data; otherwise a new row is inserted.
+
+    Args:
+        json_string: Raw JSON string (array of site objects).
+
+    Returns:
+        A list of site ids that were updated or inserted.
+
+    Raises:
+        ValueError: If JSON is invalid or a required field is invalid.
+        ValidationError: If the structure does not match (Pydantic validation).
+    """
+    try:
+        payloads = _sites_adapter.validate_json(json_string)
+    except json.JSONDecodeError as e:
+        msg = "Invalid JSON"
+        raise ValueError(msg) from e
+    return _persist_pedestrian_sites(payloads)
 
 
 def send_batch_job_request(site_ids: list[int], date: date) -> int:
@@ -382,15 +385,20 @@ def process_pedestrian_live_data() -> None:
     logger.info("Fetching pedestrian counter sites data...")
     sites_response = requests.get(sites_url, headers=headers, timeout=30)
     sites_response.raise_for_status()
-    updated_site_ids = process_pedestrian_sites(sites_response.text)
+
+    # Parse once — reuse for both persisting and export-date extraction.
+    site_payloads = _sites_adapter.validate_json(sites_response.text)
+    updated_site_ids = _persist_pedestrian_sites(site_payloads)
+
+    if not updated_site_ids:
+        logger.warning("No valid sites to process — skipping batch job request.")
+        return
 
     # Use the most recent lastData date from the sites rather than today, because
     # the API may lag by days or weeks and requesting a date with no data yields
     # empty CSVs.  Fall back to today only if no site carries lastData.
     last_data_dates = [
-        p.last_data.date()
-        for p in _sites_adapter.validate_json(sites_response.text)
-        if p.last_data is not None
+        p.last_data.date() for p in site_payloads if p.last_data is not None
     ]
     export_date = max(last_data_dates) if last_data_dates else date.today()
     logger.info("Using export date %s (derived from lastData).", export_date)
