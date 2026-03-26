@@ -34,10 +34,12 @@ public interface PedestrianSiteRepository extends JpaRepository<PedestrianSite, 
               FROM external_data.pedestrian_counter_measures pcm2
               JOIN external_data.pedestrian_channels pc2
                    ON pc2.channel_id = pcm2.channel_id
+              WHERE pc2.mobility_type = 'PEDESTRIAN'
               GROUP BY pc2.site_id
           ) latest ON pc.site_id = latest.site_id
                    AND pcm.start_datetime = latest.max_dt
           WHERE pcs.pedestrian_sensor = true
+            AND pc.mobility_type = 'PEDESTRIAN'
           GROUP BY pcs.id, pcs.name, pcs.lat, pcs.lon
           ORDER BY total_count DESC
           LIMIT :limit
