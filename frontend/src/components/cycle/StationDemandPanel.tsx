@@ -33,11 +33,14 @@ import type { StationClassification, StationHourlyUsageDTO } from "@/types";
 
 // ── Classification meta ───────────────────────────────────────────────────────
 
-const CLASS_META: Record<StationClassification, { label: string; color: string; hours: string }> = {
-  MORNING_PEAK:   { label: "Morning Peak",   color: "#f59e0b", hours: "07–09" },
+const CLASS_META: Record<
+  StationClassification,
+  { label: string; color: string; hours: string }
+> = {
+  MORNING_PEAK: { label: "Morning Peak", color: "#f59e0b", hours: "07–09" },
   AFTERNOON_PEAK: { label: "Afternoon Peak", color: "#3b82f6", hours: "12–14" },
-  EVENING_PEAK:   { label: "Evening Peak",   color: "#f97316", hours: "17–19" },
-  OFF_PEAK:       { label: "Off-Peak",       color: "#6b7280", hours: "Other" },
+  EVENING_PEAK: { label: "Evening Peak", color: "#f97316", hours: "17–19" },
+  OFF_PEAK: { label: "Off-Peak", color: "#6b7280", hours: "Other" },
 };
 
 const CLASS_ORDER: StationClassification[] = [
@@ -74,9 +77,13 @@ function heatColor(value: number, max: number): string {
 
 const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
   const stations = useMemo(() => {
-    const map = new Map<number, { name: string; byHour: Record<number, number> }>();
+    const map = new Map<
+      number,
+      { name: string; byHour: Record<number, number> }
+    >();
     for (const r of rows) {
-      if (!map.has(r.stationId)) map.set(r.stationId, { name: r.name, byHour: {} });
+      if (!map.has(r.stationId))
+        map.set(r.stationId, { name: r.name, byHour: {} });
       map.get(r.stationId)!.byHour[r.hourOfDay] = r.avgUsageRate;
     }
     return [...map.entries()].map(([id, v]) => ({ id, ...v }));
@@ -89,8 +96,17 @@ const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
 
   if (stations.length === 0) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-        <Typography variant="caption" color="text.secondary">No data available</Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <Typography variant="caption" color="text.secondary">
+          No data available
+        </Typography>
       </Box>
     );
   }
@@ -115,7 +131,11 @@ const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
           <Typography
             key={h}
             variant="caption"
-            sx={{ fontSize: "0.55rem", textAlign: "center", color: "text.secondary" }}
+            sx={{
+              fontSize: "0.55rem",
+              textAlign: "center",
+              color: "text.secondary",
+            }}
           >
             {h}h
           </Typography>
@@ -167,8 +187,15 @@ const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
       ))}
 
       {/* Legend */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1, px: 0.5 }}>
-        <Typography variant="caption" sx={{ fontSize: "0.55rem", color: "text.secondary" }}>Low</Typography>
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1, px: 0.5 }}
+      >
+        <Typography
+          variant="caption"
+          sx={{ fontSize: "0.55rem", color: "text.secondary" }}
+        >
+          Low
+        </Typography>
         <Box
           sx={{
             flex: 1,
@@ -177,7 +204,12 @@ const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
             background: "linear-gradient(to right, #1e3a5f, #f59e0b, #ef4444)",
           }}
         />
-        <Typography variant="caption" sx={{ fontSize: "0.55rem", color: "text.secondary" }}>High</Typography>
+        <Typography
+          variant="caption"
+          sx={{ fontSize: "0.55rem", color: "text.secondary" }}
+        >
+          High
+        </Typography>
       </Box>
     </Box>
   );
@@ -195,11 +227,18 @@ function classifyHour(h: number): StationClassification {
 const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
   // Build per-station peak hour from the hourly data
   const peakByStation = useMemo(() => {
-    const map = new Map<number, { name: string; peakHour: number; peakUsage: number }>();
+    const map = new Map<
+      number,
+      { name: string; peakHour: number; peakUsage: number }
+    >();
     for (const r of rows) {
       const existing = map.get(r.stationId);
       if (!existing || r.avgUsageRate > existing.peakUsage) {
-        map.set(r.stationId, { name: r.name, peakHour: r.hourOfDay, peakUsage: r.avgUsageRate });
+        map.set(r.stationId, {
+          name: r.name,
+          peakHour: r.hourOfDay,
+          peakUsage: r.avgUsageRate,
+        });
       }
     }
     return [...map.values()].toSorted((a, b) => b.peakUsage - a.peakUsage);
@@ -207,8 +246,17 @@ const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
 
   if (peakByStation.length === 0) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-        <Typography variant="caption" color="text.secondary">No data available</Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <Typography variant="caption" color="text.secondary">
+          No data available
+        </Typography>
       </Box>
     );
   }
@@ -230,7 +278,15 @@ const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
         }}
       >
         {["Station", "Peak Hr", "Usage", "Type"].map((h) => (
-          <Typography key={h} variant="caption" sx={{ fontSize: "0.6rem", color: "text.secondary", fontWeight: 700 }}>
+          <Typography
+            key={h}
+            variant="caption"
+            sx={{
+              fontSize: "0.6rem",
+              color: "text.secondary",
+              fontWeight: 700,
+            }}
+          >
             {h}
           </Typography>
         ))}
@@ -254,7 +310,12 @@ const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
           >
             <Typography
               variant="caption"
-              sx={{ fontSize: "0.62rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              sx={{
+                fontSize: "0.62rem",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
               title={st.name}
             >
               {st.name}
@@ -281,7 +342,10 @@ const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
                   flexShrink: 0,
                 }}
               />
-              <Typography variant="caption" sx={{ fontSize: "0.58rem", color: meta.color }}>
+              <Typography
+                variant="caption"
+                sx={{ fontSize: "0.58rem", color: meta.color }}
+              >
                 {meta.hours}
               </Typography>
             </Box>
@@ -298,9 +362,12 @@ export const StationDemandPanel = () => {
   const [days, setDays] = useState(30);
   const [innerTab, setInnerTab] = useState(0);
 
-  const { data: hourlyProfile, isLoading: profileLoading } = useCycleNetworkHourlyProfile(days);
-  const { data: classification, isLoading: classLoading } = useCycleStationClassification(days);
-  const { data: stationHourly, isLoading: hourlyLoading } = useCycleStationHourlyUsage(days, 30);
+  const { data: hourlyProfile, isLoading: profileLoading } =
+    useCycleNetworkHourlyProfile(days);
+  const { data: classification, isLoading: classLoading } =
+    useCycleStationClassification(days);
+  const { data: stationHourly, isLoading: hourlyLoading } =
+    useCycleStationHourlyUsage(days, 30);
 
   const isLoading = profileLoading || classLoading || hourlyLoading;
 
@@ -318,9 +385,14 @@ export const StationDemandPanel = () => {
 
   const classCounts = useMemo(() => {
     const counts: Record<StationClassification, number> = {
-      MORNING_PEAK: 0, AFTERNOON_PEAK: 0, EVENING_PEAK: 0, OFF_PEAK: 0,
+      MORNING_PEAK: 0,
+      AFTERNOON_PEAK: 0,
+      EVENING_PEAK: 0,
+      OFF_PEAK: 0,
     };
-    for (const s of classification ?? []) { counts[s.classification]++; }
+    for (const s of classification ?? []) {
+      counts[s.classification]++;
+    }
     return counts;
   }, [classification]);
 
@@ -345,7 +417,12 @@ export const StationDemandPanel = () => {
           onChange={(_, v) => setInnerTab(v)}
           sx={{
             minHeight: 28,
-            "& .MuiTab-root": { minHeight: 28, fontSize: "0.65rem", textTransform: "none", py: 0.25 },
+            "& .MuiTab-root": {
+              minHeight: 28,
+              fontSize: "0.65rem",
+              textTransform: "none",
+              py: 0.25,
+            },
           }}
         >
           <Tab label="Overview" />
@@ -358,7 +435,9 @@ export const StationDemandPanel = () => {
           exclusive
           onChange={(_, v) => v !== null && setDays(v)}
           size="small"
-          sx={{ "& .MuiToggleButton-root": { px: 1, py: 0.25, fontSize: "0.65rem" } }}
+          sx={{
+            "& .MuiToggleButton-root": { px: 1, py: 0.25, fontSize: "0.65rem" },
+          }}
         >
           <ToggleButton value={7}>7d</ToggleButton>
           <ToggleButton value={30}>30d</ToggleButton>
@@ -367,12 +446,18 @@ export const StationDemandPanel = () => {
       </Box>
 
       {isLoading ? (
-        <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <CircularProgress size={24} />
         </Box>
       ) : (
         <Box sx={{ flex: 1, overflow: "hidden", px: 2, pb: 1.5 }}>
-
           {/* ── Overview: network chart + classification ── */}
           {innerTab === 0 && (
             <Box
@@ -384,14 +469,29 @@ export const StationDemandPanel = () => {
               }}
             >
               {/* Left: hourly bar chart */}
-              <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 0.5 }}>
+              <Box
+                sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}
+              >
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  fontWeight={600}
+                  sx={{ mb: 0.5 }}
+                >
                   NETWORK USAGE BY HOUR
                 </Typography>
                 <Box sx={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -24 }} barCategoryGap="10%">
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+                    <BarChart
+                      data={chartData}
+                      margin={{ top: 4, right: 4, bottom: 0, left: -24 }}
+                      barCategoryGap="10%"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        opacity={0.2}
+                        vertical={false}
+                      />
                       <XAxis
                         dataKey="hourOfDay"
                         tickFormatter={(h) => `${h}h`}
@@ -409,7 +509,10 @@ export const StationDemandPanel = () => {
                         ticks={[0, 25, 50, 75, 100]}
                       />
                       <Tooltip
-                        formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`, "Avg Usage"]}
+                        formatter={(value: number | undefined) => [
+                          `${(value ?? 0).toFixed(1)}%`,
+                          "Avg Usage",
+                        ]}
                         labelFormatter={(h) => `${h}:00–${h}:59`}
                         contentStyle={{ fontSize: "0.72rem" }}
                       />
@@ -417,7 +520,11 @@ export const StationDemandPanel = () => {
                         {chartData.map((entry) => (
                           <Cell
                             key={entry.hourOfDay}
-                            fill={entry.hourOfDay === currentHour ? "#f59e0b" : "#3b82f6"}
+                            fill={
+                              entry.hourOfDay === currentHour
+                                ? "#f59e0b"
+                                : "#3b82f6"
+                            }
                             opacity={entry.hourOfDay === currentHour ? 1 : 0.7}
                           />
                         ))}
@@ -428,15 +535,32 @@ export const StationDemandPanel = () => {
               </Box>
 
               {/* Right: classification breakdown */}
-              <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 0.5 }}>
+              <Box
+                sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}
+              >
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  fontWeight={600}
+                  sx={{ mb: 0.5 }}
+                >
                   STATION CLASSIFICATION
                 </Typography>
-                <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, flex: 1 }}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 1,
+                    flex: 1,
+                  }}
+                >
                   {CLASS_ORDER.map((cls) => {
                     const meta = CLASS_META[cls];
                     const count = classCounts[cls];
-                    const pct = totalClassified > 0 ? Math.round((count / totalClassified) * 100) : 0;
+                    const pct =
+                      totalClassified > 0
+                        ? Math.round((count / totalClassified) * 100)
+                        : 0;
                     return (
                       <Box
                         key={cls}
@@ -451,16 +575,34 @@ export const StationDemandPanel = () => {
                           justifyContent: "center",
                         }}
                       >
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.6rem" }}
+                        >
                           {meta.hours}
                         </Typography>
-                        <Typography variant="body2" fontWeight={700} sx={{ color: meta.color, lineHeight: 1.2 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{ color: meta.color, lineHeight: 1.2 }}
+                        >
                           {count}
-                          <Typography component="span" sx={{ fontSize: "0.6rem", color: "text.secondary", ml: 0.5 }}>
+                          <Typography
+                            component="span"
+                            sx={{
+                              fontSize: "0.6rem",
+                              color: "text.secondary",
+                              ml: 0.5,
+                            }}
+                          >
                             ({pct}%)
                           </Typography>
                         </Typography>
-                        <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "text.secondary" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: "0.6rem", color: "text.secondary" }}
+                        >
                           {meta.label}
                         </Typography>
                       </Box>
@@ -474,7 +616,12 @@ export const StationDemandPanel = () => {
           {/* ── Heatmap ── */}
           {innerTab === 1 && (
             <Box sx={{ height: "100%" }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: "block", mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={600}
+                sx={{ display: "block", mb: 0.5 }}
+              >
                 STATION USAGE HEATMAP (TOP 30 BUSIEST)
               </Typography>
               <Box sx={{ height: "calc(100% - 20px)" }}>
@@ -486,7 +633,12 @@ export const StationDemandPanel = () => {
           {/* ── Peak Hours ── */}
           {innerTab === 2 && (
             <Box sx={{ height: "100%" }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: "block", mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={600}
+                sx={{ display: "block", mb: 0.5 }}
+              >
                 PEAK HOUR PER STATION
               </Typography>
               <Box sx={{ height: "calc(100% - 20px)" }}>
@@ -494,7 +646,6 @@ export const StationDemandPanel = () => {
               </Box>
             </Box>
           )}
-
         </Box>
       )}
     </Box>

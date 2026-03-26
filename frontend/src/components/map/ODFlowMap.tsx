@@ -36,7 +36,9 @@ type LatLon = [number, number];
 
 const FitBounds = ({ pairs }: { pairs: StationODPairDTO[] }) => {
   const map = useMap();
-  const key = pairs.map((p) => p.originStationId + "-" + p.destStationId).join("|");
+  const key = pairs
+    .map((p) => p.originStationId + "-" + p.destStationId)
+    .join("|");
   useEffect(() => {
     if (pairs.length === 0) return;
     const pts: LatLon[] = pairs.flatMap((p) => [
@@ -44,17 +46,27 @@ const FitBounds = ({ pairs }: { pairs: StationODPairDTO[] }) => {
       [p.destLat, p.destLon],
     ]);
     map.fitBounds(L.latLngBounds(pts), { padding: [60, 60] });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return null;
 };
 
-const FitToRoute = ({ routeCoords, pair }: { routeCoords: LatLon[] | undefined; pair: StationODPairDTO }) => {
+const FitToRoute = ({
+  routeCoords,
+  pair,
+}: {
+  routeCoords: LatLon[] | undefined;
+  pair: StationODPairDTO;
+}) => {
   const map = useMap();
   useEffect(() => {
-    const pts: LatLon[] = routeCoords && routeCoords.length > 0
-      ? routeCoords
-      : [[pair.originLat, pair.originLon], [pair.destLat, pair.destLon]];
+    const pts: LatLon[] =
+      routeCoords && routeCoords.length > 0
+        ? routeCoords
+        : [
+            [pair.originLat, pair.originLon],
+            [pair.destLat, pair.destLon],
+          ];
     map.fitBounds(L.latLngBounds(pts), { padding: [80, 80] });
   }, [map, routeCoords, pair]);
   return null;
@@ -95,19 +107,26 @@ export const ODFlowMap = ({
     : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
   const selectedPair = selectedPairKey
-    ? odPairs.find((p) => `${p.originStationId}-${p.destStationId}` === selectedPairKey) ?? null
+    ? (odPairs.find(
+        (p) => `${p.originStationId}-${p.destStationId}` === selectedPairKey,
+      ) ?? null)
     : null;
 
   const stationFlow = new Map<number, number>();
   for (const p of odPairs) {
-    stationFlow.set(p.originStationId, (stationFlow.get(p.originStationId) ?? 0) + p.estimatedTrips);
-    stationFlow.set(p.destStationId, (stationFlow.get(p.destStationId) ?? 0) + p.estimatedTrips);
+    stationFlow.set(
+      p.originStationId,
+      (stationFlow.get(p.originStationId) ?? 0) + p.estimatedTrips,
+    );
+    stationFlow.set(
+      p.destStationId,
+      (stationFlow.get(p.destStationId) ?? 0) + p.estimatedTrips,
+    );
   }
   const maxFlow = Math.max(...stationFlow.values(), 1);
 
   return (
     <Box sx={{ height, width: "100%", position: "relative" }}>
-
       {/* Route loading progress bar */}
       {routeProgress && (
         <Box
@@ -123,7 +142,9 @@ export const ODFlowMap = ({
             pb: 0.5,
           }}
         >
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
+          <Box
+            sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}
+          >
             <Typography variant="caption" color="text.secondary">
               Loading cycle routes…
             </Typography>
@@ -162,9 +183,23 @@ export const ODFlowMap = ({
           { color: "#22c55e", label: "Low flow" },
           { color: "#f59e0b", label: "Selected" },
         ].map(({ color, label }) => (
-          <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 24, height: 4, borderRadius: 1, bgcolor: color, flexShrink: 0 }} />
-            <Typography variant="caption" sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
+          <Box
+            key={label}
+            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          >
+            <Box
+              sx={{
+                width: 24,
+                height: 4,
+                borderRadius: 1,
+                bgcolor: color,
+                flexShrink: 0,
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{ fontSize: "0.65rem", color: "text.secondary" }}
+            >
               {label}
             </Typography>
           </Box>
@@ -178,10 +213,14 @@ export const ODFlowMap = ({
         zoomControl={false}
       >
         <TileLayer attribution={tileAttribution} url={tileUrl} />
-        {selectedPair
-          ? <FitToRoute routeCoords={routeCache.get(selectedPairKey!)} pair={selectedPair} />
-          : <FitBounds pairs={odPairs} />
-        }
+        {selectedPair ? (
+          <FitToRoute
+            routeCoords={routeCache.get(selectedPairKey!)}
+            pair={selectedPair}
+          />
+        ) : (
+          <FitBounds pairs={odPairs} />
+        )}
 
         {/* OD route polylines */}
         {odPairs.map((pair) => {
@@ -196,9 +235,11 @@ export const ODFlowMap = ({
           // Colour based on absolute trip count vs data-driven thresholds
           const trips = pair.estimatedTrips;
           const intensityColor =
-            trips >= thresholds.high ? "#ef4444"
-            : trips >= thresholds.low ? "#f97316"
-            : "#22c55e";
+            trips >= thresholds.high
+              ? "#ef4444"
+              : trips >= thresholds.low
+                ? "#f97316"
+                : "#22c55e";
 
           const maxTrips = Math.max(...odPairs.map((p) => p.estimatedTrips), 1);
           const ratio = trips / maxTrips;
@@ -219,11 +260,16 @@ export const ODFlowMap = ({
                 <Typography variant="caption" fontWeight={600} display="block">
                   {pair.originName}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
                   → {pair.destName}
                 </Typography>
                 <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                  ~{pair.estimatedTrips} estimated trips · {pair.distanceKm.toFixed(2)} km
+                  ~{pair.estimatedTrips} estimated trips ·{" "}
+                  {pair.distanceKm.toFixed(2)} km
                 </Typography>
               </Popup>
             </Polyline>

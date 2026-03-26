@@ -40,7 +40,10 @@ async function fetchOne(
 
 export const useODRoutes = (odPairs: StationODPairDTO[]) => {
   const [routeCache, setRouteCache] = useState<ODRouteCache>(() => new Map());
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   // Track which set of pairs we've already fetched to avoid re-fetching on re-renders
   const fetchedKeyRef = useRef<string>("");
@@ -50,7 +53,9 @@ export const useODRoutes = (odPairs: StationODPairDTO[]) => {
     if (pairs.length === 0) return;
 
     // Stable key representing this exact pair list
-    const batchKey = pairs.map((p) => `${p.originStationId}-${p.destStationId}`).join("|");
+    const batchKey = pairs
+      .map((p) => `${p.originStationId}-${p.destStationId}`)
+      .join("|");
     if (batchKey === fetchedKeyRef.current) return; // already fetching/fetched this set
     fetchedKeyRef.current = batchKey;
 
@@ -65,7 +70,9 @@ export const useODRoutes = (odPairs: StationODPairDTO[]) => {
       for (let i = 0; i < pairs.length; i += CONCURRENT) {
         if (controller.signal.aborted) return;
         const batch = pairs.slice(i, i + CONCURRENT);
-        const results = await Promise.allSettled(batch.map((p) => fetchOne(p, controller.signal)));
+        const results = await Promise.allSettled(
+          batch.map((p) => fetchOne(p, controller.signal)),
+        );
         if (controller.signal.aborted) return;
 
         setRouteCache((prev) => {
@@ -77,7 +84,10 @@ export const useODRoutes = (odPairs: StationODPairDTO[]) => {
           }
           return next;
         });
-        setProgress({ done: Math.min(i + CONCURRENT, pairs.length), total: pairs.length });
+        setProgress({
+          done: Math.min(i + CONCURRENT, pairs.length),
+          total: pairs.length,
+        });
       }
       setProgress(null);
     };

@@ -104,7 +104,7 @@ export interface StationEventDTO {
 // ── Demand Analysis DTOs ──────────────────────────────────────────────────────
 
 export interface HourlyNetworkProfileDTO {
-  hourOfDay: number;    // 0–23 in Europe/Dublin local time
+  hourOfDay: number; // 0–23 in Europe/Dublin local time
   avgUsageRate: number; // network avg of (capacity - available_docks)/capacity * 100
   stationCount: number;
 }
@@ -118,8 +118,8 @@ export type StationClassification =
 export interface StationClassificationDTO {
   stationId: number;
   name: string;
-  peakHour: number;                     // 0–23
-  peakUsage: number;                    // 0–100 percentage
+  peakHour: number; // 0–23
+  peakUsage: number; // 0–100 percentage
   classification: StationClassification;
 }
 
@@ -141,8 +141,8 @@ export interface StationODPairDTO {
 export interface StationHourlyUsageDTO {
   stationId: number;
   name: string;
-  hourOfDay: number;       // 0–23 Europe/Dublin local time
-  avgUsageRate: number;    // 0–100 percentage
+  hourOfDay: number; // 0–23 Europe/Dublin local time
+  avgUsageRate: number; // 0–100 percentage
 }
 
 /** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
