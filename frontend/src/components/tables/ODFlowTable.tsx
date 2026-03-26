@@ -61,13 +61,13 @@ export const ODFlowTable = ({
         <Select
           size="small"
           displayEmpty
-          value={filterStationId ?? ""}
+          value={filterStationId !== null ? String(filterStationId) : ""}
           onChange={(e) => onFilterChange(e.target.value === "" ? null : Number(e.target.value))}
           sx={{ fontSize: "0.7rem", minWidth: 140, flex: 1 }}
         >
           <MenuItem value="">All stations</MenuItem>
           {stationOptions.map(([id, name]) => (
-            <MenuItem key={id} value={id} sx={{ fontSize: "0.7rem" }}>
+            <MenuItem key={id} value={String(id)} sx={{ fontSize: "0.7rem" }}>
               {name}
             </MenuItem>
           ))}
