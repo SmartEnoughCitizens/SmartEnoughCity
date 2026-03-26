@@ -62,7 +62,8 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               ORDER BY s.station_id, s.timestamp DESC
           )
           SELECT
-              COUNT(*)                                                                     AS total_stations,
+              (SELECT COUNT(*) FROM external_data.dublin_bikes_stations)                   AS total_stations,
+              COUNT(*)                                                                     AS active_stations,
               COALESCE(SUM(l.available_bikes), 0)                                          AS total_bikes,
               COALESCE(SUM(l.available_docks), 0)                                          AS total_docks,
               COALESCE(SUM(l.disabled_bikes), 0)                                           AS disabled_bikes,
@@ -137,6 +138,52 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   List<Object[]> findNetworkImbalanceScore();
 
   // -------------------------------------------------------------------------
+  // Station rankings (today's snapshots)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Today's station rankings ordered by avg usage rate descending (busiest first). Window: midnight
+   * UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              s.station_id,
+              st.name,
+              AVG((st.capacity - s.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
+          FROM external_data.dublin_bikes_station_snapshots s
+          JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
+          WHERE s.timestamp >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+          GROUP BY s.station_id, st.name
+          ORDER BY avg_usage_rate DESC
+          LIMIT :limitVal
+          """,
+      nativeQuery = true)
+  List<Object[]> findBusiestStations(@Param("limitVal") int limit);
+
+  /**
+   * Today's station rankings ordered by avg usage rate ascending (least used first). Window:
+   * midnight UTC today → now. Returns Object[] rows: station_id, name, avg_usage_rate
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              s.station_id,
+              st.name,
+              AVG((st.capacity - s.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
+          FROM external_data.dublin_bikes_station_snapshots s
+          JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
+          WHERE s.timestamp >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+          GROUP BY s.station_id, st.name
+          ORDER BY avg_usage_rate ASC
+          LIMIT :limitVal
+          """,
+      nativeQuery = true)
+  List<Object[]> findLeastUsedStations(@Param("limitVal") int limit);
+
+  // -------------------------------------------------------------------------
   // Rebalancing suggestions
   // -------------------------------------------------------------------------
 
@@ -182,7 +229,9 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
               e.longitude                                                            AS target_lon,
               e.capacity                                                             AS target_capacity,
               SQRT(POWER((s.latitude::float - e.latitude::float), 2)
-                 + POWER((s.longitude::float - e.longitude::float), 2)) * 111.0     AS distance_km
+                 + POWER((s.longitude::float - e.longitude::float)
+                     * COS(RADIANS((s.latitude::float + e.latitude::float) / 2.0)), 2)
+                 ) * 111.0                                                           AS distance_km
           FROM empty_stations e
           CROSS JOIN surplus_stations s
           WHERE e.station_id != s.station_id
@@ -191,4 +240,179 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
           """,
       nativeQuery = true)
   List<Object[]> findRebalancingSuggestions(@Param("limitVal") int limit);
+
+  // -------------------------------------------------------------------------
+  // Demand Analysis (snapshot-based hourly aggregations)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Network-wide average usage rate grouped by hour-of-day (Europe/Dublin timezone). Covers the
+   * last {@code days} days. Returns Object[] rows: hour_of_day (int), avg_usage_rate (double),
+   * station_count (long)
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              EXTRACT(HOUR FROM s.timestamp AT TIME ZONE 'Europe/Dublin')::int   AS hour_of_day,
+              AVG((st.capacity - s.available_docks)::float
+                  / NULLIF(st.capacity, 0) * 100)                                AS avg_usage_rate,
+              COUNT(DISTINCT s.station_id)                                       AS station_count
+          FROM external_data.dublin_bikes_station_snapshots s
+          JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
+          WHERE s.timestamp >= NOW() - make_interval(days => :days)
+            AND st.capacity > 0
+            AND s.is_installed = true
+          GROUP BY hour_of_day
+          ORDER BY hour_of_day ASC
+          """,
+      nativeQuery = true)
+  List<Object[]> findNetworkHourlyProfile(@Param("days") int days);
+
+  /**
+   * Per-station peak-hour classification based on the last {@code days} days of snapshots. Returns
+   * Object[] rows: station_id (int), name (String), peak_hour (int), peak_usage (double),
+   * classification (String)
+   */
+  @Query(
+      value =
+          """
+          WITH hourly AS (
+              SELECT
+                  s.station_id,
+                  st.name,
+                  EXTRACT(HOUR FROM s.timestamp AT TIME ZONE 'Europe/Dublin')::int  AS hour_of_day,
+                  AVG((st.capacity - s.available_docks)::float
+                      / NULLIF(st.capacity, 0) * 100)                               AS avg_usage
+              FROM external_data.dublin_bikes_station_snapshots s
+              JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
+              WHERE s.timestamp >= NOW() - make_interval(days => :days)
+                AND st.capacity > 0
+                AND s.is_installed = true
+              GROUP BY s.station_id, st.name, hour_of_day
+          ),
+          peak AS (
+              SELECT DISTINCT ON (station_id)
+                  station_id,
+                  name,
+                  hour_of_day  AS peak_hour,
+                  avg_usage    AS peak_usage
+              FROM hourly
+              ORDER BY station_id, avg_usage DESC
+          )
+          SELECT
+              p.station_id,
+              p.name,
+              p.peak_hour,
+              p.peak_usage,
+              CASE
+                  WHEN p.peak_hour BETWEEN 7  AND 9  THEN 'MORNING_PEAK'
+                  WHEN p.peak_hour BETWEEN 12 AND 14 THEN 'AFTERNOON_PEAK'
+                  WHEN p.peak_hour BETWEEN 17 AND 19 THEN 'EVENING_PEAK'
+                  ELSE 'OFF_PEAK'
+              END AS classification
+          FROM peak p
+          ORDER BY p.peak_usage DESC
+          """,
+      nativeQuery = true)
+  List<Object[]> findStationClassification(@Param("days") int days);
+
+  /**
+   * Per-station, per-hour average usage rate for the top {@code stationLimit} busiest stations.
+   * Returns Object[] rows: station_id (int), name (String), hour_of_day (int), avg_usage_rate
+   * (double)
+   */
+  @Query(
+      value =
+          """
+          WITH top_stations AS (
+              SELECT s.station_id
+              FROM external_data.dublin_bikes_station_snapshots s
+              JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
+              WHERE s.timestamp >= NOW() - make_interval(days => :days)
+                AND st.capacity > 0
+                AND s.is_installed = true
+              GROUP BY s.station_id
+              ORDER BY AVG((st.capacity - s.available_docks)::float / NULLIF(st.capacity, 0) * 100) DESC
+              LIMIT :stationLimit
+          )
+          SELECT
+              s.station_id,
+              st.name,
+              EXTRACT(HOUR FROM s.timestamp AT TIME ZONE 'Europe/Dublin')::int  AS hour_of_day,
+              AVG((st.capacity - s.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
+          FROM external_data.dublin_bikes_station_snapshots s
+          JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
+          JOIN top_stations ts ON s.station_id = ts.station_id
+          WHERE s.timestamp >= NOW() - make_interval(days => :days)
+            AND st.capacity > 0
+            AND s.is_installed = true
+          GROUP BY s.station_id, st.name, hour_of_day
+          ORDER BY s.station_id, hour_of_day
+          """,
+      nativeQuery = true)
+  List<Object[]> findStationHourlyUsage(
+      @Param("days") int days, @Param("stationLimit") int stationLimit);
+
+  /**
+   * Estimates origin–destination trip flows using a gravity model over snapshot availability
+   * changes. Departure events (available_bikes decreasing) at one station are distributed to nearby
+   * arrival events (available_bikes increasing) proportional to arrival volume. Returns Object[]
+   * rows: origin_station_id, origin_name, origin_lat, origin_lon, dest_station_id, dest_name,
+   * dest_lat, dest_lon, estimated_trips, distance_km
+   */
+  @Query(
+      value =
+          """
+          WITH snapshot_deltas AS (
+              SELECT
+                  station_id,
+                  available_bikes
+                      - LAG(available_bikes) OVER (PARTITION BY station_id ORDER BY timestamp) AS delta
+              FROM external_data.dublin_bikes_station_snapshots
+              WHERE timestamp >= NOW() - make_interval(days => :days)
+                AND is_installed = true
+          ),
+          station_flows AS (
+              SELECT
+                  station_id,
+                  SUM(CASE WHEN delta < 0 AND delta >= -10 THEN -delta ELSE 0 END)::float AS departures,
+                  SUM(CASE WHEN delta > 0 AND delta <= 10  THEN  delta ELSE 0 END)::float AS arrivals
+              FROM snapshot_deltas
+              WHERE delta IS NOT NULL
+              GROUP BY station_id
+              HAVING SUM(CASE WHEN delta < 0 AND delta >= -10 THEN -delta ELSE 0 END) > 0
+                  OR SUM(CASE WHEN delta > 0 AND delta <= 10  THEN  delta ELSE 0 END) > 0
+          ),
+          station_info AS (
+              SELECT sf.station_id, sf.departures, sf.arrivals,
+                     st.name, st.latitude, st.longitude
+              FROM station_flows sf
+              JOIN external_data.dublin_bikes_stations st ON sf.station_id = st.station_id
+          )
+          SELECT
+              o.station_id                                                                      AS origin_station_id,
+              o.name                                                                            AS origin_name,
+              o.latitude                                                                        AS origin_lat,
+              o.longitude                                                                       AS origin_lon,
+              d.station_id                                                                      AS dest_station_id,
+              d.name                                                                            AS dest_name,
+              d.latitude                                                                        AS dest_lat,
+              d.longitude                                                                       AS dest_lon,
+              GREATEST(ROUND(SQRT(o.departures * d.arrivals))::int, 1)                         AS estimated_trips,
+              SQRT(POWER((o.latitude::float - d.latitude::float), 2)
+                 + POWER((o.longitude::float - d.longitude::float)
+                     * COS(RADIANS((o.latitude::float + d.latitude::float) / 2.0)), 2)
+                 ) * 111.0                                                                    AS distance_km
+          FROM station_info o
+          JOIN station_info d ON o.station_id != d.station_id
+            AND SQRT(POWER((o.latitude::float - d.latitude::float), 2)
+                   + POWER((o.longitude::float - d.longitude::float)
+                       * COS(RADIANS((o.latitude::float + d.latitude::float) / 2.0)), 2)
+                   ) * 111.0 <= 5.0
+          ORDER BY estimated_trips DESC
+          LIMIT :limitVal
+          """,
+      nativeQuery = true)
+  List<Object[]> findODPairs(@Param("days") int days, @Param("limitVal") int limit);
 }
