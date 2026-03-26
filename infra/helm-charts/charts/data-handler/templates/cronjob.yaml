@@ -1,28 +1,34 @@
+{{- if .Values.realtimeCron.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Release.Name }}-data-handler
+  name: {{ .Release.Name }}-data-handler-realtime
   labels:
     app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 4 }}
 spec:
-  schedule: {{ .Values.schedule | quote }}
+  schedule: {{ .Values.realtimeCron.schedule | quote }}
   {{- if .Values.timeZone }}
   timeZone: {{ .Values.timeZone | quote }}
   {{- end }}
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 45
+  startingDeadlineSeconds: 90
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       backoffLimit: 0
-      activeDeadlineSeconds: 55
+      activeDeadlineSeconds: 110
       template:
         metadata:
           labels:
             app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 12 }}
+          annotations:
+            sidecar.istio.io/inject: "false"
+          {{- if .Values.podAnnotations }}
+{{- toYaml .Values.podAnnotations | nindent 12 }}
+          {{- end }}
         spec:
           {{- if .Values.imagePullSecrets }}
           imagePullSecrets:
@@ -67,8 +73,51 @@ spec:
                   value: {{ .Values.global.db.schemas.dataHandlerSchema | quote }}
                 - name: HERMES_URL
                   value: "http://{{ .Release.Name }}-hermes:8080"
+                - name: APP_ENV
+                  value: {{ .Values.appEnv | default "prod" | quote }}
+                - name: BASE_STATIC_DATA_DIR
+                  value: "/tmp/static_data"
+                - name: GTFS_API_BASE_URL
+                  value: {{ .Values.gtfsApiBaseUrl | quote }}
                 - name: GTFS_API_KEY
                   valueFrom:
                     secretKeyRef:
                       name: {{ .Values.secrets.gtfsApiKey.name | quote }}
                       key: GTFS_API_KEY
+                - name: ECO_COUNTER_API_BASE_URL
+                  value: {{ .Values.ecoCounterApiBaseUrl | quote }}
+                - name: ECO_COUNTER_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.ecoCounterApiKey.name | quote }}
+                      key: ECO_COUNTER_API_KEY
+                - name: DUBLIN_BIKES_API_URL
+                  value: {{ .Values.dublinBikesApiUrl | quote }}
+                - name: IRISH_RAIL_BASE_URL
+                  value: {{ .Values.irishRailBaseUrl | quote }}
+                - name: LUAS_FORECAST_BASE_URL
+                  value: {{ .Values.luasForecastBaseUrl | quote }}
+                - name: TICKETMASTER_API_BASE_URL
+                  value: {{ .Values.ticketmasterApiBaseUrl | quote }}
+                - name: TICKETMASTER_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.ticketmasterApiKey.name | quote }}
+                      key: TICKETMASTER_API_KEY
+                - name: ENABLE_BUS_DATA
+                  value: "true"
+                - name: ENABLE_TRAIN_DATA
+                  value: "true"
+                - name: ENABLE_TRAM_DATA
+                  value: "true"
+                - name: ENABLE_CYCLE_DATA
+                  value: "false"
+                - name: ENABLE_CAR_DATA
+                  value: "false"
+                - name: ENABLE_CONSTRUCTION_DATA
+                  value: "false"
+                - name: ENABLE_EVENTS_DATA
+                  value: "false"
+                - name: ENABLE_POPULATION_DATA
+                  value: "false"
+{{- end }}
