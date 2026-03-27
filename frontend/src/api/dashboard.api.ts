@@ -5,6 +5,7 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  ActiveDisruption,
   BusDashboardResponse,
   BusKpis,
   BusLiveVehicle,
@@ -383,5 +384,22 @@ export const dashboardApi = {
       { params: { limit } },
     );
     return data;
+  },
+
+  /**
+   * Get all active disruptions
+   */
+  getActiveDisruptions: async (): Promise<ActiveDisruption[]> => {
+    const { data } = await axiosInstance.get<ActiveDisruption[]>(
+      API_ENDPOINTS.DISRUPTIONS_ACTIVE,
+    );
+    return data;
+  },
+
+  /**
+   * Resolve a disruption by ID
+   */
+  resolveDisruption: async (id: number): Promise<void> => {
+    await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
   },
 };
