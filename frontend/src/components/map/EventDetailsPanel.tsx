@@ -1,5 +1,5 @@
 /**
- * Event details panel — shown when a map marker is clicked
+ * Event/disruption details panel — shown when a map marker is clicked
  */
 
 import {
@@ -15,14 +15,19 @@ import EventIcon from "@mui/icons-material/Event";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PeopleIcon from "@mui/icons-material/People";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import type { EventItem } from "@/types";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import type { DisruptionItem, EventItem } from "@/types";
 import {
   CATEGORY_EMOJI,
   CATEGORY_LABEL,
   SEVERITY_COLORS,
+  getDisruptionCategory,
+  getDisruptionSeverity,
   getEventCategory,
   getEventSeverity,
 } from "./EventMap";
+import type { SelectedMapItem } from "./EventMap";
 
 function formatDate(dateStr: string): string {
   try {
@@ -49,21 +54,25 @@ function formatTime(dtStr: string | null): string {
   }
 }
 
-interface EventDetailsPanelProps {
-  event: EventItem | null;
-  onClose: () => void;
-}
+// ── Shared panel shell ───────────────────────────────────────────────
 
-export const EventDetailsPanel = ({
-  event,
+function PanelShell({
+  emoji,
+  title,
+  categoryLabel,
+  severityLabel,
+  severityColor,
   onClose,
-}: EventDetailsPanelProps) => {
-  if (!event) return null;
-
-  const category = getEventCategory(event.eventType);
-  const severity = getEventSeverity(event);
-  const severityColor = SEVERITY_COLORS[severity];
-
+  children,
+}: {
+  emoji: string;
+  title: string;
+  categoryLabel: string;
+  severityLabel: string;
+  severityColor: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <Paper
       elevation={0}
@@ -78,7 +87,6 @@ export const EventDetailsPanel = ({
         borderRadius: 2,
       }}
     >
-      {/* Header */}
       <Box
         sx={{
           px: 1.5,
@@ -89,8 +97,10 @@ export const EventDetailsPanel = ({
           borderBottom: "1px solid rgba(0,0,0,0.08)",
         }}
       >
-        <Typography sx={{ fontSize: 22, lineHeight: 1, flexShrink: 0, mt: 0.25 }}>
-          {CATEGORY_EMOJI[category]}
+        <Typography
+          sx={{ fontSize: 22, lineHeight: 1, flexShrink: 0, mt: 0.25 }}
+        >
+          {emoji}
         </Typography>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
@@ -101,12 +111,12 @@ export const EventDetailsPanel = ({
               lineHeight: 1.3,
             }}
           >
-            {event.eventName}
+            {title}
           </Typography>
           <Box sx={{ display: "flex", gap: 0.5, mt: 0.4, flexWrap: "wrap" }}>
             <Chip
               size="small"
-              label={CATEGORY_LABEL[category]}
+              label={categoryLabel}
               sx={{
                 fontSize: "0.6rem",
                 height: 16,
@@ -116,7 +126,7 @@ export const EventDetailsPanel = ({
             />
             <Chip
               size="small"
-              label={severity.charAt(0).toUpperCase() + severity.slice(1)}
+              label={severityLabel}
               sx={{
                 fontSize: "0.6rem",
                 height: 16,
@@ -131,95 +141,222 @@ export const EventDetailsPanel = ({
           <CloseIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Box>
-
-      {/* Details */}
       <Box sx={{ flex: 1, overflow: "auto", px: 1.5, py: 1.25 }}>
-        {/* Event type */}
-        <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", mb: 1 }}>
-          <EventIcon sx={{ fontSize: 14, color: "text.disabled", flexShrink: 0 }} />
-          <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
-            {event.eventType}
-          </Typography>
-        </Box>
-
-        <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mb: 1 }} />
-
-        {/* Venue */}
-        <Box sx={{ display: "flex", gap: 0.75, alignItems: "flex-start", mb: 0.75 }}>
-          <LocationOnIcon
-            sx={{ fontSize: 14, color: "text.disabled", flexShrink: 0, mt: 0.1 }}
-          />
-          <Box>
-            <Typography sx={{ fontSize: "0.72rem", color: "text.disabled", lineHeight: 1.1 }}>
-              Venue
-            </Typography>
-            <Typography sx={{ fontSize: "0.8rem", color: "text.primary", lineHeight: 1.3 }}>
-              {event.venueName}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Date */}
-        <Box sx={{ display: "flex", gap: 0.75, alignItems: "flex-start", mb: 0.75 }}>
-          <EventIcon
-            sx={{ fontSize: 14, color: "text.disabled", flexShrink: 0, mt: 0.1 }}
-          />
-          <Box>
-            <Typography sx={{ fontSize: "0.72rem", color: "text.disabled", lineHeight: 1.1 }}>
-              Date
-            </Typography>
-            <Typography sx={{ fontSize: "0.8rem", color: "text.primary", lineHeight: 1.3 }}>
-              {formatDate(event.eventDate)}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Time */}
-        <Box sx={{ display: "flex", gap: 0.75, alignItems: "flex-start", mb: 0.75 }}>
-          <AccessTimeIcon
-            sx={{ fontSize: 14, color: "text.disabled", flexShrink: 0, mt: 0.1 }}
-          />
-          <Box>
-            <Typography sx={{ fontSize: "0.72rem", color: "text.disabled", lineHeight: 1.1 }}>
-              Time
-            </Typography>
-            <Typography sx={{ fontSize: "0.8rem", color: "text.primary", lineHeight: 1.3 }}>
-              {formatTime(event.startTime)}
-              {event.endTime ? ` – ${formatTime(event.endTime)}` : ""}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Attendance */}
-        {event.estimatedAttendance != null && (
-          <Box sx={{ display: "flex", gap: 0.75, alignItems: "flex-start", mb: 0.75 }}>
-            <PeopleIcon
-              sx={{ fontSize: 14, color: "text.disabled", flexShrink: 0, mt: 0.1 }}
-            />
-            <Box>
-              <Typography sx={{ fontSize: "0.72rem", color: "text.disabled", lineHeight: 1.1 }}>
-                Est. Attendance
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  color: severityColor,
-                  lineHeight: 1.3,
-                }}
-              >
-                {event.estimatedAttendance.toLocaleString()}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
-        {/* Coords */}
-        <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mt: 0.5, mb: 0.75 }} />
-        <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>
-          {event.latitude.toFixed(5)}, {event.longitude.toFixed(5)}
-        </Typography>
+        {children}
       </Box>
     </Paper>
   );
+}
+
+function DetailRow({
+  icon,
+  label,
+  value,
+  valueColor,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  valueColor?: string;
+}) {
+  return (
+    <Box
+      sx={{ display: "flex", gap: 0.75, alignItems: "flex-start", mb: 0.75 }}
+    >
+      <Box sx={{ flexShrink: 0, mt: 0.1 }}>{icon}</Box>
+      <Box>
+        <Typography
+          sx={{ fontSize: "0.72rem", color: "text.disabled", lineHeight: 1.1 }}
+        >
+          {label}
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: "0.8rem",
+            color: valueColor ?? "text.primary",
+            fontWeight: valueColor ? 600 : 400,
+            lineHeight: 1.3,
+          }}
+        >
+          {value}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ── Event panel ──────────────────────────────────────────────────────
+
+function EventPanel({
+  event,
+  onClose,
+}: {
+  event: EventItem;
+  onClose: () => void;
+}) {
+  const category = getEventCategory(event.eventType);
+  const severity = getEventSeverity(event);
+  const severityColor = SEVERITY_COLORS[severity];
+
+  return (
+    <PanelShell
+      emoji={CATEGORY_EMOJI[category]}
+      title={event.eventName}
+      categoryLabel={CATEGORY_LABEL[category]}
+      severityLabel={severity.charAt(0).toUpperCase() + severity.slice(1)}
+      severityColor={severityColor}
+      onClose={onClose}
+    >
+      <DetailRow
+        icon={<EventIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
+        label="Type"
+        value={event.eventType}
+      />
+      <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mb: 1 }} />
+      <DetailRow
+        icon={<LocationOnIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
+        label="Venue"
+        value={event.venueName}
+      />
+      <DetailRow
+        icon={<EventIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
+        label="Date"
+        value={formatDate(event.eventDate)}
+      />
+      <DetailRow
+        icon={<AccessTimeIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
+        label="Time"
+        value={`${formatTime(event.startTime)}${event.endTime ? ` – ${formatTime(event.endTime)}` : ""}`}
+      />
+      {event.estimatedAttendance != null && (
+        <DetailRow
+          icon={<PeopleIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
+          label="Est. Attendance"
+          value={event.estimatedAttendance.toLocaleString()}
+          valueColor={severityColor}
+        />
+      )}
+      <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mt: 0.5, mb: 0.75 }} />
+      <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>
+        {event.latitude.toFixed(5)}, {event.longitude.toFixed(5)}
+      </Typography>
+    </PanelShell>
+  );
+}
+
+// ── Disruption panel ─────────────────────────────────────────────────
+
+function DisruptionPanel({
+  disruption,
+  onClose,
+}: {
+  disruption: DisruptionItem;
+  onClose: () => void;
+}) {
+  const category = getDisruptionCategory(disruption.disruptionType);
+  const severity = getDisruptionSeverity(disruption.severity);
+  const severityColor = SEVERITY_COLORS[severity];
+
+  return (
+    <PanelShell
+      emoji={CATEGORY_EMOJI[category]}
+      title={disruption.name ?? disruption.disruptionType}
+      categoryLabel={CATEGORY_LABEL[category]}
+      severityLabel={disruption.severity}
+      severityColor={severityColor}
+      onClose={onClose}
+    >
+      {disruption.description && (
+        <>
+          <DetailRow
+            icon={
+              <WarningAmberIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+            }
+            label="Description"
+            value={disruption.description}
+          />
+          <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mb: 1 }} />
+        </>
+      )}
+      {disruption.affectedArea && (
+        <DetailRow
+          icon={
+            <LocationOnIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+          }
+          label="Affected Area"
+          value={disruption.affectedArea}
+        />
+      )}
+      {disruption.startTime && (
+        <DetailRow
+          icon={
+            <AccessTimeIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+          }
+          label="Started"
+          value={`${formatDate(disruption.startTime)} ${formatTime(disruption.startTime)}`}
+        />
+      )}
+      {disruption.estimatedEndTime && (
+        <DetailRow
+          icon={
+            <AccessTimeIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+          }
+          label="Est. End"
+          value={`${formatDate(disruption.estimatedEndTime)} ${formatTime(disruption.estimatedEndTime)}`}
+        />
+      )}
+      {disruption.constructionDetails && (
+        <DetailRow
+          icon={
+            <ConstructionIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+          }
+          label="Construction Details"
+          value={disruption.constructionDetails}
+        />
+      )}
+      {disruption.delayMinutes != null && (
+        <DetailRow
+          icon={
+            <AccessTimeIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+          }
+          label="Delay"
+          value={`${disruption.delayMinutes} min`}
+          valueColor={severityColor}
+        />
+      )}
+      {disruption.affectedTransportModes &&
+        disruption.affectedTransportModes.length > 0 && (
+          <DetailRow
+            icon={
+              <WarningAmberIcon
+                sx={{ fontSize: 14, color: "text.disabled" }}
+              />
+            }
+            label="Affects"
+            value={disruption.affectedTransportModes.join(", ")}
+          />
+        )}
+      <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mt: 0.5, mb: 0.75 }} />
+      <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>
+        {disruption.latitude?.toFixed(5)}, {disruption.longitude?.toFixed(5)}
+      </Typography>
+    </PanelShell>
+  );
+}
+
+// ── Public component ─────────────────────────────────────────────────
+
+interface EventDetailsPanelProps {
+  selected: SelectedMapItem | null;
+  onClose: () => void;
+}
+
+export const EventDetailsPanel = ({
+  selected,
+  onClose,
+}: EventDetailsPanelProps) => {
+  if (!selected) return null;
+  if (selected.kind === "event")
+    return <EventPanel event={selected.item} onClose={onClose} />;
+  return <DisruptionPanel disruption={selected.item} onClose={onClose} />;
 };

@@ -1,5 +1,5 @@
 /**
- * Event map — displays events on an interactive Leaflet map
+ * Event map — displays events and disruptions on an interactive Leaflet map
  * Icons: 🚧 construction · 🎉 public · 🚨 emergency
  */
 
@@ -8,7 +8,7 @@ import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Box } from "@mui/material";
 import "leaflet/dist/leaflet.css";
-import type { EventItem } from "@/types";
+import type { DisruptionItem, EventItem } from "@/types";
 
 export type EventCategory = "construction" | "public" | "emergency";
 export type EventSeverity = "high" | "medium" | "low";
@@ -45,6 +45,29 @@ export function getEventCategory(eventType: string): EventCategory {
   return "public";
 }
 
+export function getDisruptionCategory(
+  disruptionType: DisruptionItem["disruptionType"],
+): EventCategory {
+  if (disruptionType === "CONSTRUCTION") return "construction";
+  if (
+    disruptionType === "ACCIDENT" ||
+    disruptionType === "CANCELLATION" ||
+    disruptionType === "DELAY"
+  )
+    return "emergency";
+  // CONGESTION, EVENT → emergency/public as appropriate
+  if (disruptionType === "CONGESTION") return "emergency";
+  return "public";
+}
+
+export function getDisruptionSeverity(
+  severity: DisruptionItem["severity"],
+): EventSeverity {
+  if (severity === "CRITICAL" || severity === "HIGH") return "high";
+  if (severity === "MEDIUM") return "medium";
+  return "low";
+}
+
 export function getEventSeverity(event: EventItem): EventSeverity {
   const att = event.estimatedAttendance ?? 0;
   if (att > 5000) return "high";
@@ -66,44 +89,75 @@ function createEventIcon(
   });
 }
 
-const FitBounds = ({ events }: { events: EventItem[] }) => {
+// Fit bounds across all visible points (events + disruptions combined)
+const FitBounds = ({
+  points,
+}: {
+  points: Array<[number, number]>;
+}) => {
   const map = useMap();
   useEffect(() => {
-    const valid = events.filter((e) => e.latitude && e.longitude);
-    if (valid.length > 1) {
-      const bounds = L.latLngBounds(
-        valid.map((e) => [e.latitude, e.longitude]),
-      );
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-    } else if (valid.length === 1) {
-      map.setView([valid[0].latitude, valid[0].longitude], 14);
+    if (points.length > 1) {
+      map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 14 });
+    } else if (points.length === 1) {
+      map.setView(points[0], 14);
     }
-  }, [events, map]);
+  }, [points, map]);
   return null;
 };
 
+export type SelectedMapItem =
+  | { kind: "event"; item: EventItem }
+  | { kind: "disruption"; item: DisruptionItem };
+
 interface EventMapProps {
   events: EventItem[];
+  disruptions: DisruptionItem[];
   selectedTypes: Set<EventCategory>;
   selectedSeverities: Set<EventSeverity>;
-  selectedEventId: number | null;
+  selectedItem: SelectedMapItem | null;
   onEventClick: (event: EventItem) => void;
+  onDisruptionClick: (disruption: DisruptionItem) => void;
 }
 
 export const EventMap = ({
   events,
+  disruptions,
   selectedTypes,
   selectedSeverities,
-  selectedEventId,
+  selectedItem,
   onEventClick,
+  onDisruptionClick,
 }: EventMapProps) => {
-  const filtered = events.filter((e) => {
+  const filteredEvents = events.filter((e) => {
     if (!e.latitude || !e.longitude) return false;
     return (
       selectedTypes.has(getEventCategory(e.eventType)) &&
       selectedSeverities.has(getEventSeverity(e))
     );
   });
+
+  const filteredDisruptions = disruptions.filter((d) => {
+    if (!d.latitude || !d.longitude) return false;
+    return (
+      selectedTypes.has(getDisruptionCategory(d.disruptionType)) &&
+      selectedSeverities.has(getDisruptionSeverity(d.severity))
+    );
+  });
+
+  const allPoints: Array<[number, number]> = [
+    ...filteredEvents.map((e) => [e.latitude, e.longitude] as [number, number]),
+    ...filteredDisruptions.map(
+      (d) => [d.latitude!, d.longitude!] as [number, number],
+    ),
+  ];
+
+  const selectedId =
+    selectedItem?.kind === "event"
+      ? `event-${selectedItem.item.id}`
+      : selectedItem?.kind === "disruption"
+        ? `disruption-${selectedItem.item.id}`
+        : null;
 
   return (
     <Box sx={{ height: "100%", width: "100%", position: "relative" }}>
@@ -117,23 +171,39 @@ export const EventMap = ({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds events={filtered} />
-        {filtered.map((event) => (
-          <Marker
-            key={event.id}
-            position={[event.latitude, event.longitude]}
-            icon={createEventIcon(
-              getEventCategory(event.eventType),
-              selectedEventId === event.id,
-            )}
-            opacity={
-              selectedEventId !== null && selectedEventId !== event.id
-                ? 0.45
-                : 1
-            }
-            eventHandlers={{ click: () => onEventClick(event) }}
-          />
-        ))}
+        <FitBounds points={allPoints} />
+
+        {filteredEvents.map((event) => {
+          const key = `event-${event.id}`;
+          return (
+            <Marker
+              key={key}
+              position={[event.latitude, event.longitude]}
+              icon={createEventIcon(
+                getEventCategory(event.eventType),
+                selectedId === key,
+              )}
+              opacity={selectedId !== null && selectedId !== key ? 0.45 : 1}
+              eventHandlers={{ click: () => onEventClick(event) }}
+            />
+          );
+        })}
+
+        {filteredDisruptions.map((disruption) => {
+          const key = `disruption-${disruption.id}`;
+          return (
+            <Marker
+              key={key}
+              position={[disruption.latitude!, disruption.longitude!]}
+              icon={createEventIcon(
+                getDisruptionCategory(disruption.disruptionType),
+                selectedId === key,
+              )}
+              opacity={selectedId !== null && selectedId !== key ? 0.45 : 1}
+              eventHandlers={{ click: () => onDisruptionClick(disruption) }}
+            />
+          );
+        })}
       </MapContainer>
     </Box>
   );

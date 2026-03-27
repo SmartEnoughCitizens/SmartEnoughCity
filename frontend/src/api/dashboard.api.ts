@@ -5,6 +5,7 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  DisruptionItem,
   BusDashboardResponse,
   BusKpis,
   BusLiveVehicle,
@@ -381,6 +382,16 @@ export const dashboardApi = {
     const { data } = await axiosInstance.get<PedestrianLive[]>(
       API_ENDPOINTS.PEDESTRIANS_LIVE,
       { params: { limit } },
+    );
+    return data;
+  },
+
+  /**
+   * Get active disruptions (construction, congestion, incidents)
+   */
+  getActiveDisruptions: async (): Promise<DisruptionItem[]> => {
+    const { data } = await axiosInstance.get<DisruptionItem[]>(
+      API_ENDPOINTS.DISRUPTIONS_ACTIVE,
     );
     return data;
   },
