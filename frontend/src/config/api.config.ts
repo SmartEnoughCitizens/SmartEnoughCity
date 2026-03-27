@@ -86,7 +86,8 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
 
-  // Misc (Events + Pedestrians)
+  // Misc (Events + Pedestrians + Disruptions)
   EVENTS: "/api/v1/events",
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
+  DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
 };

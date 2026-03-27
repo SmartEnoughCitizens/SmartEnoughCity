@@ -9,6 +9,7 @@ export const MISC_KEYS = {
   events: (limit?: number) => ["misc", "events", { limit }] as const,
   pedestriansLive: (limit?: number) =>
     ["misc", "pedestrians", "live", { limit }] as const,
+  disruptionsActive: ["misc", "disruptions", "active"] as const,
 };
 
 export const DASHBOARD_KEYS = {
@@ -434,6 +435,19 @@ export const usePedestriansLive = (limit = 20) => {
     queryFn: () => dashboardApi.getPedestriansLive(limit),
     staleTime: 30_000,
     refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get active disruptions (construction, congestion, incidents)
+ */
+export const useActiveDisruptions = () => {
+  return useQuery({
+    queryKey: MISC_KEYS.disruptionsActive,
+    queryFn: () => dashboardApi.getActiveDisruptions(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
     refetchIntervalInBackground: true,
   });
 };

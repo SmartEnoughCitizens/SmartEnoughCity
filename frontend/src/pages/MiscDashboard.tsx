@@ -25,15 +25,21 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
 import MapIcon from "@mui/icons-material/Map";
-import { useEvents, usePedestriansLive } from "@/hooks";
+import { useActiveDisruptions, useEvents, usePedestriansLive } from "@/hooks";
 import type { EventItem, PedestrianLive } from "@/types";
 import { EventMap } from "@/components/map/EventMap";
 import { EventDetailsPanel } from "@/components/map/EventDetailsPanel";
-import type { EventCategory, EventSeverity } from "@/components/map/EventMap";
+import type {
+  EventCategory,
+  EventSeverity,
+  SelectedMapItem,
+} from "@/components/map/EventMap";
 import {
   CATEGORY_EMOJI,
   CATEGORY_LABEL,
   SEVERITY_COLORS,
+  getDisruptionCategory,
+  getDisruptionSeverity,
   getEventCategory,
   getEventSeverity,
 } from "@/components/map/EventMap";
@@ -376,9 +382,8 @@ export const MiscDashboard = () => {
   const [selectedSeverities, setSelectedSeverities] = useState<
     Set<EventSeverity>
   >(new Set(ALL_SEVERITIES));
-  const [mapSelectedEvent, setMapSelectedEvent] = useState<EventItem | null>(
-    null,
-  );
+  const [selectedMapItem, setSelectedMapItem] =
+    useState<SelectedMapItem | null>(null);
 
   const {
     data: events = [],
@@ -390,17 +395,26 @@ export const MiscDashboard = () => {
     isLoading: pedLoading,
     error: pedError,
   } = usePedestriansLive(20);
+  const { data: disruptions = [] } = useActiveDisruptions();
 
   const visibleEvents = showAllEvents ? events : events.slice(0, EVENT_VISIBLE);
 
-  // Active event count: events that pass current filters and have coordinates
-  const activeCount = events.filter((e) => {
-    if (!e.latitude || !e.longitude) return false;
-    return (
-      selectedTypes.has(getEventCategory(e.eventType)) &&
-      selectedSeverities.has(getEventSeverity(e))
-    );
-  }).length;
+  // Active count: events + disruptions passing current filters with coordinates
+  const activeCount =
+    events.filter((e) => {
+      if (!e.latitude || !e.longitude) return false;
+      return (
+        selectedTypes.has(getEventCategory(e.eventType)) &&
+        selectedSeverities.has(getEventSeverity(e))
+      );
+    }).length +
+    disruptions.filter((d) => {
+      if (!d.latitude || !d.longitude) return false;
+      return (
+        selectedTypes.has(getDisruptionCategory(d.disruptionType)) &&
+        selectedSeverities.has(getDisruptionSeverity(d.severity))
+      );
+    }).length;
 
   function toggleType(cat: EventCategory) {
     setSelectedTypes((prev) => {
@@ -427,7 +441,19 @@ export const MiscDashboard = () => {
   }
 
   function handleMapEventClick(event: EventItem) {
-    setMapSelectedEvent((prev) => (prev?.id === event.id ? null : event));
+    setSelectedMapItem((prev) =>
+      prev?.kind === "event" && prev.item.id === event.id
+        ? null
+        : { kind: "event", item: event },
+    );
+  }
+
+  function handleMapDisruptionClick(disruption: import("@/types").DisruptionItem) {
+    setSelectedMapItem((prev) =>
+      prev?.kind === "disruption" && prev.item.id === disruption.id
+        ? null
+        : { kind: "disruption", item: disruption },
+    );
   }
 
   return (
@@ -818,16 +844,18 @@ export const MiscDashboard = () => {
           >
             <EventMap
               events={events}
+              disruptions={disruptions}
               selectedTypes={selectedTypes}
               selectedSeverities={selectedSeverities}
-              selectedEventId={mapSelectedEvent?.id ?? null}
+              selectedItem={selectedMapItem}
               onEventClick={handleMapEventClick}
+              onDisruptionClick={handleMapDisruptionClick}
             />
           </Paper>
 
           <EventDetailsPanel
-            event={mapSelectedEvent}
-            onClose={() => setMapSelectedEvent(null)}
+            selected={selectedMapItem}
+            onClose={() => setSelectedMapItem(null)}
           />
         </Box>
       </Box>
