@@ -42,24 +42,8 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _migrate_enums(schema: str) -> None:
-    """
-    Patch enum types that have grown new values since the DB was first created.
-    Using IF NOT EXISTS makes every statement idempotent — safe to run on every
-    startup without a dedicated migration framework.
-    """
-    statements = [
-        f"ALTER TYPE {schema}.channeldirection ADD VALUE IF NOT EXISTS 'UNKNOWN'",
-        f"ALTER TYPE {schema}.mobilitytype ADD VALUE IF NOT EXISTS 'CAR'",
-    ]
-    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-        for stmt in statements:
-            conn.execute(text(stmt))
-
-
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
-    _migrate_enums(get_db_settings().postgres_schema)
 
 
 def _process_bus_static(settings: DataSourcesSettings) -> None:
