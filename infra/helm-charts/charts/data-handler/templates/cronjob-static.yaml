@@ -18,7 +18,7 @@ spec:
   jobTemplate:
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 900  # 15 minutes for static data
+      activeDeadlineSeconds: {{ .Values.staticDataCron.activeDeadlineSeconds | default 7200 }}
       template:
         metadata:
           labels:
