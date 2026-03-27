@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: "/api/auth/login",
   AUTH_HEALTH: "/api/auth/health",
+  AUTH_REFRESH: "/api/auth/refresh",
   AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
   AUTH_RESET_PASSWORD: "/api/auth/reset-password",
 
@@ -33,6 +34,7 @@ export const API_ENDPOINTS = {
   DASHBOARD_BUS: "/api/v1/dashboard/bus",
   DASHBOARD_CYCLE: "/api/v1/dashboard/cycle",
   DASHBOARD_TRAIN: "/api/v1/dashboard/train",
+  DASHBOARD_TRAM: "/api/v1/dashboard/tram",
   DASHBOARD_CYCLE_AVAILABLE_BIKES: "/api/v1/dashboard/cycle/available-bikes",
   DASHBOARD_CYCLE_AVAILABLE_DOCKS: "/api/v1/dashboard/cycle/available-docks",
   DASHBOARD_BUS_ROUTES: "/api/v1/dashboard/bus/routes",
@@ -54,6 +56,26 @@ export const API_ENDPOINTS = {
   TRAIN_KPIS: "/api/v1/train/kpis",
   TRAIN_LIVE_TRAINS: "/api/v1/train/live-trains",
   TRAIN_SERVICE_STATS: "/api/v1/train/service-stats",
+  TRAIN_FREQUENT_DELAYS: "/api/v1/train/frequent-delays",
+
+  // Tram Indicators
+  TRAM_KPIS: "/api/v1/tram/kpis",
+  TRAM_LIVE_FORECASTS: "/api/v1/tram/live-forecasts",
+  TRAM_DELAYS: "/api/v1/tram/delays",
+  TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
+
+  // Cycle Metrics (CycleMetricsController)
+  CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
+  CYCLE_NETWORK_SUMMARY: "/api/v1/cycle/network/summary",
+  CYCLE_RANKINGS_BUSIEST: "/api/v1/cycle/rankings/busiest",
+  CYCLE_RANKINGS_UNDERUSED: "/api/v1/cycle/rankings/underused",
+  CYCLE_NETWORK_REBALANCING: "/api/v1/cycle/network/rebalancing",
+
+  // Cycle Demand Analysis
+  CYCLE_DEMAND_NETWORK_HOURLY: "/api/v1/cycle/demand/network-hourly",
+  CYCLE_DEMAND_CLASSIFICATION: "/api/v1/cycle/demand/classification",
+  CYCLE_DEMAND_OD_PAIRS: "/api/v1/cycle/demand/od-pairs",
+  CYCLE_DEMAND_STATION_HOURLY: "/api/v1/cycle/demand/station-hourly",
 
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
