@@ -37,7 +37,13 @@ spec:
                 sleep 2
               done
               echo "PostgreSQL is ready!"
-              
+
+              echo "Enabling PostGIS extension..."
+              PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" <<EOF
+              CREATE EXTENSION IF NOT EXISTS postgis;
+              SELECT 'PostGIS extension enabled successfully!' as status;
+              EOF
+
               echo "Creating ${DATA_HANDLER_USER} user and ${DATA_HANDLER_SCHEMA} schema..."
               PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" <<EOF
               DO \$\$

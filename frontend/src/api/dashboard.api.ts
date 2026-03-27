@@ -16,13 +16,27 @@ import type {
   CycleStation,
   EventItem,
   HighTrafficPoint,
+  HourlyNetworkProfileDTO,
   IndicatorType,
+  StationClassificationDTO,
+  StationHourlyUsageDTO,
+  StationLiveDTO,
+  NetworkSummaryDTO,
+  RebalanceSuggestionDTO,
+  StationODPairDTO,
+  StationRankingDTO,
   JunctionEmission,
   PedestrianLive,
   TrainDashboardResponse,
+  TrainDelay,
   TrainKpis,
   TrainLiveTrain,
   TrainServiceStats,
+  TramDashboardResponse,
+  TramKpis,
+  TramLiveForecast,
+  TramDelay,
+  TramHourlyDistribution,
 } from "@/types";
 
 export const dashboardApi = {
@@ -61,6 +75,19 @@ export const dashboardApi = {
   }): Promise<TrainDashboardResponse> => {
     const { data } = await axiosInstance.get<TrainDashboardResponse>(
       API_ENDPOINTS.DASHBOARD_TRAIN,
+      { params },
+    );
+    return data;
+  },
+
+  /**
+   * Get tram stop data for dashboard
+   */
+  getTramData: async (params?: {
+    limit?: number;
+  }): Promise<TramDashboardResponse> => {
+    const { data } = await axiosInstance.get<TramDashboardResponse>(
+      API_ENDPOINTS.DASHBOARD_TRAM,
       { params },
     );
     return data;
@@ -143,10 +170,6 @@ export const dashboardApi = {
     );
     return data;
   },
-
-  /**
-   * Get car fuel type statistics
-   */
   getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
     const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
       API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
@@ -204,6 +227,141 @@ export const dashboardApi = {
     return data;
   },
 
+  // ── Cycle Metrics ──────────────────────────────────────────────────────────
+
+  getCycleStationsLive: async (): Promise<StationLiveDTO[]> => {
+    const { data } = await axiosInstance.get<StationLiveDTO[]>(
+      API_ENDPOINTS.CYCLE_STATIONS_LIVE,
+    );
+    return data;
+  },
+
+  getCycleNetworkSummary: async (): Promise<NetworkSummaryDTO> => {
+    const { data } = await axiosInstance.get<NetworkSummaryDTO>(
+      API_ENDPOINTS.CYCLE_NETWORK_SUMMARY,
+    );
+    return data;
+  },
+
+  getCycleBusiestStations: async (params?: {
+    limit?: number;
+  }): Promise<StationRankingDTO[]> => {
+    const { data } = await axiosInstance.get<StationRankingDTO[]>(
+      API_ENDPOINTS.CYCLE_RANKINGS_BUSIEST,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleUnderusedStations: async (params?: {
+    limit?: number;
+  }): Promise<StationRankingDTO[]> => {
+    const { data } = await axiosInstance.get<StationRankingDTO[]>(
+      API_ENDPOINTS.CYCLE_RANKINGS_UNDERUSED,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleRebalancingSuggestions: async (params?: {
+    limit?: number;
+  }): Promise<RebalanceSuggestionDTO[]> => {
+    const { data } = await axiosInstance.get<RebalanceSuggestionDTO[]>(
+      API_ENDPOINTS.CYCLE_NETWORK_REBALANCING,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleNetworkHourlyProfile: async (params?: {
+    days?: number;
+  }): Promise<HourlyNetworkProfileDTO[]> => {
+    const { data } = await axiosInstance.get<HourlyNetworkProfileDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_NETWORK_HOURLY,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleStationClassification: async (params?: {
+    days?: number;
+  }): Promise<StationClassificationDTO[]> => {
+    const { data } = await axiosInstance.get<StationClassificationDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_CLASSIFICATION,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleODPairs: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationODPairDTO[]> => {
+    const { data } = await axiosInstance.get<StationODPairDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_OD_PAIRS,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleStationHourlyUsage: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationHourlyUsageDTO[]> => {
+    const { data } = await axiosInstance.get<StationHourlyUsageDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_STATION_HOURLY,
+      { params },
+    );
+    return data;
+  },
+
+  /**
+   * Get frequently delayed trains ordered by total average delay descending
+   */
+  getTrainFrequentDelays: async (): Promise<TrainDelay[]> => {
+    const { data } = await axiosInstance.get<TrainDelay[]>(
+      API_ENDPOINTS.TRAIN_FREQUENT_DELAYS,
+    );
+    return data;
+  },
+
+  /**
+   * Get tram dashboard KPIs
+   */
+  getTramKpis: async (): Promise<TramKpis> => {
+    const { data } = await axiosInstance.get<TramKpis>(API_ENDPOINTS.TRAM_KPIS);
+    return data;
+  },
+
+  /**
+   * Get live tram forecasts
+   */
+  getTramLiveForecasts: async (): Promise<TramLiveForecast[]> => {
+    const { data } = await axiosInstance.get<TramLiveForecast[]>(
+      API_ENDPOINTS.TRAM_LIVE_FORECASTS,
+    );
+    return data;
+  },
+
+  /**
+   * Get tram delays
+   */
+  getTramDelays: async (): Promise<TramDelay[]> => {
+    const { data } = await axiosInstance.get<TramDelay[]>(
+      API_ENDPOINTS.TRAM_DELAYS,
+    );
+    return data;
+  },
+
+  /**
+   * Get tram hourly passenger distribution
+   */
+  getTramHourlyDistribution: async (): Promise<TramHourlyDistribution[]> => {
+    const { data } = await axiosInstance.get<TramHourlyDistribution[]>(
+      API_ENDPOINTS.TRAM_HOURLY_DISTRIBUTION,
+    );
+    return data;
+  },
   /**
    * Get upcoming events
    */

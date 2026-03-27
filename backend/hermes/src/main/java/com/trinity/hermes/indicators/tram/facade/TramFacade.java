@@ -1,3 +1,36 @@
 package com.trinity.hermes.indicators.tram.facade;
 
-public class TramFacade {}
+import com.trinity.hermes.indicators.tram.dto.*;
+import com.trinity.hermes.indicators.tram.service.TramDashboardService;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class TramFacade {
+
+  private final TramDashboardService tramDashboardService;
+
+  public List<TramStopDTO> getStops(int limit) {
+    return tramDashboardService.getStops(limit);
+  }
+
+  public TramKpiDTO getKpis() {
+    return tramDashboardService.getKpis();
+  }
+
+  public List<TramLiveForecastDTO> getLiveForecasts() {
+    return tramDashboardService.getLiveForecasts();
+  }
+
+  public List<TramDelayDTO> getDelays() {
+    return tramDashboardService.getDelays();
+  }
+
+  public List<TramHourlyDistributionDTO> getHourlyDistribution() {
+    return tramDashboardService.getHourlyDistribution();
+  }
+}
