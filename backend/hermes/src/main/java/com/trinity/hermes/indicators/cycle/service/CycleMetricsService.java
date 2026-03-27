@@ -236,7 +236,7 @@ public class CycleMetricsService {
   private HourlyNetworkProfileDTO mapToHourlyNetworkProfileDTO(Object[] row) {
     HourlyNetworkProfileDTO dto = new HourlyNetworkProfileDTO();
     dto.setHourOfDay(toIntOrDefault(row[0], 0));
-    dto.setAvgUsageRate(toDoubleOrDefault(row[1], 0.0));
+    dto.setAvgTurnover(toDoubleOrDefault(row[1], 0.0));
     dto.setStationCount(toLong(row[2]));
     return dto;
   }
@@ -256,7 +256,7 @@ public class CycleMetricsService {
     dto.setStationId(toIntOrDefault(row[0], 0));
     dto.setName((String) row[1]);
     dto.setHourOfDay(toIntOrDefault(row[2], 0));
-    dto.setAvgUsageRate(toDoubleOrDefault(row[3], 0.0));
+    dto.setAvgTurnover(toDoubleOrDefault(row[3], 0.0));
     return dto;
   }
 
