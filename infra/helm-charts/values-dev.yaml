@@ -66,6 +66,13 @@ hermes:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/hermes
     tag: latest
     pullPolicy: Always
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1500m"
+      memory: "3Gi"
   frontendUrl: "https://dev.citycontrol.me"
   inferenceEngineUrl: "http://sec-inference-engine:8000"
   # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
