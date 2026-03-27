@@ -40,7 +40,6 @@ class PedestrianSitePayload(BaseModel):
     description: str | None = None
     location: SiteLocation
     first_data: datetime = Field(alias="firstData")
-    last_data: datetime | None = Field(None, alias="lastData")
     granularity: str = Field(alias="granularity")
     travel_modes: list[str] = Field(alias="travelModes")
     directional: bool = Field(alias="directional")
@@ -87,36 +86,6 @@ def _payload_to_site(payload: PedestrianSitePayload) -> PedestrianCounterSite:
 _sites_adapter = TypeAdapter(list[PedestrianSitePayload])
 
 
-def _persist_pedestrian_sites(payloads: list[PedestrianSitePayload]) -> list[int]:
-    valid_payloads = [
-        p for p in payloads if p.location.lat is not None and p.location.lon is not None
-    ]
-    skipped = len(payloads) - len(valid_payloads)
-    if skipped:
-        logger.warning(
-            "Skipping %d site(s) with missing location coordinates.", skipped
-        )
-
-    sites = [_payload_to_site(p) for p in valid_payloads]
-    updated_ids: list[int] = []
-
-    with SessionLocal() as session:
-        try:
-            for site in sites:
-                session.merge(site)
-                updated_ids.append(site.id)
-            session.commit()
-        except Exception:
-            session.rollback()
-            logger.exception("Failed to persist pedestrian counter sites data.")
-            raise
-        finally:
-            session.close()
-
-    logger.info("Persisted %d pedestrian counter site record(s).", len(updated_ids))
-    return updated_ids
-
-
 def process_pedestrian_sites(json_string: str) -> list[int]:
     """
     Parse, validate, and persist pedestrian counter sites from JSON.
@@ -140,7 +109,25 @@ def process_pedestrian_sites(json_string: str) -> list[int]:
     except json.JSONDecodeError as e:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
-    return _persist_pedestrian_sites(payloads)
+
+    sites = [_payload_to_site(p) for p in payloads if p.location.lat is not None and p.location.lon is not None]
+    updated_ids: list[int] = []
+
+    with SessionLocal() as session:
+        try:
+            for site in sites:
+                session.merge(site)
+                updated_ids.append(site.id)
+            session.commit()
+        except Exception:
+            session.rollback()
+            logger.exception("Failed to persist pedestrian counter sites data.")
+            raise
+        finally:
+            session.close()
+
+    logger.info("Persisted %d pedestrian counter site record(s).", len(updated_ids))
+    return updated_ids
 
 
 def send_batch_job_request(site_ids: list[int], date: date) -> int:
@@ -385,75 +372,40 @@ def process_pedestrian_live_data() -> None:
     logger.info("Fetching pedestrian counter sites data...")
     sites_response = requests.get(sites_url, headers=headers, timeout=30)
     sites_response.raise_for_status()
+    updated_site_ids = process_pedestrian_sites(sites_response.text)
 
-    # Parse once — reuse for both persisting and export-date extraction.
-    site_payloads = _sites_adapter.validate_json(sites_response.text)
-    updated_site_ids = _persist_pedestrian_sites(site_payloads)
-
-    if not updated_site_ids:
-        logger.warning("No valid sites to process — skipping batch job request.")
-        return
-
-    # Use the most recent lastData date from the sites rather than today, because
-    # the API may lag by days or weeks and requesting a date with no data yields
-    # empty CSVs.  Fall back to today only if no site carries lastData.
-    last_data_dates = [
-        p.last_data.date() for p in site_payloads if p.last_data is not None
-    ]
-    export_date = max(last_data_dates) if last_data_dates else date.today()
-    logger.info("Using export date %s (derived from lastData).", export_date)
-
-    job_id = send_batch_job_request(updated_site_ids, export_date)
+    job_id = send_batch_job_request(updated_site_ids, date.today())
     job_result_url = f"{api_settings.eco_counter_api_base_url}/exports/{job_id}/data"
 
-    # Batch export jobs are processed asynchronously by the API. A 404 on the
-    # /data endpoint means the job is still compiling — not that it failed.
-    # Poll with increasing delays until the data is ready or we give up.
     max_attempts = 8
-    poll_delays = [5, 10, 15, 20, 30, 45, 60]  # seconds between attempts
     for attempt in range(max_attempts):
-        logger.info(
-            "Fetching batch job result for job ID %s (attempt %d/%d)...",
-            job_id,
-            attempt + 1,
-            max_attempts,
-        )
         try:
+            logger.info(
+                "Fetching batch job result for job ID %s (attempt %d/%d)...",
+                job_id,
+                attempt + 1,
+                max_attempts,
+            )
             job_result_response = requests.get(
                 job_result_url, headers=headers, timeout=30
             )
+            job_result_response.raise_for_status()
+            process_batch_job_result(job_result_response.content)
+            break
         except requests.RequestException as e:
             if attempt < max_attempts - 1:
-                delay = poll_delays[attempt]
+                delay = 2**attempt
                 logger.warning(
-                    "Batch job request error (attempt %d/%d): %s. Retrying in %ds...",
+                    "Batch job result fetch failed (attempt %d/%d): %s. Retrying in %ds...",
                     attempt + 1,
                     max_attempts,
                     e,
                     delay,
                 )
                 time.sleep(delay)
-                continue
-            logger.exception(
-                "Batch job result fetch failed after %d attempts.", max_attempts
-            )
-            raise
-
-        if job_result_response.status_code == 404:
-            # Job is still processing — wait and retry.
-            if attempt < max_attempts - 1:
-                delay = poll_delays[attempt]
-                logger.info(
-                    "Batch job not ready yet (attempt %d/%d). Retrying in %ds...",
-                    attempt + 1,
+            else:
+                logger.exception(
+                    "Batch job result fetch failed after %d attempts.",
                     max_attempts,
-                    delay,
                 )
-                time.sleep(delay)
-                continue
-            msg = f"Batch job {job_id} did not complete after {max_attempts} attempts."
-            raise RuntimeError(msg)
-
-        job_result_response.raise_for_status()
-        process_batch_job_result(job_result_response.content)
-        break
+                raise
