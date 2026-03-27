@@ -110,7 +110,11 @@ def process_pedestrian_sites(json_string: str) -> list[int]:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    sites = [_payload_to_site(p) for p in payloads if p.location.lat is not None and p.location.lon is not None]
+    sites = [
+        _payload_to_site(p)
+        for p in payloads
+        if p.location.lat is not None and p.location.lon is not None
+    ]
     updated_ids: list[int] = []
 
     with SessionLocal() as session:

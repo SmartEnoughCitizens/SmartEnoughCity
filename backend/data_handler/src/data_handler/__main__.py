@@ -1,7 +1,7 @@
 import argparse
 import logging
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
