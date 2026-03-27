@@ -6,6 +6,10 @@ from sqlalchemy import func, select
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
+from data_handler.congestion_and_construction.data_handler import (
+    fetch_and_store_traffic_data,
+    push_traffic_events_to_hermes,
+)
 from data_handler.cycle.models import DublinBikesStation
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
@@ -188,6 +192,13 @@ def _run_pedestrian_dynamic(logger: logging.Logger) -> None:
     process_pedestrian_live_data()
 
 
+def _run_construction_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing construction/traffic data...")
+    count, fetched_at = fetch_and_store_traffic_data()
+    if count > 0:
+        push_traffic_events_to_hermes(fetched_at)
+
+
 def main_dynamic() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Processing dynamic data...")
@@ -208,6 +219,7 @@ def main_dynamic() -> None:
     logger.info("  - Tram data: %s", sources_settings.enable_tram_data)
     logger.info("  - Events data: %s", sources_settings.enable_events_data)
     logger.info("  - Pedestrian data: %s", sources_settings.enable_pedestrian_data)
+    logger.info("  - Construction data: %s", sources_settings.enable_construction_data)
 
     # Each source is isolated — one failure does not block the others
     for enabled, run_fn, label in [
@@ -220,6 +232,11 @@ def main_dynamic() -> None:
             sources_settings.enable_pedestrian_data,
             _run_pedestrian_dynamic,
             "Pedestrian",
+        ),
+        (
+            sources_settings.enable_construction_data,
+            _run_construction_dynamic,
+            "Construction",
         ),
     ]:
         if enabled:
