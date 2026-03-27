@@ -446,8 +446,8 @@ export const useActiveDisruptions = () => {
   return useQuery({
     queryKey: MISC_KEYS.disruptionsActive,
     queryFn: () => dashboardApi.getActiveDisruptions(),
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: true,
   });
 };

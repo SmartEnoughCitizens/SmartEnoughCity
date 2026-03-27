@@ -20,4 +20,14 @@ public interface DisruptionRepository extends JpaRepository<Disruption, Long> {
 
   /** Find disruptions by status ordered by detected time (most recent first) */
   List<Disruption> findByStatusOrderByDetectedAtDesc(String status);
+
+  /** Find disruptions detected after a given time (for deduplication checks) */
+  List<Disruption> findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
+      String disruptionType, String affectedArea, java.time.LocalDateTime after);
+
+  /** Find all non-resolved disruptions ordered by detected time */
+  @org.springframework.data.jpa.repository.Query(
+      "SELECT d FROM Disruption d WHERE d.status NOT IN ('RESOLVED', 'CANCELLED')"
+          + " ORDER BY d.detectedAt DESC")
+  List<Disruption> findAllActiveOrderByDetectedAtDesc();
 }

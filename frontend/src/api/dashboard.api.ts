@@ -395,4 +395,11 @@ export const dashboardApi = {
     );
     return data;
   },
+
+  /**
+   * Resolve a disruption by ID
+   */
+  resolveDisruption: async (id: number): Promise<void> => {
+    await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
+  },
 };
