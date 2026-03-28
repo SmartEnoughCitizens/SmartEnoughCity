@@ -9,6 +9,9 @@ from sqlalchemy import delete, select
 from data_handler.db import SessionLocal
 from data_handler.settings.api_settings import get_api_settings
 from data_handler.tram.models import TramLuasForecast, TramLuasStop
+from data_handler.tram.disruption_service import check_for_disruptions, format_report_for_provider
+# MODIFY the existing import block at top of luas_api.py
+from data_handler.tram.models import TramLuasForecast, TramLuasStop, TramDisruption
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +203,19 @@ def luas_forecasts_to_db() -> None:
 
         session.commit()
         logger.info("Inserted %d LUAS forecast rows.", forecast_count)
+
+        # ── Disruption check ────────────────────────────────────────
+        from data_handler.tram.disruption_service import (
+            check_for_disruptions,
+            format_report_for_provider,
+        )
+        reports = check_for_disruptions(session)
+        for report in reports:
+            payload = format_report_for_provider(report)
+            logger.info("Disruption payload: %s", payload)
+            # Replace the logger call above with your notification method:
+            #   requests.post(WEBHOOK_URL, json=payload)
+            #   queue.publish("disruptions", payload)
 
     except Exception:
         session.rollback()

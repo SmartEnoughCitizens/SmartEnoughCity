@@ -155,6 +155,20 @@ services:
         
         GRANT SELECT ON ALL SEQUENCES IN SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$BACKEND_USER";
         
+        CREATE EXTENSION IF NOT EXISTS cube;
+        CREATE EXTENSION IF NOT EXISTS earthdistance;
+
+        CREATE TABLE IF NOT EXISTS external_data.tram_disruptions (
+            id          SERIAL PRIMARY KEY,
+            stop_id     VARCHAR NOT NULL REFERENCES external_data.tram_luas_stops(stop_id),
+            line        VARCHAR NOT NULL,
+            message     TEXT    NOT NULL,
+            detected_at TIMESTAMP NOT NULL,
+            resolved    BOOLEAN NOT NULL DEFAULT false
+        );
+        CREATE INDEX IF NOT EXISTS tram_disruptions_stop_id_idx 
+            ON external_data.tram_disruptions (stop_id);
+
         SELECT 'Backend user initialization completed successfully!' as status;
         EOF
 
