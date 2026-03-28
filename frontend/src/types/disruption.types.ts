@@ -1,4 +1,13 @@
+export type DisruptionType =
+  | "DELAY"
+  | "CANCELLATION"
+  | "CONGESTION"
+  | "CONSTRUCTION"
+  | "EVENT"
+  | "ACCIDENT";
+
 export type DisruptionSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
 export type DisruptionStatus =
   | "DETECTED"
   | "ANALYZING"
@@ -7,31 +16,30 @@ export type DisruptionStatus =
   | "RESOLVED"
   | "CANCELLED"
   | "PENDING";
-export type DisruptionType =
-  | "DELAY"
-  | "CANCELLATION"
-  | "CONGESTION"
-  | "CONSTRUCTION"
-  | "EVENT"
-  | "ACCIDENT";
+
 export type TransportMode = "BUS" | "TRAM" | "TRAIN" | "CAR" | "CYCLE";
 
-export interface ActiveDisruption {
+export interface DisruptionItem {
   id: number;
-  name: string;
+  name: string | null;
   description: string | null;
   status: DisruptionStatus;
-  severity: DisruptionSeverity;
   disruptionType: DisruptionType;
-  affectedTransportModes: TransportMode[] | null;
-  affectedRoutes: string[] | null;
-  affectedArea: string | null;
+  severity: DisruptionSeverity;
   latitude: number | null;
   longitude: number | null;
+  affectedArea: string | null;
+  affectedTransportModes: TransportMode[] | null;
+  affectedRoutes: string[] | null;
   detectedAt: string | null;
+  startTime: string | null;
   estimatedEndTime: string | null;
+  constructionDetails: string | null;
   delayMinutes: number | null;
-  notificationSent: boolean;
-  createdAt: string;
-  updatedAt: string;
+  notificationSent: boolean | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
+
+/** Alias kept for compatibility with main-branch imports */
+export type ActiveDisruption = DisruptionItem;
