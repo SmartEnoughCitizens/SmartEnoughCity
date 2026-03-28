@@ -26,8 +26,8 @@ import {
   getDisruptionSeverity,
   getEventCategory,
   getEventSeverity,
-} from "./EventMap";
-import type { SelectedMapItem } from "./EventMap";
+  type SelectedMapItem,
+} from "./eventMapUtils";
 
 function formatDate(dateStr: string): string {
   try {
@@ -328,9 +328,7 @@ function DisruptionPanel({
         disruption.affectedTransportModes.length > 0 && (
           <DetailRow
             icon={
-              <WarningAmberIcon
-                sx={{ fontSize: 14, color: "text.disabled" }}
-              />
+              <WarningAmberIcon sx={{ fontSize: 14, color: "text.disabled" }} />
             }
             label="Affects"
             value={disruption.affectedTransportModes.join(", ")}

@@ -33,7 +33,7 @@ import type {
   EventCategory,
   EventSeverity,
   SelectedMapItem,
-} from "@/components/map/EventMap";
+} from "@/components/map/eventMapUtils";
 import {
   CATEGORY_EMOJI,
   CATEGORY_LABEL,
@@ -42,7 +42,7 @@ import {
   getDisruptionSeverity,
   getEventCategory,
   getEventSeverity,
-} from "@/components/map/EventMap";
+} from "@/components/map/eventMapUtils";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -448,7 +448,9 @@ export const MiscDashboard = () => {
     );
   }
 
-  function handleMapDisruptionClick(disruption: import("@/types").DisruptionItem) {
+  function handleMapDisruptionClick(
+    disruption: import("@/types").DisruptionItem,
+  ) {
     setSelectedMapItem((prev) =>
       prev?.kind === "disruption" && prev.item.id === disruption.id
         ? null
@@ -738,7 +740,11 @@ export const MiscDashboard = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
             <MapIcon sx={{ fontSize: 16, color: "text.secondary" }} />
             <Typography
-              sx={{ fontSize: "0.8rem", fontWeight: 700, color: "text.primary" }}
+              sx={{
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: "text.primary",
+              }}
             >
               Event Map
             </Typography>

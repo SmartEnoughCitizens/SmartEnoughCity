@@ -9,71 +9,24 @@ import L from "leaflet";
 import { Box } from "@mui/material";
 import "leaflet/dist/leaflet.css";
 import type { DisruptionItem, EventItem } from "@/types";
+import {
+  type EventCategory,
+  type EventSeverity,
+  type SelectedMapItem,
+  CATEGORY_EMOJI,
+  getDisruptionCategory,
+  getDisruptionSeverity,
+  getEventCategory,
+  getEventSeverity,
+} from "./eventMapUtils";
 
-export type EventCategory = "construction" | "public" | "emergency";
-export type EventSeverity = "high" | "medium" | "low";
+export type {
+  EventCategory,
+  EventSeverity,
+  SelectedMapItem,
+} from "./eventMapUtils";
 
 const DUBLIN_CENTER: [number, number] = [53.3498, -6.2603];
-
-export const CATEGORY_EMOJI: Record<EventCategory, string> = {
-  construction: "🚧",
-  public: "🎉",
-  emergency: "🚨",
-};
-
-export const CATEGORY_LABEL: Record<EventCategory, string> = {
-  construction: "Construction",
-  public: "Public",
-  emergency: "Emergency",
-};
-
-export const SEVERITY_COLORS: Record<EventSeverity, string> = {
-  high: "#EF4444",
-  medium: "#F59E0B",
-  low: "#10B981",
-};
-
-export function getEventCategory(eventType: string): EventCategory {
-  const t = eventType.toLowerCase();
-  if (t.includes("construction") || t.includes("roadwork")) return "construction";
-  if (
-    t.includes("emergency") ||
-    t.includes("incident") ||
-    t.includes("alert")
-  )
-    return "emergency";
-  return "public";
-}
-
-export function getDisruptionCategory(
-  disruptionType: DisruptionItem["disruptionType"],
-): EventCategory {
-  if (disruptionType === "CONSTRUCTION") return "construction";
-  if (
-    disruptionType === "ACCIDENT" ||
-    disruptionType === "CANCELLATION" ||
-    disruptionType === "DELAY"
-  )
-    return "emergency";
-  // CONGESTION, EVENT → emergency/public as appropriate
-  if (disruptionType === "CONGESTION") return "emergency";
-  return "public";
-}
-
-export function getDisruptionSeverity(
-  severity: DisruptionItem["severity"],
-): EventSeverity {
-  if (severity === "CRITICAL" || severity === "HIGH") return "high";
-  if (severity === "MEDIUM") return "medium";
-  return "low";
-}
-
-export function getEventSeverity(event: EventItem): EventSeverity {
-  const att = event.estimatedAttendance ?? 0;
-  if (att > 5000) return "high";
-  if (att > 1000) return "medium";
-  return "low";
-}
 
 function createEventIcon(
   category: EventCategory,
@@ -90,11 +43,7 @@ function createEventIcon(
 }
 
 // Fit bounds across all visible points (events + disruptions combined)
-const FitBounds = ({
-  points,
-}: {
-  points: Array<[number, number]>;
-}) => {
+const FitBounds = ({ points }: { points: Array<[number, number]> }) => {
   const map = useMap();
   useEffect(() => {
     if (points.length > 1) {
@@ -105,10 +54,6 @@ const FitBounds = ({
   }, [points, map]);
   return null;
 };
-
-export type SelectedMapItem =
-  | { kind: "event"; item: EventItem }
-  | { kind: "disruption"; item: DisruptionItem };
 
 interface EventMapProps {
   events: EventItem[];
