@@ -125,7 +125,7 @@ if [[ "$RUN_PYTHON" == "true" ]]; then
 
     run_step "$PKG_NAME · ruff lint"   uv run ruff check .
     run_step "$PKG_NAME · ruff format" uv run ruff format .
-    run_step "$PKG_NAME · pytest"      uv run pytest
+    run_step "$PKG_NAME · pytest"      env APP_ENV=dev uv run pytest
 
     popd > /dev/null
   done
