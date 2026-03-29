@@ -22,7 +22,7 @@ from data_handler.settings.data_sources_settings import (
 )
 from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.realtime_handler import irish_rail_realtime_to_db
-from data_handler.train.static_data_handler import process_train_static_data
+from data_handler.train.static_data_handler import process_train_ridership_data, process_train_static_data
 from data_handler.tram.forecast_handler import luas_forecasts_to_db, luas_stops_to_db
 from data_handler.tram.static_data_handler import process_tram_static_data
 from data_handler.urls import (
@@ -85,6 +85,14 @@ def _process_train_static(settings: DataSourcesSettings) -> None:
     download_and_extract_zip(settings.train_gtfs_zip_url, train_dir)
     process_train_static_data(settings.base_static_data_dir / "train")
     delete_static_data(train_dir)
+
+    if settings.train_ridership_gdrive_folder_id:
+        ridership_dir = str(settings.base_static_data_dir / "train_ridership")
+        download_google_drive_folder(settings.train_ridership_gdrive_folder_id, ridership_dir)
+        process_train_ridership_data(settings.base_static_data_dir / "train_ridership")
+        delete_static_data(ridership_dir)
+    else:
+        logger.info("Skipping train ridership data (TRAIN_RIDERSHIP_GDRIVE_FOLDER_ID not set).")
 
 
 def _process_tram_static(settings: DataSourcesSettings) -> None:

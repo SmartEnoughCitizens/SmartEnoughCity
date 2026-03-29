@@ -14,6 +14,7 @@ from data_handler.train.models import (
     TrainRoute,
     TrainStop,
     TrainStopTime,
+    TrainStationRidership,
     TrainTrip,
     TrainTripShape,
 )
@@ -260,6 +261,78 @@ def process_train_static_data(gtfs_dir: Path) -> None:
     except Exception:
         session.rollback()
         logger.exception("Error processing static train data")
+        raise
+
+    finally:
+        session.close()
+
+
+_RIDERSHIP_CSV_FILE = "stations_historical.csv"
+_RIDERSHIP_REQUIRED_HEADERS = [
+    "Station",
+    "2014",
+    "2015",
+    "2016",
+    "2017",
+    "2018",
+    "2019",
+    "2021",
+    "2022",
+    "2023",
+    "2024",
+]
+
+
+def process_train_ridership_data(data_dir: Path) -> None:
+    """
+    Process train station historical ridership data from a CSV file.
+
+    Expects stations_historical.csv in data_dir with columns:
+    Station, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024
+
+    Args:
+        data_dir: Path to the directory containing the ridership CSV.
+
+    Raises:
+        FileNotFoundError: If stations_historical.csv is missing
+        ValueError: If the CSV is missing required headers
+    """
+    file_path = data_dir / _RIDERSHIP_CSV_FILE
+    if not file_path.exists():
+        msg = f"Required file not found: {file_path}"
+        raise FileNotFoundError(msg)
+
+    logger.info("Processing %s...", _RIDERSHIP_CSV_FILE)
+
+    session = SessionLocal()
+    try:
+        session.execute(delete(TrainStationRidership))
+
+        rows = []
+        for row in read_csv_file(file_path, _RIDERSHIP_REQUIRED_HEADERS):
+            if not row.get("Station", "").strip():
+                continue
+            rows.append(TrainStationRidership(
+                station=row["Station"].strip(),
+                count_2014=int(row["2014"]) if row.get("2014", "").strip() else 0,
+                count_2015=int(row["2015"]) if row.get("2015", "").strip() else 0,
+                count_2016=int(row["2016"]) if row.get("2016", "").strip() else 0,
+                count_2017=int(row["2017"]) if row.get("2017", "").strip() else 0,
+                count_2018=int(row["2018"]) if row.get("2018", "").strip() else 0,
+                count_2019=int(row["2019"]) if row.get("2019", "").strip() else 0,
+                count_2021=int(row["2021"]) if row.get("2021", "").strip() else 0,
+                count_2022=int(row["2022"]) if row.get("2022", "").strip() else 0,
+                count_2023=int(row["2023"]) if row.get("2023", "").strip() else 0,
+                count_2024=int(row["2024"]) if row.get("2024", "").strip() else 0,
+            ))
+
+        session.add_all(rows)
+        session.commit()
+        logger.info("  Added %d train station ridership rows.", len(rows))
+
+    except Exception:
+        session.rollback()
+        logger.exception("Error processing train ridership data")
         raise
 
     finally:
