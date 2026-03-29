@@ -43,5 +43,4 @@ public class BusController {
     log.info("GET /api/v1/bus/system-performance");
     return ResponseEntity.ok(busFacade.getSystemPerformance());
   }
-
 }

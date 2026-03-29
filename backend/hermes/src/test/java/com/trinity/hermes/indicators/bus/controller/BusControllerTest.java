@@ -100,5 +100,4 @@ class BusControllerTest {
         .andExpect(jsonPath("$.reliabilityPct").value(88.0))
         .andExpect(jsonPath("$.lateArrivalPct").value(12.0));
   }
-
 }

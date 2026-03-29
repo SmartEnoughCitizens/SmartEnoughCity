@@ -75,8 +75,8 @@ public class MaterializedViewController {
   }
 
   /**
-   * Get the last N refresh attempts for a MV (already embedded in GET /{name},
-   * but exposed separately for quick debugging without the full metadata).
+   * Get the last N refresh attempts for a MV (already embedded in GET /{name}, but exposed
+   * separately for quick debugging without the full metadata).
    */
   @GetMapping("/{name}/history")
   public ResponseEntity<List<MvRefreshResult>> history(@PathVariable String name) {
@@ -96,11 +96,9 @@ public class MaterializedViewController {
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
-    Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
-        .collect(Collectors.toMap(
-            e -> e.getField(),
-            e -> e.getDefaultMessage(),
-            (a, b) -> a));
+    Map<String, String> errors =
+        ex.getBindingResult().getFieldErrors().stream()
+            .collect(Collectors.toMap(e -> e.getField(), e -> e.getDefaultMessage(), (a, b) -> a));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
   }
 }
