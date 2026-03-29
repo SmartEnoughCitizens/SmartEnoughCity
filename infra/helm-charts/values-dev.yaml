@@ -98,6 +98,13 @@ inference-engine:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/inference-engine
     tag: latest
     pullPolicy: Always
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
   livenessProbe:
     httpGet:
       path: /docs
