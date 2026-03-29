@@ -3,7 +3,6 @@ package com.trinity.hermes.mv.service;
 import com.trinity.hermes.mv.dto.MvRefreshResult;
 import com.trinity.hermes.mv.dto.MvRegistryDTO;
 import com.trinity.hermes.mv.dto.UpsertMvRequest;
-import com.trinity.hermes.mv.entity.MvRefreshLog;
 import com.trinity.hermes.mv.entity.MvRegistry;
 import com.trinity.hermes.mv.repository.MvRefreshLogRepository;
 import com.trinity.hermes.mv.repository.MvRegistryRepository;
@@ -27,12 +26,12 @@ import org.springframework.util.StringUtils;
 public class MaterializedViewService {
 
   private static final String DEFAULT_SCHEMA = "backend";
-  private static final int REFRESH_LOG_KEEP_COUNT = 10;
 
   private final MvRegistryRepository mvRegistryRepository;
   private final MvRefreshLogRepository mvRefreshLogRepository;
   private final JdbcTemplate jdbcTemplate;
   private final MvSchedulerService mvSchedulerService;
+  private final MvRefreshLogger mvRefreshLogger;
 
   // ── Upsert ────────────────────────────────────────────────────────────────
 
@@ -114,10 +113,8 @@ public class MaterializedViewService {
 
       long durationMs = System.currentTimeMillis() - start;
       status = "SUCCESS";
-      updateRegistryStatus(registry, status, durationMs, refreshedAt, null);
+      mvRefreshLogger.recordResult(registry, status, durationMs, refreshedAt, null, triggeredBy);
       log.info("Refreshed MV '{}' in {}ms", name, durationMs);
-
-      writeLog(name, status, durationMs, refreshedAt, null, triggeredBy);
       return MvRefreshResult.builder()
           .mvName(name).status(status).durationMs(durationMs).refreshedAt(refreshedAt).build();
 
@@ -126,9 +123,7 @@ public class MaterializedViewService {
       status = "FAILED";
       errorMessage = e.getMessage();
       log.error("Failed to refresh MV '{}': {}", name, errorMessage);
-      updateRegistryStatus(registry, status, durationMs, refreshedAt, errorMessage);
-
-      writeLog(name, status, durationMs, refreshedAt, errorMessage, triggeredBy);
+      mvRefreshLogger.recordResult(registry, status, durationMs, refreshedAt, errorMessage, triggeredBy);
       return MvRefreshResult.builder()
           .mvName(name).status(status).durationMs(durationMs).refreshedAt(refreshedAt)
           .errorMessage(errorMessage).build();
@@ -201,31 +196,6 @@ public class MaterializedViewService {
     if (!request.getUniqueKeyColumns().matches("^[a-z][a-z0-9_]*(,\\s*[a-z][a-z0-9_]*)*$")) {
       throw new IllegalArgumentException("uniqueKeyColumns must be comma-separated lowercase column names");
     }
-  }
-
-  @Transactional
-  protected void updateRegistryStatus(MvRegistry registry, String status, long durationMs,
-      Instant refreshedAt, String error) {
-    registry.setLastRefreshStatus(status);
-    registry.setLastRefreshDurationMs(durationMs);
-    registry.setLastRefreshedAt(refreshedAt);
-    registry.setLastRefreshError(error);
-    mvRegistryRepository.save(registry);
-  }
-
-  @Transactional
-  protected void writeLog(String mvName, String status, long durationMs,
-      Instant refreshedAt, String errorMessage, String triggeredBy) {
-    MvRefreshLog log = MvRefreshLog.builder()
-        .mvName(mvName)
-        .status(status)
-        .durationMs(durationMs)
-        .refreshedAt(refreshedAt)
-        .errorMessage(errorMessage)
-        .triggeredBy(triggeredBy)
-        .build();
-    mvRefreshLogRepository.save(log);
-    mvRefreshLogRepository.pruneOldLogs(mvName, REFRESH_LOG_KEEP_COUNT);
   }
 
   private MvRegistryDTO toDTO(MvRegistry r) {
