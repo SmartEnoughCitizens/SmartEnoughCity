@@ -6,11 +6,14 @@ import com.trinity.hermes.mv.dto.UpsertMvRequest;
 import com.trinity.hermes.mv.facade.MaterializedViewFacade;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -89,5 +92,15 @@ public class MaterializedViewController {
   @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
   public ResponseEntity<String> handleBadRequest(RuntimeException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
+    Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
+        .collect(Collectors.toMap(
+            e -> e.getField(),
+            e -> e.getDefaultMessage(),
+            (a, b) -> a));
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
   }
 }
