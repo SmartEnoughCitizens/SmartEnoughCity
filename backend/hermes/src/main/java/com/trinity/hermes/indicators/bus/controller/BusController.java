@@ -44,10 +44,4 @@ public class BusController {
     return ResponseEntity.ok(busFacade.getSystemPerformance());
   }
 
-  @PostMapping("/metrics/refresh")
-  public ResponseEntity<Void> refreshMetrics() {
-    log.info("POST /api/v1/bus/metrics/refresh");
-    busFacade.refreshMetrics();
-    return ResponseEntity.ok().build();
-  }
 }
