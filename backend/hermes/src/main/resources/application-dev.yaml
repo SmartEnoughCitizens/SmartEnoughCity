@@ -16,7 +16,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/smart_enough_city
     username: backend_user
-    password: 0sLSY4yL2Ktzp0gEcRXtxriF01xmgY0d
+    password: dev_backend_user_password
 
   jpa:
     properties:
