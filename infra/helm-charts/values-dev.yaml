@@ -71,6 +71,18 @@ hermes:
   # TODO: Re-enable health probes after fixing SecurityConfig in Docker image
   livenessProbe: null
   readinessProbe: null
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
 
 inference-engine:
   imagePullSecrets:
@@ -95,6 +107,18 @@ inference-engine:
     periodSeconds: 5
     timeoutSeconds: 3
     failureThreshold: 3
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
 
 # Exclude PostgreSQL from Istio injection - databases need direct network access
 postgres:
