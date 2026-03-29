@@ -5,17 +5,17 @@ import java.sql.Timestamp;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
 
 @Entity
+@Immutable
 @Table(name = "bus_route_metrics", schema = "backend")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class BusRouteMetrics {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @Id private Long id;
 
   @Column(name = "route_id", nullable = false, unique = true)
   private String routeId;
