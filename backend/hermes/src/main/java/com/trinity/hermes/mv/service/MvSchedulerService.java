@@ -43,13 +43,18 @@ public class MvSchedulerService implements SchedulingConfigurer {
   public void configureTasks(ScheduledTaskRegistrar registrar) {
     registrar.setTaskScheduler(mvTaskScheduler);
 
-    // Schedule all enabled MVs that have a cron expression at startup
-    mvRegistryRepository.findAllByEnabledTrue().stream()
-        .filter(mv -> StringUtils.hasText(mv.getRefreshCron()))
-        .forEach(this::scheduleInternal);
-
-    log.info("MvSchedulerService: scheduled {} MV refresh tasks at startup",
-        scheduledTasks.size());
+    // Schedule all enabled MVs that have a cron expression at startup.
+    // Wrapped in try-catch so the app starts cleanly on a fresh DB (mv_registry not yet created).
+    try {
+      mvRegistryRepository.findAllByEnabledTrue().stream()
+          .filter(mv -> StringUtils.hasText(mv.getRefreshCron()))
+          .forEach(this::scheduleInternal);
+      log.info("MvSchedulerService: scheduled {} MV refresh tasks at startup",
+          scheduledTasks.size());
+    } catch (Exception e) {
+      log.warn("MvSchedulerService: could not load schedules at startup (mv_registry may not exist yet): {}",
+          e.getMessage());
+    }
   }
 
   /**
