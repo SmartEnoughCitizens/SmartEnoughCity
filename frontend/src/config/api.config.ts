@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
   BUS_ROUTE_UTILIZATION: "/api/v1/bus/route-utilization",
   BUS_SYSTEM_PERFORMANCE: "/api/v1/bus/system-performance",
   BUS_METRICS_REFRESH: "/api/v1/bus/metrics/refresh",
+  BUS_COMMON_DELAYS: "/api/v1/bus/common-delays",
 
   // Train Indicators
   TRAIN_KPIS: "/api/v1/train/kpis",

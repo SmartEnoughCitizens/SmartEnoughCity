@@ -5,10 +5,12 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  BusCommonDelay,
   DisruptionItem,
   BusDashboardResponse,
   BusKpis,
   BusLiveVehicle,
+  BusRouteBreakdown,
   BusRouteUtilization,
   BusSystemPerformance,
   CarFuelTypeStat,
@@ -167,6 +169,31 @@ export const dashboardApi = {
   getBusSystemPerformance: async (): Promise<BusSystemPerformance> => {
     const { data } = await axiosInstance.get<BusSystemPerformance>(
       API_ENDPOINTS.BUS_SYSTEM_PERFORMANCE,
+    );
+    return data;
+  },
+
+  /**
+   * Get top 10 most delayed bus routes with average delay in minutes
+   */
+  getBusCommonDelays: async (filter: string): Promise<BusCommonDelay[]> => {
+    const { data } = await axiosInstance.get<BusCommonDelay[]>(
+      API_ENDPOINTS.BUS_COMMON_DELAYS,
+      { params: { filter } },
+    );
+    return data;
+  },
+
+  /**
+   * Get per-stop delay breakdown for a specific bus route
+   */
+  getBusRouteBreakdown: async (
+    routeId: string,
+    filter: string,
+  ): Promise<BusRouteBreakdown[]> => {
+    const { data } = await axiosInstance.get<BusRouteBreakdown[]>(
+      `${API_ENDPOINTS.BUS_COMMON_DELAYS}/${routeId}`,
+      { params: { filter } },
     );
     return data;
   },
