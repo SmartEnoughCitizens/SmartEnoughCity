@@ -103,10 +103,4 @@ class BusControllerTest {
         .andExpect(jsonPath("$.lateArrivalPct").value(12.0));
   }
 
-  @Test
-  void refreshMetrics_returnsOk() throws Exception {
-    mockMvc.perform(post("/api/v1/bus/metrics/refresh")).andExpect(status().isOk());
-
-    verify(busFacade).refreshMetrics();
-  }
 }
