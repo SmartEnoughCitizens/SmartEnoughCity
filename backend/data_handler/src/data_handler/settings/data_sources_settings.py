@@ -13,6 +13,17 @@ class DataSourcesSettings(BaseSettings):
 
     This class manages which data sources should be enabled/disabled.
     Allows toggling API calls for different data sources via environment variables.
+
+    Attributes:
+        enable_cycle_data: Toggle for cycle data source (from ENABLE_CYCLE_DATA)
+        enable_car_data: Toggle for car data source (from ENABLE_CAR_DATA)
+        enable_bus_data: Toggle for bus data source (from ENABLE_BUS_DATA)
+        enable_train_data: Toggle for train data source (from ENABLE_TRAIN_DATA)
+        enable_tram_data: Toggle for tram data source (from ENABLE_TRAM_DATA)
+        enable_construction_data: Toggle for construction/traffic data source (from ENABLE_CONSTRUCTION_DATA)
+        enable_pedestrian_data: Toggle for pedestrian data source (from ENABLE_PEDESTRIAN_DATA)
+        enable_events_data: Toggle for events data source (from ENABLE_EVENTS_DATA)
+        enable_population_data: Toggle for population data source (from ENABLE_POPULATION_DATA)
     """
 
     enable_cycle_data: bool = Field(True, alias="ENABLE_CYCLE_DATA")
@@ -21,6 +32,7 @@ class DataSourcesSettings(BaseSettings):
     enable_train_data: bool = Field(True, alias="ENABLE_TRAIN_DATA")
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
+    enable_pedestrian_data: bool = Field(True, alias="ENABLE_PEDESTRIAN_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
     enable_pedestrian_data: bool = Field(True, alias="ENABLE_PEDESTRIAN_DATA")
     enable_population_data: bool = Field(True, alias="ENABLE_POPULATION_DATA")
