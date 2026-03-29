@@ -15,7 +15,9 @@ public interface MvRefreshLogRepository extends JpaRepository<MvRefreshLog, Long
 
   /** Deletes all rows for a given MV beyond the most recent N, keeping the log table small. */
   @Modifying
-  @Query(value = """
+  @Query(
+      value =
+          """
       DELETE FROM backend.mv_refresh_log
       WHERE mv_name = :mvName
         AND id NOT IN (
@@ -24,7 +26,8 @@ public interface MvRefreshLogRepository extends JpaRepository<MvRefreshLog, Long
           ORDER BY refreshed_at DESC
           LIMIT :keepCount
         )
-      """, nativeQuery = true)
+      """,
+      nativeQuery = true)
   void pruneOldLogs(@Param("mvName") String mvName, @Param("keepCount") int keepCount);
 
   /** Remove all log rows when a MV is dropped. */

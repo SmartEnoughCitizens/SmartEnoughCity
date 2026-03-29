@@ -15,8 +15,7 @@ import org.hibernate.annotations.Immutable;
 @AllArgsConstructor
 public class BusRouteMetrics {
 
-  @Id
-  private Long id;
+  @Id private Long id;
 
   @Column(name = "route_id", nullable = false, unique = true)
   private String routeId;
