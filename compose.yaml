@@ -15,7 +15,7 @@ services:
       - keycloak-postgres
 
   postgres-init:
-    image: postgres:18-alpine
+    image: postgis/postgis:18-3.6-alpine
     depends_on:
       - postgres
     restart: "no"
@@ -48,7 +48,13 @@ services:
           sleep 2
         done
         echo "PostgreSQL is ready!"
-        
+
+        echo "Enabling PostGIS extension..."
+        PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d "$$DB_NAME" <<EOF
+        CREATE EXTENSION IF NOT EXISTS postgis;
+        SELECT 'PostGIS extension enabled successfully!' AS status;
+        EOF
+
         echo "Creating postgres user with password..."
         PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d postgres <<EOF
         DO \$\$

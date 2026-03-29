@@ -98,3 +98,4 @@ build/
 *.key
 credentials*.json
 *-key.json
+.claude/settings.local.json
