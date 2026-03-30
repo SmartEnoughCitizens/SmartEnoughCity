@@ -54,6 +54,12 @@ public class TramController {
     return ResponseEntity.ok(tramFacade.getLiveForecasts());
   }
 
+  @GetMapping("/api/v1/tram/alternative-routes")
+  public ResponseEntity<List<TramAlternativeRouteDTO>> getAlternativeRoutes(@RequestParam String stopId) {
+    log.info("GET /api/v1/tram/alternative-routes");
+    return ResponseEntity.ok(tramFacade.getAlternativeRoutes(stopId));
+  }
+
   @GetMapping("/api/v1/tram/delays")
   public ResponseEntity<List<TramDelayDTO>> getDelays() {
     log.info("GET /api/v1/tram/delays");

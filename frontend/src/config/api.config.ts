@@ -62,6 +62,7 @@ export const API_ENDPOINTS = {
   // Tram Indicators
   TRAM_KPIS: "/api/v1/tram/kpis",
   TRAM_LIVE_FORECASTS: "/api/v1/tram/live-forecasts",
+  TRAM_ALTERNATIVE_ROUTES: "/api/v1/tram/alternative-routes",
   TRAM_DELAYS: "/api/v1/tram/delays",
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
 
