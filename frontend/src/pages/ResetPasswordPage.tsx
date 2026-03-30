@@ -8,16 +8,21 @@ import {
   Box,
   Button,
   CircularProgress,
+  IconButton,
+  InputAdornment,
   Paper,
   TextField,
   Typography,
 } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import {
   Link as RouterLink,
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
 import { useResetPassword } from "@/hooks";
+import { PasswordStrengthIndicator } from "@/components/common/PasswordStrengthIndicator";
 
 export const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
@@ -27,6 +32,8 @@ export const ResetPasswordPage = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMismatch, setPasswordMismatch] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const resetPasswordMutation = useResetPassword();
 
@@ -125,7 +132,7 @@ export const ResetPasswordPage = () => {
           <TextField
             fullWidth
             label="New Password"
-            type="password"
+            type={showNewPassword ? "text" : "password"}
             variant="outlined"
             margin="normal"
             value={newPassword}
@@ -133,14 +140,30 @@ export const ResetPasswordPage = () => {
             disabled={
               resetPasswordMutation.isPending || resetPasswordMutation.isSuccess
             }
-            inputProps={{ minLength: 8 }}
             required
+            slotProps={{
+              htmlInput: { minLength: 8 },
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowNewPassword((v) => !v)}
+                      edge="end"
+                      aria-label={showNewPassword ? "Hide password" : "Show password"}
+                    >
+                      {showNewPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
+          <PasswordStrengthIndicator password={newPassword} />
 
           <TextField
             fullWidth
             label="Confirm New Password"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             variant="outlined"
             margin="normal"
             value={confirmPassword}
@@ -149,6 +172,21 @@ export const ResetPasswordPage = () => {
               resetPasswordMutation.isPending || resetPasswordMutation.isSuccess
             }
             required
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      edge="end"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
 
           <Button
