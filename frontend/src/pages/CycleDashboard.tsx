@@ -27,6 +27,7 @@ import {
   useCycleUnderusedStations,
   useCycleRebalancing,
   useCycleODPairs,
+  useCycleRiskScores,
   useODRoutes,
 } from "@/hooks";
 import { NetworkSummaryChart } from "@/components/charts/NetworkSummaryChart";
@@ -40,6 +41,7 @@ import {
 import { LiveCycleStationMap } from "@/components/map/LiveCycleStationMap";
 import { ODFlowMap } from "@/components/map/ODFlowMap";
 import { StationDemandPanel } from "@/components/cycle/StationDemandPanel";
+import { StationRiskPanel } from "@/components/cycle/StationRiskPanel";
 import { useAppSelector } from "@/store/hooks";
 
 const SIDE_PANEL_WIDTH = 420;
@@ -83,6 +85,7 @@ export const CycleDashboard = () => {
     useCycleRebalancing(30);
   const { data: odPairs, isLoading: odLoading } = useCycleODPairs(30, 50);
   const { routeCache, progress: routeProgress } = useODRoutes(odPairs ?? []);
+  const { data: riskScores, isLoading: riskLoading } = useCycleRiskScores();
 
   const isLoading =
     stationsLoading ||
@@ -254,6 +257,7 @@ export const CycleDashboard = () => {
             <Tab label="Rankings" />
             <Tab label={`Rebalancing (${rebalancing?.length ?? 0})`} />
             <Tab label="OD Flow" />
+            <Tab label="Risk" />
           </Tabs>
 
           <Box sx={{ flex: 1, overflow: "auto", px: 1, pt: 0.5 }}>
@@ -304,6 +308,13 @@ export const CycleDashboard = () => {
                 onFilterChange={handleStationFilterChange}
                 onIntensityFilterChange={handleIntensityFilterChange}
                 onPairSelect={setSelectedPairKey}
+              />
+            )}
+
+            {tabValue === 4 && (
+              <StationRiskPanel
+                scores={riskScores ?? []}
+                isLoading={riskLoading}
               />
             )}
           </Box>
