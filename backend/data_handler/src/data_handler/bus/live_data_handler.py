@@ -200,13 +200,13 @@ def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate |
     )
 
     for stu in tu.stop_time_update:
-        if stu.schedule_relationship is None:
-            continue
         arrival_delay = stu.arrival.delay if stu.arrival else None
         departure_delay = stu.departure.delay if stu.departure else None
         if arrival_delay is None and departure_delay is None:
             continue
-        stop_schedule_rel = _parse_schedule_relationship(stu.schedule_relationship)
+        stop_schedule_rel = _parse_schedule_relationship(
+            stu.schedule_relationship or "scheduled"
+        )
         if stop_schedule_rel is None:
             continue
         trip_update.stop_time_updates.append(

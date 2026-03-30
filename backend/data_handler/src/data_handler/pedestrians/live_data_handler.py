@@ -122,7 +122,13 @@ def process_pedestrian_sites(json_string: str) -> dict[int, PedestrianGranularit
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    valid_payloads = [p for p in payloads if p.location is not None]
+    valid_payloads = [
+        p
+        for p in payloads
+        if p.location is not None
+        and p.location.lat is not None
+        and p.location.lon is not None
+    ]
     skipped = len(payloads) - len(valid_payloads)
     if skipped:
         logger.warning(
