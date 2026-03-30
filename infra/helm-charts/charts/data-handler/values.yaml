@@ -3,16 +3,7 @@ image:
   tag: dev
   pullPolicy: Never
 
-schedule: "* * * * *"
 timeZone: "Europe/Dublin"
-
-resources:
-  requests:
-    cpu: "100m"
-    memory: "128Mi"
-  limits:
-    cpu: "500m"
-    memory: "256Mi"
 
 labels:
   app.kubernetes.io/name: data-handler
@@ -24,3 +15,77 @@ imagePullSecrets: []
 securityContext: {}
 
 containerSecurityContext: {}
+
+# Data source toggles — set to "false" to disable a specific source across all CronJobs.
+dataToggles:
+  enableCycleData: true
+  enableCarData: true
+  enableBusData: true
+  enableTrainData: true
+  enableTramData: true
+  enableConstructionData: true
+  enablePedestrianData: true
+  enableEventsData: true
+  enablePopulationData: true
+
+# One entry per cron cadence. Each becomes a separate CronJob with its ENABLE_* env var set.
+cronjobs:
+  - name: 1min
+    schedule: "* * * * *"
+    runVar: ENABLE_ONE_MIN
+    activeDeadlineSeconds: 55
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"
+
+  - name: 1hour
+    schedule: "0 * * * *"
+    runVar: ENABLE_ONE_HOUR
+    activeDeadlineSeconds: 3300
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"
+
+  - name: daily
+    schedule: "0 3 * * *"
+    runVar: ENABLE_ONE_DAY
+    activeDeadlineSeconds: 1800
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"
+
+  - name: monthly
+    schedule: "0 2 1 * *"
+    runVar: ENABLE_ONE_MONTH
+    activeDeadlineSeconds: 1800
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"
+
+  - name: static
+    schedule: "0 1 1 * *"
+    runVar: ENABLE_STATIC
+    activeDeadlineSeconds: 14400
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
