@@ -67,3 +67,17 @@ export interface BusSystemPerformance {
   reliabilityPct: number;
   lateArrivalPct: number;
 }
+
+export interface BusCommonDelay {
+  routeId: string;
+  routeShortName: string;
+  routeLongName: string;
+  avgDelayMinutes: number;
+}
+
+export interface BusRouteBreakdown {
+  stopId: string;
+  avgDelayMinutes: number;
+  maxDelayMinutes: number;
+  tripCount: number;
+}
