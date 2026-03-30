@@ -12,9 +12,12 @@ logger = logging.getLogger(__name__)
 
 
 def process_public_spaces_file(osm_file: Path) -> pd.DataFrame:
+    logger.info("Parsing OSM file: %s", osm_file.name)
     handler = PublicSpaceHandler()
     handler.apply_file(osm_file, locations=True)
-    return pd.DataFrame(handler.data)
+    df = pd.DataFrame(handler.data)
+    logger.info("Parsed %d public space features from OSM.", len(df))
+    return df
 
 
 def _point_wkt(lon: float, lat: float) -> str:
@@ -29,7 +32,6 @@ def save_public_spaces_to_database(public_spaces: pd.DataFrame) -> None:
 
     session = SessionLocal()
     try:
-        logger.info("Deleting existing public spaces...")
         session.execute(delete(PublicSpace))
 
         records = [
@@ -42,10 +44,8 @@ def save_public_spaces_to_database(public_spaces: pd.DataFrame) -> None:
             for _, row in public_spaces.iterrows()
         ]
         session.add_all(records)
-
-        logger.info("Committing public spaces to database...")
         session.commit()
-        logger.info("Successfully saved %d public spaces.", len(records))
+        logger.info("Inserted %d public space record(s). Public spaces import complete.", len(records))
     except Exception:
         session.rollback()
         logger.exception("Error saving public spaces to database")
