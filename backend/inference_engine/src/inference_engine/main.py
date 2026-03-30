@@ -338,9 +338,7 @@ class RecommendationService:
         2. Generate recommendation using model
         3. Send notification
         """
-        recommendation_id = (
-            f"rec_{data_indicator}_{int(datetime.now(UTC).timestamp())}"
-        )
+        recommendation_id = f"rec_{data_indicator}_{int(datetime.now(UTC).timestamp())}"
         created_at = datetime.now(UTC).isoformat()  # Store timestamp once
 
         try:

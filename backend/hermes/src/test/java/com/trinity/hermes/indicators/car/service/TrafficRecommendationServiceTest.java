@@ -41,8 +41,7 @@ class TrafficRecommendationServiceTest {
                     .timeSlot("evening_peak")
                     .build()));
 
-    List<TrafficRecommendation> result =
-        trafficRecommendationService.getTrafficRecommendations();
+    List<TrafficRecommendation> result = trafficRecommendationService.getTrafficRecommendations();
 
     assertThat(result).hasSize(2);
     assertThat(result.get(0).getSiteId()).isEqualTo(101);
@@ -57,8 +56,7 @@ class TrafficRecommendationServiceTest {
   void getTrafficRecommendations_withNoTrafficData_returnsEmptyList() {
     when(highTrafficPointsService.getHighTrafficPoints()).thenReturn(List.of());
 
-    List<TrafficRecommendation> result =
-        trafficRecommendationService.getTrafficRecommendations();
+    List<TrafficRecommendation> result = trafficRecommendationService.getTrafficRecommendations();
 
     assertThat(result).isEmpty();
   }

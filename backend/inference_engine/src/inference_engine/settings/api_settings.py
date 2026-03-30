@@ -9,7 +9,7 @@ from inference_engine.settings.app_settings import is_dev
 class APISettings(BaseSettings):
     """Settings for external API endpoints."""
 
-    hermes_url: str = Field(..., alias="HERMES_URL")
+    hermes_url: str = Field(default="http://localhost:8080", alias="HERMES_URL")
     http_timeout: int = Field(default=30, alias="HTTP_TIMEOUT")
 
     model_config = SettingsConfigDict(

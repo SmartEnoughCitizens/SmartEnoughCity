@@ -38,15 +38,18 @@ public class TrafficRecommendationService {
             .orElse(1.0);
 
     return trafficPoints.stream()
-        .filter(point -> point.getLat() != null && point.getLon() != null && point.getAvgVolume() != null)
+        .filter(
+            point ->
+                point.getLat() != null
+                    && point.getLon() != null
+                    && point.getAvgVolume() != null)
         .sorted(Comparator.comparing(HighTrafficPointsDTO::getAvgVolume).reversed())
         .limit(MAX_RECOMMENDATIONS)
         .map(point -> buildRecommendation(point, maxVolume))
         .toList();
   }
 
-  private TrafficRecommendation buildRecommendation(
-      HighTrafficPointsDTO point, double maxVolume) {
+  private TrafficRecommendation buildRecommendation(HighTrafficPointsDTO point, double maxVolume) {
     double volume = point.getAvgVolume() == null ? 0.0 : point.getAvgVolume();
     double ratio = maxVolume <= 0 ? 0.0 : volume / maxVolume;
     String congestionLevel = classifyCongestion(ratio);
@@ -56,8 +59,7 @@ public class TrafficRecommendationService {
     return TrafficRecommendation.builder()
         .recommendationId(
             String.format(
-                "traffic-%s-%s-%s",
-                point.getSiteId(), point.getDayType(), point.getTimeSlot()))
+                "traffic-%s-%s-%s", point.getSiteId(), point.getDayType(), point.getTimeSlot()))
         .siteId(point.getSiteId())
         .siteLat(point.getLat())
         .siteLon(point.getLon())
@@ -138,10 +140,7 @@ public class TrafficRecommendationService {
   private String buildRecommendedAction(HighTrafficPointsDTO point, String congestionLevel) {
     return String.format(
         "Activate %s diversion signage near Site %s for the %s %s window.",
-        congestionLevel,
-        point.getSiteId(),
-        point.getDayType(),
-        humanize(point.getTimeSlot()));
+        congestionLevel, point.getSiteId(), point.getDayType(), humanize(point.getTimeSlot()));
   }
 
   private String capitalize(String value) {
