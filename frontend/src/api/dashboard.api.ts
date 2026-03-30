@@ -25,6 +25,7 @@ import type {
   RebalanceSuggestionDTO,
   StationODPairDTO,
   StationRankingDTO,
+  StationRiskScoreDTO,
   JunctionEmission,
   PedestrianLive,
   TrainDashboardResponse,
@@ -371,6 +372,13 @@ export const dashboardApi = {
       {
         params: { limit },
       },
+    );
+    return data;
+  },
+
+  getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
+    const { data } = await axiosInstance.get<StationRiskScoreDTO[]>(
+      API_ENDPOINTS.CYCLE_RISK_SCORES,
     );
     return data;
   },
