@@ -2,14 +2,14 @@ import asyncio
 import logging
 from collections.abc import Generator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 
 from inference_engine.settings.api_settings import get_api_settings
 
@@ -69,8 +69,6 @@ NOTIFICATION_API_URL: str = settings.hermes_url + "/notification/v1"
 
 # Request/Response Models
 class RecommendationRequest(BaseModel):
-    user_id: str = "system"
-    data_indicator: str | None = None
     context: dict[str, Any] | None = None
 
 
@@ -85,56 +83,6 @@ class NotificationPayload(BaseModel):
     data_indicator: str
     recommendation: dict[str, Any]
     priority: str = "normal"
-
-
-class TrafficPoint(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    site_id: int = Field(alias="siteId")
-    lat: float
-    lon: float
-    avg_volume: float = Field(alias="avgVolume")
-    day_type: str = Field(alias="dayType")
-    time_slot: str = Field(alias="timeSlot")
-
-
-class TrafficWaypoint(BaseModel):
-    lat: float
-    lon: float
-
-
-class TrafficAlternativeRouteResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    route_id: str = Field(alias="routeId")
-    label: str
-    summary: str
-    color: str
-    estimated_time_savings_minutes: int = Field(alias="estimatedTimeSavingsMinutes")
-    estimated_travel_time_minutes: int = Field(alias="estimatedTravelTimeMinutes")
-    distance_km: float = Field(alias="distanceKm")
-    path: list[TrafficWaypoint]
-
-
-class TrafficRecommendationResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    recommendation_id: str = Field(alias="recommendationId")
-    site_id: int = Field(alias="siteId")
-    site_lat: float = Field(alias="siteLat")
-    site_lon: float = Field(alias="siteLon")
-    title: str
-    summary: str
-    day_type: str = Field(alias="dayType")
-    time_slot: str = Field(alias="timeSlot")
-    average_volume: float = Field(alias="averageVolume")
-    congestion_level: str = Field(alias="congestionLevel")
-    confidence_score: float = Field(alias="confidenceScore")
-    recommended_action: str = Field(alias="recommendedAction")
-    generated_at: str = Field(alias="generatedAt")
-    alternative_routes: list[TrafficAlternativeRouteResponse] = Field(
-        alias="alternativeRoutes"
-    )
 
 
 ## Integration Layer
@@ -216,108 +164,9 @@ class RecommendationModel:
                 recommendations["alternatives"] = ["bicycle", "walking"]
 
         recommendations["confidence_score"] = 0.85
-        recommendations["generated_at"] = datetime.now(UTC).isoformat()
+        recommendations["generated_at"] = datetime.utcnow().isoformat()
 
         return recommendations
-
-    @staticmethod
-    def generate_traffic_recommendations(
-        traffic_points: list[TrafficPoint],
-    ) -> list[TrafficRecommendationResponse]:
-        if not traffic_points:
-            return []
-
-        max_volume = max(point.avg_volume for point in traffic_points) or 1.0
-        ranked_points = sorted(
-            traffic_points,
-            key=lambda point: point.avg_volume,
-            reverse=True,
-        )[:4]
-
-        responses: list[TrafficRecommendationResponse] = []
-        for point in ranked_points:
-            ratio = point.avg_volume / max_volume if max_volume else 0.0
-            congestion_level = (
-                "critical" if ratio >= 0.85 else "high" if ratio >= 0.65 else "elevated"
-            )
-            confidence_score = round(min(0.97, 0.68 + ratio * 0.27), 2)
-            base_time_saving = max(4, round(4 + ratio * 8))
-
-            alternative_routes = [
-                TrafficAlternativeRouteResponse(
-                    route_id=f"alt-{point.site_id}-{route_index + 1}",
-                    label=(
-                        "North Circular Diversion"
-                        if route_index == 0
-                        else "Quays Relief Route"
-                    ),
-                    summary=(
-                        "Prioritise this corridor for the strongest expected queue reduction."
-                        if route_index == 0
-                        else "Use as overflow when primary diversion approaches saturation."
-                    ),
-                    color="#0f766e" if route_index == 0 else "#ea580c",
-                    estimated_time_savings_minutes=max(
-                        3, base_time_saving - route_index
-                    ),
-                    estimated_travel_time_minutes=max(
-                        9, 22 - base_time_saving + route_index * 2
-                    ),
-                    distance_km=round(2.6 + route_index * 0.9, 1),
-                    path=RecommendationModel._build_traffic_path(point, route_index),
-                )
-                for route_index in range(2)
-            ]
-
-            responses.append(
-                TrafficRecommendationResponse(
-                    recommendation_id=(
-                        f"traffic-{point.site_id}-{point.day_type}-{point.time_slot}"
-                    ),
-                    site_id=point.site_id,
-                    site_lat=point.lat,
-                    site_lon=point.lon,
-                    title=f"Diversion plan for Site {point.site_id}",
-                    summary=(
-                        f"{congestion_level.capitalize()} congestion detected during "
-                        f"{point.time_slot.replace('_', ' ')}. Redirect through lower-pressure "
-                        "parallel links to reduce queue build-up."
-                    ),
-                    day_type=point.day_type,
-                    time_slot=point.time_slot,
-                    average_volume=point.avg_volume,
-                    congestion_level=congestion_level,
-                    confidence_score=confidence_score,
-                    recommended_action=(
-                        f"Activate {congestion_level} diversion signage near Site "
-                        f"{point.site_id} for the {point.day_type} "
-                        f"{point.time_slot.replace('_', ' ')} window."
-                    ),
-                    generated_at=datetime.now(UTC).isoformat(),
-                    alternative_routes=alternative_routes,
-                )
-            )
-
-        return responses
-
-    @staticmethod
-    def _build_traffic_path(
-        point: TrafficPoint, route_index: int
-    ) -> list[TrafficWaypoint]:
-        lat_shift = 0.004 if route_index == 0 else -0.0035
-        lon_shift = -0.011 if route_index == 0 else 0.0105
-        return [
-            TrafficWaypoint(
-                lat=point.lat - lat_shift, lon=point.lon + lon_shift * 0.15
-            ),
-            TrafficWaypoint(
-                lat=point.lat - lat_shift * 0.5, lon=point.lon + lon_shift * 0.55
-            ),
-            TrafficWaypoint(
-                lat=point.lat + lat_shift * 0.35, lon=point.lon + lon_shift * 0.85
-            ),
-            TrafficWaypoint(lat=point.lat + lat_shift, lon=point.lon + lon_shift),
-        ]
 
 
 ## Service Layer
@@ -338,8 +187,8 @@ class RecommendationService:
         2. Generate recommendation using model
         3. Send notification
         """
-        recommendation_id = f"rec_{data_indicator}_{int(datetime.now(UTC).timestamp())}"
-        created_at = datetime.now(UTC).isoformat()  # Store timestamp once
+        recommendation_id = f"rec_{data_indicator}_{int(datetime.utcnow().timestamp())}"
+        created_at = datetime.utcnow().isoformat()  # Store timestamp once
 
         try:
             # Update status - FIXED: Use data_indicator as temporary key
@@ -382,7 +231,7 @@ class RecommendationService:
                 "recommendation": recommendation,
                 "notification_sent": notification_sent,
                 "created_at": created_at,  # Use the stored timestamp
-                "completed_at": datetime.now(UTC).isoformat(),
+                "completed_at": datetime.utcnow().isoformat(),
             }
 
             # Clean up temporary key
@@ -395,7 +244,7 @@ class RecommendationService:
                 "data_indicator": data_indicator,
                 "error": str(e),
                 "created_at": created_at,  # Use the stored timestamp
-                "failed_at": datetime.now(UTC).isoformat(),
+                "failed_at": datetime.utcnow().isoformat(),
             }
             raise
 
@@ -406,7 +255,7 @@ class RecommendationService:
     async def process_batch_recommendations(self) -> dict:
         logger.info("=" * 80)
         logger.info("⏰ SCHEDULED TASK TRIGGERED")
-        logger.info("📅 Time: %s", datetime.now(UTC).isoformat())
+        logger.info("📅 Time: %s", datetime.utcnow().isoformat())
         logger.info("🚗 Data indicators: %s", DATA_INDICATORS)
         logger.info("=" * 80)
 
@@ -425,7 +274,7 @@ class RecommendationService:
                     data_indicator=data_indicator,
                     context={
                         "source": "scheduled_task",
-                        "scheduled_at": datetime.now(UTC).isoformat(),
+                        "scheduled_at": datetime.utcnow().isoformat(),
                     },
                 )
                 results["successful"] += 1
@@ -489,7 +338,8 @@ def start_scheduler() -> None:
     # Add the scheduled job
     scheduler.add_job(
         scheduled_recommendation_task,
-        trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
+        ##trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
+        trigger=IntervalTrigger(minutes=1),
         id="fetch_recommendations",
         name="Fetch and generate recommendations",
         replace_existing=True,
@@ -523,13 +373,13 @@ async def generate_recommendation(
     This endpoint triggers the full workflow asynchronously
     """
     try:
-        data_indicator = request.data_indicator or "bus"
+        # Get data_indicator from context, default to 'bus'
         if request.context and "data_indicator" in request.context:
-            data_indicator = str(request.context["data_indicator"])
+            request.context["data_indicator"]
 
         # Process in background
         recommendation_id = await recommendation_service.process_recommendation(
-            data_indicator,
+            request.user_id,
             request.context,
         )
 
@@ -537,27 +387,12 @@ async def generate_recommendation(
             recommendation_id=recommendation_id,
             status="completed",
             message="Recommendation generated and notification sent",
-            timestamp=datetime.now(UTC).isoformat(),
+            timestamp=datetime.utcnow().isoformat(),
         )
     except Exception as e:
         logger.exception("Error in generate_recommendation")
         # TODO: Details of the error should not be exposed to the client
         raise HTTPException(status_code=500, detail=str(e)) from None
-
-
-@app.post(
-    "/recommendations/traffic",
-    response_model=list[TrafficRecommendationResponse],
-)
-async def generate_traffic_recommendations(
-    traffic_points: list[TrafficPoint],
-) -> list[TrafficRecommendationResponse]:
-    """Generate congestion diversion recommendations for car traffic hotspots."""
-    try:
-        return RecommendationModel.generate_traffic_recommendations(traffic_points)
-    except Exception as exc:
-        logger.exception("Error generating traffic recommendations")
-        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @app.post("/scheduler/trigger-now")
@@ -571,7 +406,7 @@ async def trigger_scheduler_manually() -> dict:
         return {
             "message": "Batch processing completed",
             "results": results,
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.utcnow().isoformat(),
         }
     except Exception as e:
         logger.exception("❌ Manual trigger failed")
@@ -606,8 +441,7 @@ async def test_trigger(user_id: str) -> RecommendationResponse:
     """Test endpoint to trigger the full workflow"""
     request = RecommendationRequest(
         user_id=user_id,
-        data_indicator="bus",
-        context={"test": True, "timestamp": datetime.now(UTC).isoformat()},
+        context={"test": True, "timestamp": datetime.utcnow().isoformat()},
     )
     return await generate_recommendation(request, BackgroundTasks())
 
@@ -670,7 +504,7 @@ async def mock_data_engine(data_indicator: str) -> dict:
     return {
         "data": mock_data_templates[data_indicator_lower],
         "metadata": {
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.utcnow().isoformat(),
             "data_source": "Mock Data Analysis Engine",
             "version": "1.0",
         },
@@ -690,7 +524,7 @@ async def mock_notification_handler(payload: dict) -> dict:
     return {
         "status": "success",
         "message": "Notification sent successfully",
-        "notification_id": f"notif_{payload.get('data_indicator')}_{int(datetime.now(UTC).timestamp())}",
+        "notification_id": f"notif_{payload.get('data_indicator')}_{int(datetime.utcnow().timestamp())}",
     }
 
 
@@ -713,7 +547,6 @@ async def root() -> dict:
         },
         "endpoints": {
             "generate_recommendation": "POST /recommendations/generate",
-            "traffic_recommendations": "POST /recommendations/traffic",
             "trigger_scheduler": "POST /scheduler/trigger-now",
             "scheduler_status": "GET /scheduler/status",
             "mock_data_engine": "GET /mock/data-engine?data_indicator=bus|car|train",
