@@ -24,6 +24,7 @@ class DataSourcesSettings(BaseSettings):
         enable_pedestrian_data: Toggle for pedestrian data source (from ENABLE_PEDESTRIAN_DATA)
         enable_events_data: Toggle for events data source (from ENABLE_EVENTS_DATA)
         enable_population_data: Toggle for population data source (from ENABLE_POPULATION_DATA)
+        enable_public_spaces_data: Toggle for public spaces data source (from ENABLE_PUBLIC_SPACES_DATA)
     """
 
     enable_cycle_data: bool = Field(True, alias="ENABLE_CYCLE_DATA")
@@ -35,6 +36,7 @@ class DataSourcesSettings(BaseSettings):
     enable_pedestrian_data: bool = Field(True, alias="ENABLE_PEDESTRIAN_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
     enable_population_data: bool = Field(True, alias="ENABLE_POPULATION_DATA")
+    enable_public_spaces_data: bool = Field(True, alias="ENABLE_PUBLIC_SPACES_DATA")
 
     base_static_data_dir: Path = Field(
         Path("static_data"), alias="BASE_STATIC_DATA_DIR"
@@ -84,6 +86,17 @@ class DataSourcesSettings(BaseSettings):
 
     # Car static data — Google Drive folder ID
     car_gdrive_folder_id: str | None = Field(None, alias="CAR_GDRIVE_FOLDER_ID")
+
+    # Train ridership static data — Google Drive folder ID
+    train_ridership_gdrive_folder_id: str | None = Field(
+        None, alias="TRAIN_RIDERSHIP_GDRIVE_FOLDER_ID"
+    )
+
+    # Public spaces OSM data (Geofabrik, updated daily)
+    public_spaces_osm_url: str = Field(
+        "https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf",
+        alias="PUBLIC_SPACES_OSM_URL",
+    )
 
     @field_validator("base_static_data_dir")
     @classmethod

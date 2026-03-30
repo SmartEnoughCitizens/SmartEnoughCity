@@ -73,6 +73,8 @@ spec:
                   value: {{ $.Values.dataToggles.enableEventsData | quote }}
                 - name: ENABLE_POPULATION_DATA
                   value: {{ $.Values.dataToggles.enablePopulationData | quote }}
+                - name: ENABLE_PUBLIC_SPACES_DATA
+                  value: {{ $.Values.dataToggles.enablePublicSpacesData | quote }}
                 - name: DB_HOST
                   value: {{ $.Values.global.db.host | default (printf "%s-postgresql" $.Release.Name) | quote }}
                 - name: DB_PORT

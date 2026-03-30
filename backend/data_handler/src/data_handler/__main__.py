@@ -21,6 +21,7 @@ from data_handler.events.data_handler import (
 from data_handler.logging2 import configure_logging
 from data_handler.pedestrians.live_data_handler import process_pedestrian_live_data
 from data_handler.population.data_handler import process_population_static_data
+from data_handler.public_spaces.data_handler import process_public_spaces
 from data_handler.settings.data_sources_settings import (
     DataSourcesSettings,
     get_data_sources_settings,
@@ -29,7 +30,10 @@ from data_handler.train.realtime_handler import (
     process_train_live_data,
     process_train_station_info,
 )
-from data_handler.train.static_data_handler import process_train_static_data
+from data_handler.train.static_data_handler import (
+    process_train_ridership_data,
+    process_train_static_data,
+)
 from data_handler.tram.forecast_handler import (
     process_tram_live_data,
     process_tram_stop_info,
@@ -103,6 +107,20 @@ def main_1_day() -> None:
         _run_handler(logger, "cycle_station_info", process_cycle_station_info)
     if settings.enable_events_data:
         _run_handler(logger, "events_data", process_events_data)
+    if settings.enable_tram_data:
+        _run_handler(logger, "tram_stop_info", process_tram_stop_info)
+    if settings.enable_bus_data:
+        _run_handler(logger, "bus_static", lambda: _run_bus_static(settings, logger))
+    if settings.enable_train_data:
+        _run_handler(
+            logger, "train_static", lambda: _run_train_static(settings, logger)
+        )
+    if settings.enable_tram_data:
+        _run_handler(logger, "tram_static", lambda: _run_tram_static(settings, logger))
+    if settings.enable_public_spaces_data:
+        _run_handler(
+            logger, "public_spaces", lambda: _run_public_spaces(settings, logger)
+        )
 
 
 def main_1_month() -> None:
@@ -111,8 +129,6 @@ def main_1_month() -> None:
     settings = get_data_sources_settings()
     if settings.enable_train_data:
         _run_handler(logger, "train_station_info", process_train_station_info)
-    if settings.enable_tram_data:
-        _run_handler(logger, "tram_stop_info", process_tram_stop_info)
     if settings.enable_events_data:
         _run_handler(logger, "event_venue_info", process_event_venue_info)
 
@@ -137,14 +153,6 @@ def _run_car_static(settings: DataSourcesSettings, logger: logging.Logger) -> No
     delete_static_data(car_dir)
 
 
-def _run_cycle_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
-    if not settings.enable_cycle_data:
-        logger.info("Skipping cycle static data...")
-        return
-    logger.info("Processing Dublin Bikes station info...")
-    process_cycle_station_info()
-
-
 def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
     if not settings.enable_train_data:
         logger.info("Skipping train static data...")
@@ -153,6 +161,18 @@ def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> 
     download_and_extract_zip(settings.train_gtfs_zip_url, train_dir)
     process_train_static_data(settings.base_static_data_dir / "train")
     delete_static_data(train_dir)
+
+    if settings.train_ridership_gdrive_folder_id:
+        ridership_dir = str(settings.base_static_data_dir / "train_ridership")
+        download_google_drive_folder(
+            settings.train_ridership_gdrive_folder_id, ridership_dir
+        )
+        process_train_ridership_data(settings.base_static_data_dir / "train_ridership")
+        delete_static_data(ridership_dir)
+    else:
+        logger.info(
+            "Skipping train ridership data (TRAIN_RIDERSHIP_GDRIVE_FOLDER_ID not set)."
+        )
 
 
 def _run_tram_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
@@ -171,6 +191,18 @@ def _run_tram_static(settings: DataSourcesSettings, logger: logging.Logger) -> N
         download_file(url, str(tram_dir / filename))
     process_tram_static_data(tram_dir, tram_dir)
     delete_static_data(tram_dir_str)
+
+
+def _run_public_spaces(settings: DataSourcesSettings, logger: logging.Logger) -> None:
+    osm_file = (
+        settings.base_static_data_dir
+        / "public_spaces"
+        / "ireland-and-northern-ireland-latest.osm.pbf"
+    )
+    osm_file.parent.mkdir(parents=True, exist_ok=True)
+    download_file(settings.public_spaces_osm_url, str(osm_file))
+    process_public_spaces(osm_file)
+    delete_static_data(str(osm_file.parent))
 
 
 def _run_population_static(
@@ -197,11 +229,7 @@ def main_static() -> None:
     logger = logging.getLogger(__name__)
     logger.info("=== [static interval] ===")
     settings = get_data_sources_settings()
-    _run_bus_static(settings, logger)
     _run_car_static(settings, logger)
-    _run_cycle_static(settings, logger)
-    _run_train_static(settings, logger)
-    _run_tram_static(settings, logger)
     _run_population_static(settings, logger)
     logger.info("Finished processing static data.")
 

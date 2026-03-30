@@ -30,6 +30,7 @@ dataToggles:
   enablePedestrianData: true
   enableEventsData: true
   enablePopulationData: true
+  enablePublicSpacesData: true
 
 # One entry per cron cadence. Each becomes a separate CronJob with its ENABLE_* env var set.
 cronjobs:
@@ -60,14 +61,14 @@ cronjobs:
   - name: daily
     schedule: "0 3 * * *"
     runVar: ENABLE_ONE_DAY
-    activeDeadlineSeconds: 1800
+    activeDeadlineSeconds: 10800
     resources:
       requests:
-        cpu: "100m"
-        memory: "128Mi"
-      limits:
         cpu: "500m"
-        memory: "256Mi"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
 
   - name: monthly
     schedule: "0 2 1 * *"
