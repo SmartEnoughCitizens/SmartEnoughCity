@@ -164,8 +164,11 @@ def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate |
     tu = entity.trip_update
     trip = tu.trip
 
-    trip_id = trip.trip_id.strip() if trip.trip_id else ""
-    if not trip_id:
+    if not trip.trip_id or not trip.trip_id.strip():
+        return None
+    trip_id = trip.trip_id.strip()
+
+    if tu.vehicle is None:
         return None
 
     start_time = parse_gtfs_time(trip.start_time)
@@ -196,25 +199,25 @@ def _entity_to_live_trip_update(entity: TripUpdateEntity) -> BusLiveTripUpdate |
         timestamp=timestamp_dt,
     )
 
-    if tu.stop_time_update:
-        for stu in tu.stop_time_update:
-            arrival_delay = stu.arrival.delay if stu.arrival else None
-            departure_delay = stu.departure.delay if stu.departure else None
-            if arrival_delay is None and departure_delay is None:
-                continue
-            stop_schedule_rel = (
-                _parse_schedule_relationship(stu.schedule_relationship or "scheduled")
-                or ScheduleRelationship.scheduled
+    for stu in tu.stop_time_update:
+        if stu.schedule_relationship is None:
+            continue
+        arrival_delay = stu.arrival.delay if stu.arrival else None
+        departure_delay = stu.departure.delay if stu.departure else None
+        if arrival_delay is None and departure_delay is None:
+            continue
+        stop_schedule_rel = _parse_schedule_relationship(stu.schedule_relationship)
+        if stop_schedule_rel is None:
+            continue
+        trip_update.stop_time_updates.append(
+            BusLiveTripStopTimeUpdate(
+                stop_id=stu.stop_id.strip(),
+                stop_sequence=stu.stop_sequence,
+                schedule_relationship=stop_schedule_rel,
+                arrival_delay=arrival_delay,
+                departure_delay=departure_delay,
             )
-            trip_update.stop_time_updates.append(
-                BusLiveTripStopTimeUpdate(
-                    stop_id=stu.stop_id.strip(),
-                    stop_sequence=stu.stop_sequence,
-                    schedule_relationship=stop_schedule_rel,
-                    arrival_delay=arrival_delay,
-                    departure_delay=departure_delay,
-                )
-            )
+        )
 
     return trip_update
 
@@ -244,16 +247,17 @@ def process_bus_vehicles_live_data(json_string: str) -> None:
 
     with SessionLocal() as session:
         try:
-            valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
-            filtered = [r for r in rows if r.trip_id in valid_trip_ids]
+            known_trip_ids: set[str] = set(session.scalars(select(BusTrip.id)).all())
+            filtered = [r for r in rows if r.trip_id in known_trip_ids]
             skipped = len(rows) - len(filtered)
             if skipped:
                 logger.warning(
-                    "Skipping %d vehicle record(s) with unknown trip_id.", skipped
+                    "Skipped %d bus live vehicle record(s) — unknown trip_id (static data may be stale).",
+                    skipped,
                 )
             session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live vehicle record(s).", len(filtered))
+            logger.info("Inserted %d bus live vehicle record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live vehicle data.")
@@ -279,29 +283,28 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    rows: list[BusLiveTripUpdate] = [
-        r
-        for entity in feed.entity
-        if (r := _entity_to_live_trip_update(entity)) is not None
-    ]
+    parsed = [_entity_to_live_trip_update(entity) for entity in feed.entity]
+    rows: list[BusLiveTripUpdate] = [r for r in parsed if r is not None]
+    incomplete = len(parsed) - len(rows)
+    if incomplete:
+        logger.warning(
+            "Skipped %d bus trip update record(s) — missing trip_id or vehicle.",
+            incomplete,
+        )
 
     with SessionLocal() as session:
         try:
-            valid_trip_ids = set(session.scalars(select(BusTrip.id)).all())
-            filtered = [
-                r
-                for r in rows
-                if r.trip_id in valid_trip_ids and r.vehicle_id is not None
-            ]
+            known_trip_ids: set[str] = set(session.scalars(select(BusTrip.id)).all())
+            filtered = [r for r in rows if r.trip_id in known_trip_ids]
             skipped = len(rows) - len(filtered)
             if skipped:
                 logger.warning(
-                    "Skipping %d trip update record(s) with unknown trip_id or missing vehicle_id.",
+                    "Skipped %d bus trip update record(s) — unknown trip_id (static data may be stale).",
                     skipped,
                 )
             session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live trip update record(s).", len(filtered))
+            logger.info("Inserted %d bus live trip update record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live trip update data.")

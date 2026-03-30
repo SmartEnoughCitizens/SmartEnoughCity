@@ -239,6 +239,7 @@ def process_train_static_data(gtfs_dir: Path) -> None:
                 transform_row(row) for row in read_csv_file(file_path, required_headers)
             ]
             session.add_all(rows)
+            logger.info("  → %d rows from %s", len(rows), filename)
 
         # Process optional GTFS files
         for filename, (required_headers, transform_row) in optional_gtfs_files.items():
@@ -250,12 +251,13 @@ def process_train_static_data(gtfs_dir: Path) -> None:
                     for row in read_csv_file(file_path, required_headers)
                 ]
                 session.add_all(rows)
+                logger.info("  → %d rows from %s", len(rows), filename)
             else:
                 logger.info("Skipping optional %s (not found).", filename)
 
         logger.info("Committing changes to database...")
         session.commit()
-        logger.info("Successfully processed static train data.")
+        logger.info("Static train data import complete.")
 
     except Exception:
         session.rollback()

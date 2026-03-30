@@ -1,12 +1,10 @@
 # data_handler/car/process_car_data.py
 
-import json
 import logging
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from shapely.geometry import MultiPolygon, Polygon, shape
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
@@ -21,7 +19,6 @@ from data_handler.car.models import (
     EmissionBand,
     EVChargingDemand,
     EVChargingPoint,
-    EVElectoralDivision,
     FuelType,
     PrivateCarEmission,
     ScatsSite,
@@ -238,15 +235,10 @@ def parse_and_filter_ev_charging_point_row(
     open_hours_str = str(row.get("Open Hours", ""))
     is_24_7, _hours_description = parse_open_hours(open_hours_str)
 
-    charger_count_str = str(row.get("Nr. Chargers", "1")).strip()
-    charger_count = int(charger_count_str) if charger_count_str.isdigit() else 1
-
     return EVChargingPoint(
-        address=str(row.get("Address", "")).strip() or None,
         county="Dublin",  # Hardcoded for consistency
         lat=float(row["Latitude"]),
         lon=float(row["Longitude"]),
-        charger_count=charger_count,
         power_rating_of_ccs_connectors_kw=parse_kw_value(str(row.get("CCS kWs", ""))),
         power_rating_of_chademo_connectors_kw=parse_kw_value(
             str(row.get("CHAdeMO kWs", ""))
@@ -312,7 +304,6 @@ _EMISSION_REQUIRED_HEADERS = [
 
 _EV_CSV_FILE = "ESB-_EV-charge-point-locations.csv"
 _EV_CSV_REQUIRED_HEADERS = ["County", "Latitude", "Longitude"]
-_EV_GEOJSON_FILE = "location_data.geojson"
 
 _CHARGING_DEMAND_CSV_FILE = "charging_demand.csv"
 _CHARGING_DEMAND_CSV_REQUIRED_HEADERS = [
@@ -363,10 +354,10 @@ def _process_charging_demand(session: Session, path: Path) -> None:
         for row in read_csv_file(path, _CHARGING_DEMAND_CSV_REQUIRED_HEADERS)
     ]
     session.add_all(rows)
-    logger.info("  Added %d charging demand rows", len(rows))
+    logger.info("  Inserted %d charging demand record(s).", len(rows))
 
 
-def _validate_files(data_dir: Path, ev_csv_path: Path, ev_geojson_path: Path) -> None:
+def _validate_files(data_dir: Path, ev_csv_path: Path) -> None:
     """Raise if data_dir is None or any required file is missing."""
     if data_dir is None:
         msg = "data_dir cannot be None"
@@ -380,10 +371,6 @@ def _validate_files(data_dir: Path, ev_csv_path: Path, ev_geojson_path: Path) ->
 
     if not ev_csv_path.exists():
         msg = f"Required file not found: {ev_csv_path}"
-        raise FileNotFoundError(msg)
-
-    if not ev_geojson_path.exists():
-        msg = f"Required file not found: {ev_geojson_path}"
         raise FileNotFoundError(msg)
 
     charging_demand_path = data_dir / _CHARGING_DEMAND_CSV_FILE
@@ -404,40 +391,10 @@ def _clear_existing_data(session: Session) -> None:
         PrivateCarEmission,
         EVChargingPoint,
         EVChargingDemand,
-        EVElectoralDivision,
         ScatsSite,
     ):
         session.execute(delete(model))
     session.commit()
-
-
-def _to_wkt_multipolygon(geometry: dict) -> str:
-    """Convert a GeoJSON geometry dict to a WKT MULTIPOLYGON string."""
-    s_geom = shape(geometry)
-    if isinstance(s_geom, Polygon):
-        s_geom = MultiPolygon([s_geom])
-    return f"SRID=4326;{s_geom.wkt}"
-
-
-def _process_ev_geojson(session: Session, geojson_path: Path) -> None:
-    """Read the electoral division GeoJSON and bulk-add Dublin boundary rows."""
-    logger.info("Processing %s...", geojson_path.name)
-    with geojson_path.open(encoding="utf-8") as f:
-        geojson = json.load(f)
-
-    rows = [
-        EVElectoralDivision(
-            ed_english=feature["properties"]["ED_ENGLISH"],
-            county_english=feature["properties"]["COUNTY_ENGLISH"],
-            geom=_to_wkt_multipolygon(feature["geometry"]),
-        )
-        for feature in geojson["features"]
-        if (feature["properties"].get("COUNTY_ENGLISH") or "").upper()
-        in {"DUBLIN CITY", "FINGAL", "SOUTH DUBLIN"}
-    ]
-
-    session.add_all(rows)
-    logger.info("  Added %d electoral division boundaries", len(rows))
 
 
 def _process_csv_file(
@@ -467,7 +424,7 @@ def _process_csv_file(
         rows = list(deduped.values())
 
     session.add_all(rows)
-    logger.info("  Added %d rows from %s", len(rows), filename)
+    logger.info("  Inserted %d record(s) from %s.", len(rows), filename)
 
 
 def _process_emission_files(session: Session, data_dir: Path) -> None:
@@ -483,7 +440,7 @@ def _process_emission_files(session: Session, data_dir: Path) -> None:
 
     session.add_all(emission_rows)
     logger.info(
-        "  Added %d emission rows from %d files",
+        "  Inserted %d emission record(s) from %d files.",
         len(emission_rows),
         len(_EMISSION_FILES),
     )
@@ -534,7 +491,7 @@ def _process_traffic_volumes(session: Session, data_dir: Path) -> None:
         total += len(chunk)
 
     logger.info(
-        "  Added %d rows from %s (%d skipped — unknown sites)",
+        "  Inserted %d record(s) from %s. Skipped %d — unknown SCATS sites.",
         total,
         _TRAFFIC_VOLUME_FILE,
         skipped,
@@ -551,7 +508,7 @@ def _process_ev_charging_points(session: Session, ev_csv_path: Path) -> None:
             ev_rows.append(parsed_row)
 
     session.add_all(ev_rows)
-    logger.info("  Added %d EV charging point rows", len(ev_rows))
+    logger.info("  Inserted %d EV charging point record(s).", len(ev_rows))
 
 
 def process_car_static_data(data_dir: Path) -> None:
@@ -575,10 +532,9 @@ def process_car_static_data(data_dir: Path) -> None:
     ev_csv_path = (
         data_dir / _EV_CSV_FILE if data_dir is not None else Path(_EV_CSV_FILE)
     )
-    ev_geojson_path = data_dir / _EV_GEOJSON_FILE
 
     logger.info("Validating data files...")
-    _validate_files(data_dir, ev_csv_path, ev_geojson_path)
+    _validate_files(data_dir, ev_csv_path)
 
     logger.info("Processing static car data...")
 
@@ -593,13 +549,12 @@ def process_car_static_data(data_dir: Path) -> None:
 
         _process_emission_files(session, data_dir)
         _process_ev_charging_points(session, ev_csv_path)
-        _process_ev_geojson(session, ev_geojson_path)
         _process_charging_demand(session, data_dir / _CHARGING_DEMAND_CSV_FILE)
         _process_traffic_volumes(session, data_dir)
 
         logger.info("Committing changes to database...")
         session.commit()
-        logger.info("Successfully processed static car data.")
+        logger.info("Static car data import complete.")
 
     except Exception:
         session.rollback()
