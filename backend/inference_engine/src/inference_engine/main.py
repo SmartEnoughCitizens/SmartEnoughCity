@@ -48,7 +48,7 @@ app = FastAPI(
 app.include_router(ev_router)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
