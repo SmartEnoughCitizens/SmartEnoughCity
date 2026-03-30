@@ -139,6 +139,20 @@ export interface StationHourlyUsageDTO {
   avgTurnover: number; // total natural bike movements (ABS delta 1–5) for that hour
 }
 
+/** ML availability risk score for a station — computed every 5 min by inference engine. */
+export interface StationRiskScoreDTO {
+  stationId: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+  /** Probability 0–1 the station will be empty within 2 hours. */
+  emptyRisk2h: number;
+  /** Probability 0–1 the station will be full within 2 hours. */
+  fullRisk2h: number;
+  scoredAt: string;
+  modelTrainedAt: string;
+}
+
 /** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
 export interface RebalanceSuggestionDTO {
   sourceStationId: number;
