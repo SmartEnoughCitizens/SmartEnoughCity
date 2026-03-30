@@ -1,6 +1,7 @@
 package com.trinity.hermes.notification.services;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.dto.BroadcastNotificationRequestDTO;
 import com.trinity.hermes.notification.dto.NotificationItemDTO;
 import com.trinity.hermes.notification.dto.NotificationResponseDTO;
 import com.trinity.hermes.notification.entity.NotificationEntity;
@@ -11,6 +12,7 @@ import com.trinity.hermes.notification.repository.NotificationRepository;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -68,6 +70,38 @@ public class NotificationFacade {
                 .build());
         log.info("Persisted notification for userId={}", userId);
       }
+    }
+  }
+
+  private static final Map<String, String> INDICATOR_ROLE_MAP =
+      Map.of(
+          "bus", "Bus_Provider",
+          "train", "Train_Provider",
+          "tram", "Tram_Provider",
+          "cycle", "Cycle_Provider");
+
+  public void broadcastByIndicator(BroadcastNotificationRequestDTO request) {
+    String indicator = request.getDataIndicator();
+    String roleName = INDICATOR_ROLE_MAP.get(indicator);
+    if (roleName == null) {
+      throw new IllegalArgumentException("No provider role mapped for indicator: " + indicator);
+    }
+    List<org.keycloak.representations.idm.UserRepresentation> users =
+        userManagementService.getUsersByRole(roleName);
+    log.info("Broadcasting indicator={} to {} users with role={}", indicator, users.size(), roleName);
+    for (org.keycloak.representations.idm.UserRepresentation user : users) {
+      BackendNotificationRequestDTO dto = new BackendNotificationRequestDTO();
+      dto.setUserId(user.getId());
+      dto.setUserName(user.getUsername());
+      dto.setQrid(request.getQrid());
+      dto.setDataIndicator(indicator);
+      dto.setRecommendation(request.getRecommendation());
+      dto.setSubject(request.getSubject());
+      dto.setBody(request.getBody());
+      dto.setMetadata(request.getMetadata());
+      dto.setPriority(request.getPriority());
+      dto.setChannel(request.getChannel());
+      handleBackendNotification(dto);
     }
   }
 
