@@ -366,7 +366,7 @@ def _process_charging_demand(session: Session, path: Path) -> None:
     logger.info("  Added %d charging demand rows", len(rows))
 
 
-def _validate_files(data_dir: Path, ev_csv_path: Path) -> None:
+def _validate_files(data_dir: Path, ev_csv_path: Path, ev_geojson_path: Path) -> None:
     """Raise if data_dir is None or any required file is missing."""
     if data_dir is None:
         msg = "data_dir cannot be None"
@@ -380,6 +380,10 @@ def _validate_files(data_dir: Path, ev_csv_path: Path) -> None:
 
     if not ev_csv_path.exists():
         msg = f"Required file not found: {ev_csv_path}"
+        raise FileNotFoundError(msg)
+
+    if not ev_geojson_path.exists():
+        msg = f"Required file not found: {ev_geojson_path}"
         raise FileNotFoundError(msg)
 
     charging_demand_path = data_dir / _CHARGING_DEMAND_CSV_FILE
@@ -574,7 +578,7 @@ def process_car_static_data(data_dir: Path) -> None:
     ev_geojson_path = data_dir / _EV_GEOJSON_FILE
 
     logger.info("Validating data files...")
-    _validate_files(data_dir, ev_csv_path)
+    _validate_files(data_dir, ev_csv_path, ev_geojson_path)
 
     logger.info("Processing static car data...")
 
