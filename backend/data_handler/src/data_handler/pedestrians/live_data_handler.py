@@ -4,10 +4,12 @@ import json
 import logging
 import time
 import zipfile
+import zoneinfo
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 import requests
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from data_handler.csv_utils import validate_csv_headers
@@ -26,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 GRANULARITY_VALUES = frozenset(e.value for e in PedestrianGranularity)
 
+_DUBLIN_TZ = zoneinfo.ZoneInfo("Europe/Dublin")
+
 
 class SiteLocation(BaseModel):
     lat: float
@@ -38,13 +42,20 @@ class PedestrianSitePayload(BaseModel):
     id: int
     name: str
     description: str | None = None
-    location: SiteLocation
+    location: SiteLocation | None = None
     first_data: datetime = Field(alias="firstData")
     granularity: str = Field(alias="granularity")
     travel_modes: list[str] = Field(alias="travelModes")
     directional: bool = Field(alias="directional")
     has_timestamped_data: bool = Field(alias="hasTimestampedData")
     has_weather: bool = Field(alias="hasWeather")
+
+    @field_validator("location", mode="before")
+    @classmethod
+    def _empty_location_to_none(cls, v: object) -> object:
+        if isinstance(v, dict) and not v:
+            return None
+        return v
 
     @property
     def pedestrian_sensor(self) -> bool:
@@ -66,7 +77,7 @@ def _payload_to_site(payload: PedestrianSitePayload) -> PedestrianCounterSite:
     granularity = _validate_granularity(payload.granularity)
     first_data = payload.first_data
     if first_data.tzinfo is None:
-        first_data = first_data.replace(tzinfo=datetime.now().astimezone().tzinfo)
+        first_data = first_data.replace(tzinfo=_DUBLIN_TZ)
     return PedestrianCounterSite(
         id=payload.id,
         name=payload.name,
@@ -86,19 +97,20 @@ def _payload_to_site(payload: PedestrianSitePayload) -> PedestrianCounterSite:
 _sites_adapter = TypeAdapter(list[PedestrianSitePayload])
 
 
-def process_pedestrian_sites(json_string: str) -> list[int]:
+def process_pedestrian_sites(json_string: str) -> dict[int, PedestrianGranularity]:
     """
     Parse, validate, and persist pedestrian counter sites from JSON.
 
     Expects a JSON array of site objects matching the API shape (camelCase).
     If a site id already exists in the database, the row is updated with the
-    new data; otherwise a new row is inserted.
+    new data; otherwise a new row is inserted. Sites without location data
+    are skipped.
 
     Args:
         json_string: Raw JSON string (array of site objects).
 
     Returns:
-        A list of site ids that were updated or inserted.
+        A mapping of site id to granularity for all sites that were upserted.
 
     Raises:
         ValueError: If JSON is invalid or a required field is invalid.
@@ -110,14 +122,19 @@ def process_pedestrian_sites(json_string: str) -> list[int]:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    sites = [_payload_to_site(p) for p in payloads]
-    updated_ids: list[int] = []
+    valid_payloads = [p for p in payloads if p.location is not None]
+    skipped = len(payloads) - len(valid_payloads)
+    if skipped:
+        logger.warning(
+            "Skipped %d pedestrian site(s) with missing location data.",
+            skipped,
+        )
+    sites = [_payload_to_site(p) for p in valid_payloads]
 
     with SessionLocal() as session:
         try:
             for site in sites:
                 session.merge(site)
-                updated_ids.append(site.id)
             session.commit()
         except Exception:
             session.rollback()
@@ -126,17 +143,22 @@ def process_pedestrian_sites(json_string: str) -> list[int]:
         finally:
             session.close()
 
-    logger.info("Persisted %d pedestrian counter site record(s).", len(updated_ids))
-    return updated_ids
+    logger.info("Persisted %d pedestrian counter site record(s).", len(sites))
+    return {site.id: site.granularity for site in sites}
 
 
-def send_batch_job_request(site_ids: list[int], date: date) -> int:
+def send_batch_job_request(
+    site_ids: list[int], export_date: date, granularity: PedestrianGranularity
+) -> int:
     """
-    Sends a batch job request to the Eco Counter API to export mobility data for the given site IDs and date.
+    Sends a batch job request to the Eco Counter API to export mobility data
+    for the given site IDs, date, and granularity.
 
     Args:
         site_ids: A list of site IDs for which to request mobility counting data.
-        date: A `date` object specifying the starting date for the export (inclusive).
+        export_date: The starting date for the export (inclusive).
+        granularity: The time granularity for the exported data, matching each
+            site's native granularity.
 
     Returns:
         The job ID assigned by the Eco Counter API to track the export request.
@@ -149,17 +171,22 @@ def send_batch_job_request(site_ids: list[int], date: date) -> int:
     batch_job_url = f"{api_settings.eco_counter_api_base_url}/exports"
 
     request_body = {
-        "startDate": date.strftime("%Y-%m-%d"),
-        "endDate": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
+        "startDate": export_date.strftime("%Y-%m-%d"),
+        "endDate": (export_date + timedelta(days=1)).strftime("%Y-%m-%d"),
         "schema": "mobility_counting_schema",
         "siteIds": site_ids,
-        "granularity": "PT15M",
+        "granularity": granularity.value,
         "validatedDataOnly": False,
         "gapFilling": False,
         "validateSchema": False,
     }
 
-    logger.info("Sending batch job request for date %s...", date)
+    logger.info(
+        "Sending batch job request for date %s with granularity %s (%d site(s))...",
+        export_date,
+        granularity.value,
+        len(site_ids),
+    )
     response = requests.post(
         batch_job_url, headers=headers, json=request_body, timeout=30
     )
@@ -344,6 +371,86 @@ def process_batch_job_result(job_result_content: bytes) -> None:
     logger.info("Batch job result processed successfully.")
 
 
+def _poll_and_process_batch_result(  # noqa: PLR0913
+    job_id: int,
+    job_result_url: str,
+    headers: dict[str, str],
+    *,
+    initial_wait: int = 15,
+    poll_interval: int = 15,
+    max_attempts: int = 20,
+) -> None:
+    """
+    Polls for a completed batch job result and processes the ZIP response.
+
+    The Eco Counter export API is asynchronous: the job result endpoint returns
+    404 while the job is still processing. This function waits for an initial
+    delay, then polls until the result is available or the attempt limit is
+    reached.
+
+    Args:
+        job_id: The job ID to poll (used only for logging).
+        job_result_url: The full URL to fetch the job result from.
+        headers: Request headers (must include API key).
+        initial_wait: Seconds to wait before the first poll attempt.
+        poll_interval: Seconds to wait between poll attempts.
+        max_attempts: Maximum number of poll attempts (default 20 x 15s = 5 min).
+
+    Raises:
+        requests.HTTPError: If the server returns a non-404 HTTP error.
+        requests.RequestException: If all retry attempts fail.
+    """
+    logger.info(
+        "Waiting %ds for batch job %s to be ready...",
+        initial_wait,
+        job_id,
+    )
+    time.sleep(initial_wait)
+
+    for attempt in range(max_attempts):
+        logger.info(
+            "Fetching batch job result for job ID %s (attempt %d/%d)...",
+            job_id,
+            attempt + 1,
+            max_attempts,
+        )
+        try:
+            job_result_response = requests.get(
+                job_result_url, headers=headers, timeout=30
+            )
+            job_result_response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code == 404:
+                if attempt < max_attempts - 1:
+                    logger.info(
+                        "Batch job %s not ready yet (attempt %d/%d). Retrying in %ds...",
+                        job_id,
+                        attempt + 1,
+                        max_attempts,
+                        poll_interval,
+                    )
+                    time.sleep(poll_interval)
+                    continue
+                logger.exception(
+                    "Batch job %s not ready after %d attempts (total wait ~%ds).",
+                    job_id,
+                    max_attempts,
+                    initial_wait + poll_interval * (max_attempts - 1),
+                )
+                raise
+            raise
+        except requests.RequestException:
+            logger.exception(
+                "Batch job result fetch failed (attempt %d/%d).",
+                attempt + 1,
+                max_attempts,
+            )
+            raise
+        else:
+            process_batch_job_result(job_result_response.content)
+            return
+
+
 def process_pedestrian_live_data() -> None:
     """
     Fetches the latest pedestrian counter sites and measures data from the Eco Counter API
@@ -352,11 +459,9 @@ def process_pedestrian_live_data() -> None:
     This function performs the following steps:
       1. Fetches the list of active pedestrian counter sites from the Eco Counter API.
       2. Parses and upserts site information into the database.
-      3. Requests the creation of a batch export job for the latest pedestrian measures.
-      4. Polls for the batch job completion and downloads the resulting data (a ZIP containing CSV files).
-      5. Processes and persists the contained pedestrian channel and measure data.
-
-    Retries the batch job result download up to five times in case of transient errors.
+      3. Groups sites by their native granularity.
+      4. For each granularity group, requests a batch export job, polls for completion,
+         and processes the returned ZIP (channels + measures CSV files).
 
     Raises:
         requests.RequestException: If a network or server error occurs at any stage.
@@ -372,40 +477,17 @@ def process_pedestrian_live_data() -> None:
     logger.info("Fetching pedestrian counter sites data...")
     sites_response = requests.get(sites_url, headers=headers, timeout=30)
     sites_response.raise_for_status()
-    updated_site_ids = process_pedestrian_sites(sites_response.text)
+    site_granularity_map = process_pedestrian_sites(sites_response.text)
 
-    job_id = send_batch_job_request(updated_site_ids, date.today())
-    job_result_url = f"{api_settings.eco_counter_api_base_url}/exports/{job_id}/data"
+    by_granularity: dict[PedestrianGranularity, list[int]] = defaultdict(list)
+    for site_id, granularity in site_granularity_map.items():
+        by_granularity[granularity].append(site_id)
 
-    max_attempts = 5
-    for attempt in range(max_attempts):
-        try:
-            logger.info(
-                "Fetching batch job result for job ID %s (attempt %d/%d)...",
-                job_id,
-                attempt + 1,
-                max_attempts,
-            )
-            job_result_response = requests.get(
-                job_result_url, headers=headers, timeout=30
-            )
-            job_result_response.raise_for_status()
-            process_batch_job_result(job_result_response.content)
-            break
-        except requests.RequestException as e:
-            if attempt < max_attempts - 1:
-                delay = 2**attempt
-                logger.warning(
-                    "Batch job result fetch failed (attempt %d/%d): %s. Retrying in %ds...",
-                    attempt + 1,
-                    max_attempts,
-                    e,
-                    delay,
-                )
-                time.sleep(delay)
-            else:
-                logger.exception(
-                    "Batch job result fetch failed after %d attempts.",
-                    max_attempts,
-                )
-                raise
+    for granularity, site_ids in by_granularity.items():
+        job_id = send_batch_job_request(
+            site_ids, date.today() - timedelta(days=1), granularity
+        )
+        job_result_url = (
+            f"{api_settings.eco_counter_api_base_url}/exports/{job_id}/data"
+        )
+        _poll_and_process_batch_result(job_id, job_result_url, headers)

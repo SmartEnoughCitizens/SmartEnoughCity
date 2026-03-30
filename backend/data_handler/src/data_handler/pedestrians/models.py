@@ -31,6 +31,7 @@ class PedestrianGranularity(enum.Enum):
 
 class MobilityType(enum.Enum):
     BIKE = "BIKE"
+    CAR = "CAR"
     PEDESTRIAN = "PEDESTRIAN"
     UNDEFINED = "UNDEFINED"
 
@@ -38,6 +39,7 @@ class MobilityType(enum.Enum):
 class ChannelDirection(enum.Enum):
     IN = "IN"
     OUT = "OUT"
+    UNKNOWN = "UNKNOWN"
 
 
 class PedestrianCounterSite(Base):
