@@ -35,7 +35,7 @@ public class RecommendationController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<RecommendationResponse> getRecommendationById(@PathVariable Long id) {
+  public ResponseEntity<RecommendationResponse> getRecommendationById(@PathVariable Integer id) {
     Optional<RecommendationResponse> recommendation =
         recommendationFacade.getRecommendationById(id);
     return recommendation
@@ -60,7 +60,7 @@ public class RecommendationController {
   //    }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deleteRecommendation(@PathVariable Long id) {
+  public ResponseEntity<Void> deleteRecommendation(@PathVariable Integer id) {
     boolean deleted = recommendationFacade.deleteRecommendation(id);
     return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
   }
