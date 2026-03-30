@@ -9,7 +9,7 @@ import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from inference_engine.settings.api_settings import get_api_settings
 
@@ -88,12 +88,14 @@ class NotificationPayload(BaseModel):
 
 
 class TrafficPoint(BaseModel):
-    siteId: int
+    model_config = ConfigDict(populate_by_name=True)
+
+    site_id: int = Field(alias="siteId")
     lat: float
     lon: float
-    avgVolume: float
-    dayType: str
-    timeSlot: str
+    avg_volume: float = Field(alias="avgVolume")
+    day_type: str = Field(alias="dayType")
+    time_slot: str = Field(alias="timeSlot")
 
 
 class TrafficWaypoint(BaseModel):
@@ -102,31 +104,37 @@ class TrafficWaypoint(BaseModel):
 
 
 class TrafficAlternativeRouteResponse(BaseModel):
-    routeId: str
+    model_config = ConfigDict(populate_by_name=True)
+
+    route_id: str = Field(alias="routeId")
     label: str
     summary: str
     color: str
-    estimatedTimeSavingsMinutes: int
-    estimatedTravelTimeMinutes: int
-    distanceKm: float
+    estimated_time_savings_minutes: int = Field(alias="estimatedTimeSavingsMinutes")
+    estimated_travel_time_minutes: int = Field(alias="estimatedTravelTimeMinutes")
+    distance_km: float = Field(alias="distanceKm")
     path: list[TrafficWaypoint]
 
 
 class TrafficRecommendationResponse(BaseModel):
-    recommendationId: str
-    siteId: int
-    siteLat: float
-    siteLon: float
+    model_config = ConfigDict(populate_by_name=True)
+
+    recommendation_id: str = Field(alias="recommendationId")
+    site_id: int = Field(alias="siteId")
+    site_lat: float = Field(alias="siteLat")
+    site_lon: float = Field(alias="siteLon")
     title: str
     summary: str
-    dayType: str
-    timeSlot: str
-    averageVolume: float
-    congestionLevel: str
-    confidenceScore: float
-    recommendedAction: str
-    generatedAt: str
-    alternativeRoutes: list[TrafficAlternativeRouteResponse]
+    day_type: str = Field(alias="dayType")
+    time_slot: str = Field(alias="timeSlot")
+    average_volume: float = Field(alias="averageVolume")
+    congestion_level: str = Field(alias="congestionLevel")
+    confidence_score: float = Field(alias="confidenceScore")
+    recommended_action: str = Field(alias="recommendedAction")
+    generated_at: str = Field(alias="generatedAt")
+    alternative_routes: list[TrafficAlternativeRouteResponse] = Field(
+        alias="alternativeRoutes"
+    )
 
 
 ## Integration Layer
@@ -219,16 +227,16 @@ class RecommendationModel:
         if not traffic_points:
             return []
 
-        max_volume = max(point.avgVolume for point in traffic_points) or 1.0
+        max_volume = max(point.avg_volume for point in traffic_points) or 1.0
         ranked_points = sorted(
             traffic_points,
-            key=lambda point: point.avgVolume,
+            key=lambda point: point.avg_volume,
             reverse=True,
         )[:4]
 
         responses: list[TrafficRecommendationResponse] = []
         for point in ranked_points:
-            ratio = point.avgVolume / max_volume if max_volume else 0.0
+            ratio = point.avg_volume / max_volume if max_volume else 0.0
             congestion_level = (
                 "critical" if ratio >= 0.85 else "high" if ratio >= 0.65 else "elevated"
             )
@@ -237,7 +245,7 @@ class RecommendationModel:
 
             alternative_routes = [
                 TrafficAlternativeRouteResponse(
-                    routeId=f"alt-{point.siteId}-{route_index + 1}",
+                    route_id=f"alt-{point.site_id}-{route_index + 1}",
                     label=(
                         "North Circular Diversion"
                         if route_index == 0
@@ -249,13 +257,13 @@ class RecommendationModel:
                         else "Use as overflow when primary diversion approaches saturation."
                     ),
                     color="#0f766e" if route_index == 0 else "#ea580c",
-                    estimatedTimeSavingsMinutes=max(
+                    estimated_time_savings_minutes=max(
                         3, base_time_saving - route_index
                     ),
-                    estimatedTravelTimeMinutes=max(
+                    estimated_travel_time_minutes=max(
                         9, 22 - base_time_saving + route_index * 2
                     ),
-                    distanceKm=round(2.6 + route_index * 0.9, 1),
+                    distance_km=round(2.6 + route_index * 0.9, 1),
                     path=RecommendationModel._build_traffic_path(point, route_index),
                 )
                 for route_index in range(2)
@@ -263,30 +271,30 @@ class RecommendationModel:
 
             responses.append(
                 TrafficRecommendationResponse(
-                    recommendationId=(
-                        f"traffic-{point.siteId}-{point.dayType}-{point.timeSlot}"
+                    recommendation_id=(
+                        f"traffic-{point.site_id}-{point.day_type}-{point.time_slot}"
                     ),
-                    siteId=point.siteId,
-                    siteLat=point.lat,
-                    siteLon=point.lon,
-                    title=f"Diversion plan for Site {point.siteId}",
+                    site_id=point.site_id,
+                    site_lat=point.lat,
+                    site_lon=point.lon,
+                    title=f"Diversion plan for Site {point.site_id}",
                     summary=(
                         f"{congestion_level.capitalize()} congestion detected during "
-                        f"{point.timeSlot.replace('_', ' ')}. Redirect through lower-pressure "
+                        f"{point.time_slot.replace('_', ' ')}. Redirect through lower-pressure "
                         "parallel links to reduce queue build-up."
                     ),
-                    dayType=point.dayType,
-                    timeSlot=point.timeSlot,
-                    averageVolume=point.avgVolume,
-                    congestionLevel=congestion_level,
-                    confidenceScore=confidence_score,
-                    recommendedAction=(
+                    day_type=point.day_type,
+                    time_slot=point.time_slot,
+                    average_volume=point.avg_volume,
+                    congestion_level=congestion_level,
+                    confidence_score=confidence_score,
+                    recommended_action=(
                         f"Activate {congestion_level} diversion signage near Site "
-                        f"{point.siteId} for the {point.dayType} "
-                        f"{point.timeSlot.replace('_', ' ')} window."
+                        f"{point.site_id} for the {point.day_type} "
+                        f"{point.time_slot.replace('_', ' ')} window."
                     ),
-                    generatedAt=datetime.utcnow().isoformat(),
-                    alternativeRoutes=alternative_routes,
+                    generated_at=datetime.utcnow().isoformat(),
+                    alternative_routes=alternative_routes,
                 )
             )
 
@@ -299,7 +307,9 @@ class RecommendationModel:
         lat_shift = 0.004 if route_index == 0 else -0.0035
         lon_shift = -0.011 if route_index == 0 else 0.0105
         return [
-            TrafficWaypoint(lat=point.lat - lat_shift, lon=point.lon + lon_shift * 0.15),
+            TrafficWaypoint(
+                lat=point.lat - lat_shift, lon=point.lon + lon_shift * 0.15
+            ),
             TrafficWaypoint(
                 lat=point.lat - lat_shift * 0.5, lon=point.lon + lon_shift * 0.55
             ),
