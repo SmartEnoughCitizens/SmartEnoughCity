@@ -37,6 +37,7 @@ import type {
   TramLiveForecast,
   TramDelay,
   TramHourlyDistribution,
+  TramAlternativeRoute,
 } from "@/types";
 
 export const dashboardApi = {
@@ -402,4 +403,16 @@ export const dashboardApi = {
   resolveDisruption: async (id: number): Promise<void> => {
     await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
   },
+
+
+  getTramAlternativeRoutes: async (stopId: string): Promise<TramAlternativeRoute[]> => {
+    const { data } = await axiosInstance.get<TramAlternativeRoute[]>(
+      API_ENDPOINTS.TRAM_ALTERNATIVE_ROUTES,
+      { params: { stopId } },
+    );
+    return data;
+  },
+
+
+ 
 };

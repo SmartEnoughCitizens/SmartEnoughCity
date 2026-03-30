@@ -54,3 +54,14 @@ export interface TramHourlyDistribution {
   line: string;
   percentage: number | null;
 }
+
+export interface TramAlternativeRoute {
+  transportType: "bus" | "rail" | "bike";
+  stopId: string;
+  stopName: string;
+  lat: number;
+  lon: number;
+  distanceM: number;
+  availableBikes?: number;
+  capacity?: number;
+}

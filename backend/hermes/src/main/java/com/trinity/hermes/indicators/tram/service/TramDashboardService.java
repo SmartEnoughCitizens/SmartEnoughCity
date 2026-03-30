@@ -5,6 +5,9 @@ import com.trinity.hermes.indicators.tram.entity.TramHourlyDistribution;
 import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
 import com.trinity.hermes.indicators.tram.entity.TramStop;
 import com.trinity.hermes.indicators.tram.repository.*;
+
+import jakarta.persistence.EntityNotFoundException;
+
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -14,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+
+import com.trinity.hermes.indicators.tram.entity.VTramAlternateStop;
 
 @Service
 @RequiredArgsConstructor
@@ -76,6 +82,49 @@ public class TramDashboardService {
         .map(f -> mapToLiveForecastDTO(f, stopsById))
         .collect(Collectors.toList());
   }
+
+private final VTramAlternateStopRepository alternateStopRepository;
+
+@Transactional(readOnly = true)
+public List<TramAlternativeRouteDTO> getAlternativeRoutes(String stopId) {
+    List<TramLuasForecast> forecasts = tramLuasForecastRepository.findByStopId(stopId);
+    boolean isDisrupted = forecasts.stream()
+        .anyMatch(f -> isDisruptionMessage(f.getMessage()));
+
+    if (!isDisrupted) return List.of();
+
+    return alternateStopRepository
+        .findByTramStopIdOrderByDistanceM(stopId)
+        .stream()
+        .map(this::mapToAlternativeRouteDTO)
+        .collect(Collectors.toList());
+}
+
+private TramAlternativeRouteDTO mapToAlternativeRouteDTO(VTramAlternateStop alt) {
+    return TramAlternativeRouteDTO.builder()
+        .transportType(alt.getTransportType())
+        .stopId(alt.getStopId())
+        .stopName(alt.getStopName())
+        .lat(alt.getLat())
+        .lon(alt.getLon())
+        .distanceM(alt.getDistanceM())
+        .availableBikes(alt.getAvailableBikes())
+        .capacity(alt.getCapacity())
+        .build();
+}
+private boolean isDisruptionMessage(String message) {
+    if (message == null) return false;
+    String lower = message.toLowerCase(Locale.ROOT);
+    return lower.contains("not in service")
+        || lower.contains("disruption")
+        || lower.contains("suspended")
+        || lower.contains("delay")
+        || lower.contains("fault")
+        || lower.contains("no service")
+        || lower.contains("terminated");
+}
+
+
 
   // ── Delays ──────────────────────────────────────────────────────
 
