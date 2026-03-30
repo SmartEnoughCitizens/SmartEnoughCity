@@ -14,7 +14,7 @@ spring:
     name: hermes
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/smart_enough_city
+    url: jdbc:postgresql://localhost:55432/smart_enough_city
     username: backend_user
     password: dev_backend_user_password
 
