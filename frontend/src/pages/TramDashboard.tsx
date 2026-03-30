@@ -23,6 +23,7 @@ import {
   TextField,
   InputAdornment,
   ListItemButton,
+  Button,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
@@ -43,6 +44,9 @@ import { useAppSelector } from "@/store/hooks";
 import { TramHourlyChart } from "@/components/charts/TramHourlyChart";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+
+import { dashboardApi } from "@/api";
+import type { TramAlternativeRoute } from "@/types";
 
 import type { TramLiveForecast } from "@/types";
 
@@ -86,8 +90,8 @@ const INJECTED_CSS = `
 
 // ── Leaflet icon factory ─────────────────────────────────────────────
 
-function makeStopIcon(line: string): L.DivIcon {
-  const color = LINE_COLORS[line] ?? "#607D8B";
+function makeStopIcon(line: string, disrupted = false): L.DivIcon {
+  const color = disrupted ? "#f97316" : (LINE_COLORS[line] ?? "#607D8B");
   const letter = line === "red" ? "R" : line === "green" ? "G" : "T";
   return L.divIcon({
     html: `<div class="tram-pin" style="width:22px;height:22px;background:${color};font-size:9px;">${letter}</div>`,
@@ -373,6 +377,58 @@ export const TramDashboard = () => {
     [],
   );
 
+  const DISRUPTION_KEYWORDS = [
+  "not in service", "disruption", "suspended", "suspension",
+  "delay", "fault", "no service", "terminated", "partial",
+];
+
+const isDisrupted = (forecasts: TramLiveForecast[]) =>
+  forecasts.some((f) =>
+    DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw))
+  );
+
+const AlternativesSection = ({ stopId }: { stopId: string }) => {
+  const [alternatives, setAlternatives] = useState<TramAlternativeRoute[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const data = await dashboardApi.getTramAlternativeRoutes(stopId);
+    setAlternatives(data);
+    setLoading(false);
+  };
+
+  const iconFor = (type: string) =>
+    type === "bus" ? "🚌" : type === "rail" ? "🚂" : "🚲";
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      {!alternatives && (
+        <Button size="small" variant="outlined" color="warning" onClick={load} disabled={loading}
+          sx={{ fontSize: "0.65rem", py: 0.25 }}>
+          {loading ? <CircularProgress size={10} /> : "⚠ Show alternatives"}
+        </Button>
+      )}
+      {alternatives?.length === 0 && (
+        <Typography sx={{ fontSize: "0.68rem", color: "#8b949e" }}>No alternatives nearby</Typography>
+      )}
+      {alternatives && alternatives.length > 0 && (
+        <>
+          <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: "#e6edf3", mb: 0.5 }}>
+            Nearby alternatives:
+          </Typography>
+          {alternatives.slice(0, 5).map((a, i) => (
+            <Typography key={i} sx={{ fontSize: "0.68rem", color: "#c9d1d9" }}>
+              {iconFor(a.transportType)} {a.stopName}
+              <span style={{ color: "#8b949e" }}> — {a.distanceM}m</span>
+            </Typography>
+          ))}
+        </>
+      )}
+    </Box>
+  );
+};
+
   const PANEL_W = 400;
 
   return (
@@ -400,7 +456,7 @@ export const TramDashboard = () => {
             <Marker
               key={stop.name}
               position={[stop.lat, stop.lon]}
-              icon={makeStopIcon(stop.line)}
+              icon={makeStopIcon(stop.line, isDisrupted(stop.forecasts))}
               eventHandlers={{
                 click: () =>
                   handleStopClick(
@@ -447,6 +503,9 @@ export const TramDashboard = () => {
                       {stop.forecasts[0].message}
                     </Typography>
                   )}
+                  {isDisrupted(stop.forecasts) && (
+      <AlternativesSection stopId={stop.forecasts[0]?.stopId ?? ""} />
+    )}
                 </Box>
               </Popup>
             </Marker>

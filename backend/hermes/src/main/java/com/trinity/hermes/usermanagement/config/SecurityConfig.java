@@ -23,6 +23,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -40,6 +42,7 @@ public class SecurityConfig {
                     "/api/**",
                     "/notification/**",
                     "/v3/api-docs/**",
+                    "/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger/**"))
         .exceptionHandling(
@@ -54,7 +57,7 @@ public class SecurityConfig {
                     }))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/v3/api-docs/**", "/swagger/**", "/swagger-ui/**")
+                auth.requestMatchers("/v3/api-docs/**", "/swagger/**", "/swagger-ui/**", "/api-docs/**")
                     .permitAll()
                     .requestMatchers("/api/public/**")
                     .permitAll()

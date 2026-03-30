@@ -11,6 +11,28 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
+
+
+
+
+import random
+
+DEBUG_FORCE_DISRUPTION = True  # ← auf False setzen wenn nicht mehr gebraucht
+
+FAKE_DISRUPTIONS = [
+    "Service disruption: delays expected due to signal failure.",
+    "Line suspended due to maintenance work.",
+    "Severe delays on all routes due to weather conditions."
+    ]
+
+def _is_disrupted(forecasts: list[dict]) -> str | None:
+    """Return disruption message if any forecast entry signals a disruption."""
+    for entry in forecasts:
+        msg = (entry.get("message") or "").lower()
+        if any(kw in msg for kw in DISRUPTION_KEYWORDS):
+            return entry["message"]
+    return None
+
 DISRUPTION_KEYWORDS = {
     "not in service", "disruption", "suspended",
     "delay", "fault", "no service", "terminated",
@@ -123,13 +145,7 @@ class DisruptionReport:
     alternates: list[AlternateOption] = field(default_factory=list)
 
 
-def _is_disrupted(forecasts: list[dict]) -> str | None:
-    """Return disruption message if any forecast entry signals a disruption."""
-    for entry in forecasts:
-        msg = (entry.get("message") or "").lower()
-        if any(kw in msg for kw in DISRUPTION_KEYWORDS):
-            return entry["message"]
-    return None
+
 
 
 def _get_alternates(session: Session, stop_id: str, radius_m: int) -> list[AlternateOption]:
@@ -152,7 +168,6 @@ def _get_alternates(session: Session, stop_id: str, radius_m: int) -> list[Alter
         for r in rows
     ]
 
-
 def check_for_disruptions(
     session: Session,
     radius_m: int = 500,
@@ -164,8 +179,7 @@ def check_for_disruptions(
     Pass the already-open session from process_tram_live_data() so
     this runs in the same transaction against fresh forecast data.
     """
-    from data_handler.tram.luas_api import fetch_forecast_for_stop  # avoid circular import
-
+    from data_handler.tram.forecast_handler import fetch_forecast_for_stop  # avoid circular import
     stops = session.execute(
         text("""
             SELECT stop_id, name, line
