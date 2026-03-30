@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
@@ -40,13 +42,15 @@ from data_handler.urls import (
     download_google_drive_folder,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 _RUN_VARS = [
-    "RUN_1_MIN",
-    "RUN_5_MIN",
-    "RUN_15_MIN",
-    "RUN_DAILY",
-    "RUN_MONTHLY",
-    "RUN_STATIC",
+    "ENABLE_ONE_MIN",
+    "ENABLE_ONE_HOUR",
+    "ENABLE_ONE_DAY",
+    "ENABLE_ONE_MONTH",
+    "ENABLE_STATIC",
 ]
 
 
@@ -58,7 +62,7 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
 
 
-def _run_handler(logger: logging.Logger, name: str, fn: "Callable[[], None]") -> None:  # type: ignore[type-arg]
+def _run_handler(logger: logging.Logger, name: str, fn: Callable[[], None]) -> None:
     try:
         fn()
     except Exception:
@@ -82,23 +86,18 @@ def main_1_min() -> None:
         _run_handler(logger, "train_live", process_train_live_data)
 
 
-def main_5_min() -> None:
-    logger = logging.getLogger(__name__)
-    settings = get_data_sources_settings()
-    if settings.enable_construction_data:
-        logger.info("Processing traffic live data...")
-        _run_handler(logger, "traffic_live", process_traffic_live_data)
-
-
-def main_15_min() -> None:
+def main_1_hour() -> None:
     logger = logging.getLogger(__name__)
     settings = get_data_sources_settings()
     if settings.enable_pedestrian_data:
         logger.info("Processing pedestrian live data...")
         _run_handler(logger, "pedestrian_live", process_pedestrian_live_data)
+    if settings.enable_construction_data:
+        logger.info("Processing traffic live data...")
+        _run_handler(logger, "traffic_live", process_traffic_live_data)
 
 
-def main_daily() -> None:
+def main_1_day() -> None:
     logger = logging.getLogger(__name__)
     settings = get_data_sources_settings()
     if settings.enable_cycle_data:
@@ -109,7 +108,7 @@ def main_daily() -> None:
         _run_handler(logger, "events_data", process_events_data)
 
 
-def main_monthly() -> None:
+def main_1_month() -> None:
     logger = logging.getLogger(__name__)
     settings = get_data_sources_settings()
     if settings.enable_train_data:
@@ -123,7 +122,7 @@ def main_monthly() -> None:
         _run_handler(logger, "event_venue_info", process_event_venue_info)
 
 
-def _run_bus_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_bus_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
     if not settings.enable_bus_data:
         logger.info("Skipping bus static data...")
         return
@@ -133,7 +132,7 @@ def _run_bus_static(settings: DataSourcesSettings, logger: logging.Logger) -> No
     delete_static_data(bus_dir)
 
 
-def _run_car_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_car_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
     if not settings.enable_car_data or not settings.car_gdrive_folder_id:
         logger.info("Skipping car static data...")
         return
@@ -143,7 +142,7 @@ def _run_car_static(settings: DataSourcesSettings, logger: logging.Logger) -> No
     delete_static_data(car_dir)
 
 
-def _run_cycle_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_cycle_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
     if not settings.enable_cycle_data:
         logger.info("Skipping cycle static data...")
         return
@@ -151,7 +150,7 @@ def _run_cycle_static(settings: DataSourcesSettings, logger: logging.Logger) -> 
     process_cycle_station_info()
 
 
-def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
     if not settings.enable_train_data:
         logger.info("Skipping train static data...")
         return
@@ -161,7 +160,7 @@ def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> 
     delete_static_data(train_dir)
 
 
-def _run_tram_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:  # type: ignore[type-arg]
+def _run_tram_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
     if not settings.enable_tram_data:
         logger.info("Skipping tram static data...")
         return
@@ -181,7 +180,7 @@ def _run_tram_static(settings: DataSourcesSettings, logger: logging.Logger) -> N
 
 def _run_population_static(
     settings: DataSourcesSettings, logger: logging.Logger
-) -> None:  # type: ignore[type-arg]
+) -> None:
     if not settings.enable_population_data:
         logger.info("Skipping population static data...")
         return
@@ -216,15 +215,14 @@ def main() -> None:
     configure_logging()
     logger = logging.getLogger(__name__)
 
-    run_1_min = _is_set("RUN_1_MIN")
-    run_5_min = _is_set("RUN_5_MIN")
-    run_15_min = _is_set("RUN_15_MIN")
-    run_daily = _is_set("RUN_DAILY")
-    run_monthly = _is_set("RUN_MONTHLY")
-    run_static = _is_set("RUN_STATIC")
+    run_1_min = _is_set("ENABLE_ONE_MIN")
+    run_1_hour = _is_set("ENABLE_ONE_HOUR")
+    run_1_day = _is_set("ENABLE_ONE_DAY")
+    run_1_month = _is_set("ENABLE_ONE_MONTH")
+    run_static = _is_set("ENABLE_STATIC")
 
-    if not any([run_1_min, run_5_min, run_15_min, run_daily, run_monthly, run_static]):
-        logger.error("No RUN_* variable set. Set one of: %s", ", ".join(_RUN_VARS))
+    if not any([run_1_min, run_1_hour, run_1_day, run_1_month, run_static]):
+        logger.error("No ENABLE_* variable set. Set one of: %s", ", ".join(_RUN_VARS))
         sys.exit(1)
 
     logger.info("Initializing the database...")
@@ -233,14 +231,12 @@ def main() -> None:
 
     if run_1_min:
         main_1_min()
-    if run_5_min:
-        main_5_min()
-    if run_15_min:
-        main_15_min()
-    if run_daily:
-        main_daily()
-    if run_monthly:
-        main_monthly()
+    if run_1_hour:
+        main_1_hour()
+    if run_1_day:
+        main_1_day()
+    if run_1_month:
+        main_1_month()
     if run_static:
         main_static()
 
