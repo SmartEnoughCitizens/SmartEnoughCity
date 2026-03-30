@@ -32,8 +32,8 @@ _DUBLIN_TZ = zoneinfo.ZoneInfo("Europe/Dublin")
 
 
 class SiteLocation(BaseModel):
-    lat: float
-    lon: float
+    lat: float | None = None
+    lon: float | None = None
 
 
 class PedestrianSitePayload(BaseModel):

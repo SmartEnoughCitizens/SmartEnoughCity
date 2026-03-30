@@ -33,6 +33,7 @@ class MobilityType(enum.Enum):
     BIKE = "BIKE"
     CAR = "CAR"
     PEDESTRIAN = "PEDESTRIAN"
+    CAR = "CAR"
     UNDEFINED = "UNDEFINED"
 
 

@@ -185,6 +185,7 @@ class TestFetchAndStoreStationSnapshots:
         )
 
         mock_session = Mock()
+        mock_session.scalars.return_value.all.return_value = [1, 2]
         mock_session_ctx = Mock()
         mock_session_ctx.__enter__ = Mock(return_value=mock_session)
         mock_session_ctx.__exit__ = Mock(return_value=False)
@@ -224,6 +225,7 @@ class TestFetchAndStoreStationSnapshots:
         )
 
         mock_session = Mock()
+        mock_session.scalars.return_value.all.return_value = [1]
         mock_session.execute.side_effect = Exception("DB error")
         mock_session_ctx = Mock()
         mock_session_ctx.__enter__ = Mock(return_value=mock_session)

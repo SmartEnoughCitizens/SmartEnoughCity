@@ -114,15 +114,19 @@ def _execute_batch(
 ) -> None:
     if not batch:
         return
-    stmt = pg_insert(model).values(batch)
-    if conflict_target is not None:
-        set_ = {col: getattr(stmt.excluded, col) for col in update_cols}
-        if isinstance(conflict_target, str):
-            stmt = stmt.on_conflict_do_update(constraint=conflict_target, set_=set_)
-        else:
-            stmt = stmt.on_conflict_do_update(index_elements=conflict_target, set_=set_)
-    session.execute(stmt)
-    session.commit()
+    chunk_size = max(1, 65535 // len(batch[0]))
+    for i in range(0, len(batch), chunk_size):
+        chunk = batch[i : i + chunk_size]
+        stmt = pg_insert(model).values(chunk)
+        if conflict_target is not None:
+            set_ = {col: getattr(stmt.excluded, col) for col in update_cols}
+            if isinstance(conflict_target, str):
+                stmt = stmt.on_conflict_do_update(constraint=conflict_target, set_=set_)
+            else:
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=conflict_target, set_=set_
+                )
+        session.execute(stmt)
 
 
 def process_bus_static_data(gtfs_dir: Path) -> None:
@@ -191,19 +195,6 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
             ["id"],
             ["code", "name", "description", "lat", "lon"],
         ),
-        "shapes.txt": (
-            [
-                "shape_id",
-                "shape_pt_lat",
-                "shape_pt_lon",
-                "shape_pt_sequence",
-                "shape_dist_traveled",
-            ],
-            parse_shape_row,
-            BusTripShape,
-            "uq_shape_sequence",
-            ["pt_lat", "pt_lon", "dist_traveled"],
-        ),
         "trips.txt": (
             [
                 "route_id",
@@ -232,6 +223,19 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
             BusStopTime,
             None,
             [],
+        ),
+        "shapes.txt": (
+            [
+                "shape_id",
+                "shape_pt_lat",
+                "shape_pt_lon",
+                "shape_pt_sequence",
+                "shape_dist_traveled",
+            ],
+            parse_shape_row,
+            BusTripShape,
+            "uq_shape_sequence",
+            ["pt_lat", "pt_lon", "dist_traveled"],
         ),
     }
 
@@ -264,16 +268,20 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
 
             if filename in _CHUNKED_FILES:
                 chunk: list[dict[str, object]] = []
+                chunk_size: int | None = None
                 total = 0
                 for row in read_csv_file(file_path, required_headers):
-                    chunk.append(parse_row(row))
-                    if len(chunk) >= _CHUNK_SIZE:
+                    parsed = parse_row(row)
+                    if chunk_size is None:
+                        chunk_size = max(1, 65535 // len(parsed))
+                    chunk.append(parsed)
+                    if len(chunk) >= chunk_size:
                         _execute_batch(
                             session, model, chunk, conflict_target, update_cols
                         )
                         total += len(chunk)
                         chunk = []
-                        logger.info("  Committed %d rows...", total)
+                        logger.info("  Flushed %d rows...", total)
                 if chunk:
                     _execute_batch(session, model, chunk, conflict_target, update_cols)
                     total += len(chunk)
@@ -284,6 +292,7 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
                 ]
                 _execute_batch(session, model, rows, conflict_target, update_cols)
 
+        session.commit()
         logger.info("Successfully processed static bus data.")
 
     except Exception:

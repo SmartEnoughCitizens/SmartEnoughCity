@@ -12,7 +12,7 @@ spec:
   timeZone: {{ $.Values.timeZone | quote }}
   {{- end }}
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 45
+  startingDeadlineSeconds: 90
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:

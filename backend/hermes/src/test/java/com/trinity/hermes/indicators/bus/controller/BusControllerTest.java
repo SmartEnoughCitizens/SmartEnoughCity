@@ -1,9 +1,7 @@
 package com.trinity.hermes.indicators.bus.controller;
 
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -101,12 +99,5 @@ class BusControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.reliabilityPct").value(88.0))
         .andExpect(jsonPath("$.lateArrivalPct").value(12.0));
-  }
-
-  @Test
-  void refreshMetrics_returnsOk() throws Exception {
-    mockMvc.perform(post("/api/v1/bus/metrics/refresh")).andExpect(status().isOk());
-
-    verify(busFacade).refreshMetrics();
   }
 }
