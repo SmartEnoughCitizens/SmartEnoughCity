@@ -414,7 +414,9 @@ export const MiscDashboard = () => {
         selectedTypes.has(getDisruptionCategory(d.disruptionType)) &&
         selectedSeverities.has(getDisruptionSeverity(d.severity))
       );
-    }).length;
+    }).length +
+    pedestrians.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+      .length;
 
   function toggleType(cat: EventCategory) {
     setSelectedTypes((prev) => {
@@ -455,6 +457,14 @@ export const MiscDashboard = () => {
       prev?.kind === "disruption" && prev.item.id === disruption.id
         ? null
         : { kind: "disruption", item: disruption },
+    );
+  }
+
+  function handleMapPedestrianClick(pedestrian: PedestrianLive) {
+    setSelectedMapItem((prev) =>
+      prev?.kind === "pedestrian" && prev.item.siteId === pedestrian.siteId
+        ? null
+        : { kind: "pedestrian", item: pedestrian },
     );
   }
 
@@ -851,11 +861,13 @@ export const MiscDashboard = () => {
             <EventMap
               events={events}
               disruptions={disruptions}
+              pedestrians={pedestrians}
               selectedTypes={selectedTypes}
               selectedSeverities={selectedSeverities}
               selectedItem={selectedMapItem}
               onEventClick={handleMapEventClick}
               onDisruptionClick={handleMapDisruptionClick}
+              onPedestrianClick={handleMapPedestrianClick}
             />
           </Paper>
 
