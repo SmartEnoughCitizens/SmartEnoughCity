@@ -12,6 +12,9 @@ labels:
 
 imagePullSecrets: []
 
+podAnnotations:
+  sidecar.istio.io/inject: "false"
+
 securityContext: {}
 
 containerSecurityContext: {}

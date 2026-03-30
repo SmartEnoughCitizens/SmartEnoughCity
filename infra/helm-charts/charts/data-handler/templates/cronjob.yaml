@@ -121,4 +121,6 @@ spec:
                     secretKeyRef:
                       name: {{ $.Values.secrets.ticketmasterApiKey.name | quote }}
                       key: TICKETMASTER_API_KEY
+                - name: BASE_STATIC_DATA_DIR
+                  value: "/tmp/static_data"
 {{- end }}
