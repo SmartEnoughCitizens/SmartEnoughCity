@@ -94,6 +94,9 @@ build/
 # Environment & Secrets
 .env
 .env.local
+.env.development
+.env.test
+.env.production
 *.pem
 *.key
 credentials*.json
