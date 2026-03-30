@@ -45,7 +45,10 @@ def save_public_spaces_to_database(public_spaces: pd.DataFrame) -> None:
         ]
         session.add_all(records)
         session.commit()
-        logger.info("Inserted %d public space record(s). Public spaces import complete.", len(records))
+        logger.info(
+            "Inserted %d public space record(s). Public spaces import complete.",
+            len(records),
+        )
     except Exception:
         session.rollback()
         logger.exception("Error saving public spaces to database")
