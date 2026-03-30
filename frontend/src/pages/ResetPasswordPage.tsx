@@ -149,9 +149,15 @@ export const ResetPasswordPage = () => {
                     <IconButton
                       onClick={() => setShowNewPassword((v) => !v)}
                       edge="end"
-                      aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showNewPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showNewPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showNewPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -179,9 +185,15 @@ export const ResetPasswordPage = () => {
                     <IconButton
                       onClick={() => setShowConfirmPassword((v) => !v)}
                       edge="end"
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showConfirmPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),

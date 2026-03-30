@@ -28,7 +28,15 @@ export const SkeletonCard = ({ variant }: SkeletonCardProps) => {
 
   if (variant === "table") {
     return (
-      <Box sx={{ px: 1, py: 0.5, display: "flex", flexDirection: "column", gap: 1 }}>
+      <Box
+        sx={{
+          px: 1,
+          py: 0.5,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+        }}
+      >
         <Skeleton variant="text" width="100%" />
         <Skeleton variant="text" width="90%" />
         <Skeleton variant="text" width="95%" />

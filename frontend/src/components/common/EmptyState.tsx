@@ -6,7 +6,14 @@ import type { ReactNode } from "react";
 import { Box, Typography } from "@mui/material";
 
 const BusIllustration = () => (
-  <svg viewBox="0 0 120 120" width={80} height={80} fill="none" stroke="currentColor" strokeWidth={2}>
+  <svg
+    viewBox="0 0 120 120"
+    width={80}
+    height={80}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
     <rect x="15" y="35" width="90" height="55" rx="8" />
     <rect x="25" y="45" width="20" height="16" rx="3" />
     <rect x="50" y="45" width="20" height="16" rx="3" />
@@ -19,7 +26,14 @@ const BusIllustration = () => (
 );
 
 const CycleIllustration = () => (
-  <svg viewBox="0 0 120 120" width={80} height={80} fill="none" stroke="currentColor" strokeWidth={2}>
+  <svg
+    viewBox="0 0 120 120"
+    width={80}
+    height={80}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
     <circle cx="35" cy="75" r="22" />
     <circle cx="85" cy="75" r="22" />
     <circle cx="35" cy="75" r="5" fill="currentColor" />
@@ -32,7 +46,14 @@ const CycleIllustration = () => (
 );
 
 const TrainIllustration = () => (
-  <svg viewBox="0 0 120 120" width={80} height={80} fill="none" stroke="currentColor" strokeWidth={2}>
+  <svg
+    viewBox="0 0 120 120"
+    width={80}
+    height={80}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
     <rect x="25" y="25" width="70" height="65" rx="10" />
     <rect x="35" y="35" width="20" height="18" rx="3" />
     <rect x="65" y="35" width="20" height="18" rx="3" />
@@ -47,7 +68,14 @@ const TrainIllustration = () => (
 );
 
 const GenericIllustration = () => (
-  <svg viewBox="0 0 120 120" width={80} height={80} fill="none" stroke="currentColor" strokeWidth={2}>
+  <svg
+    viewBox="0 0 120 120"
+    width={80}
+    height={80}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
     <circle cx="60" cy="50" r="28" />
     <line x1="60" y1="78" x2="60" y2="95" />
     <line x1="40" y1="95" x2="80" y2="95" />
@@ -94,7 +122,12 @@ export const EmptyState = ({
       <Box sx={{ color: "text.secondary", opacity: 0.5 }}>
         <Illustration />
       </Box>
-      <Typography variant="body2" fontWeight={600} color="text.secondary" align="center">
+      <Typography
+        variant="body2"
+        fontWeight={600}
+        color="text.secondary"
+        align="center"
+      >
         {title}
       </Typography>
       {description && (

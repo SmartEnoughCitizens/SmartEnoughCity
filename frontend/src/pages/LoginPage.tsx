@@ -3,17 +3,16 @@
  */
 
 import { Alert, Box, Paper, Typography } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { alpha } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import { motion, useReducedMotion } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 const orbs = [
   { size: 400, top: "-15%", left: "-10%", color: "primary", duration: 22 },
-  { size: 300, top: "55%",  left: "55%",  color: "secondary", duration: 28 },
-  { size: 350, top: "30%",  left: "30%",  color: "primary",   duration: 20 },
-  { size: 250, top: "70%",  left: "-5%",  color: "secondary", duration: 26 },
+  { size: 300, top: "55%", left: "55%", color: "secondary", duration: 28 },
+  { size: 350, top: "30%", left: "30%", color: "primary", duration: 20 },
+  { size: 250, top: "70%", left: "-5%", color: "secondary", duration: 26 },
 ];
 
 export const LoginPage = () => {
@@ -26,7 +25,6 @@ export const LoginPage = () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-
       {/* ── Left panel: branding (white) ─────────────────────────────────── */}
       <Box
         sx={{

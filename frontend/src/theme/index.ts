@@ -116,10 +116,26 @@ const lightThemeOptions: ThemeOptions = {
       dark: LIGHT_SECONDARY_DARK,
       contrastText: "#fff",
     },
-    success: { main: LIGHT_SUCCESS_MAIN, light: LIGHT_SUCCESS_LIGHT, dark: LIGHT_SUCCESS_DARK },
-    warning: { main: LIGHT_WARNING_MAIN, light: LIGHT_WARNING_LIGHT, dark: LIGHT_WARNING_DARK },
-    error: { main: LIGHT_ERROR_MAIN, light: LIGHT_ERROR_LIGHT, dark: LIGHT_ERROR_DARK },
-    info: { main: LIGHT_INFO_MAIN, light: LIGHT_INFO_LIGHT, dark: LIGHT_INFO_DARK },
+    success: {
+      main: LIGHT_SUCCESS_MAIN,
+      light: LIGHT_SUCCESS_LIGHT,
+      dark: LIGHT_SUCCESS_DARK,
+    },
+    warning: {
+      main: LIGHT_WARNING_MAIN,
+      light: LIGHT_WARNING_LIGHT,
+      dark: LIGHT_WARNING_DARK,
+    },
+    error: {
+      main: LIGHT_ERROR_MAIN,
+      light: LIGHT_ERROR_LIGHT,
+      dark: LIGHT_ERROR_DARK,
+    },
+    info: {
+      main: LIGHT_INFO_MAIN,
+      light: LIGHT_INFO_LIGHT,
+      dark: LIGHT_INFO_DARK,
+    },
     background: {
       default: LIGHT_BG_DEFAULT,
       paper: LIGHT_BG_PAPER,
@@ -184,10 +200,26 @@ const darkThemeOptions: ThemeOptions = {
       dark: DARK_SECONDARY_DARK,
       contrastText: "#000",
     },
-    success: { main: DARK_SUCCESS_MAIN, light: DARK_SUCCESS_LIGHT, dark: DARK_SUCCESS_DARK },
-    warning: { main: DARK_WARNING_MAIN, light: DARK_WARNING_LIGHT, dark: DARK_WARNING_DARK },
-    error: { main: DARK_ERROR_MAIN, light: DARK_ERROR_LIGHT, dark: DARK_ERROR_DARK },
-    info: { main: DARK_INFO_MAIN, light: DARK_INFO_LIGHT, dark: DARK_INFO_DARK },
+    success: {
+      main: DARK_SUCCESS_MAIN,
+      light: DARK_SUCCESS_LIGHT,
+      dark: DARK_SUCCESS_DARK,
+    },
+    warning: {
+      main: DARK_WARNING_MAIN,
+      light: DARK_WARNING_LIGHT,
+      dark: DARK_WARNING_DARK,
+    },
+    error: {
+      main: DARK_ERROR_MAIN,
+      light: DARK_ERROR_LIGHT,
+      dark: DARK_ERROR_DARK,
+    },
+    info: {
+      main: DARK_INFO_MAIN,
+      light: DARK_INFO_LIGHT,
+      dark: DARK_INFO_DARK,
+    },
     background: {
       default: DARK_BG_DEFAULT,
       paper: DARK_BG_PAPER,

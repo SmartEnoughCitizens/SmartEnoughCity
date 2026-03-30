@@ -26,7 +26,9 @@ interface PasswordStrengthIndicatorProps {
   password: string;
 }
 
-export const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicatorProps) => {
+export const PasswordStrengthIndicator = ({
+  password,
+}: PasswordStrengthIndicatorProps) => {
   const { score, label, color } = getStrength(password);
 
   return (
@@ -45,7 +47,11 @@ export const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicato
             value={(Math.max(score, 1) / 4) * 100}
             sx={{ mt: 1, borderRadius: 1 }}
           />
-          <Typography variant="caption" color={`${color}.main`} sx={{ mt: 0.5, display: "block" }}>
+          <Typography
+            variant="caption"
+            color={`${color}.main`}
+            sx={{ mt: 0.5, display: "block" }}
+          >
             {label}
           </Typography>
         </motion.div>

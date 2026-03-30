@@ -117,9 +117,15 @@ export const ChangePasswordDialog = ({
                     <IconButton
                       onClick={() => setShowCurrentPassword((v) => !v)}
                       edge="end"
-                      aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showCurrentPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showCurrentPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showCurrentPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -143,9 +149,15 @@ export const ChangePasswordDialog = ({
                     <IconButton
                       onClick={() => setShowNewPassword((v) => !v)}
                       edge="end"
-                      aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showNewPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showNewPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showNewPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -171,9 +183,15 @@ export const ChangePasswordDialog = ({
                     <IconButton
                       onClick={() => setShowConfirmPassword((v) => !v)}
                       edge="end"
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showConfirmPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),

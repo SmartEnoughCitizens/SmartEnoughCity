@@ -3,14 +3,8 @@
  * Shows cycle station markers; bus + cycle stats as compact floating cards
  */
 
-import { useState, useRef, useEffect } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  IconButton,
-  Collapse,
-} from "@mui/material";
+import { useState } from "react";
+import { Box, Paper, Typography, IconButton, Collapse } from "@mui/material";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -54,18 +48,30 @@ const FloatingPanel = ({
 );
 
 export const Dashboard = () => {
-  const { data: busData, isLoading: busLoading, isSuccess: busSuccess } = useBusData(undefined, 50);
-  const { data: cycleData, isLoading: cycleLoading, isSuccess: cycleSuccess } = useCycleData(50);
+  const {
+    data: busData,
+    isLoading: busLoading,
+    isSuccess: busSuccess,
+  } = useBusData(undefined, 50);
+  const {
+    data: cycleData,
+    isLoading: cycleLoading,
+    isSuccess: cycleSuccess,
+  } = useCycleData(50);
   const theme = useAppSelector((state) => state.ui.theme);
 
   const [busExpanded, setBusExpanded] = useState(false);
   const [cycleExpanded, setCycleExpanded] = useState(false);
 
-  // Track first successful load so count-up doesn't re-trigger on background refetches
-  const busHasAnimated = useRef(busSuccess);
-  const cycleHasAnimated = useRef(cycleSuccess);
-  useEffect(() => { if (busSuccess) busHasAnimated.current = true; }, [busSuccess]);
-  useEffect(() => { if (cycleSuccess) cycleHasAnimated.current = true; }, [cycleSuccess]);
+  // Lazy initialisers capture the value once at mount.
+  // If data is already cached: start = end → no animation.
+  // If data loads after mount: start = 0 → count-up plays once.
+  const [busStartValue] = useState(() =>
+    busSuccess ? (busData?.totalRecords ?? 0) : 0,
+  );
+  const [cycleStartValue] = useState(() =>
+    cycleSuccess ? (cycleData?.data?.length ?? 0) : 0,
+  );
 
   const busEmpty = !busLoading && (busData?.totalRecords ?? 0) === 0;
   const cycleEmpty = !cycleLoading && (cycleData?.data?.length ?? 0) === 0;
@@ -97,7 +103,10 @@ export const Dashboard = () => {
                 <DirectionsBusIcon color="primary" fontSize="small" />
                 <Typography variant="h5">Bus Trips</Typography>
               </Box>
-              <IconButton size="small" onClick={() => setBusExpanded(!busExpanded)}>
+              <IconButton
+                size="small"
+                onClick={() => setBusExpanded(!busExpanded)}
+              >
                 {busExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               </IconButton>
             </Box>
@@ -108,7 +117,7 @@ export const Dashboard = () => {
                   duration={1.2}
                   separator=","
                   startOnMount={false}
-                  start={busHasAnimated.current ? (busData?.totalRecords ?? 0) : 0}
+                  start={busStartValue}
                 />{" "}
                 trips &middot; Click to expand
               </Typography>
@@ -127,7 +136,11 @@ export const Dashboard = () => {
                       <DelayChart statistics={busData.statistics} compact />
                     </Box>
                   )}
-                  <BusTripTable trips={busData?.data || []} maxRows={8} compact />
+                  <BusTripTable
+                    trips={busData?.data || []}
+                    maxRows={8}
+                    compact
+                  />
                 </>
               )}
             </Collapse>
@@ -167,7 +180,7 @@ export const Dashboard = () => {
                   duration={1.2}
                   separator=","
                   startOnMount={false}
-                  start={cycleHasAnimated.current ? (cycleData?.data?.length ?? 0) : 0}
+                  start={cycleStartValue}
                 />{" "}
                 stations on map &middot; Click to expand
               </Typography>
@@ -183,7 +196,10 @@ export const Dashboard = () => {
                 <>
                   {cycleData?.statistics && (
                     <Box sx={{ mb: 1.5 }}>
-                      <CycleStatsChart statistics={cycleData.statistics} compact />
+                      <CycleStatsChart
+                        statistics={cycleData.statistics}
+                        compact
+                      />
                     </Box>
                   )}
                   <CycleStationTable

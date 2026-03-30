@@ -73,9 +73,14 @@ export const LoginForm = () => {
       transition={{ duration: 0.45, ease: "easeOut" }}
     >
       <Box sx={{ width: "100%", maxWidth: 380 }}>
-
         {/* Logo shown only on mobile (left panel hidden) */}
-        <Box sx={{ display: { xs: "flex", md: "none" }, justifyContent: "center", mb: 3 }}>
+        <Box
+          sx={{
+            display: { xs: "flex", md: "none" },
+            justifyContent: "center",
+            mb: 3,
+          }}
+        >
           <img src="/favicon.svg" height={300} alt="SmartEnoughCity" />
         </Box>
 
@@ -134,9 +139,15 @@ export const LoginForm = () => {
                       <IconButton
                         onClick={() => setShowPassword((v) => !v)}
                         edge="end"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
-                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                        {showPassword ? (
+                          <VisibilityOffIcon />
+                        ) : (
+                          <VisibilityIcon />
+                        )}
                       </IconButton>
                     </InputAdornment>
                   ),

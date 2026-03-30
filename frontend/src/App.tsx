@@ -29,7 +29,7 @@ const ThemedApp = () => {
   const theme = useAppSelector((state) => state.ui.theme);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.dataset.theme = theme;
   }, [theme]);
 
   return (
