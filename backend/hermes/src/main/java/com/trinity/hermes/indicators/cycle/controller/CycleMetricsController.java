@@ -2,6 +2,7 @@ package com.trinity.hermes.indicators.cycle.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationRiskScoreDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
@@ -156,6 +157,21 @@ public class CycleMetricsController {
       return ResponseEntity.ok(cycleMetricsService.getODPairs(days, limit));
     } catch (Exception e) {
       log.error("Error fetching OD pairs: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Risk Scores (ML)
+  // -------------------------------------------------------------------------
+
+  @GetMapping("/risk-scores")
+  public ResponseEntity<List<StationRiskScoreDTO>> getRiskScores() {
+    log.info("GET /api/v1/cycle/risk-scores");
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getRiskScores());
+    } catch (Exception e) {
+      log.error("Error fetching station risk scores: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
