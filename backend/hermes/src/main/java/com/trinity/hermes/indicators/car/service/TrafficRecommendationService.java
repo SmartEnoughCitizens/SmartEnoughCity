@@ -90,7 +90,8 @@ public class TrafficRecommendationService {
     int travelTime = Math.max(9, 22 - timeSavings + routeIndex * 2);
     double distanceKm = 2.6 + routeIndex * 0.9;
     String color = routeIndex == 0 ? "#0f766e" : "#ea580c";
-    String label = routeIndex == 0 ? "North Circular Diversion" : "Quays Relief Route";
+    String label =
+        routeIndex == 0 ? "Primary diversion route" : "Secondary diversion route";
 
     return TrafficRecommendation.AlternativeRoute.builder()
         .routeId(String.format("alt-%s-%d", point.getSiteId(), routeIndex + 1))
