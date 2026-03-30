@@ -70,11 +70,12 @@ public interface BusTripUpdateRepository extends JpaRepository<BusTripUpdate, Lo
           WHERE bt.route_id = :routeId
             AND stu.arrival_delay IS NOT NULL
             AND stu.arrival_delay > 0
-            AND (
-              (:filter = 'today' AND ltu.start_date = CURRENT_DATE)
-              OR (:filter = 'week'  AND ltu.start_date >= CURRENT_DATE - INTERVAL '7 days')
-              OR (:filter = 'month' AND ltu.start_date >= CURRENT_DATE - INTERVAL '30 days')
-            )
+            AND ltu.start_date >= CASE
+                WHEN :filter = 'today' THEN CURRENT_DATE
+                WHEN :filter = 'week'  THEN CURRENT_DATE - INTERVAL '7 days'
+                ELSE                        CURRENT_DATE - INTERVAL '30 days'
+            END
+            AND ltu.start_date <= CURRENT_DATE
           GROUP BY stu.stop_id
           ORDER BY avgDelayMinutes DESC
           """,

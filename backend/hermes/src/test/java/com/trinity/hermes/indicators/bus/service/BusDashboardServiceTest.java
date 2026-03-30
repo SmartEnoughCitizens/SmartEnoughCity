@@ -3,15 +3,19 @@ package com.trinity.hermes.indicators.bus.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
+import com.trinity.hermes.indicators.bus.entity.BusCommonDelayMV;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
 import com.trinity.hermes.indicators.bus.entity.BusRouteMetrics;
 import com.trinity.hermes.indicators.bus.entity.BusTrip;
 import com.trinity.hermes.indicators.bus.repository.*;
+import com.trinity.hermes.indicators.bus.repository.BusRouteBreakdownProjection;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,6 +37,8 @@ class BusDashboardServiceTest {
   @Mock private BusRidershipRepository busRidershipRepository;
   @Mock private BusTripRepository busTripRepository;
   @Mock private BusRouteRepository busRouteRepository;
+  @Mock private BusTripUpdateRepository busTripUpdateRepository;
+  @Mock private BusCommonDelayMvRepository busCommonDelayMvRepository;
 
   @InjectMocks private BusDashboardService busDashboardService;
 
@@ -140,5 +146,54 @@ class BusDashboardServiceTest {
     assertThat(performance.getReliabilityPct()).isEqualTo(88.0);
     assertThat(performance.getLateArrivalPct()).isEqualTo(12.0);
     // assertThat(performance.getEvAdoptionPct()).isGreaterThanOrEqualTo(0.0);
+  }
+
+  @Test
+  void getCommonDelays_returnsMappedResultsFromMv() {
+    BusCommonDelayMV mv1 = new BusCommonDelayMV(1L, "today", "route_1", "42", "City Center - Sandyford", 15.5);
+    BusCommonDelayMV mv2 = new BusCommonDelayMV(2L, "today", "route_2", "16", "Dublin Airport - Ballinteer", 8.3);
+
+    when(busCommonDelayMvRepository.findByPeriodOrderByAvgDelayMinutesDesc("today"))
+        .thenReturn(List.of(mv1, mv2));
+
+    List<BusCommonDelayDTO> delays = busDashboardService.getCommonDelays("today");
+
+    assertThat(delays).hasSize(2);
+    assertThat(delays.get(0).getRouteShortName()).isEqualTo("42");
+    assertThat(delays.get(0).getAvgDelayMinutes()).isEqualTo(15.5);
+    assertThat(delays.get(1).getRouteShortName()).isEqualTo("16");
+  }
+
+  @Test
+  void getCommonDelays_withInvalidFilter_defaultsToToday() {
+    when(busCommonDelayMvRepository.findByPeriodOrderByAvgDelayMinutesDesc("today"))
+        .thenReturn(List.of());
+
+    List<BusCommonDelayDTO> delays = busDashboardService.getCommonDelays("invalid");
+
+    assertThat(delays).isEmpty();
+    org.mockito.Mockito.verify(busCommonDelayMvRepository)
+        .findByPeriodOrderByAvgDelayMinutesDesc("today");
+  }
+
+  @Test
+  void getRouteBreakdown_returnsMappedPerStopData() {
+    BusRouteBreakdownProjection p =
+        new BusRouteBreakdownProjection() {
+          public String getStopId() { return "8540B1559201"; }
+          public Double getAvgDelayMinutes() { return 5.2; }
+          public Double getMaxDelayMinutes() { return 12.0; }
+          public Long getTripCount() { return 25L; }
+        };
+
+    when(busTripUpdateRepository.findBreakdownByRoute("route_1", "today"))
+        .thenReturn(List.of(p));
+
+    List<BusRouteBreakdownDTO> breakdown = busDashboardService.getRouteBreakdown("route_1", "today");
+
+    assertThat(breakdown).hasSize(1);
+    assertThat(breakdown.get(0).getStopId()).isEqualTo("8540B1559201");
+    assertThat(breakdown.get(0).getAvgDelayMinutes()).isEqualTo(5.2);
+    assertThat(breakdown.get(0).getTripCount()).isEqualTo(25L);
   }
 }

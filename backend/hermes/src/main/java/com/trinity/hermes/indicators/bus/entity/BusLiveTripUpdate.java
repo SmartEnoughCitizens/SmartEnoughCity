@@ -10,7 +10,13 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Immutable;
 
 @Entity
-@Table(name = "bus_live_trip_updates", schema = "external_data")
+@Table(
+    name = "bus_live_trip_updates",
+    schema = "external_data",
+    indexes = {
+      @Index(name = "idx_bltu_start_date", columnList = "start_date"),
+      @Index(name = "idx_bltu_trip_id", columnList = "trip_id")
+    })
 @Immutable
 @Data
 @NoArgsConstructor

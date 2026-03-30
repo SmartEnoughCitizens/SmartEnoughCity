@@ -9,6 +9,7 @@ import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
 import com.trinity.hermes.indicators.bus.entity.BusRoute;
+import com.trinity.hermes.indicators.bus.entity.BusCommonDelayMV;
 import com.trinity.hermes.indicators.bus.entity.BusRouteMetrics;
 import com.trinity.hermes.indicators.bus.entity.BusTrip;
 import com.trinity.hermes.indicators.bus.repository.*;
@@ -36,6 +37,7 @@ public class BusDashboardService {
   private final BusTripRepository busTripRepository;
   private final BusRouteRepository busRouteRepository;
   private final BusTripUpdateRepository busTripUpdateRepository;
+  private final BusCommonDelayMvRepository busCommonDelayMvRepository;
 
   @Transactional(readOnly = true)
   public BusDashboardKpiDTO getKpis() {
@@ -114,16 +116,16 @@ public class BusDashboardService {
 
   @Transactional(readOnly = true)
   public List<BusCommonDelayDTO> getCommonDelays(String filter) {
-    log.info("Fetching common bus delays, filter={}", filter);
+    log.info("Fetching common bus delays from MV, filter={}", filter);
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
-    return busTripUpdateRepository.findCommonDelays(safeFilter).stream()
+    return busCommonDelayMvRepository.findByPeriodOrderByAvgDelayMinutesDesc(safeFilter).stream()
         .map(
-            p ->
+            mv ->
                 BusCommonDelayDTO.builder()
-                    .routeId(p.getRouteId())
-                    .routeShortName(p.getRouteShortName())
-                    .routeLongName(p.getRouteLongName())
-                    .avgDelayMinutes(p.getAvgDelayMinutes())
+                    .routeId(mv.getRouteId())
+                    .routeShortName(mv.getRouteShortName())
+                    .routeLongName(mv.getRouteLongName())
+                    .avgDelayMinutes(mv.getAvgDelayMinutes())
                     .build())
         .collect(Collectors.toList());
   }
