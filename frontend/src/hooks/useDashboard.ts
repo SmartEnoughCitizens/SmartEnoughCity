@@ -42,6 +42,10 @@ export const DASHBOARD_KEYS = {
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
   busSystemPerformance: ["bus", "system-performance"] as const,
+  busCommonDelays: (filter: string) =>
+    ["bus", "common-delays", filter] as const,
+  busRouteBreakdown: (routeId: string | null, filter: string) =>
+    ["bus", "route-breakdown", routeId, filter] as const,
   carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
   carHighTrafficPoints: ["car", "high-traffic-points"] as const,
   carJunctionEmissions: ["car", "junction-emissions"] as const,
@@ -194,6 +198,34 @@ export const useBusSystemPerformance = () => {
     refetchIntervalInBackground: true,
   });
 };
+/**
+ * Get top 10 most delayed bus routes, filtered by today/week/month
+ */
+export const useCommonDelays = (filter: string) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busCommonDelays(filter),
+    queryFn: () => dashboardApi.getBusCommonDelays(filter),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get per-stop delay breakdown for a specific bus route
+ */
+export const useBusRouteBreakdown = (
+  routeId: string | null,
+  filter: string,
+) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busRouteBreakdown(routeId, filter),
+    queryFn: () => dashboardApi.getBusRouteBreakdown(routeId!, filter),
+    enabled: !!routeId,
+    staleTime: 60_000,
+  });
+};
+
 /**
  * Get car fuel type statistics
  */

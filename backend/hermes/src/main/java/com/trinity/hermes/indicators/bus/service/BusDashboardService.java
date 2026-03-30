@@ -1,7 +1,9 @@
 package com.trinity.hermes.indicators.bus.service;
 
+import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
@@ -33,6 +35,7 @@ public class BusDashboardService {
   private final BusRidershipRepository busRidershipRepository;
   private final BusTripRepository busTripRepository;
   private final BusRouteRepository busRouteRepository;
+  private final BusTripUpdateRepository busTripUpdateRepository;
 
   @Transactional(readOnly = true)
   public BusDashboardKpiDTO getKpis() {
@@ -107,6 +110,38 @@ public class BusDashboardService {
         .reliabilityPct(avgReliability != null ? avgReliability : 0.0)
         .lateArrivalPct(avgLateArrival != null ? avgLateArrival : 0.0)
         .build();
+  }
+
+  @Transactional(readOnly = true)
+  public List<BusCommonDelayDTO> getCommonDelays(String filter) {
+    log.info("Fetching common bus delays, filter={}", filter);
+    String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
+    return busTripUpdateRepository.findCommonDelays(safeFilter).stream()
+        .map(
+            p ->
+                BusCommonDelayDTO.builder()
+                    .routeId(p.getRouteId())
+                    .routeShortName(p.getRouteShortName())
+                    .routeLongName(p.getRouteLongName())
+                    .avgDelayMinutes(p.getAvgDelayMinutes())
+                    .build())
+        .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<BusRouteBreakdownDTO> getRouteBreakdown(String routeId, String filter) {
+    log.info("Fetching bus route breakdown, routeId={}, filter={}", routeId, filter);
+    String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
+    return busTripUpdateRepository.findBreakdownByRoute(routeId, safeFilter).stream()
+        .map(
+            p ->
+                BusRouteBreakdownDTO.builder()
+                    .stopId(p.getStopId())
+                    .avgDelayMinutes(p.getAvgDelayMinutes())
+                    .maxDelayMinutes(p.getMaxDelayMinutes())
+                    .tripCount(p.getTripCount())
+                    .build())
+        .collect(Collectors.toList());
   }
 
   private BusLiveVehicleDTO mapToLiveVehicleDTO(

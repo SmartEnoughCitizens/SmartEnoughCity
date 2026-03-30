@@ -90,6 +90,9 @@ public class SecurityConfig {
                     .authenticated()
                     .requestMatchers("/api/v1/car/**")
                     .hasRole("City_Manager")
+                    // MV management: internal API accessed via port-forward only, no auth required
+                    .requestMatchers("/api/v1/mv", "/api/v1/mv/**")
+                    .permitAll()
                     .requestMatchers("/api/trains")
                     .hasRole("City_Manager")
                     .requestMatchers("/api/buses")
