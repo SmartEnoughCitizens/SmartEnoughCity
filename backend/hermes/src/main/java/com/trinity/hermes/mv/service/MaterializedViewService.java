@@ -71,20 +71,19 @@ public class MaterializedViewService {
     log.info("Creating MV '{}' in schema '{}'", request.getName(), schema);
     jdbcTemplate.execute(createSql);
 
-    // Create unique indexes required for REFRESH MATERIALIZED VIEW CONCURRENTLY
-    Arrays.stream(request.getUniqueKeyColumns().split(","))
-        .map(String::trim)
-        .filter(StringUtils::hasText)
-        .forEach(
-            col -> {
-              String idxName = String.format("%s_%s_idx", request.getName(), col);
-              String idxSql =
-                  String.format(
-                      "CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (%s)",
-                      idxName, schema, request.getName(), col);
-              log.debug("Creating unique index: {}", idxName);
-              jdbcTemplate.execute(idxSql);
-            });
+    // Create a single composite unique index required for REFRESH MATERIALIZED VIEW CONCURRENTLY
+    String allCols =
+        Arrays.stream(request.getUniqueKeyColumns().split(","))
+            .map(String::trim)
+            .filter(StringUtils::hasText)
+            .collect(Collectors.joining(", "));
+    String idxName = String.format("%s_unique_idx", request.getName());
+    String idxSql =
+        String.format(
+            "CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (%s)",
+            idxName, schema, request.getName(), allCols);
+    log.debug("Creating unique index: {}", idxName);
+    jdbcTemplate.execute(idxSql);
 
     MvRegistry saved = mvRegistryRepository.save(registry);
     mvSchedulerService.reschedule(saved);
