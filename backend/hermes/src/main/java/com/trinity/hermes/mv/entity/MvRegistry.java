@@ -32,7 +32,9 @@ public class MvRegistry {
   @Column(name = "query_sql", nullable = false, columnDefinition = "TEXT")
   private String querySql;
 
-  /** Comma-separated column names used to create UNIQUE indexes (required for REFRESH CONCURRENTLY). */
+  /**
+   * Comma-separated column names used to create UNIQUE indexes (required for REFRESH CONCURRENTLY).
+   */
   @Column(name = "unique_key_columns", nullable = false, columnDefinition = "TEXT")
   private String uniqueKeyColumns;
 

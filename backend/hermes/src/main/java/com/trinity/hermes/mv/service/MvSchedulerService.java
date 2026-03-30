@@ -16,8 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 /**
- * Manages dynamic per-MV cron schedules loaded from mv_registry at startup,
- * and updated live whenever an MV is upserted or toggled without requiring a restart.
+ * Manages dynamic per-MV cron schedules loaded from mv_registry at startup, and updated live
+ * whenever an MV is upserted or toggled without requiring a restart.
  */
 @Service
 @Slf4j
@@ -43,18 +43,24 @@ public class MvSchedulerService implements SchedulingConfigurer {
   public void configureTasks(ScheduledTaskRegistrar registrar) {
     registrar.setTaskScheduler(mvTaskScheduler);
 
-    // Schedule all enabled MVs that have a cron expression at startup
-    mvRegistryRepository.findAllByEnabledTrue().stream()
-        .filter(mv -> StringUtils.hasText(mv.getRefreshCron()))
-        .forEach(this::scheduleInternal);
-
-    log.info("MvSchedulerService: scheduled {} MV refresh tasks at startup",
-        scheduledTasks.size());
+    // Schedule all enabled MVs that have a cron expression at startup.
+    // Wrapped in try-catch so the app starts cleanly on a fresh DB (mv_registry not yet created).
+    try {
+      mvRegistryRepository.findAllByEnabledTrue().stream()
+          .filter(mv -> StringUtils.hasText(mv.getRefreshCron()))
+          .forEach(this::scheduleInternal);
+      log.info(
+          "MvSchedulerService: scheduled {} MV refresh tasks at startup", scheduledTasks.size());
+    } catch (Exception e) {
+      log.warn(
+          "MvSchedulerService: could not load schedules at startup (mv_registry may not exist yet): {}",
+          e.getMessage());
+    }
   }
 
   /**
-   * Called by MaterializedViewService after an upsert.
-   * Cancels any existing schedule for this MV and creates a new one if cron is set.
+   * Called by MaterializedViewService after an upsert. Cancels any existing schedule for this MV
+   * and creates a new one if cron is set.
    */
   public void reschedule(MvRegistry mv) {
     cancel(mv.getName());
@@ -77,9 +83,13 @@ public class MvSchedulerService implements SchedulingConfigurer {
     CronTrigger trigger = new CronTrigger(mv.getRefreshCron());
     // Lazy-fetch MaterializedViewService via context to avoid circular dependency
     // (MaterializedViewService → MvSchedulerService → MaterializedViewService)
-    ScheduledFuture<?> future = mvTaskScheduler.schedule(
-        () -> applicationContext.getBean(MaterializedViewService.class).refresh(mv.getName(), "SCHEDULER"),
-        trigger);
+    ScheduledFuture<?> future =
+        mvTaskScheduler.schedule(
+            () ->
+                applicationContext
+                    .getBean(MaterializedViewService.class)
+                    .refresh(mv.getName(), "SCHEDULER"),
+            trigger);
     scheduledTasks.put(mv.getName(), future);
     log.debug("Scheduled MV '{}' with cron '{}'", mv.getName(), mv.getRefreshCron());
   }

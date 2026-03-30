@@ -22,6 +22,7 @@ class DataSourcesSettings(BaseSettings):
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
     enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
+    enable_pedestrian_data: bool = Field(True, alias="ENABLE_PEDESTRIAN_DATA")
     enable_population_data: bool = Field(True, alias="ENABLE_POPULATION_DATA")
 
     base_static_data_dir: Path = Field(

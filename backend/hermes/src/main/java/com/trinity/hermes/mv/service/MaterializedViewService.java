@@ -3,7 +3,6 @@ package com.trinity.hermes.mv.service;
 import com.trinity.hermes.mv.dto.MvRefreshResult;
 import com.trinity.hermes.mv.dto.MvRegistryDTO;
 import com.trinity.hermes.mv.dto.UpsertMvRequest;
-import com.trinity.hermes.mv.entity.MvRefreshLog;
 import com.trinity.hermes.mv.entity.MvRegistry;
 import com.trinity.hermes.mv.repository.MvRefreshLogRepository;
 import com.trinity.hermes.mv.repository.MvRegistryRepository;
@@ -27,12 +26,12 @@ import org.springframework.util.StringUtils;
 public class MaterializedViewService {
 
   private static final String DEFAULT_SCHEMA = "backend";
-  private static final int REFRESH_LOG_KEEP_COUNT = 10;
 
   private final MvRegistryRepository mvRegistryRepository;
   private final MvRefreshLogRepository mvRefreshLogRepository;
   private final JdbcTemplate jdbcTemplate;
   private final MvSchedulerService mvSchedulerService;
+  private final MvRefreshLogger mvRefreshLogger;
 
   // ── Upsert ────────────────────────────────────────────────────────────────
 
@@ -40,18 +39,20 @@ public class MaterializedViewService {
   public MvRegistryDTO upsert(UpsertMvRequest request) {
     validateRequest(request);
 
-    String schema = StringUtils.hasText(request.getViewSchema()) ? request.getViewSchema() : DEFAULT_SCHEMA;
+    String schema =
+        StringUtils.hasText(request.getViewSchema()) ? request.getViewSchema() : DEFAULT_SCHEMA;
     boolean isUpdate = mvRegistryRepository.existsByName(request.getName());
 
-    MvRegistry registry = mvRegistryRepository.findByName(request.getName())
-        .orElseGet(() -> MvRegistry.builder()
-            .name(request.getName())
-            .version(1)
-            .build());
+    MvRegistry registry =
+        mvRegistryRepository
+            .findByName(request.getName())
+            .orElseGet(() -> MvRegistry.builder().name(request.getName()).version(1).build());
 
     if (isUpdate) {
       log.info("Updating MV '{}' — dropping existing view", request.getName());
-      jdbcTemplate.execute(String.format("DROP MATERIALIZED VIEW IF EXISTS %s.%s CASCADE", schema, request.getName()));
+      jdbcTemplate.execute(
+          String.format(
+              "DROP MATERIALIZED VIEW IF EXISTS %s.%s CASCADE", schema, request.getName()));
       registry.setVersion(registry.getVersion() + 1);
     }
 
@@ -59,10 +60,14 @@ public class MaterializedViewService {
     registry.setViewSchema(schema);
     registry.setQuerySql(request.getQuerySql());
     registry.setUniqueKeyColumns(request.getUniqueKeyColumns());
-    registry.setRefreshCron(StringUtils.hasText(request.getRefreshCron()) ? request.getRefreshCron() : null);
+    registry.setRefreshCron(
+        StringUtils.hasText(request.getRefreshCron()) ? request.getRefreshCron() : null);
     registry.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
 
-    String createSql = String.format("CREATE MATERIALIZED VIEW %s.%s AS %s", schema, request.getName(), request.getQuerySql());
+    String createSql =
+        String.format(
+            "CREATE MATERIALIZED VIEW %s.%s AS %s",
+            schema, request.getName(), request.getQuerySql());
     log.info("Creating MV '{}' in schema '{}'", request.getName(), schema);
     jdbcTemplate.execute(createSql);
 
@@ -70,27 +75,34 @@ public class MaterializedViewService {
     Arrays.stream(request.getUniqueKeyColumns().split(","))
         .map(String::trim)
         .filter(StringUtils::hasText)
-        .forEach(col -> {
-          String idxName = String.format("%s_%s_idx", request.getName(), col);
-          String idxSql = String.format(
-              "CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (%s)", idxName, schema, request.getName(), col);
-          log.debug("Creating unique index: {}", idxName);
-          jdbcTemplate.execute(idxSql);
-        });
+        .forEach(
+            col -> {
+              String idxName = String.format("%s_%s_idx", request.getName(), col);
+              String idxSql =
+                  String.format(
+                      "CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (%s)",
+                      idxName, schema, request.getName(), col);
+              log.debug("Creating unique index: {}", idxName);
+              jdbcTemplate.execute(idxSql);
+            });
 
     MvRegistry saved = mvRegistryRepository.save(registry);
     mvSchedulerService.reschedule(saved);
 
-    log.info("{} MV '{}' (version {})", isUpdate ? "Updated" : "Registered", saved.getName(), saved.getVersion());
+    log.info(
+        "{} MV '{}' (version {})",
+        isUpdate ? "Updated" : "Registered",
+        saved.getName(),
+        saved.getVersion());
     return toDTO(saved);
   }
 
   // ── Refresh ───────────────────────────────────────────────────────────────
 
   /**
-   * Refreshes a named MV via REFRESH MATERIALIZED VIEW CONCURRENTLY.
-   * Must NOT run inside a transaction — Postgres disallows REFRESH CONCURRENTLY in a tx block.
-   * Concurrent refreshes of the same MV are serialized by Postgres itself via an exclusive lock.
+   * Refreshes a named MV via REFRESH MATERIALIZED VIEW CONCURRENTLY. Must NOT run inside a
+   * transaction — Postgres disallows REFRESH CONCURRENTLY in a tx block. Concurrent refreshes of
+   * the same MV are serialized by Postgres itself via an exclusive lock.
    */
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public MvRefreshResult refresh(String name) {
@@ -99,8 +111,10 @@ public class MaterializedViewService {
 
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public MvRefreshResult refresh(String name, String triggeredBy) {
-    MvRegistry registry = mvRegistryRepository.findByName(name)
-        .orElseThrow(() -> new NoSuchElementException("MV not found: " + name));
+    MvRegistry registry =
+        mvRegistryRepository
+            .findByName(name)
+            .orElseThrow(() -> new NoSuchElementException("MV not found: " + name));
 
     long start = System.currentTimeMillis();
     Instant refreshedAt = Instant.now();
@@ -108,30 +122,37 @@ public class MaterializedViewService {
     String errorMessage = null;
 
     try {
-      String sql = String.format("REFRESH MATERIALIZED VIEW CONCURRENTLY %s.%s", registry.getViewSchema(), name);
+      String sql =
+          String.format(
+              "REFRESH MATERIALIZED VIEW CONCURRENTLY %s.%s", registry.getViewSchema(), name);
       log.info("Refreshing MV '{}' (triggered by: {})", name, triggeredBy);
       jdbcTemplate.execute(sql);
 
       long durationMs = System.currentTimeMillis() - start;
       status = "SUCCESS";
-      updateRegistryStatus(registry, status, durationMs, refreshedAt, null);
+      mvRefreshLogger.recordResult(registry, status, durationMs, refreshedAt, null, triggeredBy);
       log.info("Refreshed MV '{}' in {}ms", name, durationMs);
-
-      writeLog(name, status, durationMs, refreshedAt, null, triggeredBy);
       return MvRefreshResult.builder()
-          .mvName(name).status(status).durationMs(durationMs).refreshedAt(refreshedAt).build();
+          .mvName(name)
+          .status(status)
+          .durationMs(durationMs)
+          .refreshedAt(refreshedAt)
+          .build();
 
     } catch (Exception e) {
       long durationMs = System.currentTimeMillis() - start;
       status = "FAILED";
       errorMessage = e.getMessage();
       log.error("Failed to refresh MV '{}': {}", name, errorMessage);
-      updateRegistryStatus(registry, status, durationMs, refreshedAt, errorMessage);
-
-      writeLog(name, status, durationMs, refreshedAt, errorMessage, triggeredBy);
+      mvRefreshLogger.recordResult(
+          registry, status, durationMs, refreshedAt, errorMessage, triggeredBy);
       return MvRefreshResult.builder()
-          .mvName(name).status(status).durationMs(durationMs).refreshedAt(refreshedAt)
-          .errorMessage(errorMessage).build();
+          .mvName(name)
+          .status(status)
+          .durationMs(durationMs)
+          .refreshedAt(refreshedAt)
+          .errorMessage(errorMessage)
+          .build();
     }
   }
 
@@ -146,12 +167,15 @@ public class MaterializedViewService {
 
   @Transactional
   public void drop(String name) {
-    MvRegistry registry = mvRegistryRepository.findByName(name)
-        .orElseThrow(() -> new NoSuchElementException("MV not found: " + name));
+    MvRegistry registry =
+        mvRegistryRepository
+            .findByName(name)
+            .orElseThrow(() -> new NoSuchElementException("MV not found: " + name));
 
     mvSchedulerService.cancel(name);
-    jdbcTemplate.execute(String.format("DROP MATERIALIZED VIEW IF EXISTS %s.%s CASCADE",
-        registry.getViewSchema(), name));
+    jdbcTemplate.execute(
+        String.format(
+            "DROP MATERIALIZED VIEW IF EXISTS %s.%s CASCADE", registry.getViewSchema(), name));
     mvRefreshLogRepository.deleteByMvName(name);
     mvRegistryRepository.delete(registry);
     log.info("Dropped MV '{}' and removed from registry", name);
@@ -161,8 +185,10 @@ public class MaterializedViewService {
 
   @Transactional
   public MvRegistryDTO toggle(String name) {
-    MvRegistry registry = mvRegistryRepository.findByName(name)
-        .orElseThrow(() -> new NoSuchElementException("MV not found: " + name));
+    MvRegistry registry =
+        mvRegistryRepository
+            .findByName(name)
+            .orElseThrow(() -> new NoSuchElementException("MV not found: " + name));
     registry.setEnabled(!registry.isEnabled());
     MvRegistry saved = mvRegistryRepository.save(registry);
     if (!saved.isEnabled()) {
@@ -177,14 +203,13 @@ public class MaterializedViewService {
 
   @Transactional(readOnly = true)
   public List<MvRegistryDTO> findAll() {
-    return mvRegistryRepository.findAll().stream()
-        .map(this::toDTO)
-        .collect(Collectors.toList());
+    return mvRegistryRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public MvRegistryDTO findByName(String name) {
-    return mvRegistryRepository.findByName(name)
+    return mvRegistryRepository
+        .findByName(name)
         .map(this::toDTO)
         .orElseThrow(() -> new NoSuchElementException("MV not found: " + name));
   }
@@ -195,51 +220,29 @@ public class MaterializedViewService {
     if (request.getQuerySql().contains(";")) {
       throw new IllegalArgumentException("querySql must not contain semicolons");
     }
-    if (StringUtils.hasText(request.getRefreshCron()) && !CronExpression.isValidExpression(request.getRefreshCron())) {
+    if (StringUtils.hasText(request.getRefreshCron())
+        && !CronExpression.isValidExpression(request.getRefreshCron())) {
       throw new IllegalArgumentException("Invalid cron expression: " + request.getRefreshCron());
     }
     if (!request.getUniqueKeyColumns().matches("^[a-z][a-z0-9_]*(,\\s*[a-z][a-z0-9_]*)*$")) {
-      throw new IllegalArgumentException("uniqueKeyColumns must be comma-separated lowercase column names");
+      throw new IllegalArgumentException(
+          "uniqueKeyColumns must be comma-separated lowercase column names");
     }
   }
 
-  @Transactional
-  protected void updateRegistryStatus(MvRegistry registry, String status, long durationMs,
-      Instant refreshedAt, String error) {
-    registry.setLastRefreshStatus(status);
-    registry.setLastRefreshDurationMs(durationMs);
-    registry.setLastRefreshedAt(refreshedAt);
-    registry.setLastRefreshError(error);
-    mvRegistryRepository.save(registry);
-  }
-
-  @Transactional
-  protected void writeLog(String mvName, String status, long durationMs,
-      Instant refreshedAt, String errorMessage, String triggeredBy) {
-    MvRefreshLog log = MvRefreshLog.builder()
-        .mvName(mvName)
-        .status(status)
-        .durationMs(durationMs)
-        .refreshedAt(refreshedAt)
-        .errorMessage(errorMessage)
-        .triggeredBy(triggeredBy)
-        .build();
-    mvRefreshLogRepository.save(log);
-    mvRefreshLogRepository.pruneOldLogs(mvName, REFRESH_LOG_KEEP_COUNT);
-  }
-
   private MvRegistryDTO toDTO(MvRegistry r) {
-    List<MvRefreshResult> history = mvRefreshLogRepository
-        .findByMvNameOrderByRefreshedAtDesc(r.getName())
-        .stream()
-        .map(l -> MvRefreshResult.builder()
-            .mvName(l.getMvName())
-            .status(l.getStatus())
-            .durationMs(l.getDurationMs())
-            .refreshedAt(l.getRefreshedAt())
-            .errorMessage(l.getErrorMessage())
-            .build())
-        .collect(Collectors.toList());
+    List<MvRefreshResult> history =
+        mvRefreshLogRepository.findByMvNameOrderByRefreshedAtDesc(r.getName()).stream()
+            .map(
+                l ->
+                    MvRefreshResult.builder()
+                        .mvName(l.getMvName())
+                        .status(l.getStatus())
+                        .durationMs(l.getDurationMs())
+                        .refreshedAt(l.getRefreshedAt())
+                        .errorMessage(l.getErrorMessage())
+                        .build())
+            .collect(Collectors.toList());
 
     return MvRegistryDTO.builder()
         .id(r.getId())

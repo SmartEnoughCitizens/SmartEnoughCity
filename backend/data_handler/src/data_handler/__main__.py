@@ -15,6 +15,7 @@ from data_handler.events.data_handler import (
     fetch_and_store_venues,
 )
 from data_handler.logging2 import configure_logging
+from data_handler.pedestrians.live_data_handler import process_pedestrian_live_data
 from data_handler.population.data_handler import process_population_static_data
 from data_handler.settings.data_sources_settings import (
     DataSourcesSettings,
@@ -182,6 +183,11 @@ def _run_events_dynamic(logger: logging.Logger) -> None:
     fetch_and_store_events()
 
 
+def _run_pedestrian_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing pedestrian data...")
+    process_pedestrian_live_data()
+
+
 def main_dynamic() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Processing dynamic data...")
@@ -201,6 +207,7 @@ def main_dynamic() -> None:
     logger.info("  - Train data: %s", sources_settings.enable_train_data)
     logger.info("  - Tram data: %s", sources_settings.enable_tram_data)
     logger.info("  - Events data: %s", sources_settings.enable_events_data)
+    logger.info("  - Pedestrian data: %s", sources_settings.enable_pedestrian_data)
 
     # Each source is isolated — one failure does not block the others
     for enabled, run_fn, label in [
@@ -209,6 +216,11 @@ def main_dynamic() -> None:
         (sources_settings.enable_bus_data, _run_bus_dynamic, "Bus"),
         (sources_settings.enable_tram_data, _run_tram_dynamic, "Tram"),
         (sources_settings.enable_events_data, _run_events_dynamic, "Events"),
+        (
+            sources_settings.enable_pedestrian_data,
+            _run_pedestrian_dynamic,
+            "Pedestrian",
+        ),
     ]:
         if enabled:
             try:
