@@ -117,8 +117,7 @@ _RECENT_FLOW_SQL = text("""
 
 _CREATE_SCORES_TABLE_SQL = text("""
     CREATE TABLE IF NOT EXISTS backend.cycle_station_risk_scores (
-        station_id        INTEGER PRIMARY KEY
-            REFERENCES external_data.dublin_bikes_stations(station_id),
+        station_id        INTEGER PRIMARY KEY,
         empty_risk_2h     DOUBLE PRECISION NOT NULL,
         full_risk_2h      DOUBLE PRECISION NOT NULL,
         scored_at         TIMESTAMPTZ NOT NULL,
