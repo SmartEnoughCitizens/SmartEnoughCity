@@ -454,4 +454,28 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
           """,
       nativeQuery = true)
   List<Object[]> findODPairs(@Param("days") int days, @Param("limitVal") int limit);
+
+  /**
+   * Latest ML risk scores for all stations joined with station metadata. Returns Object[] rows
+   * with columns: station_id, name, latitude, longitude, empty_risk_2h, full_risk_2h, scored_at,
+   * model_trained_at
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              r.station_id,
+              st.name,
+              st.latitude,
+              st.longitude,
+              r.empty_risk_2h,
+              r.full_risk_2h,
+              r.scored_at,
+              r.model_trained_at
+          FROM backend.cycle_station_risk_scores r
+          JOIN external_data.dublin_bikes_stations st ON r.station_id = st.station_id
+          ORDER BY r.empty_risk_2h DESC
+          """,
+      nativeQuery = true)
+  List<Object[]> findStationRiskScores();
 }
