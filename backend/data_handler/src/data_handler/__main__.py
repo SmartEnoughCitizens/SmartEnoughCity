@@ -9,7 +9,7 @@ from data_handler.car.process_car_data import process_car_static_data
 from data_handler.cycle.models import DublinBikesStation
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
-from data_handler.db import Base, SessionLocal, engine
+from data_handler.db import Base, SessionLocal, engine, repair_known_schema_drift
 from data_handler.events.data_handler import (
     fetch_and_store_events,
     fetch_and_store_venues,
@@ -44,6 +44,7 @@ def get_args() -> argparse.Namespace:
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    repair_known_schema_drift()
 
 
 def _process_bus_static(settings: DataSourcesSettings) -> None:
