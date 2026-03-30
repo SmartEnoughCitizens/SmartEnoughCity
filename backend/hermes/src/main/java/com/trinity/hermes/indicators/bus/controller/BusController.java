@@ -1,7 +1,9 @@
 package com.trinity.hermes.indicators.bus.controller;
 
+import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.facade.BusFacade;
@@ -44,10 +46,17 @@ public class BusController {
     return ResponseEntity.ok(busFacade.getSystemPerformance());
   }
 
-  @PostMapping("/metrics/refresh")
-  public ResponseEntity<Void> refreshMetrics() {
-    log.info("POST /api/v1/bus/metrics/refresh");
-    busFacade.refreshMetrics();
-    return ResponseEntity.ok().build();
+  @GetMapping("/common-delays")
+  public ResponseEntity<List<BusCommonDelayDTO>> getCommonDelays(
+      @RequestParam(defaultValue = "today") String filter) {
+    log.info("GET /api/v1/bus/common-delays?filter={}", filter);
+    return ResponseEntity.ok(busFacade.getCommonDelays(filter));
+  }
+
+  @GetMapping("/common-delays/{routeId}")
+  public ResponseEntity<List<BusRouteBreakdownDTO>> getRouteBreakdown(
+      @PathVariable String routeId, @RequestParam(defaultValue = "today") String filter) {
+    log.info("GET /api/v1/bus/common-delays/{}?filter={}", routeId, filter);
+    return ResponseEntity.ok(busFacade.getRouteBreakdown(routeId, filter));
   }
 }
