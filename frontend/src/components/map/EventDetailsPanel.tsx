@@ -17,7 +17,8 @@ import PeopleIcon from "@mui/icons-material/People";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import type { DisruptionItem, EventItem } from "@/types";
+import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
+import type { DisruptionItem, EventItem, PedestrianLive } from "@/types";
 import {
   CATEGORY_EMOJI,
   CATEGORY_LABEL,
@@ -26,6 +27,7 @@ import {
   getDisruptionSeverity,
   getEventCategory,
   getEventSeverity,
+  getPedestrianSeverity,
   type SelectedMapItem,
 } from "./eventMapUtils";
 
@@ -342,6 +344,50 @@ function DisruptionPanel({
   );
 }
 
+function PedestrianPanel({
+  pedestrian,
+  onClose,
+}: {
+  pedestrian: PedestrianLive;
+  onClose: () => void;
+}) {
+  const severity = getPedestrianSeverity(pedestrian);
+  const severityColor = SEVERITY_COLORS[severity];
+
+  return (
+    <PanelShell
+      emoji="🚶"
+      title={pedestrian.siteName}
+      categoryLabel="Pedestrian"
+      severityLabel={severity.charAt(0).toUpperCase() + severity.slice(1)}
+      severityColor={severityColor}
+      onClose={onClose}
+    >
+      <DetailRow
+        icon={
+          <DirectionsWalkIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+        }
+        label="Latest Count"
+        value={pedestrian.totalCount.toLocaleString()}
+        valueColor={severityColor}
+      />
+      {pedestrian.lastUpdated && (
+        <DetailRow
+          icon={
+            <AccessTimeIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+          }
+          label="Updated"
+          value={`${formatDate(pedestrian.lastUpdated)} ${formatTime(pedestrian.lastUpdated)}`}
+        />
+      )}
+      <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mt: 0.5, mb: 0.75 }} />
+      <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>
+        {pedestrian.lat.toFixed(5)}, {pedestrian.lon.toFixed(5)}
+      </Typography>
+    </PanelShell>
+  );
+}
+
 // ── Public component ─────────────────────────────────────────────────
 
 interface EventDetailsPanelProps {
@@ -356,5 +402,7 @@ export const EventDetailsPanel = ({
   if (!selected) return null;
   if (selected.kind === "event")
     return <EventPanel event={selected.item} onClose={onClose} />;
+  if (selected.kind === "pedestrian")
+    return <PedestrianPanel pedestrian={selected.item} onClose={onClose} />;
   return <DisruptionPanel disruption={selected.item} onClose={onClose} />;
 };
