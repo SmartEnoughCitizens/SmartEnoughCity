@@ -4,6 +4,7 @@ import enum
 from datetime import datetime
 from typing import ClassVar
 
+from geoalchemy2 import Geometry
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -251,9 +252,11 @@ class EVChargingPoint(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    address: Mapped[str | None] = mapped_column(String)
     county: Mapped[str] = mapped_column(String, nullable=False)
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lon: Mapped[float] = mapped_column(Float, nullable=False)
+    charger_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     # Charging power in kilowatts (kW)
     power_rating_of_ccs_connectors_kw: Mapped[float | None] = mapped_column(Float)
@@ -263,3 +266,45 @@ class EVChargingPoint(Base):
 
     # Operating hours
     is_24_7: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class EVChargingDemand(Base):
+    """EV charging demand estimates per CSO electoral division."""
+
+    __tablename__ = "ev_charging_demand"
+    __table_args__: ClassVar[dict] = (
+        Index("ix_ev_charging_demand_electoral_division", "electoral_division"),
+        {"schema": DB_SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    electoral_division: Mapped[str] = mapped_column(String, nullable=False)
+    bed_sit_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    flat_apartment_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    house_bungalow_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_dwellings: Mapped[int] = mapped_column(Integer, nullable=False)
+    registered_ev: Mapped[float | None] = mapped_column(Float)
+    bed_sit_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    flat_apartment_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    house_bungalow_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    home_charge_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    charge_frequency: Mapped[float] = mapped_column(Float, nullable=False)
+    charging_demand: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class EVElectoralDivision(Base):
+    """Dublin electoral division boundaries for EV charging demand visualisation."""
+
+    __tablename__ = "ev_electoral_divisions"
+    __table_args__: ClassVar[dict] = (
+        Index("idx_ev_electoral_divisions_geom", "geom", postgresql_using="gist"),
+        {"schema": DB_SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ed_english: Mapped[str] = mapped_column(String, nullable=False)
+    county_english: Mapped[str] = mapped_column(String, nullable=False)
+    geom: Mapped[Geometry] = mapped_column(
+        Geometry(geometry_type="MULTIPOLYGON", srid=4326, spatial_index=False),
+        nullable=False,
+    )

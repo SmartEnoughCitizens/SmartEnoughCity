@@ -111,6 +111,10 @@ data-handler:
       name: sec-db-data-handler-user
     gtfsApiKey:
       name: sec-gtfs-api-key
+  initJob:
+    enabled: true
+  staticDataCron:
+    enabled: true
 
 inference-engine:
   enabled: true

@@ -24,6 +24,7 @@ import {
   useBusSystemPerformance,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import { DelayLeaderboard } from "@/components/bus/DelayLeaderboard";
 import "leaflet/dist/leaflet.css";
 
 const KpiCard = ({
@@ -371,35 +372,59 @@ export const BusDashboard = () => {
         )}
       </Box>
 
-      {/* Compact route filter — top right */}
-      <Paper
-        elevation={0}
+      {/* Right panel — route filter + common delays */}
+      <Box
         sx={{
           position: "absolute",
           top: 16,
           right: 16,
           zIndex: 1000,
-          borderRadius: 2,
-          p: 1.5,
-          width: 200,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+          width: 340,
         }}
       >
-        <Autocomplete
-          size="small"
-          options={routes}
-          getOptionLabel={(r) => `${r.routeShortName} — ${r.routeLongName}`}
-          filterOptions={(options, { inputValue }) =>
-            options.filter((r) =>
-              r.routeShortName.toLowerCase().includes(inputValue.toLowerCase()),
-            )
-          }
-          value={routes.find((r) => r.routeShortName === selectedRoute) ?? null}
-          onChange={(_, value) => setSelectedRoute(value?.routeShortName ?? "")}
-          renderInput={(params) => (
-            <TextField {...params} label="Filter Route" placeholder="e.g. H2" />
-          )}
-        />
-      </Paper>
+        {/* Compact route filter */}
+        <Paper elevation={0} sx={{ borderRadius: 2, p: 1.5 }}>
+          <Autocomplete
+            size="small"
+            options={routes}
+            getOptionLabel={(r) => `${r.routeShortName} — ${r.routeLongName}`}
+            filterOptions={(options, { inputValue }) =>
+              options.filter((r) =>
+                r.routeShortName
+                  .toLowerCase()
+                  .includes(inputValue.toLowerCase()),
+              )
+            }
+            value={
+              routes.find((r) => r.routeShortName === selectedRoute) ?? null
+            }
+            onChange={(_, value) =>
+              setSelectedRoute(value?.routeShortName ?? "")
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Filter Route"
+                placeholder="e.g. H2"
+              />
+            )}
+          />
+        </Paper>
+
+        {/* Common Delays leaderboard */}
+        <Paper
+          elevation={0}
+          sx={{ borderRadius: 2, p: 2, maxHeight: 420, overflow: "auto" }}
+        >
+          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+            Common Bus Delays
+          </Typography>
+          <DelayLeaderboard />
+        </Paper>
+      </Box>
     </Box>
   );
 };

@@ -1,17 +1,21 @@
 import argparse
 import logging
 
+from sqlalchemy import func, select
+
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
+from data_handler.cycle.models import DublinBikesStation
 from data_handler.cycle.realtime_handler import fetch_and_store_station_snapshots
 from data_handler.cycle.static_data_handler import process_station_information
-from data_handler.db import Base, engine
+from data_handler.db import Base, SessionLocal, engine
 from data_handler.events.data_handler import (
     fetch_and_store_events,
     fetch_and_store_venues,
 )
 from data_handler.logging2 import configure_logging
+from data_handler.pedestrians.live_data_handler import process_pedestrian_live_data
 from data_handler.population.data_handler import process_population_static_data
 from data_handler.settings.data_sources_settings import (
     DataSourcesSettings,
@@ -20,7 +24,7 @@ from data_handler.settings.data_sources_settings import (
 from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.realtime_handler import irish_rail_realtime_to_db
 from data_handler.train.static_data_handler import process_train_static_data
-from data_handler.tram.forecast_handler import luas_forecasts_to_db
+from data_handler.tram.forecast_handler import luas_forecasts_to_db, luas_stops_to_db
 from data_handler.tram.static_data_handler import process_tram_static_data
 from data_handler.urls import (
     delete_static_data,
@@ -145,6 +149,45 @@ def main_static() -> None:
     logger.info("Finished processing static data.")
 
 
+def _run_train_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing train data...")
+    irish_rail_realtime_to_db()
+
+
+def _run_cycle_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing cycle data...")
+    with SessionLocal() as session:
+        station_count = session.scalar(
+            select(func.count()).select_from(DublinBikesStation)
+        )
+    if station_count == 0:
+        logger.info("No stations found, seeding station information...")
+        process_station_information()
+    logger.info("Fetching Dublin Bikes station snapshots...")
+    fetch_and_store_station_snapshots()
+
+
+def _run_bus_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing bus data...")
+    process_bus_live_data()
+
+
+def _run_tram_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing tram data...")
+    luas_stops_to_db()
+    luas_forecasts_to_db()
+
+
+def _run_events_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing events data...")
+    fetch_and_store_events()
+
+
+def _run_pedestrian_dynamic(logger: logging.Logger) -> None:
+    logger.info("Processing pedestrian data...")
+    process_pedestrian_live_data()
+
+
 def main_dynamic() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Processing dynamic data...")
@@ -160,39 +203,30 @@ def main_dynamic() -> None:
     )
     logger.info("Data sources enabled:")
     logger.info("  - Cycle data: %s", sources_settings.enable_cycle_data)
-    logger.info("  - Car data: %s", sources_settings.enable_car_data)
     logger.info("  - Bus data: %s", sources_settings.enable_bus_data)
     logger.info("  - Train data: %s", sources_settings.enable_train_data)
     logger.info("  - Tram data: %s", sources_settings.enable_tram_data)
-    logger.info("  - Construction data: %s", sources_settings.enable_construction_data)
     logger.info("  - Events data: %s", sources_settings.enable_events_data)
+    logger.info("  - Pedestrian data: %s", sources_settings.enable_pedestrian_data)
 
-    # Process data sources based on enabled toggles
-    if sources_settings.enable_train_data:
-        logger.info("Processing train data...")
-        irish_rail_realtime_to_db()
-
-    if sources_settings.enable_cycle_data:
-        logger.info("Processing cycle data...")
-        fetch_and_store_station_snapshots()
-
-    if sources_settings.enable_car_data:
-        logger.info("Processing car data...")
-
-    if sources_settings.enable_bus_data:
-        logger.info("Processing bus data...")
-        process_bus_live_data()
-
-    if sources_settings.enable_tram_data:
-        logger.info("Processing tram data...")
-        luas_forecasts_to_db()
-
-    if sources_settings.enable_construction_data:
-        logger.info("Processing construction data...")
-
-    if sources_settings.enable_events_data:
-        logger.info("Processing events data...")
-        fetch_and_store_events()
+    # Each source is isolated — one failure does not block the others
+    for enabled, run_fn, label in [
+        (sources_settings.enable_train_data, _run_train_dynamic, "Train"),
+        (sources_settings.enable_cycle_data, _run_cycle_dynamic, "Cycle"),
+        (sources_settings.enable_bus_data, _run_bus_dynamic, "Bus"),
+        (sources_settings.enable_tram_data, _run_tram_dynamic, "Tram"),
+        (sources_settings.enable_events_data, _run_events_dynamic, "Events"),
+        (
+            sources_settings.enable_pedestrian_data,
+            _run_pedestrian_dynamic,
+            "Pedestrian",
+        ),
+    ]:
+        if enabled:
+            try:
+                run_fn(logger)
+            except Exception:
+                logger.exception("%s data processing failed — skipping.", label)
 
 
 def main() -> None:

@@ -9,6 +9,7 @@ export const MISC_KEYS = {
   events: (limit?: number) => ["misc", "events", { limit }] as const,
   pedestriansLive: (limit?: number) =>
     ["misc", "pedestrians", "live", { limit }] as const,
+  disruptionsActive: ["misc", "disruptions", "active"] as const,
 };
 
 export const DASHBOARD_KEYS = {
@@ -21,16 +22,37 @@ export const DASHBOARD_KEYS = {
   availableDocks: ["dashboard", "cycle", "available-docks"] as const,
   busRoutes: ["dashboard", "bus", "routes"] as const,
   indicatorTypes: ["dashboard", "indicator-types"] as const,
+  cycleStationsLive: ["cycle", "stations", "live"] as const,
+  cycleNetworkSummary: ["cycle", "network", "summary"] as const,
+  cycleBusiestStations: (limit?: number) =>
+    ["cycle", "rankings", "busiest", { limit }] as const,
+  cycleUnderusedStations: (limit?: number) =>
+    ["cycle", "rankings", "underused", { limit }] as const,
+  cycleRebalancing: (limit?: number) =>
+    ["cycle", "network", "rebalancing", { limit }] as const,
+  cycleNetworkHourlyProfile: (days?: number) =>
+    ["cycle", "demand", "network-hourly", { days }] as const,
+  cycleStationClassification: (days?: number) =>
+    ["cycle", "demand", "classification", { days }] as const,
+  cycleODPairs: (days?: number, limit?: number) =>
+    ["cycle", "demand", "od-pairs", { days, limit }] as const,
+  cycleStationHourlyUsage: (days?: number, limit?: number) =>
+    ["cycle", "demand", "station-hourly", { days, limit }] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
   busSystemPerformance: ["bus", "system-performance"] as const,
+  busCommonDelays: (filter: string) =>
+    ["bus", "common-delays", filter] as const,
+  busRouteBreakdown: (routeId: string | null, filter: string) =>
+    ["bus", "route-breakdown", routeId, filter] as const,
   carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
   carHighTrafficPoints: ["car", "high-traffic-points"] as const,
   carJunctionEmissions: ["car", "junction-emissions"] as const,
   trainKpis: ["train", "kpis"] as const,
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
+  trainFrequentDelays: ["train", "frequent-delays"] as const,
   tramKpis: ["tram", "kpis"] as const,
   tramLiveForecasts: ["tram", "live-forecasts"] as const,
   tramDelays: ["tram", "delays"] as const,
@@ -177,6 +199,34 @@ export const useBusSystemPerformance = () => {
   });
 };
 /**
+ * Get top 10 most delayed bus routes, filtered by today/week/month
+ */
+export const useCommonDelays = (filter: string) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busCommonDelays(filter),
+    queryFn: () => dashboardApi.getBusCommonDelays(filter),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get per-stop delay breakdown for a specific bus route
+ */
+export const useBusRouteBreakdown = (
+  routeId: string | null,
+  filter: string,
+) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busRouteBreakdown(routeId, filter),
+    queryFn: () => dashboardApi.getBusRouteBreakdown(routeId!, filter),
+    enabled: !!routeId,
+    staleTime: 60_000,
+  });
+};
+
+/**
  * Get car fuel type statistics
  */
 export const useCarFuelTypeStatistics = () => {
@@ -243,6 +293,102 @@ export const useTrainServiceStats = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.trainServiceStats,
     queryFn: () => dashboardApi.getTrainServiceStats(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+// ── Cycle Metrics hooks ──────────────────────────────────────────────────────
+
+export const useCycleStationsLive = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleStationsLive,
+    queryFn: () => dashboardApi.getCycleStationsLive(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useCycleNetworkSummary = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleNetworkSummary,
+    queryFn: () => dashboardApi.getCycleNetworkSummary(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useCycleBusiestStations = (limit = 10) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleBusiestStations(limit),
+    queryFn: () => dashboardApi.getCycleBusiestStations({ limit }),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useCycleUnderusedStations = (limit = 10) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleUnderusedStations(limit),
+    queryFn: () => dashboardApi.getCycleUnderusedStations({ limit }),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useCycleRebalancing = (limit = 30) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleRebalancing(limit),
+    queryFn: () => dashboardApi.getCycleRebalancingSuggestions({ limit }),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useCycleNetworkHourlyProfile = (days = 30) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleNetworkHourlyProfile(days),
+    queryFn: () => dashboardApi.getCycleNetworkHourlyProfile({ days }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+export const useCycleStationClassification = (days = 30) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleStationClassification(days),
+    queryFn: () => dashboardApi.getCycleStationClassification({ days }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+export const useCycleODPairs = (days = 30, limit = 50) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleODPairs(days, limit),
+    queryFn: () => dashboardApi.getCycleODPairs({ days, limit }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+export const useCycleStationHourlyUsage = (days = 30, limit = 30) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleStationHourlyUsage(days, limit),
+    queryFn: () => dashboardApi.getCycleStationHourlyUsage({ days, limit }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+/**
+ * Get frequently delayed trains
+ */
+export const useTrainFrequentDelays = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainFrequentDelays,
+    queryFn: () => dashboardApi.getTrainFrequentDelays(),
     staleTime: 60_000,
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
@@ -319,6 +465,19 @@ export const usePedestriansLive = (limit = 20) => {
   return useQuery({
     queryKey: MISC_KEYS.pedestriansLive(limit),
     queryFn: () => dashboardApi.getPedestriansLive(limit),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get active disruptions (construction, congestion, incidents)
+ */
+export const useActiveDisruptions = () => {
+  return useQuery({
+    queryKey: MISC_KEYS.disruptionsActive,
+    queryFn: () => dashboardApi.getActiveDisruptions(),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchIntervalInBackground: true,

@@ -35,7 +35,12 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import SearchIcon from "@mui/icons-material/Search";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import { useTrainData, useTrainKpis, useTrainLiveTrains } from "@/hooks";
+import {
+  useTrainData,
+  useTrainFrequentDelays,
+  useTrainKpis,
+  useTrainLiveTrains,
+} from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -45,7 +50,7 @@ import L from "leaflet";
 const DUBLIN_CENTER: [number, number] = [53.3498, -6.2603];
 
 type TypeKey = "ALL" | "D" | "S" | "M";
-type PanelTab = "stations" | "trains";
+type PanelTab = "stations" | "trains" | "delays";
 
 const TYPE_CONFIG: Record<
   TypeKey,
@@ -374,6 +379,8 @@ export const TrainDashboard = () => {
   const { data: trainData, isLoading: dataLoading, error } = useTrainData(500);
   const { data: kpiData } = useTrainKpis();
   const { data: liveTrains = [] } = useTrainLiveTrains();
+  const { data: frequentDelays = [], isLoading: delaysLoading } =
+    useTrainFrequentDelays();
 
   // Inject CSS once
   useEffect(() => {
@@ -447,7 +454,10 @@ export const TrainDashboard = () => {
   const switchTab = (tab: PanelTab) => {
     setActiveTab(tab);
     if (tab === "trains") setSelectedStationCode(null);
-    else setSelectedTrainCode(null);
+    else if (tab === "delays") {
+      setSelectedStationCode(null);
+      setSelectedTrainCode(null);
+    } else setSelectedTrainCode(null);
   };
 
   const PANEL_W = 380;
@@ -838,13 +848,20 @@ export const TrainDashboard = () => {
               gap: 0.5,
             }}
           >
-            {(["stations", "trains"] as PanelTab[]).map((tab) => {
+            {(["stations", "trains", "delays"] as PanelTab[]).map((tab) => {
               const active = activeTab === tab;
-              const label = tab === "stations" ? "Stations" : "Live Trains";
+              const label =
+                tab === "stations"
+                  ? "Stations"
+                  : tab === "trains"
+                    ? "Live Trains"
+                    : "Common Delays";
               const count =
                 tab === "stations"
                   ? filteredStations.length
-                  : sortedTrains.filter((t) => t.lat && t.lon).length;
+                  : tab === "trains"
+                    ? sortedTrains.filter((t) => t.lat && t.lon).length
+                    : frequentDelays.length;
               return (
                 <Box
                   key={tab}
@@ -973,16 +990,18 @@ export const TrainDashboard = () => {
           )}
 
           {/* Count caption */}
-          <Box sx={{ px: 2, pb: 0.5 }}>
-            <Typography
-              variant="caption"
-              sx={{ color: "#484f58", fontSize: "0.68rem" }}
-            >
-              {activeTab === "stations"
-                ? `${filteredStations.length} station${filteredStations.length === 1 ? "" : "s"}${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}${search.trim() ? ` · "${search}"` : ""}`
-                : `${sortedTrains.length} train${sortedTrains.length === 1 ? "" : "s"} on map${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}`}
-            </Typography>
-          </Box>
+          {activeTab !== "delays" && (
+            <Box sx={{ px: 2, pb: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: "#484f58", fontSize: "0.68rem" }}
+              >
+                {activeTab === "stations"
+                  ? `${filteredStations.length} station${filteredStations.length === 1 ? "" : "s"}${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}${search.trim() ? ` · "${search}"` : ""}`
+                  : `${sortedTrains.length} train${sortedTrains.length === 1 ? "" : "s"} on map${typeFilter === "ALL" ? "" : ` · ${TYPE_CONFIG[typeFilter].label}`}`}
+              </Typography>
+            </Box>
+          )}
 
           {/* ── Scrollable list ── */}
           {dataLoading && activeTab === "stations" ? (
@@ -991,6 +1010,168 @@ export const TrainDashboard = () => {
             </Box>
           ) : (
             <Box sx={{ flex: 1, overflow: "auto" }}>
+              {/* ── COMMON DELAYS TABLE ── */}
+              {activeTab === "delays" && (
+                <Box sx={{ p: 1.5 }}>
+                  {delaysLoading ? (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", py: 4 }}
+                    >
+                      <CircularProgress size={24} sx={{ color: "#1565C0" }} />
+                    </Box>
+                  ) : frequentDelays.length === 0 ? (
+                    <Typography
+                      sx={{
+                        color: "#8b949e",
+                        fontSize: "0.8rem",
+                        textAlign: "center",
+                        py: 4,
+                      }}
+                    >
+                      No delay data available
+                    </Typography>
+                  ) : (
+                    <Box
+                      component="table"
+                      sx={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      <Box component="thead">
+                        <Box component="tr">
+                          {["Train", "Route", "Direction", "Avg Delay"].map(
+                            (h) => (
+                              <Box
+                                component="th"
+                                key={h}
+                                sx={{
+                                  textAlign: "left",
+                                  py: 0.75,
+                                  px: 1,
+                                  color: "#484f58",
+                                  fontSize: "0.62rem",
+                                  textTransform: "uppercase",
+                                  letterSpacing: 0.6,
+                                  borderBottom: "1px solid rgba(48,54,61,0.6)",
+                                  position: "sticky",
+                                  top: 0,
+                                  bgcolor: "rgba(13,17,23,0.97)",
+                                }}
+                              >
+                                {h}
+                              </Box>
+                            ),
+                          )}
+                        </Box>
+                      </Box>
+                      <Box component="tbody">
+                        {frequentDelays.map((row, idx) => (
+                          <Box
+                            component="tr"
+                            key={`${row.trainCode}-${idx}`}
+                            sx={{
+                              "&:hover td": {
+                                bgcolor: "rgba(255,255,255,0.03)",
+                              },
+                            }}
+                          >
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                color: "#e6edf3",
+                                fontWeight: 600,
+                                borderBottom: "1px solid rgba(48,54,61,0.3)",
+                              }}
+                            >
+                              {row.trainCode}
+                            </Box>
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                color: "#c9d1d9",
+                                borderBottom: "1px solid rgba(48,54,61,0.3)",
+                                maxWidth: 120,
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  color: "#c9d1d9",
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                {row.origin}
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: "0.65rem",
+                                  color: "#8b949e",
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                → {row.destination}
+                              </Typography>
+                            </Box>
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                color: "#8b949e",
+                                borderBottom: "1px solid rgba(48,54,61,0.3)",
+                              }}
+                            >
+                              {row.direction}
+                            </Box>
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                borderBottom: "1px solid rgba(48,54,61,0.3)",
+                              }}
+                            >
+                              <Chip
+                                size="small"
+                                label={`${row.totalAvgDelayMinutes} min`}
+                                sx={{
+                                  fontSize: "0.65rem",
+                                  height: 18,
+                                  bgcolor:
+                                    row.totalAvgDelayMinutes > 10
+                                      ? "#da362320"
+                                      : row.totalAvgDelayMinutes > 5
+                                        ? "#d2992220"
+                                        : "#2ea04320",
+                                  color:
+                                    row.totalAvgDelayMinutes > 10
+                                      ? "#da3623"
+                                      : row.totalAvgDelayMinutes > 5
+                                        ? "#d29922"
+                                        : "#2ea043",
+                                  border: `1px solid ${
+                                    row.totalAvgDelayMinutes > 10
+                                      ? "#da362340"
+                                      : row.totalAvgDelayMinutes > 5
+                                        ? "#d2992240"
+                                        : "#2ea04340"
+                                  }`,
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              )}
               {/* ── STATIONS LIST ── */}
               {activeTab === "stations" &&
                 filteredStations.map((station) => {

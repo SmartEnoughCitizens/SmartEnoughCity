@@ -1,10 +1,9 @@
 /**
- * Misc dashboard — upcoming events + live pedestrian counts
+ * Misc dashboard — upcoming events + live pedestrian counts + event map
  *
  * Layout:
- *  - Two glass-panel columns side-by-side (events left, pedestrians right)
- *  - Events: 5 visible rows, scrollable to all 10
- *  - Pedestrians: live count per site, refreshed every 30 s
+ *  - Top row (~42% height): two glass-panel columns (events left, pedestrians right)
+ *  - Bottom (~58%): interactive event map with type/severity filters and detail panel
  */
 
 import { useState } from "react";
@@ -25,13 +24,39 @@ import PeopleIcon from "@mui/icons-material/People";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
-import { useEvents, usePedestriansLive } from "@/hooks";
+import MapIcon from "@mui/icons-material/Map";
+import { useActiveDisruptions, useEvents, usePedestriansLive } from "@/hooks";
 import type { EventItem, PedestrianLive } from "@/types";
+import { EventMap } from "@/components/map/EventMap";
+import { EventDetailsPanel } from "@/components/map/EventDetailsPanel";
+import type {
+  EventCategory,
+  EventSeverity,
+  SelectedMapItem,
+} from "@/components/map/eventMapUtils";
+import {
+  CATEGORY_EMOJI,
+  CATEGORY_LABEL,
+  SEVERITY_COLORS,
+  getDisruptionCategory,
+  getDisruptionSeverity,
+  getEventCategory,
+  getEventSeverity,
+} from "@/components/map/eventMapUtils";
 
 // ── Constants ────────────────────────────────────────────────────────
 
 const EVENT_VISIBLE = 5;
 const EVENT_LIMIT = 10;
+
+const ALL_CATEGORIES: EventCategory[] = ["construction", "public", "emergency"];
+const ALL_SEVERITIES: EventSeverity[] = ["high", "medium", "low"];
+
+const SEVERITY_LABEL: Record<EventSeverity, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
 
 const EVENT_TYPE_COLORS: Record<string, string> = {
   Music: "#7C3AED",
@@ -350,6 +375,16 @@ export const MiscDashboard = () => {
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
+  // Map filter state
+  const [selectedTypes, setSelectedTypes] = useState<Set<EventCategory>>(
+    new Set(ALL_CATEGORIES),
+  );
+  const [selectedSeverities, setSelectedSeverities] = useState<
+    Set<EventSeverity>
+  >(new Set(ALL_SEVERITIES));
+  const [selectedMapItem, setSelectedMapItem] =
+    useState<SelectedMapItem | null>(null);
+
   const {
     data: events = [],
     isLoading: eventsLoading,
@@ -360,8 +395,78 @@ export const MiscDashboard = () => {
     isLoading: pedLoading,
     error: pedError,
   } = usePedestriansLive(20);
+  const { data: disruptions = [] } = useActiveDisruptions();
 
   const visibleEvents = showAllEvents ? events : events.slice(0, EVENT_VISIBLE);
+
+  // Active count: events + disruptions passing current filters with coordinates
+  const activeCount =
+    events.filter((e) => {
+      if (!e.latitude || !e.longitude) return false;
+      return (
+        selectedTypes.has(getEventCategory(e.eventType)) &&
+        selectedSeverities.has(getEventSeverity(e))
+      );
+    }).length +
+    disruptions.filter((d) => {
+      if (!d.latitude || !d.longitude) return false;
+      return (
+        selectedTypes.has(getDisruptionCategory(d.disruptionType)) &&
+        selectedSeverities.has(getDisruptionSeverity(d.severity))
+      );
+    }).length +
+    pedestrians.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+      .length;
+
+  function toggleType(cat: EventCategory) {
+    setSelectedTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) {
+        if (next.size > 1) next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      return next;
+    });
+  }
+
+  function toggleSeverity(sev: EventSeverity) {
+    setSelectedSeverities((prev) => {
+      const next = new Set(prev);
+      if (next.has(sev)) {
+        if (next.size > 1) next.delete(sev);
+      } else {
+        next.add(sev);
+      }
+      return next;
+    });
+  }
+
+  function handleMapEventClick(event: EventItem) {
+    setSelectedMapItem((prev) =>
+      prev?.kind === "event" && prev.item.id === event.id
+        ? null
+        : { kind: "event", item: event },
+    );
+  }
+
+  function handleMapDisruptionClick(
+    disruption: import("@/types").DisruptionItem,
+  ) {
+    setSelectedMapItem((prev) =>
+      prev?.kind === "disruption" && prev.item.id === disruption.id
+        ? null
+        : { kind: "disruption", item: disruption },
+    );
+  }
+
+  function handleMapPedestrianClick(pedestrian: PedestrianLive) {
+    setSelectedMapItem((prev) =>
+      prev?.kind === "pedestrian" && prev.item.siteId === pedestrian.siteId
+        ? null
+        : { kind: "pedestrian", item: pedestrian },
+    );
+  }
 
   return (
     <Box
@@ -386,21 +491,23 @@ export const MiscDashboard = () => {
           Misc
         </Typography>
         <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          Upcoming events · Live pedestrian counters
+          Upcoming events · Live pedestrian counters · Event map
         </Typography>
       </Box>
 
-      {/* Two-column layout */}
+      {/* ── Top row: two lists (~42% height) ── */}
       <Box
         sx={{
-          flex: 1,
+          flexShrink: 0,
+          height: "42%",
           display: "grid",
           gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
           gap: 2,
+          minHeight: 0,
           overflow: "hidden",
         }}
       >
-        {/* ── Events panel ── */}
+        {/* Events panel */}
         <Paper
           elevation={0}
           sx={{
@@ -500,7 +607,7 @@ export const MiscDashboard = () => {
           </Box>
         </Paper>
 
-        {/* ── Pedestrians panel ── */}
+        {/* Pedestrians panel */}
         <Paper
           elevation={0}
           sx={{
@@ -521,7 +628,13 @@ export const MiscDashboard = () => {
 
           {/* Legend */}
           <Box
-            sx={{ px: 2, py: 0.75, display: "flex", gap: 1.5, flexShrink: 0 }}
+            sx={{
+              px: 2,
+              py: 0.75,
+              display: "flex",
+              gap: 1.5,
+              flexShrink: 0,
+            }}
           >
             {[
               { color: "#10B981", label: "Low" },
@@ -610,6 +723,159 @@ export const MiscDashboard = () => {
             </Typography>
           </Box>
         </Paper>
+      </Box>
+
+      {/* ── Bottom: Event map ── */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          minHeight: 0,
+        }}
+      >
+        {/* Map toolbar */}
+        <Box
+          sx={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            mb: 1,
+            flexWrap: "wrap",
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            <MapIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+            <Typography
+              sx={{
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: "text.primary",
+              }}
+            >
+              Event Map
+            </Typography>
+            <Chip
+              size="small"
+              label={`${activeCount} active`}
+              sx={{
+                fontSize: "0.62rem",
+                height: 18,
+                bgcolor: "rgba(46,160,67,0.12)",
+                color: "#2ea043",
+                border: "1px solid rgba(46,160,67,0.3)",
+              }}
+            />
+          </Box>
+
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+
+          {/* Type filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Typography
+              sx={{ fontSize: "0.65rem", color: "text.disabled", mr: 0.25 }}
+            >
+              Type:
+            </Typography>
+            {ALL_CATEGORIES.map((cat) => (
+              <Chip
+                key={cat}
+                size="small"
+                label={`${CATEGORY_EMOJI[cat]} ${CATEGORY_LABEL[cat]}`}
+                onClick={() => toggleType(cat)}
+                sx={{
+                  fontSize: "0.65rem",
+                  height: 20,
+                  cursor: "pointer",
+                  bgcolor: selectedTypes.has(cat)
+                    ? "rgba(0,0,0,0.08)"
+                    : "transparent",
+                  border: selectedTypes.has(cat)
+                    ? "1px solid rgba(0,0,0,0.2)"
+                    : "1px solid rgba(0,0,0,0.1)",
+                  opacity: selectedTypes.has(cat) ? 1 : 0.45,
+                  transition: "all 0.15s",
+                }}
+              />
+            ))}
+          </Box>
+
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+
+          {/* Severity filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Typography
+              sx={{ fontSize: "0.65rem", color: "text.disabled", mr: 0.25 }}
+            >
+              Severity:
+            </Typography>
+            {ALL_SEVERITIES.map((sev) => (
+              <Chip
+                key={sev}
+                size="small"
+                label={SEVERITY_LABEL[sev]}
+                onClick={() => toggleSeverity(sev)}
+                sx={{
+                  fontSize: "0.65rem",
+                  height: 20,
+                  cursor: "pointer",
+                  bgcolor: selectedSeverities.has(sev)
+                    ? SEVERITY_COLORS[sev] + "22"
+                    : "transparent",
+                  color: selectedSeverities.has(sev)
+                    ? SEVERITY_COLORS[sev]
+                    : "text.disabled",
+                  border: selectedSeverities.has(sev)
+                    ? `1px solid ${SEVERITY_COLORS[sev]}44`
+                    : "1px solid rgba(0,0,0,0.1)",
+                  opacity: selectedSeverities.has(sev) ? 1 : 0.45,
+                  transition: "all 0.15s",
+                }}
+              />
+            ))}
+          </Box>
+        </Box>
+
+        {/* Map + detail panel */}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            gap: 2,
+            overflow: "hidden",
+            minHeight: 0,
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              flex: 1,
+              overflow: "hidden",
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 2,
+            }}
+          >
+            <EventMap
+              events={events}
+              disruptions={disruptions}
+              pedestrians={pedestrians}
+              selectedTypes={selectedTypes}
+              selectedSeverities={selectedSeverities}
+              selectedItem={selectedMapItem}
+              onEventClick={handleMapEventClick}
+              onDisruptionClick={handleMapDisruptionClick}
+              onPedestrianClick={handleMapPedestrianClick}
+            />
+          </Paper>
+
+          <EventDetailsPanel
+            selected={selectedMapItem}
+            onClose={() => setSelectedMapItem(null)}
+          />
+        </Box>
       </Box>
     </Box>
   );
