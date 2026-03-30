@@ -38,7 +38,7 @@ public class TrafficRecommendationService {
             .orElse(1.0);
 
     return trafficPoints.stream()
-        .filter(point -> point.getLat() != null && point.getLon() != null)
+        .filter(point -> point.getLat() != null && point.getLon() != null && point.getAvgVolume() != null)
         .sorted(Comparator.comparing(HighTrafficPointsDTO::getAvgVolume).reversed())
         .limit(MAX_RECOMMENDATIONS)
         .map(point -> buildRecommendation(point, maxVolume))
