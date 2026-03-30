@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections.abc import Generator
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -216,7 +216,7 @@ class RecommendationModel:
                 recommendations["alternatives"] = ["bicycle", "walking"]
 
         recommendations["confidence_score"] = 0.85
-        recommendations["generated_at"] = datetime.utcnow().isoformat()
+        recommendations["generated_at"] = datetime.now(UTC).isoformat()
 
         return recommendations
 
@@ -293,7 +293,7 @@ class RecommendationModel:
                         f"{point.site_id} for the {point.day_type} "
                         f"{point.time_slot.replace('_', ' ')} window."
                     ),
-                    generated_at=datetime.utcnow().isoformat(),
+                    generated_at=datetime.now(UTC).isoformat(),
                     alternative_routes=alternative_routes,
                 )
             )
@@ -338,8 +338,10 @@ class RecommendationService:
         2. Generate recommendation using model
         3. Send notification
         """
-        recommendation_id = f"rec_{data_indicator}_{int(datetime.utcnow().timestamp())}"
-        created_at = datetime.utcnow().isoformat()  # Store timestamp once
+        recommendation_id = (
+            f"rec_{data_indicator}_{int(datetime.now(UTC).timestamp())}"
+        )
+        created_at = datetime.now(UTC).isoformat()  # Store timestamp once
 
         try:
             # Update status - FIXED: Use data_indicator as temporary key
@@ -382,7 +384,7 @@ class RecommendationService:
                 "recommendation": recommendation,
                 "notification_sent": notification_sent,
                 "created_at": created_at,  # Use the stored timestamp
-                "completed_at": datetime.utcnow().isoformat(),
+                "completed_at": datetime.now(UTC).isoformat(),
             }
 
             # Clean up temporary key
@@ -395,7 +397,7 @@ class RecommendationService:
                 "data_indicator": data_indicator,
                 "error": str(e),
                 "created_at": created_at,  # Use the stored timestamp
-                "failed_at": datetime.utcnow().isoformat(),
+                "failed_at": datetime.now(UTC).isoformat(),
             }
             raise
 
@@ -406,7 +408,7 @@ class RecommendationService:
     async def process_batch_recommendations(self) -> dict:
         logger.info("=" * 80)
         logger.info("⏰ SCHEDULED TASK TRIGGERED")
-        logger.info("📅 Time: %s", datetime.utcnow().isoformat())
+        logger.info("📅 Time: %s", datetime.now(UTC).isoformat())
         logger.info("🚗 Data indicators: %s", DATA_INDICATORS)
         logger.info("=" * 80)
 
@@ -425,7 +427,7 @@ class RecommendationService:
                     data_indicator=data_indicator,
                     context={
                         "source": "scheduled_task",
-                        "scheduled_at": datetime.utcnow().isoformat(),
+                        "scheduled_at": datetime.now(UTC).isoformat(),
                     },
                 )
                 results["successful"] += 1
@@ -489,8 +491,7 @@ def start_scheduler() -> None:
     # Add the scheduled job
     scheduler.add_job(
         scheduled_recommendation_task,
-        ##trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
-        trigger=IntervalTrigger(minutes=1),
+        trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
         id="fetch_recommendations",
         name="Fetch and generate recommendations",
         replace_existing=True,
@@ -538,7 +539,7 @@ async def generate_recommendation(
             recommendation_id=recommendation_id,
             status="completed",
             message="Recommendation generated and notification sent",
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         )
     except Exception as e:
         logger.exception("Error in generate_recommendation")
@@ -572,7 +573,7 @@ async def trigger_scheduler_manually() -> dict:
         return {
             "message": "Batch processing completed",
             "results": results,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         logger.exception("❌ Manual trigger failed")
@@ -608,7 +609,7 @@ async def test_trigger(user_id: str) -> RecommendationResponse:
     request = RecommendationRequest(
         user_id=user_id,
         data_indicator="bus",
-        context={"test": True, "timestamp": datetime.utcnow().isoformat()},
+        context={"test": True, "timestamp": datetime.now(UTC).isoformat()},
     )
     return await generate_recommendation(request, BackgroundTasks())
 
@@ -671,7 +672,7 @@ async def mock_data_engine(data_indicator: str) -> dict:
     return {
         "data": mock_data_templates[data_indicator_lower],
         "metadata": {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data_source": "Mock Data Analysis Engine",
             "version": "1.0",
         },
@@ -691,7 +692,7 @@ async def mock_notification_handler(payload: dict) -> dict:
     return {
         "status": "success",
         "message": "Notification sent successfully",
-        "notification_id": f"notif_{payload.get('data_indicator')}_{int(datetime.utcnow().timestamp())}",
+        "notification_id": f"notif_{payload.get('data_indicator')}_{int(datetime.now(UTC).timestamp())}",
     }
 
 

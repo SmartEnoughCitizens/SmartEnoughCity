@@ -361,7 +361,7 @@ export const CarDashboard = () => {
                 sx={{ mb: 1.5 }}
               >
                 <Typography variant="subtitle1" fontWeight={700}>
-                  AI Diversion Recommendations
+                  Traffic Diversion Recommendations
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Select a recommendation to highlight alternative routes on the
