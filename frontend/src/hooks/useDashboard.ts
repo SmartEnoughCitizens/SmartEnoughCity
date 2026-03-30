@@ -38,6 +38,7 @@ export const DASHBOARD_KEYS = {
     ["cycle", "demand", "od-pairs", { days, limit }] as const,
   cycleStationHourlyUsage: (days?: number, limit?: number) =>
     ["cycle", "demand", "station-hourly", { days, limit }] as const,
+  cycleRiskScores: ["cycle", "risk-scores"] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
@@ -345,6 +346,15 @@ export const useCycleStationHourlyUsage = (days = 30, limit = 30) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycleStationHourlyUsage(days, limit),
     queryFn: () => dashboardApi.getCycleStationHourlyUsage({ days, limit }),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+export const useCycleRiskScores = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleRiskScores,
+    queryFn: () => dashboardApi.getCycleRiskScores(),
     staleTime: 300_000,
     refetchInterval: 300_000,
   });
