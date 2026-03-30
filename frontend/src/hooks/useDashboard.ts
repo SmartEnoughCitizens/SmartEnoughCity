@@ -237,11 +237,10 @@ export const useCarFuelTypeStatistics = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carFuelTypeStatistics,
     queryFn: () => dashboardApi.getCarFuelTypeStatistics(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 };
 
@@ -252,11 +251,10 @@ export const useCarHighTrafficPoints = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carHighTrafficPoints,
     queryFn: () => dashboardApi.getCarHighTrafficPoints(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 };
 
@@ -267,7 +265,10 @@ export const useCarJunctionEmissions = (enabled = true) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carJunctionEmissions,
     queryFn: () => dashboardApi.getCarJunctionEmissions(),
-    staleTime: 300_000,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     enabled,
   });
 };

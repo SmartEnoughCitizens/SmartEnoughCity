@@ -25,12 +25,6 @@ const ResetPasswordPage = lazy(() =>
     default: m.ResetPasswordPage,
   })),
 );
-const DisruptionDashboard = lazy(() =>
-  import("@/pages/DisruptionDashboard").then((m) => ({
-    default: m.DisruptionDashboard,
-  })),
-);
-
 // eslint-disable-next-line react-refresh/only-export-components
 const SmartRedirect = () => {
   const { roles } = useAppSelector((state) => state.auth);
@@ -84,20 +78,10 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/dashboard",
+    path: "/dashboard/*",
     element: (
       <ProtectedRoute>
         <DashboardLayout />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/dashboard/disruptions",
-    element: (
-      <ProtectedRoute>
-        <LazyWrapper>
-          <DisruptionDashboard />
-        </LazyWrapper>
       </ProtectedRoute>
     ),
   },

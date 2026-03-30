@@ -54,6 +54,8 @@ import { TramDashboard } from "@/pages/TramDashboard";
 import { MiscDashboard } from "@/pages/MiscDashboard";
 import { NotificationsPage } from "@/pages/NotificationsPage";
 import { UserManagementPage } from "@/pages/UserManagementPage";
+import { MapContainer, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 type DashboardView =
   | "overview"
@@ -189,6 +191,30 @@ export const DashboardLayout = () => {
 
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Tile warmer — loads Dublin tiles into browser cache on login.
+          Positioned off-screen with real dimensions so Leaflet fetches tiles.
+          All other maps in the app reuse these cached tile images. */}
+      <div
+        style={{
+          position: "absolute",
+          left: -9999,
+          top: 0,
+          width: 512,
+          height: 512,
+          pointerEvents: "none",
+          visibility: "hidden",
+        }}
+      >
+        <MapContainer
+          center={[53.3498, -6.2603]}
+          zoom={13}
+          zoomControl={false}
+          attributionControl={false}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        </MapContainer>
+      </div>
       {/* Slim icon rail */}
       <Box
         sx={{

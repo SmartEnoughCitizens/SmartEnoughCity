@@ -1,37 +1,30 @@
-/**
- * React Query hooks for EV charging data
- * Configured with aggressive caching to prevent repeated network calls
- */
-
 import { useQuery } from "@tanstack/react-query";
 import { evApi } from "@/api";
+
+const EV_QUERY_CONFIG = {
+  staleTime: Infinity,
+  gcTime: 24 * 60 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchOnMount: false,
+} as const;
 
 export const useEvChargingStations = () =>
   useQuery({
     queryKey: ["ev", "charging-stations"],
     queryFn: evApi.getChargingStations,
-    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
-    gcTime: 30 * 60 * 1000, // 30 minutes - cache time (formerly cacheTime)
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch on component mount if data exists
+    ...EV_QUERY_CONFIG,
   });
 
 export const useEvChargingDemand = () =>
   useQuery({
     queryKey: ["ev", "charging-demand"],
     queryFn: evApi.getChargingDemand,
-    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
-    gcTime: 30 * 60 * 1000, // 30 minutes - cache time (formerly cacheTime)
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch on component mount if data exists
+    ...EV_QUERY_CONFIG,
   });
 
 export const useEvAreasGeoJson = () =>
   useQuery({
     queryKey: ["ev", "areas-geojson"],
     queryFn: evApi.getAreasGeoJson,
-    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
-    gcTime: 30 * 60 * 1000, // 30 minutes - cache time (formerly cacheTime)
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch on component mount if data exists
+    ...EV_QUERY_CONFIG,
   });
