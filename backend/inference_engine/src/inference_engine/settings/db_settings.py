@@ -1,9 +1,8 @@
+import os
 from functools import lru_cache
 
 from pydantic import Field, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from inference_engine.settings.app_settings import is_dev
 
 
 class DatabaseSettings(BaseSettings):
@@ -30,7 +29,7 @@ class DatabaseSettings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_db_settings() -> DatabaseSettings:
-    if is_dev():
+    if os.getenv("APP_ENV", "dev") == "dev":
         return DatabaseSettings(
             _env_file=".env.development", _env_file_encoding="utf-8"
         )
