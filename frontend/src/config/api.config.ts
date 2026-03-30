@@ -77,6 +77,9 @@ export const API_ENDPOINTS = {
   CYCLE_DEMAND_OD_PAIRS: "/api/v1/cycle/demand/od-pairs",
   CYCLE_DEMAND_STATION_HOURLY: "/api/v1/cycle/demand/station-hourly",
 
+  // Cycle ML Risk Scores
+  CYCLE_RISK_SCORES: "/api/v1/cycle/risk-scores",
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
