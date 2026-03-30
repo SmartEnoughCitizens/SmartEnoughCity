@@ -39,7 +39,9 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
     assert_row_count(db_session, "private_car_emissions", 3)
     assert_row_count(db_session, "ev_charging_points", 2)  # Only Dublin (Cork filtered)
     assert_row_count(db_session, "ev_charging_demand", 3)
-    assert_row_count(db_session, "ev_electoral_divisions", 2)  # Dublin City + Fingal (Cork filtered)
+    assert_row_count(
+        db_session, "ev_electoral_divisions", 2
+    )  # Dublin City + Fingal (Cork filtered)
 
     # ASSERT: Verify SCATS sites data
     assert_rows(
