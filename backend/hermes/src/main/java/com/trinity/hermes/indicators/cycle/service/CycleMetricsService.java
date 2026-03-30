@@ -1,6 +1,7 @@
 package com.trinity.hermes.indicators.cycle.service;
 
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationRiskScoreDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
 import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
 import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
@@ -155,6 +156,17 @@ public class CycleMetricsService {
     return rows.stream().map(this::mapToStationHourlyUsageDTO).collect(Collectors.toList());
   }
 
+  // -------------------------------------------------------------------------
+  // Risk Scores
+  // -------------------------------------------------------------------------
+
+  @Transactional(readOnly = true)
+  public List<StationRiskScoreDTO> getRiskScores() {
+    log.debug("Fetching ML risk scores for all stations");
+    List<Object[]> rows = snapshotRepository.findStationRiskScores();
+    return rows.stream().map(this::mapToStationRiskScoreDTO).collect(Collectors.toList());
+  }
+
   // Fleet
   // -------------------------------------------------------------------------
 
@@ -257,6 +269,19 @@ public class CycleMetricsService {
     dto.setName((String) row[1]);
     dto.setHourOfDay(toIntOrDefault(row[2], 0));
     dto.setAvgTurnover(toDoubleOrDefault(row[3], 0.0));
+    return dto;
+  }
+
+  private StationRiskScoreDTO mapToStationRiskScoreDTO(Object[] row) {
+    StationRiskScoreDTO dto = new StationRiskScoreDTO();
+    dto.setStationId(toIntOrDefault(row[0], 0));
+    dto.setName((String) row[1]);
+    dto.setLatitude(row[2] != null ? new BigDecimal(row[2].toString()) : null);
+    dto.setLongitude(row[3] != null ? new BigDecimal(row[3].toString()) : null);
+    dto.setEmptyRisk2h(toDoubleOrDefault(row[4], 0.0));
+    dto.setFullRisk2h(toDoubleOrDefault(row[5], 0.0));
+    dto.setScoredAt(toInstant(row[6]));
+    dto.setModelTrainedAt(toInstant(row[7]));
     return dto;
   }
 
