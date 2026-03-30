@@ -15,12 +15,14 @@ interface TrafficRecommendationsProps {
   recommendations: TrafficRecommendation[];
   selectedRecommendationId: string | null;
   onSelectRecommendation: (recommendationId: string) => void;
+  compact?: boolean;
 }
 
 export const TrafficRecommendations = ({
   recommendations,
   selectedRecommendationId,
   onSelectRecommendation,
+  compact = false,
 }: TrafficRecommendationsProps) => {
   const theme = useTheme();
 
@@ -29,7 +31,9 @@ export const TrafficRecommendations = ({
       sx={{
         display: "grid",
         gap: 1.5,
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gridTemplateColumns: compact
+          ? "1fr"
+          : "repeat(auto-fit, minmax(220px, 1fr))",
       }}
     >
       {recommendations.map((recommendation) => {

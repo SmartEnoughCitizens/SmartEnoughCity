@@ -236,6 +236,7 @@ export const CarDashboard = () => {
         flexDirection: "column",
         gap: 3,
         height: "100%",
+        overflowY: "auto",
       }}
     >
       {/* Fuel Type Tiles */}
@@ -349,178 +350,202 @@ export const CarDashboard = () => {
           )}
         </Box>
 
-        {mapMode === "traffic" &&
-          trafficRecommendations &&
-          trafficRecommendations.length > 0 && (
-            <Box sx={{ mb: 2 }}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", sm: "center" }}
-                spacing={1}
-                sx={{ mb: 1.5 }}
-              >
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Traffic Diversion Recommendations
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Select a recommendation to highlight alternative routes on the
-                  map
-                </Typography>
-              </Stack>
-              <TrafficRecommendations
-                recommendations={trafficRecommendations}
-                selectedRecommendationId={
-                  selectedRecommendation?.recommendationId ?? null
-                }
-                onSelectRecommendation={setSelectedRecommendationId}
-              />
-            </Box>
-          )}
-
-        <Paper
-          elevation={0}
+        <Box
           sx={{
-            borderRadius: 2,
-            overflow: "hidden",
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: {
+              xs: "1fr",
+              xl:
+                mapMode === "traffic" &&
+                trafficRecommendations &&
+                trafficRecommendations.length > 0
+                  ? "340px minmax(0, 1fr)"
+                  : "1fr",
+            },
+            alignItems: "start",
             flex: 1,
-            display: "flex",
-            flexDirection: "column",
+            minHeight: 0,
           }}
         >
-          <MapContainer
-            center={dublinCenter}
-            zoom={12}
-            style={{ flex: 1, width: "100%", minHeight: 0 }}
-            zoomControl={true}
-          >
-            <TileLayer attribution={tileAttribution} url={tileUrl} />
+          {mapMode === "traffic" &&
+            trafficRecommendations &&
+            trafficRecommendations.length > 0 && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                  maxHeight: { xl: "72vh" },
+                  overflowY: { xl: "auto" },
+                }}
+              >
+                <Stack spacing={0.5}>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Traffic Diversion Recommendations
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Select a recommendation to highlight alternative routes on
+                    the map
+                  </Typography>
+                </Stack>
+                <TrafficRecommendations
+                  recommendations={trafficRecommendations}
+                  selectedRecommendationId={
+                    selectedRecommendation?.recommendationId ?? null
+                  }
+                  onSelectRecommendation={setSelectedRecommendationId}
+                  compact
+                />
+              </Paper>
+            )}
 
-            {mapMode === "traffic" &&
-              filteredPoints
-                ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
-                .map((point, idx) => (
-                  <CircleMarker
-                    key={`traffic-${point.siteId}-${idx}`}
-                    center={[point.lat, point.lon]}
-                    radius={6}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              overflow: "hidden",
+              minHeight: { xs: 420, md: 560 },
+              height: { xl: "72vh" },
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <MapContainer
+              center={dublinCenter}
+              zoom={12}
+              style={{ flex: 1, width: "100%", minHeight: 0 }}
+              zoomControl={true}
+            >
+              <TileLayer attribution={tileAttribution} url={tileUrl} />
+
+              {mapMode === "traffic" &&
+                filteredPoints
+                  ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
+                  .map((point, idx) => (
+                    <CircleMarker
+                      key={`traffic-${point.siteId}-${idx}`}
+                      center={[point.lat, point.lon]}
+                      radius={6}
+                      pathOptions={{
+                        color: "#fff",
+                        weight: 1.5,
+                        fillColor: getMarkerColor(point.avgVolume),
+                        fillOpacity: 0.8,
+                      }}
+                    >
+                      <Popup>
+                        <strong>Site {point.siteId}</strong>
+                        <br />
+                        Avg Volume: {point.avgVolume.toFixed(2)}
+                        <br />
+                        Day Type: {point.dayType}
+                        <br />
+                        Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                      </Popup>
+                    </CircleMarker>
+                  ))}
+
+              {mapMode === "traffic" &&
+                selectedRecommendation?.alternativeRoutes.map((route) => (
+                  <Polyline
+                    key={route.routeId}
+                    positions={route.path.map((waypoint) => [
+                      waypoint.lat,
+                      waypoint.lon,
+                    ])}
                     pathOptions={{
-                      color: "#fff",
-                      weight: 1.5,
-                      fillColor: getMarkerColor(point.avgVolume),
-                      fillOpacity: 0.8,
+                      color: route.color,
+                      weight: 5,
+                      opacity: 0.85,
+                      lineCap: "round",
+                      lineJoin: "round",
+                      dashArray:
+                        route === selectedRecommendation.alternativeRoutes[0]
+                          ? undefined
+                          : "10 8",
                     }}
                   >
                     <Popup>
-                      <strong>Site {point.siteId}</strong>
+                      <strong>{route.label}</strong>
                       <br />
-                      Avg Volume: {point.avgVolume.toFixed(2)}
+                      Estimated travel time: {
+                        route.estimatedTravelTimeMinutes
+                      }{" "}
+                      min
                       <br />
-                      Day Type: {point.dayType}
+                      Estimated time saving: {
+                        route.estimatedTimeSavingsMinutes
+                      }{" "}
+                      min
                       <br />
-                      Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                      Distance: {route.distanceKm.toFixed(1)} km
                     </Popup>
-                  </CircleMarker>
+                  </Polyline>
                 ))}
 
-            {mapMode === "traffic" &&
-              selectedRecommendation?.alternativeRoutes.map((route) => (
-                <Polyline
-                  key={route.routeId}
-                  positions={route.path.map((waypoint) => [
-                    waypoint.lat,
-                    waypoint.lon,
-                  ])}
+              {mapMode === "traffic" && selectedRecommendation && (
+                <CircleMarker
+                  center={[
+                    selectedRecommendation.siteLat,
+                    selectedRecommendation.siteLon,
+                  ]}
+                  radius={12}
                   pathOptions={{
-                    color: route.color,
-                    weight: 5,
-                    opacity: 0.85,
-                    lineCap: "round",
-                    lineJoin: "round",
-                    dashArray:
-                      route === selectedRecommendation.alternativeRoutes[0]
-                        ? undefined
-                        : "10 8",
+                    color: "#0f172a",
+                    weight: 2,
+                    fillColor: "#facc15",
+                    fillOpacity: 0.85,
                   }}
                 >
                   <Popup>
-                    <strong>{route.label}</strong>
+                    <strong>{selectedRecommendation.title}</strong>
                     <br />
-                    Estimated travel time: {
-                      route.estimatedTravelTimeMinutes
-                    }{" "}
-                    min
+                    Confidence:{" "}
+                    {Math.round(selectedRecommendation.confidenceScore * 100)}%
                     <br />
-                    Estimated time saving: {
-                      route.estimatedTimeSavingsMinutes
-                    }{" "}
-                    min
-                    <br />
-                    Distance: {route.distanceKm.toFixed(1)} km
+                    {selectedRecommendation.recommendedAction}
                   </Popup>
-                </Polyline>
-              ))}
+                </CircleMarker>
+              )}
 
-            {mapMode === "traffic" && selectedRecommendation && (
-              <CircleMarker
-                center={[
-                  selectedRecommendation.siteLat,
-                  selectedRecommendation.siteLon,
-                ]}
-                radius={12}
-                pathOptions={{
-                  color: "#0f172a",
-                  weight: 2,
-                  fillColor: "#facc15",
-                  fillOpacity: 0.85,
-                }}
-              >
-                <Popup>
-                  <strong>{selectedRecommendation.title}</strong>
-                  <br />
-                  Confidence:{" "}
-                  {Math.round(selectedRecommendation.confidenceScore * 100)}%
-                  <br />
-                  {selectedRecommendation.recommendedAction}
-                </Popup>
-              </CircleMarker>
-            )}
-
-            {mapMode === "pollution" &&
-              filteredEmissions
-                ?.filter((p) =>
-                  activeColors.has(getEmissionBand(p.totalEmissionG)),
-                )
-                .map((point, idx) => (
-                  <Circle
-                    key={`pollution-${point.siteId}-${idx}`}
-                    center={[point.lat, point.lon]}
-                    radius={250}
-                    pathOptions={{
-                      color: getEmissionColor(point.totalEmissionG),
-                      weight: 1,
-                      fillColor: getEmissionColor(point.totalEmissionG),
-                      fillOpacity: 0.45,
-                    }}
-                  >
-                    <Popup>
-                      <strong>Site {point.siteId}</strong>
-                      <br />
-                      Total Emission: {(point.totalEmissionG / 1000).toFixed(
-                        2,
-                      )}{" "}
-                      kg CO₂
-                      <br />
-                      Car Volume: {point.carVolume.toFixed(0)}
-                      <br />
-                      Day Type: {point.dayType}
-                      <br />
-                      Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                    </Popup>
-                  </Circle>
-                ))}
-          </MapContainer>
-        </Paper>
+              {mapMode === "pollution" &&
+                filteredEmissions
+                  ?.filter((p) =>
+                    activeColors.has(getEmissionBand(p.totalEmissionG)),
+                  )
+                  .map((point, idx) => (
+                    <Circle
+                      key={`pollution-${point.siteId}-${idx}`}
+                      center={[point.lat, point.lon]}
+                      radius={250}
+                      pathOptions={{
+                        color: getEmissionColor(point.totalEmissionG),
+                        weight: 1,
+                        fillColor: getEmissionColor(point.totalEmissionG),
+                        fillOpacity: 0.45,
+                      }}
+                    >
+                      <Popup>
+                        <strong>Site {point.siteId}</strong>
+                        <br />
+                        Total Emission:{" "}
+                        {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
+                        <br />
+                        Car Volume: {point.carVolume.toFixed(0)}
+                        <br />
+                        Day Type: {point.dayType}
+                        <br />
+                        Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                      </Popup>
+                    </Circle>
+                  ))}
+            </MapContainer>
+          </Paper>
+        </Box>
       </Box>
     </Box>
   );
