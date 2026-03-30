@@ -2,7 +2,7 @@
  * Car dashboard — displays fuel type statistics as tiles and high traffic points on a map
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Paper,
@@ -11,6 +11,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Chip,
+  Stack,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import {
@@ -19,13 +20,16 @@ import {
   CircleMarker,
   Circle,
   Popup,
+  Polyline,
 } from "react-leaflet";
 import {
   useCarFuelTypeStatistics,
   useCarHighTrafficPoints,
   useCarJunctionEmissions,
+  useTrafficRecommendations,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import { TrafficRecommendations } from "@/components/car/TrafficRecommendations";
 import "leaflet/dist/leaflet.css";
 
 type DayTypeFilter = "weekday" | "weekend";
@@ -112,6 +116,22 @@ export const CarDashboard = () => {
 
   const { data: emissionPoints, isLoading: emissionsLoading } =
     useCarJunctionEmissions(mapMode === "pollution");
+  const {
+    data: trafficRecommendations,
+    isLoading: trafficRecommendationsLoading,
+  } = useTrafficRecommendations(mapMode === "traffic");
+  const [selectedRecommendationId, setSelectedRecommendationId] = useState<
+    string | null
+  >(null);
+
+  const selectedRecommendation = useMemo(
+    () =>
+      trafficRecommendations?.find(
+        (recommendation) =>
+          recommendation.recommendationId === selectedRecommendationId,
+      ) ?? trafficRecommendations?.[0],
+    [selectedRecommendationId, trafficRecommendations],
+  );
 
   // --- Traffic mode ---
   const filteredPoints = trafficPoints?.filter(
@@ -191,7 +211,8 @@ export const CarDashboard = () => {
   if (
     statsLoading ||
     trafficLoading ||
-    (mapMode === "pollution" && emissionsLoading)
+    (mapMode === "pollution" && emissionsLoading) ||
+    (mapMode === "traffic" && trafficRecommendationsLoading)
   ) {
     return (
       <Box
@@ -289,7 +310,15 @@ export const CarDashboard = () => {
         </Box>
 
         {/* Legend */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            mb: 1.5,
+            flexWrap: "wrap",
+          }}
+        >
           <Typography variant="caption" color="text.secondary">
             Filter by intensity:
           </Typography>
@@ -309,7 +338,45 @@ export const CarDashboard = () => {
               }}
             />
           ))}
+          {mapMode === "traffic" && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ ml: "auto" }}
+            >
+              Recommendations refresh every 5 min
+            </Typography>
+          )}
         </Box>
+
+        {mapMode === "traffic" &&
+          trafficRecommendations &&
+          trafficRecommendations.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                justifyContent="space-between"
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                spacing={1}
+                sx={{ mb: 1.5 }}
+              >
+                <Typography variant="subtitle1" fontWeight={700}>
+                  AI Diversion Recommendations
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Select a recommendation to highlight alternative routes on the
+                  map
+                </Typography>
+              </Stack>
+              <TrafficRecommendations
+                recommendations={trafficRecommendations}
+                selectedRecommendationId={
+                  selectedRecommendation?.recommendationId ?? null
+                }
+                onSelectRecommendation={setSelectedRecommendationId}
+              />
+            </Box>
+          )}
 
         <Paper
           elevation={0}
@@ -355,6 +422,69 @@ export const CarDashboard = () => {
                     </Popup>
                   </CircleMarker>
                 ))}
+
+            {mapMode === "traffic" &&
+              selectedRecommendation?.alternativeRoutes.map((route) => (
+                <Polyline
+                  key={route.routeId}
+                  positions={route.path.map((waypoint) => [
+                    waypoint.lat,
+                    waypoint.lon,
+                  ])}
+                  pathOptions={{
+                    color: route.color,
+                    weight: 5,
+                    opacity: 0.85,
+                    lineCap: "round",
+                    lineJoin: "round",
+                    dashArray:
+                      route === selectedRecommendation.alternativeRoutes[0]
+                        ? undefined
+                        : "10 8",
+                  }}
+                >
+                  <Popup>
+                    <strong>{route.label}</strong>
+                    <br />
+                    Estimated travel time: {
+                      route.estimatedTravelTimeMinutes
+                    }{" "}
+                    min
+                    <br />
+                    Estimated time saving: {
+                      route.estimatedTimeSavingsMinutes
+                    }{" "}
+                    min
+                    <br />
+                    Distance: {route.distanceKm.toFixed(1)} km
+                  </Popup>
+                </Polyline>
+              ))}
+
+            {mapMode === "traffic" && selectedRecommendation && (
+              <CircleMarker
+                center={[
+                  selectedRecommendation.siteLat,
+                  selectedRecommendation.siteLon,
+                ]}
+                radius={12}
+                pathOptions={{
+                  color: "#0f172a",
+                  weight: 2,
+                  fillColor: "#facc15",
+                  fillOpacity: 0.85,
+                }}
+              >
+                <Popup>
+                  <strong>{selectedRecommendation.title}</strong>
+                  <br />
+                  Confidence:{" "}
+                  {Math.round(selectedRecommendation.confidenceScore * 100)}%
+                  <br />
+                  {selectedRecommendation.recommendedAction}
+                </Popup>
+              </CircleMarker>
+            )}
 
             {mapMode === "pollution" &&
               filteredEmissions

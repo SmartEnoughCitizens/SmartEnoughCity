@@ -69,6 +69,8 @@ NOTIFICATION_API_URL: str = settings.hermes_url + "/notification/v1"
 
 # Request/Response Models
 class RecommendationRequest(BaseModel):
+    user_id: str = "system"
+    data_indicator: str | None = None
     context: dict[str, Any] | None = None
 
 
@@ -83,6 +85,48 @@ class NotificationPayload(BaseModel):
     data_indicator: str
     recommendation: dict[str, Any]
     priority: str = "normal"
+
+
+class TrafficPoint(BaseModel):
+    siteId: int
+    lat: float
+    lon: float
+    avgVolume: float
+    dayType: str
+    timeSlot: str
+
+
+class TrafficWaypoint(BaseModel):
+    lat: float
+    lon: float
+
+
+class TrafficAlternativeRouteResponse(BaseModel):
+    routeId: str
+    label: str
+    summary: str
+    color: str
+    estimatedTimeSavingsMinutes: int
+    estimatedTravelTimeMinutes: int
+    distanceKm: float
+    path: list[TrafficWaypoint]
+
+
+class TrafficRecommendationResponse(BaseModel):
+    recommendationId: str
+    siteId: int
+    siteLat: float
+    siteLon: float
+    title: str
+    summary: str
+    dayType: str
+    timeSlot: str
+    averageVolume: float
+    congestionLevel: str
+    confidenceScore: float
+    recommendedAction: str
+    generatedAt: str
+    alternativeRoutes: list[TrafficAlternativeRouteResponse]
 
 
 ## Integration Layer
@@ -167,6 +211,103 @@ class RecommendationModel:
         recommendations["generated_at"] = datetime.utcnow().isoformat()
 
         return recommendations
+
+    @staticmethod
+    def generate_traffic_recommendations(
+        traffic_points: list[TrafficPoint],
+    ) -> list[TrafficRecommendationResponse]:
+        if not traffic_points:
+            return []
+
+        max_volume = max(point.avgVolume for point in traffic_points) or 1.0
+        ranked_points = sorted(
+            traffic_points,
+            key=lambda point: point.avgVolume,
+            reverse=True,
+        )[:4]
+
+        responses: list[TrafficRecommendationResponse] = []
+        for point in ranked_points:
+            ratio = point.avgVolume / max_volume if max_volume else 0.0
+            congestion_level = (
+                "critical" if ratio >= 0.85 else "high" if ratio >= 0.65 else "elevated"
+            )
+            confidence_score = round(min(0.97, 0.68 + ratio * 0.27), 2)
+            base_time_saving = max(4, round(4 + ratio * 8))
+
+            alternative_routes = [
+                TrafficAlternativeRouteResponse(
+                    routeId=f"alt-{point.siteId}-{route_index + 1}",
+                    label=(
+                        "North Circular Diversion"
+                        if route_index == 0
+                        else "Quays Relief Route"
+                    ),
+                    summary=(
+                        "Prioritise this corridor for the strongest expected queue reduction."
+                        if route_index == 0
+                        else "Use as overflow when primary diversion approaches saturation."
+                    ),
+                    color="#0f766e" if route_index == 0 else "#ea580c",
+                    estimatedTimeSavingsMinutes=max(
+                        3, base_time_saving - route_index
+                    ),
+                    estimatedTravelTimeMinutes=max(
+                        9, 22 - base_time_saving + route_index * 2
+                    ),
+                    distanceKm=round(2.6 + route_index * 0.9, 1),
+                    path=RecommendationModel._build_traffic_path(point, route_index),
+                )
+                for route_index in range(2)
+            ]
+
+            responses.append(
+                TrafficRecommendationResponse(
+                    recommendationId=(
+                        f"traffic-{point.siteId}-{point.dayType}-{point.timeSlot}"
+                    ),
+                    siteId=point.siteId,
+                    siteLat=point.lat,
+                    siteLon=point.lon,
+                    title=f"Diversion plan for Site {point.siteId}",
+                    summary=(
+                        f"{congestion_level.capitalize()} congestion detected during "
+                        f"{point.timeSlot.replace('_', ' ')}. Redirect through lower-pressure "
+                        "parallel links to reduce queue build-up."
+                    ),
+                    dayType=point.dayType,
+                    timeSlot=point.timeSlot,
+                    averageVolume=point.avgVolume,
+                    congestionLevel=congestion_level,
+                    confidenceScore=confidence_score,
+                    recommendedAction=(
+                        f"Activate {congestion_level} diversion signage near Site "
+                        f"{point.siteId} for the {point.dayType} "
+                        f"{point.timeSlot.replace('_', ' ')} window."
+                    ),
+                    generatedAt=datetime.utcnow().isoformat(),
+                    alternativeRoutes=alternative_routes,
+                )
+            )
+
+        return responses
+
+    @staticmethod
+    def _build_traffic_path(
+        point: TrafficPoint, route_index: int
+    ) -> list[TrafficWaypoint]:
+        lat_shift = 0.004 if route_index == 0 else -0.0035
+        lon_shift = -0.011 if route_index == 0 else 0.0105
+        return [
+            TrafficWaypoint(lat=point.lat - lat_shift, lon=point.lon + lon_shift * 0.15),
+            TrafficWaypoint(
+                lat=point.lat - lat_shift * 0.5, lon=point.lon + lon_shift * 0.55
+            ),
+            TrafficWaypoint(
+                lat=point.lat + lat_shift * 0.35, lon=point.lon + lon_shift * 0.85
+            ),
+            TrafficWaypoint(lat=point.lat + lat_shift, lon=point.lon + lon_shift),
+        ]
 
 
 ## Service Layer
@@ -373,13 +514,13 @@ async def generate_recommendation(
     This endpoint triggers the full workflow asynchronously
     """
     try:
-        # Get data_indicator from context, default to 'bus'
+        data_indicator = request.data_indicator or "bus"
         if request.context and "data_indicator" in request.context:
-            request.context["data_indicator"]
+            data_indicator = str(request.context["data_indicator"])
 
         # Process in background
         recommendation_id = await recommendation_service.process_recommendation(
-            request.user_id,
+            data_indicator,
             request.context,
         )
 
@@ -393,6 +534,21 @@ async def generate_recommendation(
         logger.exception("Error in generate_recommendation")
         # TODO: Details of the error should not be exposed to the client
         raise HTTPException(status_code=500, detail=str(e)) from None
+
+
+@app.post(
+    "/recommendations/traffic",
+    response_model=list[TrafficRecommendationResponse],
+)
+async def generate_traffic_recommendations(
+    traffic_points: list[TrafficPoint],
+) -> list[TrafficRecommendationResponse]:
+    """Generate congestion diversion recommendations for car traffic hotspots."""
+    try:
+        return RecommendationModel.generate_traffic_recommendations(traffic_points)
+    except Exception as exc:
+        logger.exception("Error generating traffic recommendations")
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @app.post("/scheduler/trigger-now")
@@ -441,6 +597,7 @@ async def test_trigger(user_id: str) -> RecommendationResponse:
     """Test endpoint to trigger the full workflow"""
     request = RecommendationRequest(
         user_id=user_id,
+        data_indicator="bus",
         context={"test": True, "timestamp": datetime.utcnow().isoformat()},
     )
     return await generate_recommendation(request, BackgroundTasks())
@@ -547,6 +704,7 @@ async def root() -> dict:
         },
         "endpoints": {
             "generate_recommendation": "POST /recommendations/generate",
+            "traffic_recommendations": "POST /recommendations/traffic",
             "trigger_scheduler": "POST /scheduler/trigger-now",
             "scheduler_status": "GET /scheduler/status",
             "mock_data_engine": "GET /mock/data-engine?data_indicator=bus|car|train",

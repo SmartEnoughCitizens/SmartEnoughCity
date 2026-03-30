@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
   CAR_FUEL_TYPE_STATISTICS: "/api/v1/car/fuel-type-statistics",
   CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
   CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
+  CAR_TRAFFIC_RECOMMENDATIONS: "/api/v1/car/traffic-recommendations",
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
