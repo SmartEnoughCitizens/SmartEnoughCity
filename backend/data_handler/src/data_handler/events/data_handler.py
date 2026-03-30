@@ -220,20 +220,21 @@ def process_event_venue_info(session: Session | None = None) -> int:
 
     try:
         tm_client = get_ticketmaster_client()
+        logger.info("Fetching venue data from Ticketmaster API...")
         raw = tm_client.fetch_venues()
         if raw is None:
             logger.warning("No venue data returned from Ticketmaster")
             return 0
 
         venues = parse_ticketmaster_venues_response(raw)
-        logger.info("Parsed %d venues from Ticketmaster", len(venues))
+        logger.info("Received %d venue(s) from Ticketmaster API.", len(venues))
 
         _upsert_venues(session, venues)
 
         if own_session:
             session.commit()
 
-        logger.info("Successfully stored %d venues", len(venues))
+        logger.info("Upserted %d venue record(s).", len(venues))
         return len(venues)
 
     except Exception:
@@ -272,12 +273,13 @@ def process_events_data(session: Session | None = None) -> int:
 
     try:
         tm_client = get_ticketmaster_client()
+        logger.info("Fetching events data from Ticketmaster API...")
         tm_raw = tm_client.fetch_events()
         if tm_raw is not None:
             tm_events = parse_ticketmaster_response(tm_raw)
             all_events.extend(tm_events)
             embedded_venues.extend(_extract_venues_from_events(tm_raw))
-            logger.info("Parsed %d events from Ticketmaster", len(tm_events))
+            logger.info("Received %d event(s) from Ticketmaster API.", len(tm_events))
     except Exception:
         logger.exception("Failed to fetch events from Ticketmaster")
 
@@ -292,7 +294,7 @@ def process_events_data(session: Session | None = None) -> int:
         logger.exception("Error storing events in database")
         raise
     else:
-        logger.info("Successfully stored %d events", events_count)
+        logger.info("Upserted %d event record(s).", events_count)
         return events_count
     finally:
         if own_session:

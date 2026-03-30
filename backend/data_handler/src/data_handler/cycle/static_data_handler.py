@@ -38,7 +38,7 @@ def process_cycle_station_info() -> None:
     3. Removes stations no longer present in the API response
     4. All operations in a single transaction
     """
-    logger.info("Processing static station information...")
+    logger.info("Fetching station data from Dublin Bikes API...")
 
     client = get_dublin_bikes_client()
     stations_data = client.fetch_station_information()
@@ -74,7 +74,7 @@ def process_cycle_station_info() -> None:
 
         logger.info("Committing changes to database...")
         session.commit()
-        logger.info("Successfully processed %d stations.", len(records))
+        logger.info("Upserted %d station record(s).", len(records))
 
     except Exception:
         session.rollback()

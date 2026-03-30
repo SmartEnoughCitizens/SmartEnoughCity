@@ -126,7 +126,7 @@ def process_pedestrian_sites(json_string: str) -> dict[int, PedestrianGranularit
     skipped = len(payloads) - len(valid_payloads)
     if skipped:
         logger.warning(
-            "Skipped %d pedestrian site(s) with missing location data.",
+            "Skipped %d pedestrian counter site(s) — missing location data.",
             skipped,
         )
     sites = [_payload_to_site(p) for p in valid_payloads]
@@ -143,7 +143,7 @@ def process_pedestrian_sites(json_string: str) -> dict[int, PedestrianGranularit
         finally:
             session.close()
 
-    logger.info("Persisted %d pedestrian counter site record(s).", len(sites))
+    logger.info("Upserted %d pedestrian counter site record(s).", len(sites))
     return {site.id: site.granularity for site in sites}
 
 
@@ -245,7 +245,7 @@ def process_pedestrian_channel_data(csv_text: io.TextIOWrapper) -> None:
                 session.merge(channel)
             session.commit()
             logger.info(
-                "Persisted %d pedestrian channel record(s).",
+                "Upserted %d pedestrian channel record(s).",
                 len(channels),
             )
         except Exception:
@@ -327,7 +327,7 @@ def process_pedestrian_measures_data(csv_text: io.TextIOWrapper) -> None:
                 session.execute(stmt)
             session.commit()
             logger.info(
-                "Persisted %d pedestrian counter measure record(s).",
+                "Upserted %d pedestrian counter measure record(s).",
                 len(rows),
             )
         except Exception:
@@ -474,7 +474,7 @@ def process_pedestrian_live_data() -> None:
     headers = {"x-api-key": api_settings.eco_counter_api_key}
     sites_url = f"{api_settings.eco_counter_api_base_url}/sites"
 
-    logger.info("Fetching pedestrian counter sites data...")
+    logger.info("Fetching pedestrian counter sites from Eco Counter API...")
     sites_response = requests.get(sites_url, headers=headers, timeout=30)
     sites_response.raise_for_status()
     site_granularity_map = process_pedestrian_sites(sites_response.text)
@@ -491,3 +491,4 @@ def process_pedestrian_live_data() -> None:
             f"{api_settings.eco_counter_api_base_url}/exports/{job_id}/data"
         )
         _poll_and_process_batch_result(job_id, job_result_url, headers)
+    logger.info("Pedestrian live data import complete.")

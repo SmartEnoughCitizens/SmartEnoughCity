@@ -288,7 +288,7 @@ def process_train_station_info() -> None:
             session.execute(stmt)
 
         session.commit()
-        logger.info("Inserted/updated %d Irish Rail stations.", len(stations))
+        logger.info("Upserted %d Irish Rail station record(s).", len(stations))
 
     except Exception:
         session.rollback()
@@ -388,7 +388,7 @@ def irish_rail_current_trains_to_db() -> None:
 
         session.add_all(trains)
         session.commit()
-        logger.info("Inserted %d current trains.", len(trains))
+        logger.info("Inserted %d current train record(s).", len(trains))
 
     except Exception:
         session.rollback()
@@ -467,7 +467,7 @@ def irish_rail_station_data_to_db() -> None:
         if all_data:
             session.add_all(all_data)
             session.commit()
-            logger.info("Inserted %d station data records.", len(all_data))
+            logger.info("Inserted %d station data record(s).", len(all_data))
         else:
             session.commit()
             logger.info("No station data available.")
@@ -564,7 +564,7 @@ def irish_rail_train_movements_to_db() -> None:
         if all_movements:
             session.add_all(all_movements)
             session.commit()
-            logger.info("Inserted %d train movement records.", len(all_movements))
+            logger.info("Inserted %d train movement record(s).", len(all_movements))
         else:
             session.commit()
             logger.info("No train movements available.")
@@ -592,8 +592,8 @@ def process_train_live_data() -> None:
     Note: Station list refresh is handled separately by process_train_station_info(),
     which should be scheduled as a monthly cron job.
     """
-    logger.info("### Loading Irish Rail realtime data...")
+    logger.info("Loading Irish Rail realtime data...")
     irish_rail_current_trains_to_db()
     irish_rail_station_data_to_db()
     irish_rail_train_movements_to_db()
-    logger.info("### Completed loading Irish Rail realtime data.")
+    logger.info("Irish Rail realtime data import complete.")

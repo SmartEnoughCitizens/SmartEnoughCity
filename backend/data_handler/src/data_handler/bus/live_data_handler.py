@@ -250,12 +250,12 @@ def process_bus_vehicles_live_data(json_string: str) -> None:
             skipped = len(rows) - len(filtered)
             if skipped:
                 logger.warning(
-                    "Skipped %d bus live vehicle(s) with unknown trip_id (static data may be stale).",
+                    "Skipped %d bus live vehicle record(s) — unknown trip_id (static data may be stale).",
                     skipped,
                 )
             session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live vehicle record(s).", len(filtered))
+            logger.info("Inserted %d bus live vehicle record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live vehicle data.")
@@ -286,7 +286,7 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
     incomplete = len(parsed) - len(rows)
     if incomplete:
         logger.warning(
-            "Skipped %d bus trip update entity/entities with missing trip_id or vehicle.",
+            "Skipped %d bus trip update record(s) — missing trip_id or vehicle.",
             incomplete,
         )
 
@@ -297,12 +297,12 @@ def process_bus_trip_updates_live_data(json_string: str) -> None:
             skipped = len(rows) - len(filtered)
             if skipped:
                 logger.warning(
-                    "Skipped %d bus live trip update(s) with unknown trip_id (static data may be stale).",
+                    "Skipped %d bus trip update record(s) — unknown trip_id (static data may be stale).",
                     skipped,
                 )
             session.add_all(filtered)
             session.commit()
-            logger.info("Persisted %d bus live trip update record(s).", len(filtered))
+            logger.info("Inserted %d bus live trip update record(s).", len(filtered))
         except Exception:
             session.rollback()
             logger.exception("Failed to persist bus live trip update data.")

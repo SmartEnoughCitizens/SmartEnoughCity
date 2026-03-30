@@ -293,7 +293,7 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
                 _execute_batch(session, model, rows, conflict_target, update_cols)
 
         session.commit()
-        logger.info("Successfully processed static bus data.")
+        logger.info("Static bus data import complete.")
 
     except Exception:
         session.rollback()

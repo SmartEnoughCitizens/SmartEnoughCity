@@ -63,62 +63,57 @@ def init_db() -> None:
 
 
 def _run_handler(logger: logging.Logger, name: str, fn: Callable[[], None]) -> None:
+    logger.info("→ %s: starting", name)
     try:
         fn()
+        logger.info("→ %s: done", name)
     except Exception:
-        logger.exception("Handler %s failed — continuing.", name)
+        logger.exception("→ %s: failed — continuing", name)
 
 
 def main_1_min() -> None:
     logger = logging.getLogger(__name__)
+    logger.info("=== [1-min interval] ===")
     settings = get_data_sources_settings()
     if settings.enable_cycle_data:
-        logger.info("Processing cycle live data...")
         _run_handler(logger, "cycle_live", process_cycle_live_data)
     if settings.enable_bus_data:
-        logger.info("Processing bus live data...")
         _run_handler(logger, "bus_live", process_bus_live_data)
     if settings.enable_tram_data:
-        logger.info("Processing tram live data...")
         _run_handler(logger, "tram_live", process_tram_live_data)
     if settings.enable_train_data:
-        logger.info("Processing train live data...")
         _run_handler(logger, "train_live", process_train_live_data)
 
 
 def main_1_hour() -> None:
     logger = logging.getLogger(__name__)
+    logger.info("=== [1-hour interval] ===")
     settings = get_data_sources_settings()
     if settings.enable_pedestrian_data:
-        logger.info("Processing pedestrian live data...")
         _run_handler(logger, "pedestrian_live", process_pedestrian_live_data)
     if settings.enable_construction_data:
-        logger.info("Processing traffic live data...")
         _run_handler(logger, "traffic_live", process_traffic_live_data)
 
 
 def main_1_day() -> None:
     logger = logging.getLogger(__name__)
+    logger.info("=== [1-day interval] ===")
     settings = get_data_sources_settings()
     if settings.enable_cycle_data:
-        logger.info("Processing cycle station info...")
         _run_handler(logger, "cycle_station_info", process_cycle_station_info)
     if settings.enable_events_data:
-        logger.info("Processing events data...")
         _run_handler(logger, "events_data", process_events_data)
 
 
 def main_1_month() -> None:
     logger = logging.getLogger(__name__)
+    logger.info("=== [1-month interval] ===")
     settings = get_data_sources_settings()
     if settings.enable_train_data:
-        logger.info("Processing train station info...")
         _run_handler(logger, "train_station_info", process_train_station_info)
     if settings.enable_tram_data:
-        logger.info("Processing tram stop info...")
         _run_handler(logger, "tram_stop_info", process_tram_stop_info)
     if settings.enable_events_data:
-        logger.info("Processing event venue info...")
         _run_handler(logger, "event_venue_info", process_event_venue_info)
 
 
@@ -200,7 +195,7 @@ def _run_population_static(
 
 def main_static() -> None:
     logger = logging.getLogger(__name__)
-    logger.info("Processing static data...")
+    logger.info("=== [static interval] ===")
     settings = get_data_sources_settings()
     _run_bus_static(settings, logger)
     _run_car_static(settings, logger)
