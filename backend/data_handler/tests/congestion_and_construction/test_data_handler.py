@@ -201,8 +201,8 @@ class TestFetchAndStoreTrafficData:
         mock_client.fetch_traffic_data.return_value = None
         mock_client_cls.return_value = mock_client
 
-        result = fetch_and_store_traffic_data()
-        assert result == 0
+        count, _ = fetch_and_store_traffic_data()
+        assert count == 0
 
     @patch("data_handler.congestion_and_construction.data_handler.TIIApiClient")
     def test_processes_valid_api_response(
@@ -236,8 +236,8 @@ class TestFetchAndStoreTrafficData:
         mock_client.fetch_traffic_data.return_value = raw_data
         mock_client_cls.return_value = mock_client
 
-        result = fetch_and_store_traffic_data(session=db_session)
-        assert result == 1
+        count, _ = fetch_and_store_traffic_data(session=db_session)
+        assert count == 1
 
     @patch("data_handler.congestion_and_construction.data_handler.TIIApiClient")
     def test_raises_on_api_failure(self, mock_client_cls: MagicMock) -> None:
