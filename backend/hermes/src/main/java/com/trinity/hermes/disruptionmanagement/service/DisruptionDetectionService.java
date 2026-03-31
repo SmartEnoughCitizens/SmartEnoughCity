@@ -7,10 +7,19 @@ import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.indicators.bus.repository.BusRouteMetricsRepository;
 import com.trinity.hermes.indicators.car.repository.HighTrafficPointsRepository;
 import com.trinity.hermes.indicators.events.repository.EventsRepository;
+import com.trinity.hermes.indicators.train.entity.TrainStationData;
+import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
+import com.trinity.hermes.indicators.train.repository.TrainStationRepository;
+import com.trinity.hermes.indicators.tram.entity.TramDisruptionExternal;
+import com.trinity.hermes.indicators.tram.entity.TramStop;
+import com.trinity.hermes.indicators.tram.repository.TramDisruptionExternalRepository;
+import com.trinity.hermes.indicators.tram.repository.TramStopRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -36,12 +45,18 @@ public class DisruptionDetectionService {
   private static final long HIGH_TRAFFIC_VOLUME_THRESHOLD = 1500L; // vehicles per period
   private static final int LARGE_EVENT_ATTENDANCE_THRESHOLD = 5000; // estimated attendees
   private static final int DEDUP_WINDOW_MINUTES = 10; // ignore same disruption within 10 min
+  private static final int TRAIN_LATE_THRESHOLD_MINUTES = 10; // lateMinutes > 10
+  private static final int TRAIN_MIN_LATE_TRAINS = 3; // ≥3 late trains at same station
 
   private final BusRouteMetricsRepository busRouteMetricsRepository;
   private final HighTrafficPointsRepository highTrafficPointsRepository;
   private final EventsRepository eventsRepository;
   private final DisruptionRepository disruptionRepository;
   private final DisruptionFacade disruptionFacade;
+  private final TrainStationDataRepository trainStationDataRepository;
+  private final TrainStationRepository trainStationRepository;
+  private final TramDisruptionExternalRepository tramDisruptionExternalRepository;
+  private final TramStopRepository tramStopRepository;
 
   /**
    * Main scheduled detection task — runs every 5 minutes. Queries all transport data sources and
@@ -55,6 +70,8 @@ public class DisruptionDetectionService {
     detected += detectBusDisruptions();
     detected += detectCarCongestionDisruptions();
     detected += detectEventDisruptions();
+    detected += detectTrainDisruptions();
+    detected += detectTramDisruptions();
 
     log.info("=== DISRUPTION AUTO-DETECTION CYCLE COMPLETE: {} new disruption(s) ===", detected);
   }
@@ -188,6 +205,89 @@ public class DisruptionDetectionService {
       }
     } catch (Exception e) {
       log.warn("Event disruption detection failed: {}", e.getMessage());
+    }
+    return count;
+  }
+
+  // ---------------------------------------------------------------------------
+  // TRAIN — detect stations with ≥3 late trains (lateMinutes > 10)
+  // ---------------------------------------------------------------------------
+
+  private int detectTrainDisruptions() {
+    int count = 0;
+    try {
+      List<TrainStationData> latest = trainStationDataRepository.findLatestPerStationTrain();
+
+      // Group by station, count how many trains are late there
+      Map<String, List<TrainStationData>> byStation =
+          latest.stream()
+              .filter(
+                  sd ->
+                      sd.getLateMinutes() != null
+                          && sd.getLateMinutes() > TRAIN_LATE_THRESHOLD_MINUTES)
+              .collect(Collectors.groupingBy(TrainStationData::getStationCode));
+
+      for (Map.Entry<String, List<TrainStationData>> entry : byStation.entrySet()) {
+        if (entry.getValue().size() < TRAIN_MIN_LATE_TRAINS) continue;
+
+        String stationCode = entry.getKey();
+        int maxDelay =
+            entry.getValue().stream()
+                .mapToInt(TrainStationData::getLateMinutes)
+                .max()
+                .orElse(0);
+        String severity = maxDelay > 30 ? "HIGH" : maxDelay > 20 ? "MEDIUM" : "LOW";
+
+        // Look up lat/lon from stations table
+        com.trinity.hermes.indicators.train.entity.TrainStation station =
+            trainStationRepository.findByStationCode(stationCode);
+        Double lat = station != null ? station.getLat() : null;
+        Double lon = station != null ? station.getLon() : null;
+        String area =
+            station != null && station.getStationDesc() != null
+                ? station.getStationDesc()
+                : "Train Station " + stationCode;
+
+        if (processIfNewWithCoords("DELAY", "TRAIN", area, severity, maxDelay, stationCode, lat, lon)) {
+          count++;
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Train disruption detection failed: {}", e.getMessage());
+    }
+    return count;
+  }
+
+  // ---------------------------------------------------------------------------
+  // TRAM — bridge unresolved rows from external_data.tram_disruptions
+  // ---------------------------------------------------------------------------
+
+  private int detectTramDisruptions() {
+    int count = 0;
+    try {
+      LocalDateTime since = LocalDateTime.now(DUBLIN).minusMinutes(DEDUP_WINDOW_MINUTES + 5);
+      List<TramDisruptionExternal> active =
+          tramDisruptionExternalRepository.findActiveDisruptionsSince(since);
+
+      // Build a stop-id → TramStop lookup for lat/lon
+      Map<String, TramStop> stopMap =
+          tramStopRepository.findAll().stream()
+              .collect(Collectors.toMap(TramStop::getStopId, s -> s, (a, b) -> a));
+
+      for (TramDisruptionExternal ext : active) {
+        TramStop stop = stopMap.get(ext.getStopId());
+        Double lat = stop != null ? stop.getLat() : null;
+        Double lon = stop != null ? stop.getLon() : null;
+        String area = stop != null ? stop.getName() : "Tram Stop " + ext.getStopId();
+
+        if (processIfNewWithCoords(
+            "TRAM_DISRUPTION", "TRAM", area, "HIGH", 0,
+            "tram-ext-" + ext.getId(), lat, lon)) {
+          count++;
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Tram disruption detection failed: {}", e.getMessage());
     }
     return count;
   }
