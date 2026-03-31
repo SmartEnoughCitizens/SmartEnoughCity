@@ -27,6 +27,8 @@ import type {
   TramLiveForecast,
   TramDelay,
   TramHourlyDistribution,
+  TramStopUsage,
+  TramCommonDelay,
 } from "@/types";
 
 export const dashboardApi = {
@@ -254,6 +256,28 @@ export const dashboardApi = {
     );
     return data;
   },
+
+  /**
+   * Get per-stop estimated passenger usage for a given hour
+   */
+  getTramStopUsage: async (hour: number): Promise<TramStopUsage[]> => {
+    const { data } = await axiosInstance.get<TramStopUsage[]>(
+      API_ENDPOINTS.TRAM_STOP_USAGE,
+      { params: { hour } },
+    );
+    return data;
+  },
+
+  /**
+   * Get historical average delay per stop
+   */
+  getTramCommonDelays: async (): Promise<TramCommonDelay[]> => {
+    const { data } = await axiosInstance.get<TramCommonDelay[]>(
+      API_ENDPOINTS.TRAM_COMMON_DELAYS,
+    );
+    return data;
+  },
+
   /**
    * Get upcoming events
    */

@@ -65,4 +65,23 @@ public class TramController {
     log.info("GET /api/v1/tram/hourly-distribution");
     return ResponseEntity.ok(tramFacade.getHourlyDistribution());
   }
+
+  /** Per-stop estimated passenger usage for a given hour (default: current hour). */
+  @GetMapping("/api/v1/tram/stop-usage")
+  public ResponseEntity<List<TramStopUsageDTO>> getStopUsage(
+      @RequestParam(defaultValue = "-1") int hour) {
+    int resolvedHour =
+        hour >= 0 && hour <= 23
+            ? hour
+            : java.time.LocalTime.now(java.time.ZoneId.of("Europe/Dublin")).getHour();
+    log.info("GET /api/v1/tram/stop-usage?hour={}", resolvedHour);
+    return ResponseEntity.ok(tramFacade.getStopUsage(resolvedHour));
+  }
+
+  /** Historical average delay per stop from tram_delay_history. */
+  @GetMapping("/api/v1/tram/common-delays")
+  public ResponseEntity<List<TramCommonDelayDTO>> getCommonDelays() {
+    log.info("GET /api/v1/tram/common-delays");
+    return ResponseEntity.ok(tramFacade.getCommonDelays());
+  }
 }

@@ -3,7 +3,7 @@
  *
  * Features:
  *  - Full-viewport map: OSM (light) / Carto dark (dark)
- *  - Left glass panel: KPI strip, line filters, Live | Delays | Hourly tabs, search
+ *  - Left glass panel: KPI strip, line filters, Live | Delays | Usage tabs, search
  *  - Red/Green coloured stop markers on map
  *  - Line filter applies to panel lists; map always shows all stops
  *  - Click a stop in the list → map flies to it
@@ -23,6 +23,7 @@ import {
   TextField,
   InputAdornment,
   ListItemButton,
+  Slider,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
@@ -30,17 +31,21 @@ import TramIcon from "@mui/icons-material/Tram";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import HistoryIcon from "@mui/icons-material/History";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import {
   useTramKpis,
   useTramLiveForecasts,
   useTramDelays,
-  useTramHourlyDistribution,
+  useTramStopUsage,
+  useTramCommonDelays,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
-import { TramHourlyChart } from "@/components/charts/TramHourlyChart";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -51,7 +56,7 @@ import type { TramLiveForecast } from "@/types";
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 
 type LineFilter = "" | "red" | "green";
-type PanelTab = "live" | "delays" | "hourly";
+type PanelTab = "live" | "delays" | "usage" | "history";
 
 const LINE_COLORS: Record<string, string> = {
   red: "#DC2626",
@@ -259,7 +264,6 @@ function buildStopMap(forecasts: TramLiveForecast[]) {
     }
     map.get(f.stopId)!.forecasts.push(f);
   }
-  // For each stop, pick the soonest 2 inbound + soonest 2 outbound
   const dueSorter = (a: TramLiveForecast, b: TramLiveForecast) =>
     (a.dueMins ?? 999) - (b.dueMins ?? 999);
   for (const stop of map.values()) {
@@ -288,6 +292,7 @@ export const TramDashboard = () => {
     id: number;
   } | null>(null);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
+  const [usageHour, setUsageHour] = useState<number>(8); // Default to 8am peak
 
   const theme = useAppSelector((state) => state.ui.theme);
   const { data: kpis } = useTramKpis();
@@ -297,7 +302,8 @@ export const TramDashboard = () => {
     error,
   } = useTramLiveForecasts();
   const { data: delays } = useTramDelays();
-  const { data: hourlyDistribution } = useTramHourlyDistribution();
+  const { data: stopUsage } = useTramStopUsage(usageHour);
+  const { data: commonDelays } = useTramCommonDelays();
 
   // Inject CSS once
   useEffect(() => {
@@ -325,7 +331,7 @@ export const TramDashboard = () => {
     [liveForecasts],
   );
 
-  // Lookup: stopId → {lat, lon} for fly-to from delay list
+  // Lookup: stopId → {lat, lon} for fly-to from delay/usage list
   const stopCoords = useMemo(() => {
     const coords = new Map<string, { lat: number; lon: number }>();
     for (const stop of allStops) {
@@ -364,6 +370,28 @@ export const TramDashboard = () => {
     }
     return list;
   }, [delays, lineFilter, search]);
+
+  // Filtered usage for panel
+  const filteredUsage = useMemo(() => {
+    let list = stopUsage ?? [];
+    if (lineFilter) list = list.filter((u) => u.line === lineFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((u) => u.stopName.toLowerCase().includes(q));
+    }
+    return list;
+  }, [stopUsage, lineFilter, search]);
+
+  // Filtered common delays for panel
+  const filteredCommonDelays = useMemo(() => {
+    let list = commonDelays ?? [];
+    if (lineFilter) list = list.filter((d) => d.line === lineFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((d) => d.stopName.toLowerCase().includes(q));
+    }
+    return list;
+  }, [commonDelays, lineFilter, search]);
 
   const handleStopClick = useCallback(
     (lat: number, lon: number, stopId: string) => {
@@ -436,7 +464,8 @@ export const TramDashboard = () => {
                       key={i}
                       sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}
                     >
-                      → {f.destination}: <strong>{f.dueMins ?? "—"} min</strong>{" "}
+                      → {f.destination}:{" "}
+                      <strong>{f.dueMins ?? "—"} min</strong>{" "}
                       <span style={{ color: "#8b949e" }}>({f.direction})</span>
                     </Typography>
                   ))}
@@ -636,7 +665,16 @@ export const TramDashboard = () => {
                   label: "Delays",
                   count: filteredDelays.length,
                 },
-                { key: "hourly", label: "Hourly", count: null },
+                {
+                  key: "usage",
+                  label: "Usage",
+                  count: filteredUsage.length,
+                },
+                {
+                  key: "history",
+                  label: "History",
+                  count: filteredCommonDelays.length,
+                },
               ] as { key: PanelTab; label: string; count: number | null }[]
             ).map(({ key, label, count }) => {
               const active = activeTab === key;
@@ -730,41 +768,105 @@ export const TramDashboard = () => {
             </Box>
           </Box>
 
-          {/* Search (Live + Delays tabs) */}
-          {activeTab !== "hourly" && (
-            <Box sx={{ px: 1.75, pb: 1.25 }}>
-              <TextField
-                size="small"
-                fullWidth
-                placeholder="Search stops…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 16, color: "#8b949e" }} />
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      bgcolor: "rgba(22,27,34,0.7)",
-                      color: "#e6edf3",
-                      fontSize: "0.85rem",
-                      borderRadius: 2,
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(48,54,61,0.6)",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(255,255,255,0.18)",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#1565C0",
-                      },
-                      "& input": {
-                        color: "#e6edf3",
-                        "&::placeholder": { color: "#8b949e", opacity: 1 },
-                      },
+          {/* Search — all tabs */}
+          <Box sx={{ px: 1.75, pb: 1.25 }}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Search stops…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 16, color: "#8b949e" }} />
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    bgcolor: "rgba(22,27,34,0.7)",
+                    color: "#e6edf3",
+                    fontSize: "0.85rem",
+                    borderRadius: 2,
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(48,54,61,0.6)",
                     },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255,255,255,0.18)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#1565C0",
+                    },
+                    "& input": {
+                      color: "#e6edf3",
+                      "&::placeholder": { color: "#8b949e", opacity: 1 },
+                    },
+                  },
+                },
+              }}
+            />
+          </Box>
+
+          {/* Hour slider — usage tab only */}
+          {activeTab === "usage" && (
+            <Box sx={{ px: 2.5, pb: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.68rem",
+                    color: "#8b949e",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Hour of day
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                    color: "#e6edf3",
+                  }}
+                >
+                  {`${usageHour.toString().padStart(2, "0")}:00`}
+                </Typography>
+              </Box>
+              <Slider
+                value={usageHour}
+                onChange={(_, val) => setUsageHour(val as number)}
+                min={5}
+                max={23}
+                step={1}
+                marks={[
+                  { value: 5, label: "05" },
+                  { value: 8, label: "08" },
+                  { value: 12, label: "12" },
+                  { value: 17, label: "17" },
+                  { value: 23, label: "23" },
+                ]}
+                sx={{
+                  color: "#1565C0",
+                  "& .MuiSlider-markLabel": {
+                    fontSize: "0.6rem",
+                    color: "#484f58",
+                  },
+                  "& .MuiSlider-thumb": {
+                    width: 14,
+                    height: 14,
+                    bgcolor: "#1565C0",
+                    border: "2px solid #e6edf3",
+                  },
+                  "& .MuiSlider-track": { height: 4 },
+                  "& .MuiSlider-rail": {
+                    height: 4,
+                    bgcolor: "rgba(48,54,61,0.6)",
                   },
                 }}
               />
@@ -781,7 +883,9 @@ export const TramDashboard = () => {
                 ? `${filteredForecasts.length} forecast${filteredForecasts.length === 1 ? "" : "s"}${lineFilter ? ` · ${lineFilter} line` : ""}${search.trim() ? ` · "${search}"` : ""}`
                 : activeTab === "delays"
                   ? `${filteredDelays.length} delay${filteredDelays.length === 1 ? "" : "s"}${lineFilter ? ` · ${lineFilter} line` : ""}`
-                  : "Hourly passenger distribution (CSO data)"}
+                  : activeTab === "history"
+                    ? `${filteredCommonDelays.length} stop${filteredCommonDelays.length === 1 ? "" : "s"} with delay history${lineFilter ? ` · ${lineFilter} line` : ""}`
+                    : `${filteredUsage.length} stop${filteredUsage.length === 1 ? "" : "s"} · estimated passengers at ${usageHour.toString().padStart(2, "0")}:00${lineFilter ? ` · ${lineFilter} line` : ""}`}
             </Typography>
           </Box>
 
@@ -819,7 +923,6 @@ export const TramDashboard = () => {
                         transition: "all 0.12s",
                       }}
                     >
-                      {/* Line dot */}
                       <Box
                         sx={{
                           width: 22,
@@ -839,8 +942,6 @@ export const TramDashboard = () => {
                           {f.line === "red" ? "R" : "G"}
                         </Typography>
                       </Box>
-
-                      {/* Stop + destination + direction */}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography
                           noWrap
@@ -863,8 +964,6 @@ export const TramDashboard = () => {
                           {f.direction} → {f.destination}
                         </Typography>
                       </Box>
-
-                      {/* Due time badge */}
                       <Chip
                         size="small"
                         label={
@@ -938,7 +1037,6 @@ export const TramDashboard = () => {
                           {d.line === "red" ? "R" : "G"}
                         </Typography>
                       </Box>
-
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography
                           noWrap
@@ -961,7 +1059,6 @@ export const TramDashboard = () => {
                           {d.direction} → {d.destination} · Due {d.dueMins} min
                         </Typography>
                       </Box>
-
                       <Chip
                         size="small"
                         label={`+${d.delayMins} min`}
@@ -980,15 +1077,141 @@ export const TramDashboard = () => {
                   );
                 })}
 
-              {/* ── HOURLY CHART ── */}
-              {activeTab === "hourly" && (
-                <Box sx={{ p: 2 }}>
-                  <TramHourlyChart
-                    data={hourlyDistribution ?? []}
-                    height={280}
-                  />
-                </Box>
-              )}
+              {/* ── USAGE LIST ── */}
+              {activeTab === "usage" &&
+                filteredUsage.map((u) => {
+                  const color = LINE_COLORS[u.line] ?? "#607D8B";
+                  const selected = selectedStopId === u.stopId;
+                  return (
+                    <ListItemButton
+                      key={u.stopId}
+                      onClick={() => {
+                        if (u.lat != null && u.lon != null) {
+                          handleStopClick(u.lat, u.lon, u.stopId);
+                        } else {
+                          const coords = stopCoords.get(u.stopId);
+                          if (coords)
+                            handleStopClick(coords.lat, coords.lon, u.stopId);
+                        }
+                      }}
+                      sx={{
+                        py: 0.875,
+                        px: 2,
+                        bgcolor: selected
+                          ? "rgba(21,101,192,0.12)"
+                          : "transparent",
+                        borderLeft: selected
+                          ? "3px solid #1565C0"
+                          : "3px solid transparent",
+                        "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
+                        transition: "all 0.12s",
+                      }}
+                    >
+                      {/* Line dot */}
+                      <Box
+                        sx={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          bgcolor: color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          mr: 1.5,
+                        }}
+                      >
+                        <Typography
+                          sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}
+                        >
+                          {u.line === "red" ? "R" : "G"}
+                        </Typography>
+                      </Box>
+
+                      {/* Stop name + inbound/outbound breakdown */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontSize: "0.855rem",
+                            fontWeight: selected ? 600 : 400,
+                            color: selected ? "#e6edf3" : "#c9d1d9",
+                            lineHeight: 1.25,
+                          }}
+                        >
+                          {u.stopName}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "0.68rem",
+                              color: "#2ea043",
+                              lineHeight: 1.2,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.25,
+                            }}
+                          >
+                            <ArrowDownwardIcon sx={{ fontSize: 10 }} />
+                            {u.estimatedInboundPassengers.toLocaleString()} in
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: "0.68rem",
+                              color: "#d29922",
+                              lineHeight: 1.2,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.25,
+                            }}
+                          >
+                            <ArrowUpwardIcon sx={{ fontSize: 10 }} />
+                            {u.estimatedOutboundPassengers.toLocaleString()} out
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Total passengers badge */}
+                      <Chip
+                        size="small"
+                        icon={
+                          <PeopleIcon sx={{ fontSize: "12px !important" }} />
+                        }
+                        label={`${u.estimatedTotalPassengers.toLocaleString()}`}
+                        sx={{
+                          fontSize: "0.62rem",
+                          height: 18,
+                          ml: 0.5,
+                          flexShrink: 0,
+                          bgcolor:
+                            u.estimatedTotalPassengers >= 500
+                              ? "#DC262620"
+                              : u.estimatedTotalPassengers >= 200
+                                ? "#d2992220"
+                                : "rgba(48,54,61,0.6)",
+                          color:
+                            u.estimatedTotalPassengers >= 500
+                              ? "#DC2626"
+                              : u.estimatedTotalPassengers >= 200
+                                ? "#d29922"
+                                : "#8b949e",
+                          border: `1px solid ${u.estimatedTotalPassengers >= 500 ? "#DC2626" : u.estimatedTotalPassengers >= 200 ? "#d29922" : "#484f58"}40`,
+                          fontWeight: 700,
+                          "& .MuiChip-icon": {
+                            color: "inherit",
+                            ml: "4px",
+                          },
+                        }}
+                      />
+                    </ListItemButton>
+                  );
+                })}
 
               {/* Empty states */}
               {activeTab === "live" && filteredForecasts.length === 0 && (
@@ -1009,6 +1232,130 @@ export const TramDashboard = () => {
                   </Typography>
                 </Box>
               )}
+              {activeTab === "usage" && filteredUsage.length === 0 && (
+                <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
+                  <PeopleIcon sx={{ fontSize: 32, color: "#30363d", mb: 1 }} />
+                  <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
+                    No usage data available
+                  </Typography>
+                </Box>
+              )}
+
+              {/* ── COMMON DELAYS HISTORY LIST ── */}
+              {activeTab === "history" &&
+                filteredCommonDelays.map((d) => {
+                  const color = LINE_COLORS[d.line] ?? "#607D8B";
+                  const selected = selectedStopId === d.stopId;
+                  const delayColor =
+                    d.avgDelayMins >= 10
+                      ? "#DC2626"
+                      : d.avgDelayMins >= 5
+                        ? "#d29922"
+                        : "#8b949e";
+                  return (
+                    <ListItemButton
+                      key={d.stopId}
+                      onClick={() => {
+                        if (d.lat != null && d.lon != null) {
+                          handleStopClick(d.lat, d.lon, d.stopId);
+                        } else {
+                          const coords = stopCoords.get(d.stopId);
+                          if (coords)
+                            handleStopClick(coords.lat, coords.lon, d.stopId);
+                        }
+                      }}
+                      sx={{
+                        py: 0.875,
+                        px: 2,
+                        bgcolor: selected
+                          ? "rgba(21,101,192,0.12)"
+                          : "transparent",
+                        borderLeft: selected
+                          ? "3px solid #1565C0"
+                          : "3px solid transparent",
+                        "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
+                        transition: "all 0.12s",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          bgcolor: color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          mr: 1.5,
+                        }}
+                      >
+                        <Typography
+                          sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}
+                        >
+                          {d.line === "red" ? "R" : "G"}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontSize: "0.855rem",
+                            fontWeight: selected ? 600 : 400,
+                            color: selected ? "#e6edf3" : "#c9d1d9",
+                            lineHeight: 1.25,
+                          }}
+                        >
+                          {d.stopName}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.68rem",
+                            color: "#484f58",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {d.delayCount} delays recorded · max +{d.maxDelayMins}{" "}
+                          min
+                        </Typography>
+                      </Box>
+
+                      <Chip
+                        size="small"
+                        icon={
+                          <HistoryIcon sx={{ fontSize: "12px !important" }} />
+                        }
+                        label={`avg +${d.avgDelayMins} min`}
+                        sx={{
+                          fontSize: "0.62rem",
+                          height: 18,
+                          ml: 0.5,
+                          flexShrink: 0,
+                          bgcolor: delayColor + "20",
+                          color: delayColor,
+                          border: `1px solid ${delayColor}40`,
+                          fontWeight: 700,
+                          "& .MuiChip-icon": {
+                            color: "inherit",
+                            ml: "4px",
+                          },
+                        }}
+                      />
+                    </ListItemButton>
+                  );
+                })}
+              {activeTab === "history" &&
+                filteredCommonDelays.length === 0 && (
+                  <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
+                    <HistoryIcon
+                      sx={{ fontSize: 32, color: "#30363d", mb: 1 }}
+                    />
+                    <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
+                      No delay history recorded yet
+                    </Typography>
+                  </Box>
+                )}
             </Box>
           )}
 
@@ -1020,7 +1367,7 @@ export const TramDashboard = () => {
               variant="caption"
               sx={{ color: "#30363d", fontSize: "0.62rem" }}
             >
-              Luas · Red & Green Lines · Real-time Forecasting API
+              Luas · Red & Green Lines · GTFS + CSO Data
             </Typography>
           </Box>
         </Paper>

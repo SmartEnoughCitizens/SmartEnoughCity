@@ -33,4 +33,12 @@ public class TramFacade {
   public List<TramHourlyDistributionDTO> getHourlyDistribution() {
     return tramDashboardService.getHourlyDistribution();
   }
+
+  public List<TramStopUsageDTO> getStopUsage(int hour) {
+    return tramDashboardService.getStopUsage(hour);
+  }
+
+  public List<TramCommonDelayDTO> getCommonDelays() {
+    return tramDashboardService.getCommonDelays();
+  }
 }

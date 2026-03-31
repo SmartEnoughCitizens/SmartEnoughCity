@@ -35,6 +35,8 @@ export const DASHBOARD_KEYS = {
   tramLiveForecasts: ["tram", "live-forecasts"] as const,
   tramDelays: ["tram", "delays"] as const,
   tramHourlyDistribution: ["tram", "hourly-distribution"] as const,
+  tramStopUsage: (hour: number) => ["tram", "stop-usage", { hour }] as const,
+  tramCommonDelays: ["tram", "common-delays"] as const,
 };
 
 /**
@@ -296,6 +298,30 @@ export const useTramHourlyDistribution = () => {
     queryKey: DASHBOARD_KEYS.tramHourlyDistribution,
     queryFn: () => dashboardApi.getTramHourlyDistribution(),
     staleTime: 300_000, // 5 minutes - CSO data is static
+  });
+};
+
+/**
+ * Get per-stop estimated passenger usage for a given hour
+ */
+export const useTramStopUsage = (hour: number) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramStopUsage(hour),
+    queryFn: () => dashboardApi.getTramStopUsage(hour),
+    staleTime: 300_000, // 5 minutes - GTFS schedule is static
+  });
+};
+
+/**
+ * Get historical average delay per stop
+ */
+export const useTramCommonDelays = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramCommonDelays,
+    queryFn: () => dashboardApi.getTramCommonDelays(),
+    staleTime: 60_000, // 1 minute
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
 };
 
