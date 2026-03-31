@@ -18,7 +18,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 0
+      backoffLimit: {{ .backoffLimit | default 0 }}
       activeDeadlineSeconds: {{ .activeDeadlineSeconds }}
       template:
         metadata:
@@ -124,6 +124,8 @@ spec:
                     secretKeyRef:
                       name: {{ $.Values.secrets.ticketmasterApiKey.name | quote }}
                       key: TICKETMASTER_API_KEY
+                - name: CAR_GDRIVE_FOLDER_ID
+                  value: {{ $.Values.carGdriveFolderId | default "" | quote }}
                 - name: BASE_STATIC_DATA_DIR
                   value: "/tmp/static_data"
 {{- end }}

@@ -31,6 +31,8 @@ securityContext: {}
 
 containerSecurityContext: {}
 
+carGdriveFolderId: ""
+
 # Data source toggles — set to "false" to disable a specific source across all CronJobs.
 dataToggles:
   enableCycleData: true
@@ -98,6 +100,7 @@ cronjobs:
     schedule: "0 1 1 * *"
     runVar: ENABLE_STATIC
     activeDeadlineSeconds: 14400
+    backoffLimit: 2
     resources:
       requests:
         cpu: "500m"
