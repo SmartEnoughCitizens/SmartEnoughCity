@@ -13,7 +13,7 @@ import { useAppSelector } from "@/store/hooks";
 import { getTheme } from "@/theme";
 import { router } from "@/router";
 
-// Create QueryClient
+// Create QueryClient — individual hooks override staleTime/gcTime as needed
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
