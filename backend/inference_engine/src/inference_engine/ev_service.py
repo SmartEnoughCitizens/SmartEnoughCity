@@ -59,17 +59,19 @@ def get_areas_geojson() -> dict:
     features = []
     for ed_english, county_english, geometry in division_rows:
         data = demand_lookup.get(_normalize(ed_english), {})
-        features.append({
-            "type": "Feature",
-            "geometry": geometry,
-            "properties": {
-                "ED_ENGLISH": ed_english,
-                "COUNTY_ENGLISH": county_english,
-                "display_name": ed_english.title(),
-                "charging_demand": data.get("charging_demand"),
-                "registered_ev": data.get("registered_ev"),
-            },
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": geometry,
+                "properties": {
+                    "ED_ENGLISH": ed_english,
+                    "COUNTY_ENGLISH": county_english,
+                    "display_name": ed_english.title(),
+                    "charging_demand": data.get("charging_demand"),
+                    "registered_ev": data.get("registered_ev"),
+                },
+            }
+        )
 
     return {"type": "FeatureCollection", "features": features}
 

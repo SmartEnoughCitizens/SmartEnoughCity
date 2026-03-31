@@ -36,6 +36,7 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import type { EvAreaDemand } from "@/types";
 import type { PathOptions } from "leaflet";
+import type { Feature, Geometry } from "geojson";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -47,19 +48,14 @@ interface GeoJsonFeatureProperties {
   registered_ev?: number;
 }
 
-interface GeoJsonGeometry {
-  type: string;
-  coordinates: number[][][];
-}
-
 interface GeoJsonFeature {
   type: string;
   properties?: GeoJsonFeatureProperties;
-  geometry: GeoJsonGeometry;
+  geometry: Geometry;
 }
 
 interface GeoJsonData {
-  type: string;
+  type: "FeatureCollection";
   features: GeoJsonFeature[];
 }
 
@@ -173,8 +169,8 @@ const DemandOverlay = ({
 }) => {
   if (!show || !geoJsonData) return null;
 
-  const getFeatureStyle = (feature: GeoJsonFeature): PathOptions => {
-    const chargingDemand = feature.properties?.charging_demand;
+  const getFeatureStyle = (feature?: Feature<Geometry, GeoJsonFeatureProperties>): PathOptions => {
+    const chargingDemand = feature?.properties?.charging_demand;
 
     if (!chargingDemand || chargingDemand === null) {
       // Areas without demand data - completely transparent
@@ -208,7 +204,7 @@ const DemandOverlay = ({
     };
   };
 
-  const onEachFeature = (feature: GeoJsonFeature, layer: L.Layer) => {
+  const onEachFeature = (feature: Feature<Geometry, GeoJsonFeatureProperties>, layer: L.Layer) => {
     const areaName = feature.properties?.display_name ?? "Unknown Area";
     const chargingDemand = feature.properties?.charging_demand;
     const registeredEv = feature.properties?.registered_ev;
@@ -715,7 +711,7 @@ export const EVDashboard = () => {
     if (!geoJsonData || !geoJsonData.features) return [];
     const areaNames = geoJsonData.features
       .map((f: GeoJsonFeature) => f.properties?.display_name)
-      .filter(Boolean);
+      .filter((name): name is string => Boolean(name));
     return [...new Set(areaNames)].toSorted();
   }, [geoJsonData]);
 
@@ -845,7 +841,7 @@ export const EVDashboard = () => {
 
         {/* Demand overlay with filter */}
         <DemandOverlay
-          geoJsonData={geoJsonData}
+          geoJsonData={geoJsonData ?? null}
           demandData={demandDataMap}
           show={true}
           maxDemand={maxDemand}

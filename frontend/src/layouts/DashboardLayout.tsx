@@ -259,15 +259,18 @@ export const DashboardLayout = () => {
 
         {/* Nav items */}
         {navItems.map((item) => (
-          <Tooltip key={item.view} title={item.label} placement="right" arrow>
+          <Tooltip key={item.view ?? item.label} title={item.label} placement="right" arrow>
             <IconButton
-              onClick={() => setActiveView(item.view)}
+              onClick={() => {
+                if (item.view) setActiveView(item.view);
+                else if ("path" in item && item.path) navigate(item.path);
+              }}
               sx={{
                 width: 40,
                 height: 40,
                 borderRadius: "10px",
-                color: isActive(item.view) ? "primary.main" : "text.secondary",
-                bgcolor: isActive(item.view)
+                color: item.view && isActive(item.view) ? "primary.main" : "text.secondary",
+                bgcolor: item.view && isActive(item.view)
                   ? (t) =>
                       t.palette.mode === "dark"
                         ? "rgba(96, 165, 250, 0.12)"
