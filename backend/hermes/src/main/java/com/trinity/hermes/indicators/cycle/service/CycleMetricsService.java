@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.cycle.service;
 
+import com.trinity.hermes.indicators.cycle.dto.CoverageGapDTO;
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRiskScoreDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class CycleMetricsService {
 
   private final DublinBikesStationRepository stationRepository;
   private final DublinBikesSnapshotRepository snapshotRepository;
+  private final JdbcTemplate jdbcTemplate;
 
   // -------------------------------------------------------------------------
   // Live Station Data
@@ -167,12 +170,29 @@ public class CycleMetricsService {
     return rows.stream().map(this::mapToStationRiskScoreDTO).collect(Collectors.toList());
   }
 
-  // Fleet
+  // -------------------------------------------------------------------------
+  // Coverage Gap Analysis
   // -------------------------------------------------------------------------
 
   @Transactional(readOnly = true)
-  public List<DublinBikesStation> getAllStations() {
-    return stationRepository.findAll();
+  public List<CoverageGapDTO> getCoverageGaps() {
+    log.debug("Fetching coverage gap analysis");
+    List<Object[]> rows = snapshotRepository.findCoverageGaps();
+    return rows.stream().map(this::mapToCoverageGapDTO).collect(Collectors.toList());
+  }
+
+  @Transactional
+  public boolean processGap(String electoralDivision) {
+    log.info("Marking coverage gap as processed: {}", electoralDivision);
+    int updated = jdbcTemplate.update(
+        """
+        UPDATE backend.cycle_coverage_gaps
+           SET processed_for_implementation = TRUE,
+               processed_at = NOW()
+         WHERE electoral_division = ? AND processed_for_implementation = FALSE
+        """,
+        electoralDivision);
+    return updated > 0;
   }
 
   // -------------------------------------------------------------------------
@@ -269,6 +289,24 @@ public class CycleMetricsService {
     dto.setName((String) row[1]);
     dto.setHourOfDay(toIntOrDefault(row[2], 0));
     dto.setAvgTurnover(toDoubleOrDefault(row[3], 0.0));
+    return dto;
+  }
+
+  private CoverageGapDTO mapToCoverageGapDTO(Object[] row) {
+    CoverageGapDTO dto = new CoverageGapDTO();
+    dto.setElectoralDivision((String) row[0]);
+    dto.setFlatApartmentCount(toIntOrDefault(row[1], 0));
+    dto.setHouseBungalowCount(toIntOrDefault(row[2], 0));
+    dto.setTotalDwellings(toIntOrDefault(row[3], 0));
+    dto.setCentroidLat(toDoubleOrDefault(row[4], 0.0));
+    dto.setCentroidLon(toDoubleOrDefault(row[5], 0.0));
+    dto.setMinDistanceM(row[6] != null ? toDouble(row[6]) : null);
+    dto.setCoverageCategory((String) row[7]);
+    dto.setPriorityScore(toIntOrDefault(row[8], 0));
+    dto.setComputedAt(toInstant(row[9]));
+    dto.setProcessedForImplementation(row[10] != null && (Boolean) row[10]);
+    dto.setProcessedAt(row[11] != null ? toInstant(row[11]) : null);
+    dto.setGeomGeoJson(row[12] != null ? (String) row[12] : null);
     return dto;
   }
 
