@@ -464,8 +464,7 @@ export const TramDashboard = () => {
                       key={i}
                       sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}
                     >
-                      → {f.destination}:{" "}
-                      <strong>{f.dueMins ?? "—"} min</strong>{" "}
+                      → {f.destination}: <strong>{f.dueMins ?? "—"} min</strong>{" "}
                       <span style={{ color: "#8b949e" }}>({f.direction})</span>
                     </Typography>
                   ))}
@@ -1345,17 +1344,14 @@ export const TramDashboard = () => {
                     </ListItemButton>
                   );
                 })}
-              {activeTab === "history" &&
-                filteredCommonDelays.length === 0 && (
-                  <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                    <HistoryIcon
-                      sx={{ fontSize: 32, color: "#30363d", mb: 1 }}
-                    />
-                    <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
-                      No delay history recorded yet
-                    </Typography>
-                  </Box>
-                )}
+              {activeTab === "history" && filteredCommonDelays.length === 0 && (
+                <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
+                  <HistoryIcon sx={{ fontSize: 32, color: "#30363d", mb: 1 }} />
+                  <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
+                    No delay history recorded yet
+                  </Typography>
+                </Box>
+              )}
             </Box>
           )}
 
