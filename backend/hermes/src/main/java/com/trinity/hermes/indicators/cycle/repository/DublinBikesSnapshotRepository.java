@@ -456,6 +456,38 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   List<Object[]> findODPairs(@Param("days") int days, @Param("limitVal") int limit);
 
   /**
+   * Reads pre-computed coverage gaps from backend.cycle_coverage_gaps. Unprocessed high-priority
+   * gaps appear first.
+   *
+   * <p>Returns Object[] rows: electoral_division (0), flat_apartment_count (1),
+   * house_bungalow_count (2), total_dwellings (3), centroid_lat (4), centroid_lon (5),
+   * min_distance_m (6), coverage_category (7), priority_score (8), computed_at (9),
+   * processed_for_implementation (10), processed_at (11), geom_geojson (12)
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              electoral_division,
+              flat_apartment_count,
+              house_bungalow_count,
+              total_dwellings,
+              centroid_lat,
+              centroid_lon,
+              min_distance_m,
+              coverage_category,
+              priority_score,
+              computed_at,
+              processed_for_implementation,
+              processed_at,
+              geom_geojson
+          FROM backend.cycle_coverage_gaps
+          ORDER BY processed_for_implementation ASC, priority_score DESC
+          """,
+      nativeQuery = true)
+  List<Object[]> findCoverageGaps();
+
+  /**
    * Latest ML risk scores for all stations joined with station metadata. Returns Object[] rows
    * with columns: station_id, name, latitude, longitude, empty_risk_2h, full_risk_2h, scored_at,
    * model_trained_at
