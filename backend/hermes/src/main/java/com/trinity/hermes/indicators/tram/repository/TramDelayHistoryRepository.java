@@ -7,8 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface TramDelayHistoryRepository
-    extends JpaRepository<TramDelayHistoryEntry, Integer> {
+public interface TramDelayHistoryRepository extends JpaRepository<TramDelayHistoryEntry, Integer> {
 
   @Query(
       value =

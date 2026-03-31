@@ -93,7 +93,8 @@ public class TramDashboardService {
 
     // Build per-stop trip counts for passenger estimation
     Map<String, int[]> stopDirectionTrips = countTripsAtHourByDirection(currentHour, nameToGtfsIds);
-    Map<String, Integer> lineTotalTrips = countLineTotalTripsAtHour(currentHour, luasStopsById, nameToGtfsIds);
+    Map<String, Integer> lineTotalTrips =
+        countLineTotalTripsAtHour(currentHour, luasStopsById, nameToGtfsIds);
 
     // Group forecasts by stop+direction, keep soonest
     Map<String, TramLuasForecast> soonestPerStopDirection = new HashMap<>();
@@ -131,8 +132,7 @@ public class TramDashboardService {
         continue;
       }
 
-      int delayMins =
-          (int) java.time.Duration.between(nextScheduled, predictedArrival).toMinutes();
+      int delayMins = (int) java.time.Duration.between(nextScheduled, predictedArrival).toMinutes();
       if (delayMins <= 0) {
         continue;
       }
@@ -347,9 +347,7 @@ public class TramDashboardService {
   }
 
   private Map<String, Integer> countLineTotalTripsAtHour(
-      int hour,
-      Map<String, TramStop> luasStopsById,
-      Map<String, List<String>> nameToGtfsIds) {
+      int hour, Map<String, TramStop> luasStopsById, Map<String, List<String>> nameToGtfsIds) {
 
     // Map GTFS stop IDs to line name
     Map<String, String> gtfsStopToLine = new HashMap<>();
