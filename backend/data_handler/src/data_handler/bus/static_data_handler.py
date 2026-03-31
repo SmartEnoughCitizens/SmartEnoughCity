@@ -21,6 +21,7 @@ from data_handler.db import SessionLocal
 logger = logging.getLogger(__name__)
 
 _CHUNKED_FILES = {"shapes.txt", "stop_times.txt", "trips.txt", "stops.txt"}
+_CHUNK_SIZE = 9_000
 
 
 def parse_agency_row(row: dict[str, str]) -> dict[str, object]:
@@ -292,7 +293,7 @@ def process_bus_static_data(gtfs_dir: Path) -> None:
                 _execute_batch(session, model, rows, conflict_target, update_cols)
 
         session.commit()
-        logger.info("Successfully processed static bus data.")
+        logger.info("Static bus data import complete.")
 
     except Exception:
         session.rollback()

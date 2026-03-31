@@ -9,3 +9,4 @@ export * from "./useODRoutes";
 export * from "./useRecommendation";
 export * from "./useTrafficRecommendations";
 export * from "./useUserManagement";
+export * from "./useEv";

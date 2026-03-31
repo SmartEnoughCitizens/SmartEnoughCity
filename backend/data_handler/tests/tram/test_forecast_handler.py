@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from data_handler.tram.forecast_handler import (
     fetch_forecast_for_stop,
     fetch_luas_stops,
-    luas_forecasts_to_db,
-    luas_stops_to_db,
+    process_tram_live_data,
+    process_tram_stop_info,
 )
 from data_handler.tram.models import TramLuasStop
 from tests.utils import assert_row_count, assert_rows
@@ -177,11 +177,11 @@ class TestFetchForecastForStop:
             fetch_forecast_for_stop("STG")
 
 
-# ── luas_stops_to_db integration tests ───────────────────────────────
+# ── process_tram_stop_info integration tests ───────────────────────────────
 
 
 class TestLuasStopsToDb:
-    """Integration tests for luas_stops_to_db (mocked API, real DB)."""
+    """Integration tests for process_tram_stop_info (mocked API, real DB)."""
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_inserts_stops_for_both_lines(
@@ -197,7 +197,7 @@ class TestLuasStopsToDb:
 
         assert_row_count(db_session, "tram_luas_stops", 0)
 
-        luas_stops_to_db()
+        process_tram_stop_info()
 
         assert_rows(
             db_session,
@@ -248,19 +248,19 @@ class TestLuasStopsToDb:
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        luas_stops_to_db()
+        process_tram_stop_info()
         assert_row_count(db_session, "tram_luas_stops", 3)
 
         # Run again — should still be 3 (upsert)
-        luas_stops_to_db()
+        process_tram_stop_info()
         assert_row_count(db_session, "tram_luas_stops", 3)
 
 
-# ── luas_forecasts_to_db integration tests ───────────────────────────
+# ── process_tram_live_data integration tests ───────────────────────────
 
 
 class TestLuasForecastsToDb:
-    """Integration tests for luas_forecasts_to_db (mocked API, real DB)."""
+    """Integration tests for process_tram_live_data (mocked API, real DB)."""
 
     @patch("data_handler.tram.forecast_handler.requests.get")
     def test_inserts_forecasts_for_all_stops(
@@ -310,7 +310,7 @@ class TestLuasForecastsToDb:
 
         assert_row_count(db_session, "tram_luas_forecasts", 0)
 
-        luas_forecasts_to_db()
+        process_tram_live_data()
 
         # STG has 3 forecast entries, HAR has 0
         assert_row_count(db_session, "tram_luas_forecasts", 3)
@@ -343,10 +343,10 @@ class TestLuasForecastsToDb:
         mock_get.return_value = mock_response
 
         # Insert forecasts twice
-        luas_forecasts_to_db()
+        process_tram_live_data()
         assert_row_count(db_session, "tram_luas_forecasts", 3)
 
-        luas_forecasts_to_db()
+        process_tram_live_data()
         # Should still be 3 — old ones deleted, new ones inserted
         assert_row_count(db_session, "tram_luas_forecasts", 3)
 
@@ -357,7 +357,7 @@ class TestLuasForecastsToDb:
         db_session: Session,
     ) -> None:
         """When no stops exist in DB, function returns without calling API."""
-        luas_forecasts_to_db()
+        process_tram_live_data()
 
         mock_get.assert_not_called()
         assert_row_count(db_session, "tram_luas_forecasts", 0)
