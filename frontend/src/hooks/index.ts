@@ -4,6 +4,7 @@
 
 export * from "./useAuth";
 export * from "./useDashboard";
+export * from "./useEv";
 export * from "./useNotifications";
 export * from "./useODRoutes";
 export * from "./useRecommendation";

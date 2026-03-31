@@ -46,6 +46,11 @@ export const API_ENDPOINTS = {
   CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
   CAR_TRAFFIC_RECOMMENDATIONS: "/api/v1/car/traffic-recommendations",
 
+  // EV Charging Indicators
+  EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",
+  EV_CHARGING_DEMAND: "/api/v1/ev/charging-demand",
+  EV_AREAS_GEOJSON: "/api/v1/ev/areas-geojson",
+
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
   BUS_LIVE_VEHICLES: "/api/v1/bus/live-vehicles",
