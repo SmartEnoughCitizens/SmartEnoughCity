@@ -236,7 +236,7 @@ public class NotificationFacadeTest {
       verify(notificationService).createNotification(any(User.class), captor.capture());
 
       BackendNotificationRequestDTO captured = captor.getValue();
-      assertEquals("uuid-bus-1", captured.getUserId());
+      assertEquals("bus-provider-1", captured.getUserId());
       assertEquals("bus-provider-1", captured.getUserName());
       assertEquals("bus", captured.getDataIndicator());
       assertEquals("Test subject", captured.getSubject());
