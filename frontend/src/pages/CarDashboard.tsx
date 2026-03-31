@@ -28,6 +28,9 @@ import {
   useCarFuelTypeStatistics,
   useCarHighTrafficPoints,
   useCarJunctionEmissions,
+  useEvChargingStations,
+  useEvChargingDemand,
+  useEvAreasGeoJson,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import { EVDashboard } from "./EVDashboard";
@@ -125,8 +128,14 @@ export const CarDashboard = () => {
     });
   };
 
+  // Prefetch on mount; only used visually when mapMode === "pollution"
   const { data: emissionPoints, isLoading: emissionsLoading } =
-    useCarJunctionEmissions(mapMode === "pollution");
+    useCarJunctionEmissions();
+
+  // Prefetch EV data on mount so the EV tab opens instantly
+  useEvChargingStations();
+  useEvChargingDemand();
+  useEvAreasGeoJson();
 
   // --- Traffic mode ---
   const filteredPoints = trafficPoints?.filter(

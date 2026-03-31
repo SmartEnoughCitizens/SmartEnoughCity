@@ -36,13 +36,6 @@ def get_areas_geojson() -> dict:
     """Return a GeoJSON FeatureCollection of Dublin electoral divisions with charging demand data."""
     with _get_db() as conn, conn.cursor() as cur:
         cur.execute(
-<<<<<<< Updated upstream
-            "SELECT electoral_division, charging_demand, registered_ev"
-            " FROM external_data.ev_charging_demand"
-        )
-
-    demand_lookup: dict = {}
-=======
             "SELECT ed_english, county_english,"
             "       ST_AsGeoJSON(geom)::json AS geometry"
             " FROM external_data.ev_electoral_divisions"
@@ -57,16 +50,12 @@ def get_areas_geojson() -> dict:
 
     demand_lookup: dict = {}
     for electoral_division, charging_demand, registered_ev in demand_rows:
->>>>>>> Stashed changes
         division = str(electoral_division).split(",", maxsplit=1)[0].strip()
         demand_lookup[_normalize(division)] = {
             "charging_demand": charging_demand,
             "registered_ev": registered_ev,
         }
 
-<<<<<<< Updated upstream
-
-=======
     features = []
     for ed_english, county_english, geometry in division_rows:
         data = demand_lookup.get(_normalize(ed_english), {})
@@ -83,18 +72,10 @@ def get_areas_geojson() -> dict:
         })
 
     return {"type": "FeatureCollection", "features": features}
->>>>>>> Stashed changes
 
 
 def get_charging_stations() -> dict:
     """Return all Dublin EV charging stations with location and charger count."""
-<<<<<<< Updated upstream
-    )
-
-    stations = [
-        {
-        }
-=======
     with _get_db() as conn, conn.cursor() as cur:
         cur.execute(
             "SELECT address, county, lat, lon, charger_count, is_24_7"
@@ -112,7 +93,6 @@ def get_charging_stations() -> dict:
             "open_hours": "24 x 7" if is_24_7 else "See station for hours",
         }
         for address, county, lat, lon, charger_count, is_24_7 in rows
->>>>>>> Stashed changes
     ]
 
     return {"total_stations": len(stations), "stations": stations}
