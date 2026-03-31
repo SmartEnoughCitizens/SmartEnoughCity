@@ -19,6 +19,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class TrafficRecommendationService {
 
   private static final int MAX_RECOMMENDATIONS = 4;
+  private static final DecisionTreeNode CRITICAL_NODE =
+      new DecisionTreeNode(0.85, "critical", 0.68, 0.27, 4.0, 8.0, 0.97, null);
+  private static final DecisionTreeNode HIGH_NODE =
+      new DecisionTreeNode(0.65, "high", 0.68, 0.27, 4.0, 8.0, 0.97, CRITICAL_NODE);
+  private static final DecisionTreeNode ROOT_NODE =
+      new DecisionTreeNode(
+          Double.NEGATIVE_INFINITY, "elevated", 0.68, 0.27, 4.0, 8.0, 0.97, HIGH_NODE);
 
   private final HighTrafficPointsService highTrafficPointsService;
 
@@ -50,9 +57,7 @@ public class TrafficRecommendationService {
   private TrafficRecommendation buildRecommendation(HighTrafficPointsDTO point, double maxVolume) {
     double volume = point.getAvgVolume() == null ? 0.0 : point.getAvgVolume();
     double ratio = maxVolume <= 0 ? 0.0 : volume / maxVolume;
-    String congestionLevel = classifyCongestion(ratio);
-    double confidenceScore = Math.min(0.97, 0.68 + ratio * 0.27);
-    int baseTimeSavings = Math.max(4, (int) Math.round(4 + ratio * 8));
+    DecisionTreeOutcome outcome = evaluateDecisionTree(ratio);
 
     return TrafficRecommendation.builder()
         .recommendationId(
@@ -65,15 +70,15 @@ public class TrafficRecommendationService {
         .summary(
             String.format(
                 "%s congestion detected during %s. Redirect through lower-pressure parallel links to reduce queue build-up.",
-                capitalize(congestionLevel), humanize(point.getTimeSlot())))
+                capitalize(outcome.congestionLevel()), humanize(point.getTimeSlot())))
         .dayType(point.getDayType())
         .timeSlot(point.getTimeSlot())
         .averageVolume(volume)
-        .congestionLevel(congestionLevel)
-        .confidenceScore(Math.round(confidenceScore * 100.0) / 100.0)
-        .recommendedAction(buildRecommendedAction(point, congestionLevel))
+        .congestionLevel(outcome.congestionLevel())
+        .confidenceScore(outcome.confidenceScore())
+        .recommendedAction(buildRecommendedAction(point, outcome.congestionLevel()))
         .generatedAt(OffsetDateTime.now(ZoneOffset.UTC).toString())
-        .alternativeRoutes(buildAlternativeRoutes(point, baseTimeSavings))
+        .alternativeRoutes(buildAlternativeRoutes(point, outcome.baseTimeSavings()))
         .build();
   }
 
@@ -125,14 +130,22 @@ public class TrafficRecommendationService {
     return TrafficRecommendation.RouteWaypoint.builder().lat(lat).lon(lon).build();
   }
 
-  private String classifyCongestion(double ratio) {
-    if (ratio >= 0.85) {
-      return "critical";
-    }
-    if (ratio >= 0.65) {
-      return "high";
-    }
-    return "elevated";
+  private DecisionTreeOutcome evaluateDecisionTree(double ratio) {
+    DecisionTreeNode matchedNode = ROOT_NODE.evaluate(ratio);
+    double rawConfidenceScore =
+        Math.min(
+            matchedNode.maxConfidenceScore(),
+            matchedNode.confidenceBase() + ratio * matchedNode.confidenceScale());
+    int baseTimeSavings =
+        Math.max(
+            (int) Math.round(matchedNode.minTimeSavings()),
+            (int)
+                Math.round(matchedNode.timeSavingsBase() + ratio * matchedNode.timeSavingsScale()));
+
+    return new DecisionTreeOutcome(
+        matchedNode.congestionLevel(),
+        Math.round(rawConfidenceScore * 100.0) / 100.0,
+        baseTimeSavings);
   }
 
   private String buildRecommendedAction(HighTrafficPointsDTO point, String congestionLevel) {
@@ -153,5 +166,30 @@ public class TrafficRecommendationService {
       return "";
     }
     return value.replace('_', ' ');
+  }
+
+  private record DecisionTreeOutcome(
+      String congestionLevel, double confidenceScore, int baseTimeSavings) {}
+
+  private record DecisionTreeNode(
+      double threshold,
+      String congestionLevel,
+      double confidenceBase,
+      double confidenceScale,
+      double timeSavingsBase,
+      double timeSavingsScale,
+      double maxConfidenceScore,
+      DecisionTreeNode next) {
+
+    private DecisionTreeNode evaluate(double ratio) {
+      if (next != null && ratio >= next.threshold()) {
+        return next.evaluate(ratio);
+      }
+      return this;
+    }
+
+    private double minTimeSavings() {
+      return timeSavingsBase;
+    }
   }
 }
