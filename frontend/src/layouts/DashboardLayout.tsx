@@ -90,13 +90,15 @@ export const DashboardLayout = () => {
   };
 
   // Default view: first view the user is allowed to see
-  const defaultView = (
-    Object.keys(canSeeView) as DashboardView[]
-  ).find((v) => canSeeView[v]) ?? "notifications";
+  const defaultView =
+    (Object.keys(canSeeView) as DashboardView[]).find((v) => canSeeView[v]) ??
+    "notifications";
 
   // State to track active dashboard view with persistence
   const [activeView, setActiveView] = useState<DashboardView>(() => {
-    const saved = localStorage.getItem("activeDashboardView") as DashboardView | null;
+    const saved = localStorage.getItem(
+      "activeDashboardView",
+    ) as DashboardView | null;
     // Discard saved view if the user no longer has access (e.g. role change)
     if (saved && canSeeView[saved]) return saved;
     return defaultView;

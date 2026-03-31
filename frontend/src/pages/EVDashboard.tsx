@@ -250,7 +250,7 @@ const DemandOverlay = ({
 
   return (
     <GeoJSON
-      key={`geojson-${show}`}
+      key={`geojson-${demandFilter.join(",")}`}
       data={geoJsonData}
       style={getFeatureStyle}
       onEachFeature={onEachFeature}
