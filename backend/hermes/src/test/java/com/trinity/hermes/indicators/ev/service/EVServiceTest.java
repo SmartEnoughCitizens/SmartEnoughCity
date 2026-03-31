@@ -42,7 +42,8 @@ class EVServiceTest {
     expected.setTotalStations(1);
     expected.setStations(List.of(station));
 
-    when(restTemplate.getForObject(BASE_URL + "/ev/charging-stations", EVChargingStationsResponseDTO.class))
+    when(restTemplate.getForObject(
+            BASE_URL + "/ev/charging-stations", EVChargingStationsResponseDTO.class))
         .thenReturn(expected);
 
     EVChargingStationsResponseDTO result = evService.getChargingStations();
@@ -54,7 +55,8 @@ class EVServiceTest {
 
   @Test
   void getChargingStations_whenInferenceEngineReturnsNull_returnsNull() {
-    when(restTemplate.getForObject(BASE_URL + "/ev/charging-stations", EVChargingStationsResponseDTO.class))
+    when(restTemplate.getForObject(
+            BASE_URL + "/ev/charging-stations", EVChargingStationsResponseDTO.class))
         .thenReturn(null);
 
     EVChargingStationsResponseDTO result = evService.getChargingStations();
@@ -74,7 +76,8 @@ class EVServiceTest {
     expected.setHighPriorityAreas(List.of());
     expected.setAreas(List.of(area));
 
-    when(restTemplate.getForObject(BASE_URL + "/ev/charging-demand", EVChargingDemandResponseDTO.class))
+    when(restTemplate.getForObject(
+            BASE_URL + "/ev/charging-demand", EVChargingDemandResponseDTO.class))
         .thenReturn(expected);
 
     EVChargingDemandResponseDTO result = evService.getChargingDemand();
@@ -86,7 +89,8 @@ class EVServiceTest {
 
   @Test
   void getChargingDemand_whenInferenceEngineReturnsNull_returnsNull() {
-    when(restTemplate.getForObject(BASE_URL + "/ev/charging-demand", EVChargingDemandResponseDTO.class))
+    when(restTemplate.getForObject(
+            BASE_URL + "/ev/charging-demand", EVChargingDemandResponseDTO.class))
         .thenReturn(null);
 
     EVChargingDemandResponseDTO result = evService.getChargingDemand();
@@ -96,11 +100,9 @@ class EVServiceTest {
 
   @Test
   void getAreasGeoJson_returnsMapFromInferenceEngine() {
-    Map<String, Object> expected =
-        Map.of("type", "FeatureCollection", "features", List.of());
+    Map<String, Object> expected = Map.of("type", "FeatureCollection", "features", List.of());
 
-    when(restTemplate.getForObject(BASE_URL + "/ev/areas-geojson", Map.class))
-        .thenReturn(expected);
+    when(restTemplate.getForObject(BASE_URL + "/ev/areas-geojson", Map.class)).thenReturn(expected);
 
     Map<String, Object> result = evService.getAreasGeoJson();
 

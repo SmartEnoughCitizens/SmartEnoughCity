@@ -169,7 +169,8 @@ const DemandOverlay = ({
   if (!show || !geoJsonData) return null;
 
   const getFeatureStyle: GeoJSONOptions["style"] = (feature) => {
-    const chargingDemand = feature?.properties?.charging_demand;
+    const props = feature?.properties as GeoJsonFeatureProperties | null | undefined;
+    const chargingDemand = props?.charging_demand;
 
     if (!chargingDemand || chargingDemand === null) {
       // Areas without demand data - completely transparent
@@ -204,9 +205,10 @@ const DemandOverlay = ({
   };
 
   const onEachFeature: GeoJSONOptions["onEachFeature"] = (feature, layer) => {
-    const areaName = feature.properties?.display_name ?? "Unknown Area";
-    const chargingDemand = feature.properties?.charging_demand;
-    const registeredEv = feature.properties?.registered_ev;
+    const props = feature.properties as GeoJsonFeatureProperties | null | undefined;
+    const areaName = props?.display_name ?? "Unknown Area";
+    const chargingDemand = props?.charging_demand;
+    const registeredEv = props?.registered_ev;
 
     if (chargingDemand && chargingDemand !== null) {
       // Show popup on hover
@@ -710,7 +712,7 @@ export const EVDashboard = () => {
     if (!geoJsonData || !geoJsonData.features) return [];
     const areaNames = geoJsonData.features
       .map((f: GeoJsonFeature) => f.properties?.display_name)
-      .filter((name): name is string => Boolean(name));
+      .filter((name): name is string => name !== undefined);
     return [...new Set(areaNames)].toSorted();
   }, [geoJsonData]);
 
