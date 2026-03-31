@@ -26,7 +26,12 @@ public class EVController {
   public ResponseEntity<EVChargingStationsResponseDTO> getChargingStations() {
     log.info("Fetching EV charging stations");
     try {
-      return ResponseEntity.ok(evService.getChargingStations());
+      EVChargingStationsResponseDTO result = evService.getChargingStations();
+      if (result == null) {
+        log.error("Inference engine returned null for charging stations");
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+      }
+      return ResponseEntity.ok(result);
     } catch (Exception e) {
       log.error("Failed to fetch EV charging stations", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -37,7 +42,12 @@ public class EVController {
   public ResponseEntity<EVChargingDemandResponseDTO> getChargingDemand() {
     log.info("Fetching EV charging demand data");
     try {
-      return ResponseEntity.ok(evService.getChargingDemand());
+      EVChargingDemandResponseDTO result = evService.getChargingDemand();
+      if (result == null) {
+        log.error("Inference engine returned null for charging demand");
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+      }
+      return ResponseEntity.ok(result);
     } catch (Exception e) {
       log.error("Failed to fetch EV charging demand data", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -48,7 +58,12 @@ public class EVController {
   public ResponseEntity<Map<String, Object>> getAreasGeoJson() {
     log.info("Fetching EV areas GeoJSON");
     try {
-      return ResponseEntity.ok(evService.getAreasGeoJson());
+      Map<String, Object> result = evService.getAreasGeoJson();
+      if (result == null) {
+        log.error("Inference engine returned null for areas GeoJSON");
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+      }
+      return ResponseEntity.ok(result);
     } catch (Exception e) {
       log.error("Failed to fetch EV areas GeoJSON", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

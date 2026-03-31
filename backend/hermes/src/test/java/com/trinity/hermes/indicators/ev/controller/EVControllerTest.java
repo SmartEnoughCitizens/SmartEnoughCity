@@ -55,6 +55,13 @@ class EVControllerTest {
   }
 
   @Test
+  void getChargingStations_whenServiceReturnsNull_returnsBadGateway() throws Exception {
+    when(evService.getChargingStations()).thenReturn(null);
+
+    mockMvc.perform(get("/api/v1/ev/charging-stations")).andExpect(status().isBadGateway());
+  }
+
+  @Test
   void getChargingStations_whenServiceThrows_returnsInternalServerError() throws Exception {
     when(evService.getChargingStations()).thenThrow(new RuntimeException("Inference engine down"));
 
@@ -89,6 +96,13 @@ class EVControllerTest {
   }
 
   @Test
+  void getChargingDemand_whenServiceReturnsNull_returnsBadGateway() throws Exception {
+    when(evService.getChargingDemand()).thenReturn(null);
+
+    mockMvc.perform(get("/api/v1/ev/charging-demand")).andExpect(status().isBadGateway());
+  }
+
+  @Test
   void getChargingDemand_whenServiceThrows_returnsInternalServerError() throws Exception {
     when(evService.getChargingDemand()).thenThrow(new RuntimeException("Inference engine down"));
 
@@ -105,6 +119,13 @@ class EVControllerTest {
         .perform(get("/api/v1/ev/areas-geojson"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.type").value("FeatureCollection"));
+  }
+
+  @Test
+  void getAreasGeoJson_whenServiceReturnsNull_returnsBadGateway() throws Exception {
+    when(evService.getAreasGeoJson()).thenReturn(null);
+
+    mockMvc.perform(get("/api/v1/ev/areas-geojson")).andExpect(status().isBadGateway());
   }
 
   @Test
