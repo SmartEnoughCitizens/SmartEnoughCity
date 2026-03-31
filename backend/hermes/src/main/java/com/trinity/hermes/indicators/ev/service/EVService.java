@@ -17,7 +17,7 @@ public class EVService {
 
   public EVService(
       RestTemplate restTemplate,
-      @Value("${inference-engine.base-url}") String inferenceEngineBaseUrl) {
+      @Value("${inference-engine.base-url:http://localhost:8000}") String inferenceEngineBaseUrl) {
     this.restTemplate = restTemplate;
     this.inferenceEngineBaseUrl = inferenceEngineBaseUrl;
   }

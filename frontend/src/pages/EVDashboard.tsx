@@ -35,8 +35,7 @@ import {
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import type { EvAreaDemand } from "@/types";
-import type { PathOptions } from "leaflet";
-import type { Feature, Geometry } from "geojson";
+import type { PathOptions, GeoJSONOptions } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -51,7 +50,7 @@ interface GeoJsonFeatureProperties {
 interface GeoJsonFeature {
   type: string;
   properties?: GeoJsonFeatureProperties;
-  geometry: Geometry;
+  geometry: { type: string; coordinates: unknown };
 }
 
 interface GeoJsonData {
@@ -169,7 +168,7 @@ const DemandOverlay = ({
 }) => {
   if (!show || !geoJsonData) return null;
 
-  const getFeatureStyle = (feature?: Feature<Geometry, GeoJsonFeatureProperties>): PathOptions => {
+  const getFeatureStyle: GeoJSONOptions["style"] = (feature) => {
     const chargingDemand = feature?.properties?.charging_demand;
 
     if (!chargingDemand || chargingDemand === null) {
@@ -204,7 +203,7 @@ const DemandOverlay = ({
     };
   };
 
-  const onEachFeature = (feature: Feature<Geometry, GeoJsonFeatureProperties>, layer: L.Layer) => {
+  const onEachFeature: GeoJSONOptions["onEachFeature"] = (feature, layer) => {
     const areaName = feature.properties?.display_name ?? "Unknown Area";
     const chargingDemand = feature.properties?.charging_demand;
     const registeredEv = feature.properties?.registered_ev;
