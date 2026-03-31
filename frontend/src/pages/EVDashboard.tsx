@@ -34,7 +34,6 @@ import {
   useEvAreasGeoJson,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
-import type { EvAreaDemand } from "@/types";
 import type { PathOptions, GeoJSONOptions } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -155,13 +154,11 @@ const getDemandLevel = (demand: number, max: number): string => {
 
 const DemandOverlay = ({
   geoJsonData,
-  demandData,
   show,
   maxDemand,
   demandFilter,
 }: {
   geoJsonData: GeoJsonData | null;
-  demandData: Record<string, EvAreaDemand>;
   show: boolean;
   maxDemand: number;
   demandFilter: string[];
@@ -250,15 +247,6 @@ const DemandOverlay = ({
       // No demand data - no popup
     }
   };
-
-  // Debug: log if data exists
-  console.log("DemandOverlay rendering:", {
-    show,
-    hasData: !!geoJsonData,
-    featuresCount: geoJsonData?.features?.length || 0,
-    maxDemand,
-    demandDataKeys: Object.keys(demandData).length,
-  });
 
   return (
     <GeoJSON
@@ -756,9 +744,15 @@ export const EVDashboard = () => {
         (f: GeoJsonFeature) => f.properties?.display_name === areaName,
       );
 
-      if (areaFeature && areaFeature.geometry.type === "Polygon") {
-        // Calculate center of polygon (simple average of all coordinates)
-        const coords = areaFeature.geometry.coordinates[0];
+      if (areaFeature) {
+        // Support both Polygon and MultiPolygon — use the first ring in either case
+        const geomType = areaFeature.geometry.type as string;
+        const rawCoords = areaFeature.geometry.coordinates as unknown;
+        const ring: number[][] =
+          geomType === "MultiPolygon"
+            ? (rawCoords as number[][][][])[0][0]
+            : (rawCoords as number[][][])[0];
+        const coords = ring;
         const avgLng =
           coords.reduce((sum: number, c: number[]) => sum + c[0], 0) /
           coords.length;
@@ -802,15 +796,6 @@ export const EVDashboard = () => {
   //   );
   // }, [allStations, searchQuery]);
 
-  // Create a map of area name to demand data for quick lookup
-  const demandDataMap = useMemo(() => {
-    const map: Record<string, EvAreaDemand> = {};
-    for (const area of demandAreas) {
-      map[area.area] = area;
-    }
-    return map;
-  }, [demandAreas]);
-
   const maxDemand =
     demandAreas.length > 0
       ? Math.max(...demandAreas.map((area) => area.charging_demand))
@@ -849,7 +834,6 @@ export const EVDashboard = () => {
         {/* Demand overlay with filter */}
         <DemandOverlay
           geoJsonData={geoJsonData ?? null}
-          demandData={demandDataMap}
           show={true}
           maxDemand={maxDemand}
           demandFilter={demandFilter}

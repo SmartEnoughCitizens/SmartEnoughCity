@@ -33,15 +33,16 @@ export interface EvChargingDemandResponse {
 
 export interface EvAreaGeoJsonFeature {
   type: "Feature";
-  id: number;
   geometry: {
-    type: "Polygon";
-    coordinates: number[][][];
+    type: "Polygon" | "MultiPolygon";
+    coordinates: number[][][] | number[][][][];
   };
   properties: {
-    area_name: string;
-    registered_evs?: number;
+    ED_ENGLISH: string;
+    COUNTY_ENGLISH: string;
+    display_name: string;
     charging_demand?: number;
+    registered_ev?: number;
   };
 }
 

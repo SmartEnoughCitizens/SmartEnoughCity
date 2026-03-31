@@ -79,8 +79,6 @@ export const useCycleData = (limit: number = 100) => {
     queryFn: () => dashboardApi.getCycleData({ limit }),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes cache
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
     retry: 1,
   });
 };
@@ -239,8 +237,6 @@ export const useCarFuelTypeStatistics = () => {
     queryFn: () => dashboardApi.getCarFuelTypeStatistics(),
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
   });
 };
 
@@ -253,23 +249,18 @@ export const useCarHighTrafficPoints = () => {
     queryFn: () => dashboardApi.getCarHighTrafficPoints(),
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
   });
 };
 
 /**
  * Get junction-level CO2 emission estimates
  */
-export const useCarJunctionEmissions = (enabled = true) => {
+export const useCarJunctionEmissions = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carJunctionEmissions,
     queryFn: () => dashboardApi.getCarJunctionEmissions(),
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    enabled,
   });
 };
 
