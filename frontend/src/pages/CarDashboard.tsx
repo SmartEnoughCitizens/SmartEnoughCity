@@ -1,41 +1,37 @@
 /**
- * Car dashboard — displays fuel type statistics, traffic/pollution maps,
- * traffic diversion recommendations, and an EV charging sub-dashboard.
+ * Car dashboard — displays fuel type statistics as tiles and high traffic points on a map
+ * Now includes an EV Charging tab AND pollution mode
  */
 
-import { useMemo, useState, type SyntheticEvent } from "react";
+import { useState } from "react";
 import {
   Box,
-  Chip,
-  CircularProgress,
   Paper,
-  Stack,
-  Tab,
-  Tabs,
+  Typography,
+  CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
+  Chip,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import EvStationIcon from "@mui/icons-material/EvStation";
 import {
-  Circle,
-  CircleMarker,
   MapContainer,
-  Polyline,
-  Popup,
   TileLayer,
+  CircleMarker,
+  Circle,
+  Popup,
 } from "react-leaflet";
 import {
   useCarFuelTypeStatistics,
   useCarHighTrafficPoints,
   useCarJunctionEmissions,
-  useEvAreasGeoJson,
-  useEvChargingDemand,
   useEvChargingStations,
-  useTrafficRecommendations,
+  useEvChargingDemand,
+  useEvAreasGeoJson,
 } from "@/hooks";
-import { TrafficRecommendations } from "@/components/car/TrafficRecommendations";
 import { useAppSelector } from "@/store/hooks";
 import { EVDashboard } from "./EVDashboard";
 import "leaflet/dist/leaflet.css";
@@ -96,9 +92,20 @@ const FuelTypeTile = ({
 
 export const CarDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
-    const savedTab = localStorage.getItem("carDashboardActiveTab");
-    return savedTab ? Number.parseInt(savedTab, 10) : 0;
+    const saved = localStorage.getItem("carDashboardActiveTab");
+    return saved ? Number.parseInt(saved, 10) : 0;
   });
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+    localStorage.setItem("carDashboardActiveTab", newValue.toString());
+  };
+
+  const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
+  const { data: trafficPoints, isLoading: trafficLoading } =
+    useCarHighTrafficPoints();
+  const theme = useAppSelector((state) => state.ui.theme);
+
   const [dayTypeFilter, setDayTypeFilter] = useState<DayTypeFilter>("weekday");
   const [timeSlotFilter, setTimeSlotFilter] =
     useState<TimeSlotFilter>("morning_peak");
@@ -106,39 +113,14 @@ export const CarDashboard = () => {
   const [activeColors, setActiveColors] = useState<Set<ColorBand>>(
     () => new Set(["low", "medium", "high"]),
   );
-  const [selectedRecommendationId, setSelectedRecommendationId] = useState<
-    string | null
-  >(null);
-
-  const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
-  const { data: trafficPoints, isLoading: trafficLoading } =
-    useCarHighTrafficPoints();
-  const { data: emissionPoints, isLoading: emissionsLoading } =
-    useCarJunctionEmissions(mapMode === "pollution" && activeTab === 0);
-  const {
-    data: trafficRecommendations,
-    isLoading: trafficRecommendationsLoading,
-  } = useTrafficRecommendations(mapMode === "traffic" && activeTab === 0);
-
-  useEvChargingStations();
-  useEvChargingDemand();
-  useEvAreasGeoJson();
-
-  const theme = useAppSelector((state) => state.ui.theme);
-
-  const handleTabChange = (_: SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-    localStorage.setItem("carDashboardActiveTab", newValue.toString());
-  };
 
   const toggleColor = (band: ColorBand) => {
     setActiveColors((prev) => {
       const next = new Set(prev);
       if (next.has(band)) {
         next.delete(band);
-        if (next.size === 0) {
-          return new Set(["low", "medium", "high"]);
-        }
+        // if all deselected, reset to all
+        if (next.size === 0) return new Set(["low", "medium", "high"]);
       } else {
         next.add(band);
       }
@@ -146,25 +128,26 @@ export const CarDashboard = () => {
     });
   };
 
-  const selectedRecommendation = useMemo(
-    () =>
-      trafficRecommendations?.find(
-        (recommendation) =>
-          recommendation.recommendationId === selectedRecommendationId,
-      ) ?? trafficRecommendations?.[0],
-    [selectedRecommendationId, trafficRecommendations],
-  );
+  // Prefetch on mount; only used visually when mapMode === "pollution"
+  const { data: emissionPoints, isLoading: emissionsLoading } =
+    useCarJunctionEmissions();
 
+  // Prefetch EV data on mount so the EV tab opens instantly
+  useEvChargingStations();
+  useEvChargingDemand();
+  useEvAreasGeoJson();
+
+  // --- Traffic mode ---
   const filteredPoints = trafficPoints?.filter(
-    (point) =>
-      point.lat != null &&
-      point.lon != null &&
-      point.dayType === dayTypeFilter &&
-      point.timeSlot === timeSlotFilter,
+    (p) =>
+      p.lat != null &&
+      p.lon != null &&
+      p.dayType === dayTypeFilter &&
+      p.timeSlot === timeSlotFilter,
   );
 
   const maxVolume = filteredPoints?.length
-    ? Math.max(...filteredPoints.map((point) => point.avgVolume))
+    ? Math.max(...filteredPoints.map((p) => p.avgVolume))
     : 1;
 
   const getMarkerColor = (volume: number): string => {
@@ -174,19 +157,20 @@ export const CarDashboard = () => {
     return "#16a34a";
   };
 
+  // --- Pollution mode ---
   const filteredEmissions = emissionPoints?.filter(
-    (point) =>
-      point.lat != null &&
-      point.lon != null &&
-      point.dayType === dayTypeFilter &&
-      point.timeSlot === timeSlotFilter,
+    (p) =>
+      p.lat != null &&
+      p.lon != null &&
+      p.dayType === dayTypeFilter &&
+      p.timeSlot === timeSlotFilter,
   );
 
   const maxEmission = filteredEmissions?.length
-    ? Math.max(...filteredEmissions.map((point) => point.totalEmissionG))
+    ? Math.max(...filteredEmissions.map((p) => p.totalEmissionG))
     : 1;
   const minEmission = filteredEmissions?.length
-    ? Math.min(...filteredEmissions.map((point) => point.totalEmissionG))
+    ? Math.min(...filteredEmissions.map((p) => p.totalEmissionG))
     : 0;
 
   const getEmissionColor = (emission: number): string => {
@@ -217,10 +201,12 @@ export const CarDashboard = () => {
   };
 
   const dublinCenter: [number, number] = [53.3498, -6.2603];
+
   const tileUrl =
     theme === "dark"
       ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
       : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
   const tileAttribution =
     theme === "dark"
       ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
@@ -229,10 +215,7 @@ export const CarDashboard = () => {
   if (
     statsLoading ||
     trafficLoading ||
-    (activeTab === 0 && mapMode === "pollution" && emissionsLoading) ||
-    (activeTab === 0 &&
-      mapMode === "traffic" &&
-      trafficRecommendationsLoading)
+    (mapMode === "pollution" && emissionsLoading)
   ) {
     return (
       <Box
@@ -256,6 +239,7 @@ export const CarDashboard = () => {
         height: "100%",
       }}
     >
+      {/* Main Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", px: 3, pt: 2 }}>
         <Tabs
           value={activeTab}
@@ -285,6 +269,7 @@ export const CarDashboard = () => {
         </Tabs>
       </Box>
 
+      {/* Tab Content - Both tabs always mounted for seamless switching */}
       <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
         <Box
           sx={{
@@ -294,13 +279,13 @@ export const CarDashboard = () => {
             display: "flex",
             flexDirection: "column",
             gap: 3,
-            overflowY: "auto",
             visibility: activeTab === 0 ? "visible" : "hidden",
             opacity: activeTab === 0 ? 1 : 0,
             pointerEvents: activeTab === 0 ? "auto" : "none",
             transition: "opacity 0.15s ease-in-out",
           }}
         >
+          {/* Fuel Type Tiles */}
           <Box sx={{ flexShrink: 0 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
               Vehicle Statistics by Fuel Type
@@ -316,6 +301,7 @@ export const CarDashboard = () => {
             </Box>
           </Box>
 
+          {/* Map Section */}
           <Box
             sx={{
               flex: 1,
@@ -350,6 +336,7 @@ export const CarDashboard = () => {
               </ToggleButtonGroup>
             </Box>
 
+            {/* Filters */}
             <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
               <ToggleButtonGroup
                 value={dayTypeFilter}
@@ -374,14 +361,9 @@ export const CarDashboard = () => {
               </ToggleButtonGroup>
             </Box>
 
+            {/* Legend */}
             <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                mb: 1.5,
-                flexWrap: "wrap",
-              }}
+              sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
             >
               <Typography variant="caption" color="text.secondary">
                 Filter by intensity:
@@ -402,215 +384,88 @@ export const CarDashboard = () => {
                   }}
                 />
               ))}
-              {mapMode === "traffic" && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ ml: "auto" }}
-                >
-                  Recommendations refresh every 5 min
-                </Typography>
-              )}
             </Box>
 
-            <Box
+            <Paper
+              elevation={0}
               sx={{
-                display: "grid",
-                gap: 2,
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  xl:
-                    mapMode === "traffic" &&
-                    trafficRecommendations &&
-                    trafficRecommendations.length > 0
-                      ? "340px minmax(0, 1fr)"
-                      : "1fr",
-                },
-                alignItems: "start",
+                borderRadius: 2,
+                overflow: "hidden",
                 flex: 1,
-                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              {mapMode === "traffic" &&
-                trafficRecommendations &&
-                trafficRecommendations.length > 0 && (
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 1.5,
-                      maxHeight: { xl: "72vh" },
-                      overflowY: { xl: "auto" },
-                    }}
-                  >
-                    <Stack spacing={0.5}>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        Traffic Diversion Recommendations
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Select a recommendation to highlight alternative routes
-                        on the map
-                      </Typography>
-                    </Stack>
-                    <TrafficRecommendations
-                      recommendations={trafficRecommendations}
-                      selectedRecommendationId={
-                        selectedRecommendation?.recommendationId ?? null
-                      }
-                      onSelectRecommendation={setSelectedRecommendationId}
-                      compact
-                    />
-                  </Paper>
-                )}
-
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: 2,
-                  overflow: "hidden",
-                  minHeight: { xs: 420, md: 560 },
-                  height: { xl: "72vh" },
-                  display: "flex",
-                  flexDirection: "column",
-                }}
+              <MapContainer
+                center={dublinCenter}
+                zoom={12}
+                style={{ flex: 1, width: "100%", minHeight: 0 }}
+                zoomControl={true}
               >
-                <MapContainer
-                  center={dublinCenter}
-                  zoom={12}
-                  style={{ flex: 1, width: "100%", minHeight: 0 }}
-                  zoomControl={true}
-                >
-                  <TileLayer attribution={tileAttribution} url={tileUrl} />
+                <TileLayer attribution={tileAttribution} url={tileUrl} />
 
-                  {mapMode === "traffic" &&
-                    filteredPoints
-                      ?.filter((point) =>
-                        activeColors.has(getVolumeBand(point.avgVolume)),
-                      )
-                      .map((point, idx) => (
-                        <CircleMarker
-                          key={`traffic-${point.siteId}-${idx}`}
-                          center={[point.lat, point.lon]}
-                          radius={6}
-                          pathOptions={{
-                            color: "#fff",
-                            weight: 1.5,
-                            fillColor: getMarkerColor(point.avgVolume),
-                            fillOpacity: 0.8,
-                          }}
-                        >
-                          <Popup>
-                            <strong>Site {point.siteId}</strong>
-                            <br />
-                            Avg Volume: {point.avgVolume.toFixed(2)}
-                            <br />
-                            Day Type: {point.dayType}
-                            <br />
-                            Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                          </Popup>
-                        </CircleMarker>
-                      ))}
-
-                  {mapMode === "traffic" &&
-                    selectedRecommendation?.alternativeRoutes.map((route) => (
-                      <Polyline
-                        key={route.routeId}
-                        positions={route.path.map((waypoint) => [
-                          waypoint.lat,
-                          waypoint.lon,
-                        ])}
+                {mapMode === "traffic" &&
+                  filteredPoints
+                    ?.filter((p) =>
+                      activeColors.has(getVolumeBand(p.avgVolume)),
+                    )
+                    .map((point, idx) => (
+                      <CircleMarker
+                        key={`traffic-${point.siteId}-${idx}`}
+                        center={[point.lat, point.lon]}
+                        radius={6}
                         pathOptions={{
-                          color: route.color,
-                          weight: 5,
-                          opacity: 0.85,
-                          lineCap: "round",
-                          lineJoin: "round",
-                          dashArray:
-                            route ===
-                            selectedRecommendation.alternativeRoutes[0]
-                              ? undefined
-                              : "10 8",
+                          color: "#fff",
+                          weight: 1.5,
+                          fillColor: getMarkerColor(point.avgVolume),
+                          fillOpacity: 0.8,
                         }}
                       >
                         <Popup>
-                          <strong>{route.label}</strong>
+                          <strong>Site {point.siteId}</strong>
                           <br />
-                          Estimated travel time:{" "}
-                          {route.estimatedTravelTimeMinutes} min
+                          Avg Volume: {point.avgVolume.toFixed(2)}
                           <br />
-                          Estimated time saving:{" "}
-                          {route.estimatedTimeSavingsMinutes} min
+                          Day Type: {point.dayType}
                           <br />
-                          Distance: {route.distanceKm.toFixed(1)} km
+                          Time Slot: {point.timeSlot.replaceAll("_", " ")}
                         </Popup>
-                      </Polyline>
+                      </CircleMarker>
                     ))}
 
-                  {mapMode === "traffic" && selectedRecommendation && (
-                    <CircleMarker
-                      center={[
-                        selectedRecommendation.siteLat,
-                        selectedRecommendation.siteLon,
-                      ]}
-                      radius={12}
-                      pathOptions={{
-                        color: "#0f172a",
-                        weight: 2,
-                        fillColor: "#facc15",
-                        fillOpacity: 0.85,
-                      }}
-                    >
-                      <Popup>
-                        <strong>{selectedRecommendation.title}</strong>
-                        <br />
-                        Confidence:{" "}
-                        {Math.round(
-                          selectedRecommendation.confidenceScore * 100,
-                        )}
-                        %
-                        <br />
-                        {selectedRecommendation.recommendedAction}
-                      </Popup>
-                    </CircleMarker>
-                  )}
-
-                  {mapMode === "pollution" &&
-                    filteredEmissions
-                      ?.filter((point) =>
-                        activeColors.has(getEmissionBand(point.totalEmissionG)),
-                      )
-                      .map((point, idx) => (
-                        <Circle
-                          key={`pollution-${point.siteId}-${idx}`}
-                          center={[point.lat, point.lon]}
-                          radius={250}
-                          pathOptions={{
-                            color: getEmissionColor(point.totalEmissionG),
-                            weight: 1,
-                            fillColor: getEmissionColor(point.totalEmissionG),
-                            fillOpacity: 0.45,
-                          }}
-                        >
-                          <Popup>
-                            <strong>Site {point.siteId}</strong>
-                            <br />
-                            Total Emission:{" "}
-                            {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
-                            <br />
-                            Car Volume: {point.carVolume.toFixed(0)}
-                            <br />
-                            Day Type: {point.dayType}
-                            <br />
-                            Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                          </Popup>
-                        </Circle>
-                      ))}
-                </MapContainer>
-              </Paper>
-            </Box>
+                {mapMode === "pollution" &&
+                  filteredEmissions
+                    ?.filter((p) =>
+                      activeColors.has(getEmissionBand(p.totalEmissionG)),
+                    )
+                    .map((point, idx) => (
+                      <Circle
+                        key={`pollution-${point.siteId}-${idx}`}
+                        center={[point.lat, point.lon]}
+                        radius={250}
+                        pathOptions={{
+                          color: getEmissionColor(point.totalEmissionG),
+                          weight: 1,
+                          fillColor: getEmissionColor(point.totalEmissionG),
+                          fillOpacity: 0.45,
+                        }}
+                      >
+                        <Popup>
+                          <strong>Site {point.siteId}</strong>
+                          <br />
+                          Total Emission:{" "}
+                          {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
+                          <br />
+                          Car Volume: {point.carVolume.toFixed(0)}
+                          <br />
+                          Day Type: {point.dayType}
+                          <br />
+                          Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                        </Popup>
+                      </Circle>
+                    ))}
+              </MapContainer>
+            </Paper>
           </Box>
         </Box>
 
