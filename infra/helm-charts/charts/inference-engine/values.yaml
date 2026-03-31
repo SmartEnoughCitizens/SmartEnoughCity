@@ -22,6 +22,12 @@ labels:
   app.kubernetes.io/component: api-server
   app.kubernetes.io/part-of: smart-enough-city
 
+db:
+  secret:
+    name: sec-db-backend-user
+    usernameKey: DB_BACKEND_USER
+    passwordKey: DB_BACKEND_USER_PASSWORD
+
 imagePullSecrets: []
 
 securityContext: {}

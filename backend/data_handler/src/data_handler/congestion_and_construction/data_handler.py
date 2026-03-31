@@ -26,7 +26,6 @@ from data_handler.settings.api_settings import get_api_settings
 
 logger = logging.getLogger(__name__)
 
-# Maps TrafficEventType → Hermes disruptionType
 _DISRUPTION_TYPE_MAP: dict[TrafficEventType, str] = {
     TrafficEventType.ROADWORKS: "CONSTRUCTION",
     TrafficEventType.CONGESTION: "CONGESTION",
@@ -34,7 +33,6 @@ _DISRUPTION_TYPE_MAP: dict[TrafficEventType, str] = {
     TrafficEventType.WARNING: "DELAY",
 }
 
-# Maps TrafficEventType → Hermes severity
 _SEVERITY_MAP: dict[TrafficEventType, str] = {
     TrafficEventType.CLOSURE_INCIDENT: "HIGH",
     TrafficEventType.CONGESTION: "MEDIUM",
@@ -91,6 +89,9 @@ def _upsert_traffic_events(
     return len(events)
 
 
+# data_handler.py
+
+
 def fetch_and_store_traffic_data(
     bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
     session: Session | None = None,
@@ -135,19 +136,22 @@ def fetch_and_store_traffic_data(
             session.close()
 
 
-def push_traffic_events_to_hermes(fetched_at: datetime) -> None:
-    """
-    Read all traffic events written in the current fetch cycle and POST each
-    one to Hermes as a DisruptionDetectionRequest.
+def process_traffic_live_data(
+    bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
+    session: Session | None = None,
+) -> int:
+    events_count, _ = fetch_and_store_traffic_data(
+        bounding_box=bounding_box, session=session
+    )
+    return events_count
 
-    Only events from this fetch cycle (matching fetched_at) are forwarded to
-    avoid re-sending stale rows on every run.
-    """
+
+def push_traffic_events_to_hermes(fetched_at: datetime) -> None:
     hermes_url = get_api_settings().hermes_url
     endpoint = f"{hermes_url}/api/v1/disruptions/detect"
 
     with SessionLocal() as session:
-        rows = (
+        events = (
             session.execute(
                 select(TrafficEvent).where(TrafficEvent.fetched_at == fetched_at)
             )
@@ -155,16 +159,16 @@ def push_traffic_events_to_hermes(fetched_at: datetime) -> None:
             .all()
         )
 
-    if not rows:
+    if not events:
         logger.info("No traffic events to push to Hermes.")
         return
 
-    logger.info("Pushing %d traffic events to Hermes...", len(rows))
+    logger.info("Pushing %d traffic events to Hermes...", len(events))
     succeeded = 0
     failed = 0
 
     with httpx.Client(timeout=10) as client:
-        for event in rows:
+        for event in events:
             payload = {
                 "disruptionType": _DISRUPTION_TYPE_MAP[event.event_type],
                 "severity": _SEVERITY_MAP[event.event_type],

@@ -22,7 +22,7 @@ dependencies:
 
   - name: data-handler
     repository: file://./charts/data-handler
-    version: 0.1.4
+    version: 0.1.5
     condition: data-handler.enabled
 
   - name: inference-engine

@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
   CAR_FUEL_TYPE_STATISTICS: "/api/v1/car/fuel-type-statistics",
   CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
   CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
+  CAR_TRAFFIC_RECOMMENDATIONS: "/api/v1/car/traffic-recommendations",
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
@@ -95,4 +96,9 @@ export const API_ENDPOINTS = {
   DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
   DISRUPTIONS_ALL: "/api/v1/disruptions",
   DISRUPTION_RESOLVE: (id: number) => `/api/v1/disruptions/${id}/resolve`,
+
+  // EV Charging Indicators
+  EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",
+  EV_CHARGING_DEMAND: "/api/v1/ev/charging-demand",
+  EV_AREAS_GEOJSON: "/api/v1/ev/areas-geojson",
 };

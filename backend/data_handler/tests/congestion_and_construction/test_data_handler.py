@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from data_handler.congestion_and_construction.data_handler import (
     _upsert_traffic_events,
-    fetch_and_store_traffic_data,
+    process_traffic_live_data,
 )
 from data_handler.congestion_and_construction.models import TrafficEventType
 from data_handler.congestion_and_construction.parsing_utils import ParsedTrafficEvent
@@ -190,7 +190,7 @@ class TestUpsertTrafficEvents:
 
 
 class TestFetchAndStoreTrafficData:
-    """Tests for fetch_and_store_traffic_data."""
+    """Tests for process_traffic_live_data."""
 
     @patch("data_handler.congestion_and_construction.data_handler.TIIApiClient")
     def test_returns_zero_when_api_returns_none(
@@ -201,8 +201,8 @@ class TestFetchAndStoreTrafficData:
         mock_client.fetch_traffic_data.return_value = None
         mock_client_cls.return_value = mock_client
 
-        count, _ = fetch_and_store_traffic_data()
-        assert count == 0
+        result = process_traffic_live_data()
+        assert result == 0
 
     @patch("data_handler.congestion_and_construction.data_handler.TIIApiClient")
     def test_processes_valid_api_response(
@@ -236,8 +236,8 @@ class TestFetchAndStoreTrafficData:
         mock_client.fetch_traffic_data.return_value = raw_data
         mock_client_cls.return_value = mock_client
 
-        count, _ = fetch_and_store_traffic_data(session=db_session)
-        assert count == 1
+        result = process_traffic_live_data(session=db_session)
+        assert result == 1
 
     @patch("data_handler.congestion_and_construction.data_handler.TIIApiClient")
     def test_raises_on_api_failure(self, mock_client_cls: MagicMock) -> None:
@@ -247,4 +247,4 @@ class TestFetchAndStoreTrafficData:
         mock_client_cls.return_value = mock_client
 
         with pytest.raises(Exception, match="API down"):
-            fetch_and_store_traffic_data()
+            process_traffic_live_data()

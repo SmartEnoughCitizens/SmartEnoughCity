@@ -42,6 +42,23 @@ spec:
           env:
             - name: HERMES_URL
               value: "http://{{ .Release.Name }}-hermes:8080"
+            {{- $dbHost := .Values.global.db.host | default (printf "%s-postgresql" .Release.Name) }}
+            - name: DB_HOST
+              value: {{ $dbHost | quote }}
+            - name: DB_PORT
+              value: {{ .Values.global.db.port | default 5432 | quote }}
+            - name: DB_NAME
+              value: {{ .Values.global.db.name | default "smart_enough_city" | quote }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secret.name }}
+                  key: {{ .Values.db.secret.usernameKey }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secret.name }}
+                  key: {{ .Values.db.secret.passwordKey }}
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.livenessProbe }}
