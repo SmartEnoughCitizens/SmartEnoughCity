@@ -1,5 +1,6 @@
 /**
  * Map-centric dashboard layout with slim icon sidebar
+ * ALL dashboards are always mounted for seamless navigation
  */
 
 import { useState, useEffect } from "react";
@@ -31,7 +32,8 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import EventNoteIcon from "@mui/icons-material/EventNote";
-import { useNavigate, useLocation } from "react-router-dom";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import { useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
   toggleTheme,
@@ -39,23 +41,73 @@ import {
 } from "@/store/slices/uiSlice";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
-import { getCreatableRoles, canAccessTransport } from "@/types";
+import { getCreatableRoles, TRANSPORT_ACCESS } from "@/types";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import { ChangePasswordDialog } from "@/components/profile/ChangePasswordDialog";
 import sseService from "@/services/sseService";
+import { Dashboard } from "@/pages/Dashboard";
+import { BusDashboard } from "@/pages/BusDashboard";
+import { CycleDashboard } from "@/pages/CycleDashboard";
+import { CarDashboard } from "@/pages/CarDashboard";
+import { TrainDashboard } from "@/pages/TrainDashboard";
+import { TramDashboard } from "@/pages/TramDashboard";
+import { MiscDashboard } from "@/pages/MiscDashboard";
+import { NotificationsPage } from "@/pages/NotificationsPage";
+import { UserManagementPage } from "@/pages/UserManagementPage";
+import { MapContainer, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
+type DashboardView =
+  | "overview"
+  | "bus"
+  | "cycle"
+  | "car"
+  | "train"
+  | "tram"
+  | "misc"
+  | "notifications"
+  | "users";
 
-export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+export const DashboardLayout = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useAppDispatch();
   const { username, roles } = useAppSelector((state) => state.auth);
   const canManageUsers = getCreatableRoles(roles).length > 0;
   const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
   const logoutMutation = useLogout();
+
+  // Role-based view visibility — mirrors the allowedRoles from the original router
+  const canSeeView: Record<DashboardView, boolean> = {
+    overview: roles.includes("City_Manager"),
+    bus: TRANSPORT_ACCESS.bus.some((r) => roles.includes(r)),
+    cycle: TRANSPORT_ACCESS.cycle.some((r) => roles.includes(r)),
+    car: TRANSPORT_ACCESS.car.some((r) => roles.includes(r)),
+    train: TRANSPORT_ACCESS.train.some((r) => roles.includes(r)),
+    tram: TRANSPORT_ACCESS.tram.some((r) => roles.includes(r)),
+    misc: true,
+    notifications: true,
+    users: canManageUsers,
+  };
+
+  // Default view: first view the user is allowed to see
+  const defaultView =
+    (Object.keys(canSeeView) as DashboardView[]).find((v) => canSeeView[v]) ??
+    "notifications";
+
+  // State to track active dashboard view with persistence
+  const [activeView, setActiveView] = useState<DashboardView>(() => {
+    const saved = localStorage.getItem(
+      "activeDashboardView",
+    ) as DashboardView | null;
+    // Discard saved view if the user no longer has access (e.g. role change)
+    if (saved && canSeeView[saved]) return saved;
+    return defaultView;
+  });
+
+  // Save active view to localStorage
+  useEffect(() => {
+    localStorage.setItem("activeDashboardView", activeView);
+  }, [activeView]);
 
   // Connect SSE as soon as dashboard loads (user is authenticated)
   useEffect(() => {
@@ -96,41 +148,46 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate("/login");
   };
 
-  const navItems = [
-    ...(roles.includes("City_Manager")
-      ? [{ icon: <DashboardIcon />, path: "/dashboard", label: "Overview" }]
-      : []),
-    ...(canAccessTransport(roles, "bus")
-      ? [
-          {
-            icon: <DirectionsBusIcon />,
-            path: "/dashboard/bus",
-            label: "Bus Data",
-          },
-        ]
-      : []),
-    ...(canAccessTransport(roles, "cycle")
-      ? [
-          {
-            icon: <DirectionsBikeIcon />,
-            path: "/dashboard/cycle",
-            label: "Cycles",
-          },
-        ]
-      : []),
-    ...(canAccessTransport(roles, "car")
-      ? [{ icon: <DirectionsCarIcon />, path: "/dashboard/car", label: "Car" }]
-      : []),
-    ...(canAccessTransport(roles, "train")
-      ? [{ icon: <TrainIcon />, path: "/dashboard/train", label: "Trains" }]
-      : []),
-    ...(canAccessTransport(roles, "tram")
-      ? [{ icon: <TramIcon />, path: "/dashboard/tram", label: "Tram" }]
-      : []),
+  const allNavItems = [
+    {
+      icon: <DashboardIcon />,
+      view: "overview" as DashboardView,
+      label: "Overview",
+    },
+    {
+      icon: <DirectionsBusIcon />,
+      view: "bus" as DashboardView,
+      label: "Bus Data",
+    },
+    {
+      icon: <DirectionsBikeIcon />,
+      view: "cycle" as DashboardView,
+      label: "Cycles",
+    },
+    {
+      icon: <DirectionsCarIcon />,
+      view: "car" as DashboardView,
+      label: "Car",
+    },
+    {
+      icon: <TrainIcon />,
+      view: "train" as DashboardView,
+      label: "Trains",
+    },
+    {
+      icon: <TramIcon />,
+      view: "tram" as DashboardView,
+      label: "Trams",
+    },
     {
       icon: <EventNoteIcon />,
-      path: "/dashboard/misc",
-      label: "Misc",
+      view: "misc" as DashboardView,
+      label: "Events & Pedestrians",
+    },
+    {
+      icon: <ReportProblemIcon />,
+      path: "/dashboard/disruptions",
+      label: "Disruptions",
     },
     {
       icon: (
@@ -138,24 +195,53 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <NotificationsIcon />
         </Badge>
       ),
-      path: "/dashboard/notifications",
+      view: "notifications" as DashboardView,
       label: "Notifications",
     },
     ...(canManageUsers
       ? [
           {
             icon: <PersonAddIcon />,
-            path: "/dashboard/users",
+            view: "users" as DashboardView,
             label: "User Management",
           },
         ]
       : []),
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  // Only show nav items the current user's roles permit
+  const navItems = allNavItems.filter(
+    (item) => !item.view || canSeeView[item.view],
+  );
+
+  const isActive = (view: DashboardView) => activeView === view;
 
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Tile warmer — loads Dublin tiles into browser cache on login.
+          Positioned off-screen with real dimensions so Leaflet fetches tiles.
+          All other maps in the app reuse these cached tile images. */}
+      <div
+        style={{
+          position: "absolute",
+          left: -9999,
+          top: 0,
+          width: 512,
+          height: 512,
+          pointerEvents: "none",
+          visibility: "hidden",
+        }}
+      >
+        <MapContainer
+          center={[53.3498, -6.2603]}
+          zoom={13}
+          zoomControl={false}
+          attributionControl={false}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        </MapContainer>
+      </div>
       {/* Slim icon rail */}
       <Box
         sx={{
@@ -189,7 +275,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             mb: 1,
             cursor: "pointer",
           }}
-          onClick={() => navigate("/dashboard")}
+          onClick={() => setActiveView("overview")}
         >
           <Typography
             sx={{ color: "#fff", fontWeight: 800, fontSize: "0.9rem" }}
@@ -200,20 +286,32 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* Nav items */}
         {navItems.map((item) => (
-          <Tooltip key={item.path} title={item.label} placement="right" arrow>
+          <Tooltip
+            key={item.view ?? item.label}
+            title={item.label}
+            placement="right"
+            arrow
+          >
             <IconButton
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                if (item.view) setActiveView(item.view);
+                else if ("path" in item && item.path) navigate(item.path);
+              }}
               sx={{
                 width: 40,
                 height: 40,
                 borderRadius: "10px",
-                color: isActive(item.path) ? "primary.main" : "text.secondary",
-                bgcolor: isActive(item.path)
-                  ? (t) =>
-                      t.palette.mode === "dark"
-                        ? "rgba(96, 165, 250, 0.12)"
-                        : "rgba(37, 99, 235, 0.08)"
-                  : "transparent",
+                color:
+                  item.view && isActive(item.view)
+                    ? "primary.main"
+                    : "text.secondary",
+                bgcolor:
+                  item.view && isActive(item.view)
+                    ? (t) =>
+                        t.palette.mode === "dark"
+                          ? "rgba(96, 165, 250, 0.12)"
+                          : "rgba(37, 99, 235, 0.08)"
+                    : "transparent",
                 "&:hover": {
                   bgcolor: (t) =>
                     t.palette.mode === "dark"
@@ -314,7 +412,145 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           position: "relative",
         }}
       >
-        {children}
+        {/* Overview Dashboard — City_Manager only */}
+        {canSeeView.overview && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: activeView === "overview" ? "visible" : "hidden",
+              opacity: activeView === "overview" ? 1 : 0,
+              pointerEvents: activeView === "overview" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <Dashboard />
+          </Box>
+        )}
+
+        {/* Bus Dashboard */}
+        {canSeeView.bus && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: activeView === "bus" ? "visible" : "hidden",
+              opacity: activeView === "bus" ? 1 : 0,
+              pointerEvents: activeView === "bus" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <BusDashboard />
+          </Box>
+        )}
+
+        {/* Cycle Dashboard */}
+        {canSeeView.cycle && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: activeView === "cycle" ? "visible" : "hidden",
+              opacity: activeView === "cycle" ? 1 : 0,
+              pointerEvents: activeView === "cycle" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <CycleDashboard />
+          </Box>
+        )}
+
+        {/* Car Dashboard */}
+        {canSeeView.car && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: activeView === "car" ? "visible" : "hidden",
+              opacity: activeView === "car" ? 1 : 0,
+              pointerEvents: activeView === "car" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <CarDashboard />
+          </Box>
+        )}
+
+        {/* Train Dashboard */}
+        {canSeeView.train && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: activeView === "train" ? "visible" : "hidden",
+              opacity: activeView === "train" ? 1 : 0,
+              pointerEvents: activeView === "train" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <TrainDashboard />
+          </Box>
+        )}
+
+        {/* Tram Dashboard */}
+        {canSeeView.tram && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: activeView === "tram" ? "visible" : "hidden",
+              opacity: activeView === "tram" ? 1 : 0,
+              pointerEvents: activeView === "tram" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <TramDashboard />
+          </Box>
+        )}
+
+        {/* Misc Dashboard (Events & Pedestrians) — all authenticated users */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            visibility: activeView === "misc" ? "visible" : "hidden",
+            opacity: activeView === "misc" ? 1 : 0,
+            pointerEvents: activeView === "misc" ? "auto" : "none",
+            transition: "opacity 0.15s ease-in-out",
+          }}
+        >
+          <MiscDashboard />
+        </Box>
+
+        {/* Notifications Page — all authenticated users */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            visibility: activeView === "notifications" ? "visible" : "hidden",
+            opacity: activeView === "notifications" ? 1 : 0,
+            pointerEvents: activeView === "notifications" ? "auto" : "none",
+            transition: "opacity 0.15s ease-in-out",
+          }}
+        >
+          <NotificationsPage />
+        </Box>
+
+        {/* User Management Page */}
+        {canManageUsers && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: activeView === "users" ? "visible" : "hidden",
+              opacity: activeView === "users" ? 1 : 0,
+              pointerEvents: activeView === "users" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <UserManagementPage />
+          </Box>
+        )}
       </Box>
 
       <EditProfileDialog

@@ -73,7 +73,7 @@ spec:
                   key: {{ .Values.keycloak.secret.key }}
             - name: APP_FRONTEND_URL
               value: {{ .Values.frontendUrl | quote }}
-            - name: INFERENCE_ENGINE_URL
+            - name: INFERENCE_ENGINE_BASE_URL
               value: {{ .Values.inferenceEngineUrl | quote }}
           resources:
 {{- toYaml .Values.resources | nindent 12 }}

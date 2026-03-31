@@ -12,3 +12,5 @@ export * from "./notification.types";
 export * from "./recommendation.types";
 export * from "./usermanagement.types";
 export * from "./misc.types";
+export * from "./disruption.types";
+export * from "./ev.types";

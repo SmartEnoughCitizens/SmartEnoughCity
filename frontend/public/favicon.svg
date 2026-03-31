@@ -1,0 +1,327 @@
+<svg viewBox="0 0 680 695" xmlns="http://www.w3.org/2000/svg" width="100%">
+<defs>
+  <clipPath id="circ"><circle cx="340" cy="286" r="247"/></clipPath>
+</defs>
+
+<!-- Sky background -->
+<rect x="93" y="39" width="494" height="300" clip-path="url(#circ)" fill="#D6EEF7"/>
+
+<!-- BUILDINGS LAYER 1 (back row, medium blue) -->
+<rect x="100" y="270" width="28" height="70" clip-path="url(#circ)" fill="#4A8FAF"/>
+<rect x="100" y="262" width="28" height="70" clip-path="url(#circ)" fill="#4A8FAF"/>
+<rect x="130" y="254" width="32" height="86" clip-path="url(#circ)" fill="#3F80A0"/>
+<rect x="164" y="248" width="28" height="92" clip-path="url(#circ)" fill="#4A8FAF"/>
+<rect x="194" y="238" width="36" height="102" clip-path="url(#circ)" fill="#3878A0"/>
+<rect x="232" y="228" width="28" height="112" clip-path="url(#circ)" fill="#4A8FAF"/>
+<rect x="440" y="244" width="30" height="96" clip-path="url(#circ)" fill="#3F80A0"/>
+<rect x="472" y="258" width="26" height="82" clip-path="url(#circ)" fill="#4A8FAF"/>
+<rect x="500" y="266" width="30" height="74" clip-path="url(#circ)" fill="#3878A0"/>
+<rect x="532" y="272" width="26" height="68" clip-path="url(#circ)" fill="#4A8FAF"/>
+<rect x="558" y="278" width="20" height="62" clip-path="url(#circ)" fill="#3F80A0"/>
+
+<!-- Windows back row -->
+<rect x="104" y="274" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="114" y="274" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="104" y="284" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="114" y="284" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="134" y="258" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="144" y="258" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="134" y="268" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="144" y="268" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="134" y="278" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="144" y="278" width="6" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="198" y="242" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="210" y="242" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="220" y="242" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="198" y="254" width="8" height="6" clip-path="url(#circ)" fill="#C5E8F5" opacity=".9"/>
+<rect x="210" y="254" width="8" height="6" clip-path="url(#circ)" fill="#C5E8F5" opacity=".9"/>
+<rect x="220" y="254" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="198" y="266" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="210" y="266" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="220" y="266" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="444" y="248" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="456" y="248" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="444" y="260" width="8" height="6" clip-path="url(#circ)" fill="#C5E8F5" opacity=".9"/>
+<rect x="456" y="260" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="444" y="272" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="456" y="272" width="8" height="6" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="504" y="270" width="7" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="515" y="270" width="7" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="504" y="280" width="7" height="5" clip-path="url(#circ)" fill="#C5E8F5" opacity=".9"/>
+<rect x="515" y="280" width="7" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="504" y="290" width="7" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+<rect x="515" y="290" width="7" height="5" clip-path="url(#circ)" fill="#A8D8EE" opacity=".85"/>
+
+<!-- LAYER 2 (mid row, dark blue) -->
+<rect x="108" y="255" width="34" height="85" clip-path="url(#circ)" fill="#1B5C80"/>
+<rect x="144" y="243" width="40" height="97" clip-path="url(#circ)" fill="#16527A"/>
+<rect x="216" y="232" width="34" height="108" clip-path="url(#circ)" fill="#1B5C80"/>
+<rect x="252" y="220" width="36" height="120" clip-path="url(#circ)" fill="#144E74"/>
+
+<!-- Spire -->
+<polygon points="287,340 291,56 295,340" clip-path="url(#circ)" fill="#B8C8D4"/>
+<rect x="287" y="56" width="8" height="12" clip-path="url(#circ)" fill="#CDD8E0"/>
+
+<!-- Windows mid row -->
+<rect x="112" y="259" width="7" height="5" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="123" y="259" width="7" height="5" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="112" y="269" width="7" height="5" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="123" y="269" width="7" height="5" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="112" y="279" width="7" height="5" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="123" y="279" width="7" height="5" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="112" y="289" width="7" height="5" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="123" y="289" width="7" height="5" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="148" y="247" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="160" y="247" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="172" y="247" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="148" y="259" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="160" y="259" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="172" y="259" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="148" y="271" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="160" y="271" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="172" y="271" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="148" y="283" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="160" y="283" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="172" y="283" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="220" y="236" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="232" y="236" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="220" y="248" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="232" y="248" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="220" y="260" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="232" y="260" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="220" y="272" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="232" y="272" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="220" y="284" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="232" y="284" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="256" y="224" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="268" y="224" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="280" y="224" width="6" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="256" y="236" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="268" y="236" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="256" y="248" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="268" y="248" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="256" y="260" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="268" y="260" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="256" y="272" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="268" y="272" width="8" height="6" clip-path="url(#circ)" fill="#C0E0F0" opacity=".95"/>
+<rect x="256" y="284" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+<rect x="268" y="284" width="8" height="6" clip-path="url(#circ)" fill="#8EC8E8" opacity=".9"/>
+
+<!-- LAYER 3 (front row, darkest blue) -->
+<rect x="300" y="218" width="46" height="122" clip-path="url(#circ)" fill="#0E3D5C"/>
+<rect x="348" y="200" width="52" height="140" clip-path="url(#circ)" fill="#0A3252"/>
+<rect x="400" y="186" width="46" height="154" clip-path="url(#circ)" fill="#0E3D5C"/>
+<rect x="446" y="220" width="38" height="120" clip-path="url(#circ)" fill="#0A3252"/>
+<rect x="484" y="238" width="36" height="102" clip-path="url(#circ)" fill="#0E3D5C"/>
+
+<!-- Windows front row - building 300 -->
+<rect x="305" y="222" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="318" y="222" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="331" y="222" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="305" y="234" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="318" y="234" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="331" y="234" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="305" y="246" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="318" y="246" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="331" y="246" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="305" y="258" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="318" y="258" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="331" y="258" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="305" y="270" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="318" y="270" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="331" y="270" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="305" y="282" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="318" y="282" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="331" y="282" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="305" y="294" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="318" y="294" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="331" y="294" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<!-- Building 348 -->
+<rect x="353" y="204" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="367" y="204" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="381" y="204" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="353" y="218" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="367" y="218" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="381" y="218" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="353" y="232" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="367" y="232" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="381" y="232" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="353" y="246" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="367" y="246" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="381" y="246" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="353" y="260" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="367" y="260" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="381" y="260" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="353" y="274" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="367" y="274" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="381" y="274" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="353" y="288" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="367" y="288" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="381" y="288" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="353" y="302" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="367" y="302" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="381" y="302" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<!-- Building 400 -->
+<rect x="405" y="190" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="419" y="190" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="433" y="190" width="8" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="405" y="204" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="419" y="204" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="433" y="204" width="8" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="405" y="218" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="419" y="218" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="433" y="218" width="8" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="405" y="232" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="419" y="232" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="433" y="232" width="8" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="405" y="246" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="419" y="246" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="433" y="246" width="8" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="405" y="260" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="419" y="260" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="433" y="260" width="8" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="405" y="274" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="419" y="274" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="433" y="274" width="8" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="405" y="288" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="419" y="288" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="433" y="288" width="8" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="405" y="302" width="10" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="419" y="302" width="10" height="8" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="433" y="302" width="8" height="8" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<!-- Building 446 -->
+<rect x="450" y="224" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="463" y="224" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="450" y="236" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="463" y="236" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="450" y="248" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="463" y="248" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="450" y="260" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="463" y="260" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="450" y="272" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="463" y="272" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="450" y="284" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="463" y="284" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="450" y="296" width="9" height="7" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="463" y="296" width="9" height="7" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<!-- Building 484 -->
+<rect x="488" y="242" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="500" y="242" width="8" height="6" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="510" y="242" width="6" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="488" y="254" width="8" height="6" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="500" y="254" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="510" y="254" width="6" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="488" y="266" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="500" y="266" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="510" y="266" width="6" height="6" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="488" y="278" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="500" y="278" width="8" height="6" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="510" y="278" width="6" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="488" y="290" width="8" height="6" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+<rect x="500" y="290" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="510" y="290" width="6" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="488" y="302" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="500" y="302" width="8" height="6" clip-path="url(#circ)" fill="#6CBEDD" opacity=".9"/>
+<rect x="510" y="302" width="6" height="6" clip-path="url(#circ)" fill="#9AD4EC" opacity=".95"/>
+
+<!-- SAMUEL BECKETT BRIDGE -->
+<path d="M172,328 Q286,194 442,328" clip-path="url(#circ)" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+<path d="M181,328 Q286,207 434,328" clip-path="url(#circ)" fill="none" stroke="#B0D4E0" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+<line x1="286" y1="195" x2="178" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="204" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="230" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="256" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="282" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="308" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="334" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="360" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="386" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="412" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<line x1="286" y1="195" x2="434" y2="328" clip-path="url(#circ)" stroke="white" stroke-width="1" opacity=".75"/>
+<rect x="172" y="325" width="270" height="5" clip-path="url(#circ)" fill="white" opacity=".9"/>
+<circle cx="198" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="224" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="250" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="276" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="302" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="328" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="354" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="380" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="406" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+<circle cx="428" cy="325" r="2.2" clip-path="url(#circ)" fill="#FFE090"/>
+
+<!-- Horizon divider -->
+<rect x="93" y="333" width="494" height="9" clip-path="url(#circ)" fill="white" opacity=".92"/>
+
+<!-- WATER / CIRCUIT BOARD -->
+<rect x="93" y="342" width="494" height="196" clip-path="url(#circ)" fill="#0B4C5C"/>
+
+<!-- Circuit traces -->
+<polyline points="115,362 200,362 200,386 268,386" clip-path="url(#circ)" fill="none" stroke="#1AACCC" stroke-width="1.8"/>
+<polyline points="268,386 268,358 340,358 340,400 420,400" clip-path="url(#circ)" fill="none" stroke="#1AACCC" stroke-width="1.8"/>
+<polyline points="420,400 420,370 490,370 490,412 560,412" clip-path="url(#circ)" fill="none" stroke="#1AACCC" stroke-width="1.8"/>
+<polyline points="130,420 130,460 210,460 210,490 300,490" clip-path="url(#circ)" fill="none" stroke="#12A0B8" stroke-width="1.6"/>
+<polyline points="300,490 360,490 360,462 440,462 440,500 510,500" clip-path="url(#circ)" fill="none" stroke="#12A0B8" stroke-width="1.6"/>
+<polyline points="155,500 155,470 230,470 230,500 310,500" clip-path="url(#circ)" fill="none" stroke="#0D90A8" stroke-width="1.4" opacity=".7"/>
+<polyline points="310,500 310,480 390,480 390,510 460,510" clip-path="url(#circ)" fill="none" stroke="#0D90A8" stroke-width="1.4" opacity=".7"/>
+<polyline points="115,440 175,440 175,410 240,410" clip-path="url(#circ)" fill="none" stroke="#16B0C0" stroke-width="1.5" opacity=".8"/>
+<polyline points="240,410 240,440 320,440 320,420 390,420" clip-path="url(#circ)" fill="none" stroke="#16B0C0" stroke-width="1.5" opacity=".8"/>
+<polyline points="390,420 390,448 470,448 470,428 540,428" clip-path="url(#circ)" fill="none" stroke="#16B0C0" stroke-width="1.5" opacity=".8"/>
+<line x1="200" y1="362" x2="200" y2="420" clip-path="url(#circ)" stroke="#1AACCC" stroke-width="1.4" opacity=".6"/>
+<line x1="310" y1="358" x2="310" y2="440" clip-path="url(#circ)" stroke="#1AACCC" stroke-width="1.4" opacity=".6"/>
+<line x1="420" y1="400" x2="420" y2="462" clip-path="url(#circ)" stroke="#1AACCC" stroke-width="1.4" opacity=".6"/>
+<line x1="270" y1="460" x2="270" y2="490" clip-path="url(#circ)" stroke="#12A0B8" stroke-width="1.3" opacity=".55"/>
+<line x1="390" y1="420" x2="390" y2="480" clip-path="url(#circ)" stroke="#12A0B8" stroke-width="1.3" opacity=".55"/>
+<line x1="460" y1="500" x2="460" y2="462" clip-path="url(#circ)" stroke="#0D90A8" stroke-width="1.2" opacity=".5"/>
+
+<!-- Teal ring nodes -->
+<circle cx="200" cy="362" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#1AACCC" stroke-width="2"/>
+<circle cx="268" cy="386" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#1AACCC" stroke-width="2"/>
+<circle cx="340" cy="358" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#1AACCC" stroke-width="2"/>
+<circle cx="420" cy="400" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#1AACCC" stroke-width="2"/>
+<circle cx="490" cy="370" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#1AACCC" stroke-width="2"/>
+<circle cx="210" cy="460" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#12A0B8" stroke-width="2"/>
+<circle cx="300" cy="490" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#12A0B8" stroke-width="2"/>
+<circle cx="360" cy="462" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#12A0B8" stroke-width="2"/>
+<circle cx="440" cy="462" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#12A0B8" stroke-width="2"/>
+<circle cx="175" cy="410" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#16B0C0" stroke-width="2"/>
+<circle cx="240" cy="440" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#16B0C0" stroke-width="2"/>
+<circle cx="320" cy="440" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#16B0C0" stroke-width="2"/>
+<circle cx="390" cy="420" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#16B0C0" stroke-width="2"/>
+<circle cx="470" cy="448" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#16B0C0" stroke-width="2"/>
+<circle cx="310" cy="500" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#0D90A8" stroke-width="2"/>
+<circle cx="390" cy="480" r="5.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#0D90A8" stroke-width="2"/>
+<circle cx="460" cy="510" r="5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#0D90A8" stroke-width="2"/>
+<circle cx="230" cy="500" r="4.5" clip-path="url(#circ)" fill="#0B4C5C" stroke="#0D90A8" stroke-width="1.8"/>
+
+<!-- Gold bullseye nodes -->
+<circle cx="268" cy="386" r="9" clip-path="url(#circ)" fill="#0B4C5C" stroke="#C89028" stroke-width="2.5"/>
+<circle cx="268" cy="386" r="4" clip-path="url(#circ)" fill="#C89028"/>
+<circle cx="420" cy="400" r="9" clip-path="url(#circ)" fill="#0B4C5C" stroke="#C89028" stroke-width="2.5"/>
+<circle cx="420" cy="400" r="4" clip-path="url(#circ)" fill="#C89028"/>
+<circle cx="300" cy="490" r="9" clip-path="url(#circ)" fill="#0B4C5C" stroke="#C89028" stroke-width="2.5"/>
+<circle cx="300" cy="490" r="4" clip-path="url(#circ)" fill="#C89028"/>
+<circle cx="175" cy="440" r="8" clip-path="url(#circ)" fill="#0B4C5C" stroke="#C89028" stroke-width="2.2"/>
+<circle cx="175" cy="440" r="3.5" clip-path="url(#circ)" fill="#C89028"/>
+<circle cx="460" cy="462" r="8" clip-path="url(#circ)" fill="#0B4C5C" stroke="#C89028" stroke-width="2.2"/>
+<circle cx="460" cy="462" r="3.5" clip-path="url(#circ)" fill="#C89028"/>
+
+<!-- WiFi symbol -->
+<circle cx="400" cy="148" r="5.5" fill="#0A7080"/>
+<path d="M382,148 A18,18 0 0,0 418,148" fill="none" stroke="#0A7080" stroke-width="4.5" stroke-linecap="round"/>
+<path d="M370,148 A30,30 0 0,0 430,148" fill="none" stroke="#0A7080" stroke-width="3.8" stroke-linecap="round" opacity=".65"/>
+<path d="M358,148 A42,42 0 0,0 442,148" fill="none" stroke="#0A7080" stroke-width="3" stroke-linecap="round" opacity=".35"/>
+
+<!-- Circle border -->
+<circle cx="340" cy="286" r="247" fill="none" stroke="#0A798C" stroke-width="11"/>
+
+<!-- Wordmark -->
+<text x="340" y="608"
+  font-family="'Arial Black','Franklin Gothic Heavy','Impact',sans-serif"
+  font-weight="900" font-size="88" fill="#0A798C"
+  text-anchor="middle" letter-spacing="3">DUBLIN</text>
+<text x="340" y="656"
+  font-family="Arial,Helvetica,sans-serif"
+  font-weight="700" font-size="24" fill="#4A9E1C"
+  text-anchor="middle" letter-spacing="4">SMART CITY MANAGER</text>
+</svg>

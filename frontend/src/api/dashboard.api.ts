@@ -5,9 +5,12 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  BusCommonDelay,
+  DisruptionItem,
   BusDashboardResponse,
   BusKpis,
   BusLiveVehicle,
+  BusRouteBreakdown,
   BusRouteUtilization,
   BusSystemPerformance,
   CarFuelTypeStat,
@@ -15,7 +18,15 @@ import type {
   CycleStation,
   EventItem,
   HighTrafficPoint,
+  HourlyNetworkProfileDTO,
   IndicatorType,
+  StationClassificationDTO,
+  StationHourlyUsageDTO,
+  StationLiveDTO,
+  NetworkSummaryDTO,
+  RebalanceSuggestionDTO,
+  StationODPairDTO,
+  StationRankingDTO,
   JunctionEmission,
   PedestrianLive,
   TrainDashboardResponse,
@@ -161,6 +172,31 @@ export const dashboardApi = {
     );
     return data;
   },
+
+  /**
+   * Get top 10 most delayed bus routes with average delay in minutes
+   */
+  getBusCommonDelays: async (filter: string): Promise<BusCommonDelay[]> => {
+    const { data } = await axiosInstance.get<BusCommonDelay[]>(
+      API_ENDPOINTS.BUS_COMMON_DELAYS,
+      { params: { filter } },
+    );
+    return data;
+  },
+
+  /**
+   * Get per-stop delay breakdown for a specific bus route
+   */
+  getBusRouteBreakdown: async (
+    routeId: string,
+    filter: string,
+  ): Promise<BusRouteBreakdown[]> => {
+    const { data } = await axiosInstance.get<BusRouteBreakdown[]>(
+      `${API_ENDPOINTS.BUS_COMMON_DELAYS}/${routeId}`,
+      { params: { filter } },
+    );
+    return data;
+  },
   getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
     const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
       API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
@@ -214,6 +250,94 @@ export const dashboardApi = {
   getTrainServiceStats: async (): Promise<TrainServiceStats> => {
     const { data } = await axiosInstance.get<TrainServiceStats>(
       API_ENDPOINTS.TRAIN_SERVICE_STATS,
+    );
+    return data;
+  },
+
+  // ── Cycle Metrics ──────────────────────────────────────────────────────────
+
+  getCycleStationsLive: async (): Promise<StationLiveDTO[]> => {
+    const { data } = await axiosInstance.get<StationLiveDTO[]>(
+      API_ENDPOINTS.CYCLE_STATIONS_LIVE,
+    );
+    return data;
+  },
+
+  getCycleNetworkSummary: async (): Promise<NetworkSummaryDTO> => {
+    const { data } = await axiosInstance.get<NetworkSummaryDTO>(
+      API_ENDPOINTS.CYCLE_NETWORK_SUMMARY,
+    );
+    return data;
+  },
+
+  getCycleBusiestStations: async (params?: {
+    limit?: number;
+  }): Promise<StationRankingDTO[]> => {
+    const { data } = await axiosInstance.get<StationRankingDTO[]>(
+      API_ENDPOINTS.CYCLE_RANKINGS_BUSIEST,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleUnderusedStations: async (params?: {
+    limit?: number;
+  }): Promise<StationRankingDTO[]> => {
+    const { data } = await axiosInstance.get<StationRankingDTO[]>(
+      API_ENDPOINTS.CYCLE_RANKINGS_UNDERUSED,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleRebalancingSuggestions: async (params?: {
+    limit?: number;
+  }): Promise<RebalanceSuggestionDTO[]> => {
+    const { data } = await axiosInstance.get<RebalanceSuggestionDTO[]>(
+      API_ENDPOINTS.CYCLE_NETWORK_REBALANCING,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleNetworkHourlyProfile: async (params?: {
+    days?: number;
+  }): Promise<HourlyNetworkProfileDTO[]> => {
+    const { data } = await axiosInstance.get<HourlyNetworkProfileDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_NETWORK_HOURLY,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleStationClassification: async (params?: {
+    days?: number;
+  }): Promise<StationClassificationDTO[]> => {
+    const { data } = await axiosInstance.get<StationClassificationDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_CLASSIFICATION,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleODPairs: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationODPairDTO[]> => {
+    const { data } = await axiosInstance.get<StationODPairDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_OD_PAIRS,
+      { params },
+    );
+    return data;
+  },
+
+  getCycleStationHourlyUsage: async (params?: {
+    days?: number;
+    limit?: number;
+  }): Promise<StationHourlyUsageDTO[]> => {
+    const { data } = await axiosInstance.get<StationHourlyUsageDTO[]>(
+      API_ENDPOINTS.CYCLE_DEMAND_STATION_HOURLY,
+      { params },
     );
     return data;
   },
@@ -287,5 +411,22 @@ export const dashboardApi = {
       { params: { limit } },
     );
     return data;
+  },
+
+  /**
+   * Get active disruptions (construction, congestion, incidents)
+   */
+  getActiveDisruptions: async (): Promise<DisruptionItem[]> => {
+    const { data } = await axiosInstance.get<DisruptionItem[]>(
+      API_ENDPOINTS.DISRUPTIONS_ACTIVE,
+    );
+    return data;
+  },
+
+  /**
+   * Resolve a disruption by ID
+   */
+  resolveDisruption: async (id: number): Promise<void> => {
+    await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
   },
 };

@@ -28,8 +28,8 @@ GRANULARITY_VALUES = frozenset(e.value for e in PedestrianGranularity)
 
 
 class SiteLocation(BaseModel):
-    lat: float
-    lon: float
+    lat: float | None = None
+    lon: float | None = None
 
 
 class PedestrianSitePayload(BaseModel):
@@ -110,7 +110,11 @@ def process_pedestrian_sites(json_string: str) -> list[int]:
         msg = "Invalid JSON"
         raise ValueError(msg) from e
 
-    sites = [_payload_to_site(p) for p in payloads]
+    sites = [
+        _payload_to_site(p)
+        for p in payloads
+        if p.location.lat is not None and p.location.lon is not None
+    ]
     updated_ids: list[int] = []
 
     with SessionLocal() as session:
@@ -377,7 +381,7 @@ def process_pedestrian_live_data() -> None:
     job_id = send_batch_job_request(updated_site_ids, date.today())
     job_result_url = f"{api_settings.eco_counter_api_base_url}/exports/{job_id}/data"
 
-    max_attempts = 5
+    max_attempts = 8
     for attempt in range(max_attempts):
         try:
             logger.info(

@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
   BUS_ROUTE_UTILIZATION: "/api/v1/bus/route-utilization",
   BUS_SYSTEM_PERFORMANCE: "/api/v1/bus/system-performance",
   BUS_METRICS_REFRESH: "/api/v1/bus/metrics/refresh",
+  BUS_COMMON_DELAYS: "/api/v1/bus/common-delays",
 
   // Train Indicators
   TRAIN_KPIS: "/api/v1/train/kpis",
@@ -64,6 +65,19 @@ export const API_ENDPOINTS = {
   TRAM_DELAYS: "/api/v1/tram/delays",
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
 
+  // Cycle Metrics (CycleMetricsController)
+  CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
+  CYCLE_NETWORK_SUMMARY: "/api/v1/cycle/network/summary",
+  CYCLE_RANKINGS_BUSIEST: "/api/v1/cycle/rankings/busiest",
+  CYCLE_RANKINGS_UNDERUSED: "/api/v1/cycle/rankings/underused",
+  CYCLE_NETWORK_REBALANCING: "/api/v1/cycle/network/rebalancing",
+
+  // Cycle Demand Analysis
+  CYCLE_DEMAND_NETWORK_HOURLY: "/api/v1/cycle/demand/network-hourly",
+  CYCLE_DEMAND_CLASSIFICATION: "/api/v1/cycle/demand/classification",
+  CYCLE_DEMAND_OD_PAIRS: "/api/v1/cycle/demand/od-pairs",
+  CYCLE_DEMAND_STATION_HOURLY: "/api/v1/cycle/demand/station-hourly",
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
@@ -76,4 +90,14 @@ export const API_ENDPOINTS = {
   // Misc (Events + Pedestrians)
   EVENTS: "/api/v1/events",
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
+
+  // Disruptions
+  DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
+  DISRUPTIONS_ALL: "/api/v1/disruptions",
+  DISRUPTION_RESOLVE: (id: number) => `/api/v1/disruptions/${id}/resolve`,
+
+  // EV Charging Indicators
+  EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",
+  EV_CHARGING_DEMAND: "/api/v1/ev/charging-demand",
+  EV_AREAS_GEOJSON: "/api/v1/ev/areas-geojson",
 };
