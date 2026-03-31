@@ -13,12 +13,11 @@ import { useAppSelector } from "@/store/hooks";
 import { getTheme } from "@/theme";
 import { router } from "@/router";
 
-console.log("[App] Starting application initialization...");
-
 // 30 days in milliseconds
 const THIRTY_DAYS = 1000 * 60 * 60 * 24 * 30;
 
-// Create QueryClient with VERY long cache times for persistent-like behavior
+// Create QueryClient with long cache times — all dashboards are always mounted,
+// so data fetched on login stays fresh for the entire session.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -26,19 +25,15 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-      staleTime: THIRTY_DAYS, // Data is fresh for 30 days
-      gcTime: THIRTY_DAYS, // Keep in memory cache for 30 days
+      staleTime: THIRTY_DAYS,
+      gcTime: THIRTY_DAYS,
     },
   },
 });
 
-console.log("[App] QueryClient initialized with 30-day cache");
-
 // Theme wrapper to access Redux state
 const ThemedApp = () => {
-  console.log("[ThemedApp] Rendering...");
   const theme = useAppSelector((state) => state.ui.theme);
-  console.log("[ThemedApp] Theme:", theme);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -55,8 +50,6 @@ const ThemedApp = () => {
 
 // Main App component
 function App() {
-  console.log("[App] Rendering main App component");
-
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
@@ -65,7 +58,5 @@ function App() {
     </ReduxProvider>
   );
 }
-
-console.log("[App] App component defined, ready to export");
 
 export default App;
