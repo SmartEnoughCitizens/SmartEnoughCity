@@ -72,9 +72,9 @@ def _upsert_traffic_events(
 # data_handler.py
 
 
-def fetch_and_store_traffic_data(
+def process_traffic_live_data(
     bounding_box: BoundingBox = DUBLIN_BOUNDING_BOX,
-    session: Session | None = None,  # ← add this
+    session: Session | None = None,
 ) -> int:
     client = TIIApiClient(bounding_box=bounding_box)
 
@@ -85,6 +85,7 @@ def fetch_and_store_traffic_data(
     fetched_at = datetime.now(UTC)
 
     try:
+        logger.info("Fetching traffic data from API...")
         raw_data = client.fetch_traffic_data()
 
         if raw_data is None:
@@ -107,7 +108,7 @@ def fetch_and_store_traffic_data(
         raise
 
     else:
-        logger.info("Successfully stored %d traffic events", events_count)
+        logger.info("Upserted %d traffic event record(s).", events_count)
         return events_count
 
     finally:
