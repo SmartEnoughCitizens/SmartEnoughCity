@@ -169,7 +169,10 @@ const DemandOverlay = ({
   if (!show || !geoJsonData) return null;
 
   const getFeatureStyle: GeoJSONOptions["style"] = (feature) => {
-    const props = feature?.properties as GeoJsonFeatureProperties | null | undefined;
+    const props = feature?.properties as
+      | GeoJsonFeatureProperties
+      | null
+      | undefined;
     const chargingDemand = props?.charging_demand;
 
     if (!chargingDemand || chargingDemand === null) {
@@ -205,7 +208,10 @@ const DemandOverlay = ({
   };
 
   const onEachFeature: GeoJSONOptions["onEachFeature"] = (feature, layer) => {
-    const props = feature.properties as GeoJsonFeatureProperties | null | undefined;
+    const props = feature.properties as
+      | GeoJsonFeatureProperties
+      | null
+      | undefined;
     const areaName = props?.display_name ?? "Unknown Area";
     const chargingDemand = props?.charging_demand;
     const registeredEv = props?.registered_ev;

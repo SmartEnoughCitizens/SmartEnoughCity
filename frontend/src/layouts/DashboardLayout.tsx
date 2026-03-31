@@ -259,7 +259,12 @@ export const DashboardLayout = () => {
 
         {/* Nav items */}
         {navItems.map((item) => (
-          <Tooltip key={item.view ?? item.label} title={item.label} placement="right" arrow>
+          <Tooltip
+            key={item.view ?? item.label}
+            title={item.label}
+            placement="right"
+            arrow
+          >
             <IconButton
               onClick={() => {
                 if (item.view) setActiveView(item.view);
@@ -269,13 +274,17 @@ export const DashboardLayout = () => {
                 width: 40,
                 height: 40,
                 borderRadius: "10px",
-                color: item.view && isActive(item.view) ? "primary.main" : "text.secondary",
-                bgcolor: item.view && isActive(item.view)
-                  ? (t) =>
-                      t.palette.mode === "dark"
-                        ? "rgba(96, 165, 250, 0.12)"
-                        : "rgba(37, 99, 235, 0.08)"
-                  : "transparent",
+                color:
+                  item.view && isActive(item.view)
+                    ? "primary.main"
+                    : "text.secondary",
+                bgcolor:
+                  item.view && isActive(item.view)
+                    ? (t) =>
+                        t.palette.mode === "dark"
+                          ? "rgba(96, 165, 250, 0.12)"
+                          : "rgba(37, 99, 235, 0.08)"
+                    : "transparent",
                 "&:hover": {
                   bgcolor: (t) =>
                     t.palette.mode === "dark"
