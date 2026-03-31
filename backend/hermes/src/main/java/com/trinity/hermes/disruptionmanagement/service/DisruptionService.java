@@ -58,12 +58,25 @@ public class DisruptionService {
   }
 
   public DisruptionResponse mapToResponse(Disruption disruption) {
-    return new DisruptionResponse(
-        disruption.getId(),
-        disruption.getName(),
-        disruption.getDescription(),
-        disruption.getStatus(),
-        LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")),
-        LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
+    LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin"));
+    return DisruptionResponse.builder()
+        .id(disruption.getId())
+        .name(disruption.getName())
+        .description(disruption.getDescription())
+        .status(disruption.getStatus())
+        .severity(disruption.getSeverity())
+        .disruptionType(disruption.getDisruptionType())
+        .affectedTransportModes(disruption.getAffectedTransportModes())
+        .affectedRoutes(disruption.getAffectedRoutes())
+        .affectedArea(disruption.getAffectedArea())
+        .latitude(disruption.getLatitude())
+        .longitude(disruption.getLongitude())
+        .detectedAt(disruption.getDetectedAt())
+        .estimatedEndTime(disruption.getEstimatedEndTime())
+        .delayMinutes(disruption.getDelayMinutes())
+        .notificationSent(disruption.getNotificationSent())
+        .createdAt(disruption.getDetectedAt() != null ? disruption.getDetectedAt() : now)
+        .updatedAt(now)
+        .build();
   }
 }

@@ -1,30 +1,32 @@
+{{- if .Values.realtimeCron.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Release.Name }}-data-handler
+  name: {{ .Release.Name }}-data-handler-realtime
   labels:
     app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 4 }}
 spec:
-  schedule: {{ .Values.schedule | quote }}
+  schedule: {{ .Values.realtimeCron.schedule | quote }}
   {{- if .Values.timeZone }}
   timeZone: {{ .Values.timeZone | quote }}
   {{- end }}
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 45
+  startingDeadlineSeconds: 90
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       backoffLimit: 0
-      activeDeadlineSeconds: 55
+      activeDeadlineSeconds: 110
       template:
         metadata:
           labels:
             app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 12 }}
-          {{- if .Values.podAnnotations }}
           annotations:
+            sidecar.istio.io/inject: "false"
+          {{- if .Values.podAnnotations }}
 {{- toYaml .Values.podAnnotations | nindent 12 }}
           {{- end }}
         spec:
@@ -73,6 +75,8 @@ spec:
                   value: "http://{{ .Release.Name }}-hermes:8080"
                 - name: APP_ENV
                   value: {{ .Values.appEnv | default "prod" | quote }}
+                - name: BASE_STATIC_DATA_DIR
+                  value: "/tmp/static_data"
                 - name: GTFS_API_BASE_URL
                   value: {{ .Values.gtfsApiBaseUrl | quote }}
                 - name: GTFS_API_KEY
@@ -100,15 +104,20 @@ spec:
                     secretKeyRef:
                       name: {{ .Values.secrets.ticketmasterApiKey.name | quote }}
                       key: TICKETMASTER_API_KEY
-                - name: ENABLE_GTFS
-                  value: {{ .Values.enableGtfs | default "true" | quote }}
-                - name: ENABLE_ECO_COUNTER
-                  value: {{ .Values.enableEcoCounter | default "true" | quote }}
-                - name: ENABLE_DUBLIN_BIKES
-                  value: {{ .Values.enableDublinBikes | default "true" | quote }}
-                - name: ENABLE_IRISH_RAIL
-                  value: {{ .Values.enableIrishRail | default "true" | quote }}
-                - name: ENABLE_LUAS
-                  value: {{ .Values.enableLuas | default "true" | quote }}
-                - name: ENABLE_TICKETMASTER
-                  value: {{ .Values.enableTicketmaster | default "true" | quote }}
+                - name: ENABLE_BUS_DATA
+                  value: "true"
+                - name: ENABLE_TRAIN_DATA
+                  value: "true"
+                - name: ENABLE_TRAM_DATA
+                  value: "true"
+                - name: ENABLE_CYCLE_DATA
+                  value: "false"
+                - name: ENABLE_CAR_DATA
+                  value: "false"
+                - name: ENABLE_CONSTRUCTION_DATA
+                  value: "false"
+                - name: ENABLE_EVENTS_DATA
+                  value: "false"
+                - name: ENABLE_POPULATION_DATA
+                  value: "false"
+{{- end }}
