@@ -1,6 +1,7 @@
 package com.trinity.hermes.indicators.cycle.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
+import com.trinity.hermes.indicators.cycle.dto.CoverageGapDTO;
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRiskScoreDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
@@ -22,6 +23,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -188,6 +191,36 @@ public class CycleMetricsController {
       return ResponseEntity.ok(cycleMetricsService.getStationHourlyUsage(days, limit));
     } catch (Exception e) {
       log.error("Error fetching station hourly usage: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Coverage Gap Analysis
+  // -------------------------------------------------------------------------
+
+  @GetMapping("/coverage-gaps")
+  public ResponseEntity<List<CoverageGapDTO>> getCoverageGaps() {
+    log.info("GET /api/v1/cycle/coverage-gaps");
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getCoverageGaps());
+    } catch (Exception e) {
+      log.error("Error fetching coverage gaps: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  @PatchMapping("/coverage-gaps/{electoralDivision}/process")
+  public ResponseEntity<Void> processGap(@PathVariable String electoralDivision) {
+    log.info("PATCH /api/v1/cycle/coverage-gaps/{}/process",
+        LogSanitizer.sanitizeLog(electoralDivision));
+    try {
+      boolean updated = cycleMetricsService.processGap(electoralDivision);
+      return updated
+          ? ResponseEntity.noContent().build()
+          : ResponseEntity.status(HttpStatus.CONFLICT).build();
+    } catch (Exception e) {
+      log.error("Error processing coverage gap: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
