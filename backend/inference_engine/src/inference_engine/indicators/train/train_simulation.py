@@ -54,7 +54,9 @@ def fetch_pending_recommendation() -> tuple[int, list] | None:
     """)
 
     with engine.connect() as conn:
-        row = conn.execute(query, {"usecase": "utilisation_train", "indicator": "Train"}).fetchone()
+        row = conn.execute(
+            query, {"usecase": "utilisation_train", "indicator": "Train"}
+        ).fetchone()
 
     if row is None:
         logger.info("No pending recommendations found.")

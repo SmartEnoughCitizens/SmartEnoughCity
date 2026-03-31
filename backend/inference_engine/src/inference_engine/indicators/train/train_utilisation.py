@@ -58,7 +58,9 @@ def load_train_station_ridership() -> pd.DataFrame:
     return df
 
 
-def process_stop_times(stop_times_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_stop_times(
+    stop_times_df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Process the stop times dataframe by filling null headsigns and extracting
     unique headsign/stop combinations.
@@ -76,14 +78,17 @@ def process_stop_times(stop_times_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Da
     """
     filled_df = stop_times_df.copy()
     filled_df["headsign"] = filled_df["headsign"].ffill()
-    logger.info("  Forward-filled headsign nulls. Remaining nulls: %d", filled_df["headsign"].isna().sum())
+    logger.info(
+        "  Forward-filled headsign nulls. Remaining nulls: %d",
+        filled_df["headsign"].isna().sum(),
+    )
 
     unique_combinations_df = (
-        filled_df[["headsign", "name"]]
-        .drop_duplicates()
-        .reset_index(drop=True)
+        filled_df[["headsign", "name"]].drop_duplicates().reset_index(drop=True)
     )
-    logger.info("  Found %d unique headsign/stop combinations.", len(unique_combinations_df))
+    logger.info(
+        "  Found %d unique headsign/stop combinations.", len(unique_combinations_df)
+    )
 
     return filled_df, unique_combinations_df
 
@@ -120,9 +125,13 @@ def distribute_ridership(
         how="left",
     ).drop(columns=["station"])
 
-    result_df["distributed_count"] = result_df["count_2024"] / result_df["headsign_count"]
+    result_df["distributed_count"] = (
+        result_df["count_2024"] / result_df["headsign_count"]
+    )
 
-    logger.info("  Distributed ridership across %d headsign/stop combinations.", len(result_df))
+    logger.info(
+        "  Distributed ridership across %d headsign/stop combinations.", len(result_df)
+    )
     return result_df
 
 
@@ -187,9 +196,7 @@ def distribute_ridership_weighted(
     result_df["tier_weight"] = result_df["headsign"].apply(_get_tier_weight)
 
     total_weight_per_station = (
-        result_df.groupby("name")["tier_weight"]
-        .sum()
-        .reset_index(name="total_weight")
+        result_df.groupby("name")["tier_weight"].sum().reset_index(name="total_weight")
     )
     result_df = result_df.merge(total_weight_per_station, on="name")
 
@@ -212,7 +219,9 @@ def distribute_ridership_weighted(
     )
 
     result_df["predicted_count"] = (
-        result_df["tier_weight"] / result_df["total_weight"] * result_df["predicted_2025"]
+        result_df["tier_weight"]
+        / result_df["total_weight"]
+        * result_df["predicted_2025"]
     )
 
     logger.info(
@@ -248,10 +257,12 @@ def predict_ridership_2025(ridership_df: pd.DataFrame) -> pd.DataFrame:
         y = np.array([row[col] for col in year_cols], dtype=float)
         model.fit(x, y)
         predicted = model.predict(x_2025)[0]
-        predictions.append({
-            "station": row["station"],
-            "predicted_2025": max(0.0, predicted),
-        })
+        predictions.append(
+            {
+                "station": row["station"],
+                "predicted_2025": max(0.0, predicted),
+            }
+        )
 
     predicted_df = pd.DataFrame(predictions)
     logger.info("  Predicted 2025 ridership for %d stations.", len(predicted_df))
@@ -262,7 +273,7 @@ _TRAIN_CAPACITY = 400
 _TRAINS_PER_HEADSIGN = 5
 _TOTAL_CAPACITY = _TRAIN_CAPACITY * _TRAINS_PER_HEADSIGN  # 1200
 
-_OVER_UTILISED_THRESHOLD = 0.95   # > 80% of capacity
+_OVER_UTILISED_THRESHOLD = 0.95  # > 80% of capacity
 _UNDER_UTILISED_THRESHOLD = 0.30  # < 20% of capacity
 
 
@@ -281,7 +292,7 @@ def compute_utilisation(result_df: pd.DataFrame) -> pd.DataFrame:
     Classify each headsign as over-utilised, under-utilised, or normal
     based on total 2024 ridership and predicted 2025 ridership vs capacity.
 
-    Total capacity per headsign = 400 seats × 3 trains = 1200.
+    Total capacity per headsign = 400 seats x 3 trains = 1200.
     Over-utilised: total boarding > 80% of capacity (> 960).
     Under-utilised: total boarding < 20% of capacity (< 240).
 
@@ -305,8 +316,12 @@ def compute_utilisation(result_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     utilisation_df = actual.merge(predicted, on="headsign")
-    utilisation_df["utilisation_2024"] = utilisation_df["total_2024"].apply(_classify_utilisation)
-    utilisation_df["utilisation_2025"] = utilisation_df["total_predicted_2025"].apply(_classify_utilisation)
+    utilisation_df["utilisation_2024"] = utilisation_df["total_2024"].apply(
+        _classify_utilisation
+    )
+    utilisation_df["utilisation_2025"] = utilisation_df["total_predicted_2025"].apply(
+        _classify_utilisation
+    )
 
     logger.info(
         "  Utilisation 2024 — over: %d, under: %d, normal: %d",
@@ -339,7 +354,7 @@ def build_utilisation_json(utilisation_df: pd.DataFrame) -> list[dict]:
 
     Recommendation logic:
     - Over-utilised, total_2024 > 110% capacity (>1320): "Add 2 Trains"
-    - Over-utilised, total_2024 80–110% capacity (960–1320): "Add 1 Train"
+    - Over-utilised, total_2024 80-110% capacity (960-1320): "Add 1 Train"
     - Under-utilised: "Reduce by 1 Train and observe for impacts"
 
     Args:
@@ -349,14 +364,12 @@ def build_utilisation_json(utilisation_df: pd.DataFrame) -> list[dict]:
         List of dicts with Train Name and Attributes (Current_count,
         Predicted_count, status, Recommendation)
     """
-    over = (
-        utilisation_df[utilisation_df["utilisation_2024"] == "over-utilised"]
-        .nlargest(3, "total_2024")
-    )
-    under = (
-        utilisation_df[utilisation_df["utilisation_2024"] == "under-utilised"]
-        .nsmallest(3, "total_2024")
-    )
+    over = utilisation_df[
+        utilisation_df["utilisation_2024"] == "over-utilised"
+    ].nlargest(3, "total_2024")
+    under = utilisation_df[
+        utilisation_df["utilisation_2024"] == "under-utilised"
+    ].nsmallest(3, "total_2024")
 
     top_trains = pd.concat([over, under], ignore_index=True)
 
@@ -367,7 +380,9 @@ def build_utilisation_json(utilisation_df: pd.DataFrame) -> list[dict]:
                 "Current_count": round(row["total_2024"], 2),
                 "Predicted_count": round(row["total_predicted_2025"], 2),
                 "status": row["utilisation_2024"],
-                "Recommendation": _get_recommendation(row["utilisation_2024"], row["total_2024"]),
+                "Recommendation": _get_recommendation(
+                    row["utilisation_2024"], row["total_2024"]
+                ),
             },
         }
         for _, row in top_trains.iterrows()
@@ -455,7 +470,9 @@ if __name__ == "__main__":
     print("\n--- Predicted 2025 Ridership (first 5 rows) ---")
     print(predicted_df.head())
 
-    result_df = distribute_ridership_weighted(unique_combinations_df, ridership_df, predicted_df)
+    result_df = distribute_ridership_weighted(
+        unique_combinations_df, ridership_df, predicted_df
+    )
 
     print("\n--- Weighted Distributed Ridership (first 5 rows) ---")
     print(result_df.head())

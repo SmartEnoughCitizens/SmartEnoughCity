@@ -3,8 +3,6 @@ package com.trinity.hermes.recommendation.controller;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusTripUpdateDTO;
 import com.trinity.hermes.indicators.bus.service.BusTripUpdateService;
-import com.trinity.hermes.indicators.cycle.dto.CycleStationDTO;
-import com.trinity.hermes.indicators.cycle.service.CycleStationService;
 import com.trinity.hermes.recommendation.dto.CreateRecommendationRequest;
 import com.trinity.hermes.recommendation.dto.RecommendationEngineRequest;
 import com.trinity.hermes.recommendation.dto.RecommendationResponse;
@@ -66,7 +64,6 @@ public class RecommendationController {
   }
 
   private final BusTripUpdateService busTripUpdateService;
-  private final CycleStationService cycleStationService;
 
   /**
    * Common API endpoint for recommendation engine Accepts indicator type (bus, cycle, etc.) as
@@ -94,7 +91,6 @@ public class RecommendationController {
 
       return switch (indicatorType) {
         case "bus" -> handleBusRequest(request);
-        case "cycle" -> handleCycleRequest(request);
         default -> {
           log.warn("Unsupported indicator type: {}", indicatorType);
           yield ResponseEntity.badRequest().body("Unsupported indicator type: " + indicatorType);
@@ -118,19 +114,6 @@ public class RecommendationController {
     List<BusTripUpdateDTO> data = busTripUpdateService.getAllBusTripUpdates(limit);
 
     log.info("Returning {} bus trip records", data.size());
-    return ResponseEntity.ok(data);
-  }
-
-  /** Handle cycle data request */
-  private ResponseEntity<List<CycleStationDTO>> handleCycleRequest(
-      RecommendationEngineRequest request) {
-    log.info("Fetching cycle station data for recommendation engine");
-
-    Integer limit = request.getLimit() != null ? request.getLimit() : 100;
-
-    List<CycleStationDTO> data = cycleStationService.getAllCycleStations(limit);
-
-    log.info("Returning {} cycle station records", data.size());
     return ResponseEntity.ok(data);
   }
 
