@@ -352,6 +352,7 @@ class TramLuasForecast(Base):
     # Relationships
     stop: Mapped["TramLuasStop"] = relationship(back_populates="forecasts")
 
+
 class TramDelayHistory(Base):
     """Historical record of a detected tram delay, persisted each data handler cycle."""
 

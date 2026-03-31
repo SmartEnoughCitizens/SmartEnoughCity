@@ -840,7 +840,7 @@ export const TramDashboard = () => {
               </Box>
               <Slider
                 value={usageHour}
-                onChange={(_, val) => setUsageHour(val as number)}
+                onChange={(_, val) => setUsageHour(val)}
                 min={5}
                 max={23}
                 step={1}

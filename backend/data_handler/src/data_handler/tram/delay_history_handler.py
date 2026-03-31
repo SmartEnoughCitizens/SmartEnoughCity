@@ -35,9 +35,7 @@ def _build_name_to_gtfs_ids(session: Session) -> dict[str, list[str]]:
     return mapping
 
 
-def _find_gtfs_ids(
-    stop_name: str, name_to_gtfs: dict[str, list[str]]
-) -> list[str]:
+def _find_gtfs_ids(stop_name: str, name_to_gtfs: dict[str, list[str]]) -> list[str]:
     """Find GTFS stop IDs by exact or partial name match."""
     ids = name_to_gtfs.get(stop_name.lower(), [])
     if ids:
@@ -108,16 +106,20 @@ def store_delay_snapshot() -> None:
             if not gtfs_ids:
                 continue
 
-            predicted_mins = current_time.hour * 60 + current_time.minute + forecast.due_mins
-            predicted_time = time(hour=min(predicted_mins // 60, 23), minute=predicted_mins % 60)
+            predicted_mins = (
+                current_time.hour * 60 + current_time.minute + forecast.due_mins
+            )
+            predicted_time = time(
+                hour=min(predicted_mins // 60, 23), minute=predicted_mins % 60
+            )
 
             next_scheduled = _find_next_scheduled(session, gtfs_ids, current_time)
             if next_scheduled is None:
                 continue
 
-            delay_mins = (
-                predicted_time.hour * 60 + predicted_time.minute
-            ) - (next_scheduled.hour * 60 + next_scheduled.minute)
+            delay_mins = (predicted_time.hour * 60 + predicted_time.minute) - (
+                next_scheduled.hour * 60 + next_scheduled.minute
+            )
 
             if delay_mins <= 0:
                 continue
