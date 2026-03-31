@@ -377,11 +377,11 @@ export const MiscDashboard = () => {
 
   // Map filter state
   const [selectedTypes, setSelectedTypes] = useState<Set<EventCategory>>(
-    new Set(ALL_CATEGORIES),
+    () => new Set(ALL_CATEGORIES),
   );
   const [selectedSeverities, setSelectedSeverities] = useState<
     Set<EventSeverity>
-  >(new Set(ALL_SEVERITIES));
+  >(() => new Set(ALL_SEVERITIES));
   const [selectedMapItem, setSelectedMapItem] =
     useState<SelectedMapItem | null>(null);
 
