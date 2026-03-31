@@ -1,5 +1,5 @@
 # -------- Builder --------
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS builder
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 ENV UV_PYTHON_DOWNLOADS=0
