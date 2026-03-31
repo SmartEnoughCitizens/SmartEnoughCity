@@ -11,7 +11,6 @@ dependencies = [
     "psycopg[binary]>=3.1",
     "xmltodict>=1.0.2",
     "pydantic>=2.12.4",
-    "pytest-cov>=7.0.0",
     "geoalchemy2>=0.18.4",
     "shapely>=2.1.2",
     "osmium>=4.3.0",
@@ -29,6 +28,8 @@ build-backend = "uv_build"
 dev = [
     "deepdiff>=8.6.1",
     "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "python-dotenv>=1.2.1",
     "ruff>=0.14.13",
     "testcontainers[postgres]>=4.14.1",
 ]
@@ -94,3 +95,4 @@ ignore = [
     "TD002",    # Missing author in TODO
     "PT011",    # `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
 ]
+

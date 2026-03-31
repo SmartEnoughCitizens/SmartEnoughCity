@@ -455,7 +455,7 @@ def process_tram_static_data(gtfs_dir: Path, cso_dir: Path | None = None) -> Non
 
         logger.info("Committing changes to database...")
         session.commit()
-        logger.info("Successfully processed static tram data.")
+        logger.info("Static tram data import complete.")
 
     except Exception:
         session.rollback()
