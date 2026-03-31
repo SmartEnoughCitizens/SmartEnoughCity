@@ -368,23 +368,3 @@ class IrishRailTrainMovement(Base):
         SQLEnum(StopType, schema=DB_SCHEMA)
     )
     fetched_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-
-
-class TrainStationRidership(Base):
-    """Historical annual ridership counts per Irish Rail station."""
-
-    __tablename__ = "train_station_ridership"
-    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    station: Mapped[str] = mapped_column(String, nullable=False)
-    count_2014: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2015: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2016: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2017: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2018: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2019: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2021: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2022: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2023: Mapped[int] = mapped_column(Integer, nullable=False)
-    count_2024: Mapped[int] = mapped_column(Integer, nullable=False)

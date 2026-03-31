@@ -73,9 +73,6 @@ class DataSourcesSettings(BaseSettings):
     # Car static data — Google Drive folder ID
     car_gdrive_folder_id: str | None = Field(None, alias="CAR_GDRIVE_FOLDER_ID")
 
-    # Train ridership static data — Google Drive folder ID
-    train_ridership_gdrive_folder_id: str | None = Field(None, alias="TRAIN_RIDERSHIP_GDRIVE_FOLDER_ID")
-
     @field_validator("base_static_data_dir")
     @classmethod
     def _ensure_base_dir(cls, p: Path) -> Path:
