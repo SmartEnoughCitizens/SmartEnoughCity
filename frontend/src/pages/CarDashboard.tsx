@@ -105,7 +105,6 @@ export const CarDashboard = () => {
       const next = new Set(prev);
       if (next.has(band)) {
         next.delete(band);
-        // if all deselected, reset to all
         if (next.size === 0) return new Set(["low", "medium", "high"]);
       } else {
         next.add(band);
@@ -133,17 +132,16 @@ export const CarDashboard = () => {
     [selectedRecommendationId, trafficRecommendations],
   );
 
-  // --- Traffic mode ---
   const filteredPoints = trafficPoints?.filter(
-    (p) =>
-      p.lat != null &&
-      p.lon != null &&
-      p.dayType === dayTypeFilter &&
-      p.timeSlot === timeSlotFilter,
+    (point) =>
+      point.lat != null &&
+      point.lon != null &&
+      point.dayType === dayTypeFilter &&
+      point.timeSlot === timeSlotFilter,
   );
 
   const maxVolume = filteredPoints?.length
-    ? Math.max(...filteredPoints.map((p) => p.avgVolume))
+    ? Math.max(...filteredPoints.map((point) => point.avgVolume))
     : 1;
 
   const getMarkerColor = (volume: number): string => {
@@ -153,20 +151,19 @@ export const CarDashboard = () => {
     return "#16a34a";
   };
 
-  // --- Pollution mode ---
   const filteredEmissions = emissionPoints?.filter(
-    (p) =>
-      p.lat != null &&
-      p.lon != null &&
-      p.dayType === dayTypeFilter &&
-      p.timeSlot === timeSlotFilter,
+    (point) =>
+      point.lat != null &&
+      point.lon != null &&
+      point.dayType === dayTypeFilter &&
+      point.timeSlot === timeSlotFilter,
   );
 
   const maxEmission = filteredEmissions?.length
-    ? Math.max(...filteredEmissions.map((p) => p.totalEmissionG))
+    ? Math.max(...filteredEmissions.map((point) => point.totalEmissionG))
     : 1;
   const minEmission = filteredEmissions?.length
-    ? Math.min(...filteredEmissions.map((p) => p.totalEmissionG))
+    ? Math.min(...filteredEmissions.map((point) => point.totalEmissionG))
     : 0;
 
   const getEmissionColor = (emission: number): string => {
@@ -239,7 +236,6 @@ export const CarDashboard = () => {
         overflowY: "auto",
       }}
     >
-      {/* Fuel Type Tiles */}
       <Box sx={{ flexShrink: 0 }}>
         <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
           Vehicle Statistics by Fuel Type
@@ -255,7 +251,6 @@ export const CarDashboard = () => {
         </Box>
       </Box>
 
-      {/* Map Section */}
       <Box
         sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
       >
@@ -285,7 +280,6 @@ export const CarDashboard = () => {
           </ToggleButtonGroup>
         </Box>
 
-        {/* Filters */}
         <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
           <ToggleButtonGroup
             value={dayTypeFilter}
@@ -310,7 +304,6 @@ export const CarDashboard = () => {
           </ToggleButtonGroup>
         </Box>
 
-        {/* Legend */}
         <Box
           sx={{
             display: "flex",
@@ -340,11 +333,7 @@ export const CarDashboard = () => {
             />
           ))}
           {mapMode === "traffic" && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ ml: "auto" }}
-            >
+            <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
               Recommendations refresh every 5 min
             </Typography>
           )}
@@ -424,7 +413,7 @@ export const CarDashboard = () => {
 
               {mapMode === "traffic" &&
                 filteredPoints
-                  ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
+                  ?.filter((point) => activeColors.has(getVolumeBand(point.avgVolume)))
                   .map((point, idx) => (
                     <CircleMarker
                       key={`traffic-${point.siteId}-${idx}`}
@@ -472,15 +461,9 @@ export const CarDashboard = () => {
                     <Popup>
                       <strong>{route.label}</strong>
                       <br />
-                      Estimated travel time: {
-                        route.estimatedTravelTimeMinutes
-                      }{" "}
-                      min
+                      Estimated travel time: {route.estimatedTravelTimeMinutes} min
                       <br />
-                      Estimated time saving: {
-                        route.estimatedTimeSavingsMinutes
-                      }{" "}
-                      min
+                      Estimated time saving: {route.estimatedTimeSavingsMinutes} min
                       <br />
                       Distance: {route.distanceKm.toFixed(1)} km
                     </Popup>
@@ -514,8 +497,8 @@ export const CarDashboard = () => {
 
               {mapMode === "pollution" &&
                 filteredEmissions
-                  ?.filter((p) =>
-                    activeColors.has(getEmissionBand(p.totalEmissionG)),
+                  ?.filter((point) =>
+                    activeColors.has(getEmissionBand(point.totalEmissionG)),
                   )
                   .map((point, idx) => (
                     <Circle
@@ -532,8 +515,8 @@ export const CarDashboard = () => {
                       <Popup>
                         <strong>Site {point.siteId}</strong>
                         <br />
-                        Total Emission:{" "}
-                        {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
+                        Total Emission: {(point.totalEmissionG / 1000).toFixed(2)} kg
+                        {" "}CO₂
                         <br />
                         Car Volume: {point.carVolume.toFixed(0)}
                         <br />
