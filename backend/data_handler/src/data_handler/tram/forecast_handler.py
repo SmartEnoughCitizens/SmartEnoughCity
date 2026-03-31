@@ -115,13 +115,13 @@ def fetch_forecast_for_stop(stop_id: str) -> list[dict]:
 # ── DB writers ───────────────────────────────────────────────────
 
 
-def luas_stops_to_db() -> None:
+def process_tram_stop_info() -> None:
     """Fetch Luas stops from the forecasting API and upsert into DB."""
     session = SessionLocal()
 
     try:
         for line in ["red", "green"]:
-            logger.info("Loading LUAS %s line stops...", line)
+            logger.info("Fetching LUAS %s line stops...", line)
             df = fetch_luas_stops(line)
 
             if df.empty:
@@ -152,7 +152,7 @@ def luas_stops_to_db() -> None:
                         )
                     )
 
-            logger.info("Inserted/updated %d LUAS stops (%s line).", len(df), line)
+            logger.info("Upserted %d LUAS stop record(s) (%s line).", len(df), line)
 
         session.commit()
 
@@ -165,7 +165,7 @@ def luas_stops_to_db() -> None:
         session.close()
 
 
-def luas_forecasts_to_db() -> None:
+def process_tram_live_data() -> None:
     """Fetch live forecasts for all known stops and insert into DB."""
     session = SessionLocal()
 
@@ -175,7 +175,7 @@ def luas_forecasts_to_db() -> None:
         ).fetchall()
 
         if not stops:
-            logger.warning("No stops in DB. Run luas_stops_to_db() first!")
+            logger.warning("No stops in DB. Run process_tram_stop_info() first!")
             return
 
         # Clear old forecasts before inserting fresh data
@@ -204,7 +204,7 @@ def luas_forecasts_to_db() -> None:
                 forecast_count += 1
 
         session.commit()
-        logger.info("Inserted %d LUAS forecast rows.", forecast_count)
+        logger.info("Inserted %d LUAS forecast record(s).", forecast_count)
 
         logger.info("Checking for disruptions...")
 

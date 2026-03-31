@@ -28,6 +28,7 @@ import type {
   StationODPairDTO,
   StationRankingDTO,
   JunctionEmission,
+  TrafficRecommendation,
   PedestrianLive,
   TrainDashboardResponse,
   TrainDelay,
@@ -221,6 +222,16 @@ export const dashboardApi = {
   getCarJunctionEmissions: async (): Promise<JunctionEmission[]> => {
     const { data } = await axiosInstance.get<JunctionEmission[]>(
       API_ENDPOINTS.CAR_JUNCTION_EMISSIONS,
+    );
+    return data;
+  },
+
+  /**
+   * Get traffic diversion recommendations for high congestion points
+   */
+  getCarTrafficRecommendations: async (): Promise<TrafficRecommendation[]> => {
+    const { data } = await axiosInstance.get<TrafficRecommendation[]>(
+      API_ENDPOINTS.CAR_TRAFFIC_RECOMMENDATIONS,
     );
     return data;
   },
