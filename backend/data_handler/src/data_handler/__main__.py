@@ -24,7 +24,6 @@ from data_handler.settings.data_sources_settings import (
 from data_handler.settings.database_settings import get_db_settings
 from data_handler.train.realtime_handler import irish_rail_realtime_to_db
 from data_handler.train.static_data_handler import process_train_static_data
-from data_handler.tram.delay_history_handler import store_delay_snapshot
 from data_handler.tram.forecast_handler import luas_forecasts_to_db, luas_stops_to_db
 from data_handler.tram.static_data_handler import process_tram_static_data
 from data_handler.urls import (

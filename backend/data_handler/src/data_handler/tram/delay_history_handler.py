@@ -1,7 +1,7 @@
 """Calculate tram delays from DB data and persist to tram_delay_history."""
 
 import logging
-from datetime import datetime, time, timezone
+from datetime import UTC, datetime, time
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -22,7 +22,7 @@ def _get_dublin_time(session: Session) -> time:
     """Get current Dublin time from the database."""
     row = session.execute(text("SELECT NOW() AT TIME ZONE 'Europe/Dublin'")).scalar()
     if row is None:
-        return datetime.now(tz=timezone.utc).time()
+        return datetime.now(tz=UTC).time()
     return row.time() if isinstance(row, datetime) else row
 
 
@@ -100,10 +100,10 @@ def store_delay_snapshot() -> None:
                 soonest[key] = (forecast, stop_name)
 
         name_to_gtfs = _build_name_to_gtfs_ids(session)
-        now_utc = datetime.now(tz=timezone.utc)
+        now_utc = datetime.now(tz=UTC)
         delay_count = 0
 
-        for _key, (forecast, stop_name) in soonest.items():
+        for forecast, stop_name in soonest.values():
             gtfs_ids = _find_gtfs_ids(stop_name, name_to_gtfs)
             if not gtfs_ids:
                 continue
