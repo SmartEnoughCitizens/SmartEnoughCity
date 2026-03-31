@@ -1,6 +1,6 @@
 """Tests for tram delay history handler."""
 
-from datetime import UTC, datetime, time
+from datetime import datetime, time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -14,8 +14,6 @@ from data_handler.tram.delay_history_handler import (
     store_delay_snapshot,
 )
 from data_handler.tram.models import TramStop
-from tests.utils import assert_row_count
-
 
 # ── _get_dublin_time unit tests ──────────────────────────────────────
 
@@ -256,9 +254,7 @@ class TestStoreDelaySnapshot:
         mock_session.commit.assert_called_once()
 
     @patch("data_handler.tram.delay_history_handler.SessionLocal")
-    def test_skips_forecast_with_no_gtfs_match(
-        self, mock_session_local: Mock
-    ) -> None:
+    def test_skips_forecast_with_no_gtfs_match(self, mock_session_local: Mock) -> None:
         """Forecasts for stops without GTFS matches are skipped."""
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
@@ -292,9 +288,7 @@ class TestStoreDelaySnapshot:
         mock_session.commit.assert_called_once()
 
     @patch("data_handler.tram.delay_history_handler.SessionLocal")
-    def test_skips_forecast_with_none_due_mins(
-        self, mock_session_local: Mock
-    ) -> None:
+    def test_skips_forecast_with_none_due_mins(self, mock_session_local: Mock) -> None:
         """Forecasts with due_mins=None are skipped during grouping."""
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
