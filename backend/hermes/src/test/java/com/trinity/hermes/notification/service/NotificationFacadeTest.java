@@ -22,12 +22,12 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.keycloak.representations.idm.UserRepresentation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -172,7 +172,8 @@ public class NotificationFacadeTest {
   class BroadcastByIndicator {
 
     @Test
-    @DisplayName("known indicator: fetches providers by role and calls handleBackendNotification per user")
+    @DisplayName(
+        "known indicator: fetches providers by role and calls handleBackendNotification per user")
     void knownIndicator_fanOutToProviders() {
       UserRepresentation user1 = new UserRepresentation();
       user1.setId("uuid-1");
@@ -182,8 +183,7 @@ public class NotificationFacadeTest {
       user2.setId("uuid-2");
       user2.setUsername("bus-provider-2");
 
-      when(userManagementService.getUsersByRole("Bus_Provider"))
-          .thenReturn(List.of(user1, user2));
+      when(userManagementService.getUsersByRole("Bus_Provider")).thenReturn(List.of(user1, user2));
 
       Notification notification =
           Notification.builder()
@@ -192,7 +192,8 @@ public class NotificationFacadeTest {
               .recipient("p@example.com")
               .channel(Channel.NOTIFICATION)
               .build();
-      when(notificationService.createNotification(any(User.class), any(BackendNotificationRequestDTO.class)))
+      when(notificationService.createNotification(
+              any(User.class), any(BackendNotificationRequestDTO.class)))
           .thenReturn(Set.of(notification));
 
       BroadcastNotificationRequestDTO request = new BroadcastNotificationRequestDTO();
@@ -210,14 +211,16 @@ public class NotificationFacadeTest {
     }
 
     @Test
-    @DisplayName("known indicator: BackendNotificationRequestDTO is built with correct userId per user")
+    @DisplayName(
+        "known indicator: BackendNotificationRequestDTO is built with correct userId per user")
     void knownIndicator_dtoHasCorrectUserId() {
       UserRepresentation user = new UserRepresentation();
       user.setId("uuid-bus-1");
       user.setUsername("bus-provider-1");
 
       when(userManagementService.getUsersByRole("Bus_Provider")).thenReturn(List.of(user));
-      when(notificationService.createNotification(any(User.class), any(BackendNotificationRequestDTO.class)))
+      when(notificationService.createNotification(
+              any(User.class), any(BackendNotificationRequestDTO.class)))
           .thenReturn(null);
 
       BroadcastNotificationRequestDTO request = new BroadcastNotificationRequestDTO();

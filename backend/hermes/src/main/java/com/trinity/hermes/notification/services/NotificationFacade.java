@@ -86,12 +86,23 @@ public class NotificationFacade {
     if (roleName == null) {
       throw new IllegalArgumentException("No provider role mapped for indicator: " + indicator);
     }
+    // Merge indicator-role users and City_Manager users, deduplicating by userId
+    java.util.Map<String, org.keycloak.representations.idm.UserRepresentation> uniqueUsers =
+        new java.util.LinkedHashMap<>();
+    userManagementService.getUsersByRole(roleName).forEach(u -> uniqueUsers.put(u.getId(), u));
+    userManagementService
+        .getUsersByRole("City_Manager")
+        .forEach(u -> uniqueUsers.put(u.getId(), u));
     List<org.keycloak.representations.idm.UserRepresentation> users =
-        userManagementService.getUsersByRole(roleName);
-    log.info("Broadcasting indicator={} to {} users with role={}", indicator, users.size(), roleName);
+        new java.util.ArrayList<>(uniqueUsers.values());
+    log.info(
+        "Broadcasting indicator={} to {} users (role={} + City_Manager)",
+        indicator,
+        users.size(),
+        roleName);
     for (org.keycloak.representations.idm.UserRepresentation user : users) {
       BackendNotificationRequestDTO dto = new BackendNotificationRequestDTO();
-      dto.setUserId(user.getId());
+      dto.setUserId(user.getUsername());
       dto.setUserName(user.getUsername());
       dto.setQrid(request.getQrid());
       dto.setDataIndicator(indicator);
