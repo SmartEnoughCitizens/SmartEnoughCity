@@ -5,6 +5,18 @@ image:
 
 timeZone: "Europe/Dublin"
 
+# Init job for static data loading (runs once on install/upgrade)
+initJob:
+  enabled: true
+  activeDeadlineSeconds: 7200  # 2 hours
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "3000m"
+      memory: "8Gi"
+
 labels:
   app.kubernetes.io/name: data-handler
   app.kubernetes.io/component: batch-run
@@ -41,10 +53,10 @@ cronjobs:
     resources:
       requests:
         cpu: "100m"
-        memory: "128Mi"
+        memory: "256Mi"
       limits:
         cpu: "500m"
-        memory: "256Mi"
+        memory: "512Mi"
 
   - name: 1hour
     schedule: "0 * * * *"
