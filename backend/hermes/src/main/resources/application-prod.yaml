@@ -27,6 +27,9 @@ spring:
       ddl-auto: update
     open-in-view: false
 
+inference-engine:
+  base-url: ${INFERENCE_ENGINE_BASE_URL}
+
 keycloak:
   server-url: ${KEYCLOAK_SERVER_URL}
   realm: ${KEYCLOAK_REALM}
