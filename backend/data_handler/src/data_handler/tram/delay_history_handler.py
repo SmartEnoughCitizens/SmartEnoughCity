@@ -148,3 +148,4 @@ def store_delay_snapshot() -> None:
 
     finally:
         session.close()
+        
