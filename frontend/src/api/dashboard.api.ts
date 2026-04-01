@@ -8,6 +8,7 @@ import type {
   CoverageGapDTO,
   DisruptionItem,
   BusDashboardResponse,
+  StationProposalSummary,
   BusKpis,
   BusLiveVehicle,
   BusRouteUtilization,
@@ -423,5 +424,26 @@ export const dashboardApi = {
     await axiosInstance.patch(
       API_ENDPOINTS.CYCLE_COVERAGE_GAP_PROCESS(electoralDivision),
     );
+  },
+
+  submitStationProposal: async (proposal: {
+    proposedStations: { latitude: number; longitude: number }[];
+    impactedAreas: { electoralDivision: string; fromCategory: string; toCategory: string; simulatedDistanceM: number }[];
+    totalImprovedAreas: number;
+    submittedBy?: string;
+    notes?: string;
+  }): Promise<void> => {
+    await axiosInstance.post(API_ENDPOINTS.CYCLE_STATION_PROPOSALS, proposal);
+  },
+
+  getPendingProposals: async (): Promise<StationProposalSummary[]> => {
+    const { data } = await axiosInstance.get<StationProposalSummary[]>(
+      API_ENDPOINTS.CYCLE_STATION_PROPOSALS,
+    );
+    return data;
+  },
+
+  reviewProposal: async (id: number, action: string, reason: string): Promise<void> => {
+    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_REVIEW(id), { action, reason });
   },
 };
