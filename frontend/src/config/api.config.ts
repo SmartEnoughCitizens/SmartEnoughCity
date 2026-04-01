@@ -80,6 +80,11 @@ export const API_ENDPOINTS = {
   // Cycle ML Risk Scores
   CYCLE_RISK_SCORES: "/api/v1/cycle/risk-scores",
 
+  // Cycle Coverage Gap Analysis
+  CYCLE_COVERAGE_GAPS: "/api/v1/cycle/coverage-gaps",
+  CYCLE_COVERAGE_GAP_PROCESS: (ed: string) =>
+    `/api/v1/cycle/coverage-gaps/${encodeURIComponent(ed)}/process`,
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
