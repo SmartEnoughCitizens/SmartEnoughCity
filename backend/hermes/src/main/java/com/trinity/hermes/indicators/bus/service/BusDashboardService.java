@@ -9,7 +9,6 @@ import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
 import com.trinity.hermes.indicators.bus.entity.BusRoute;
-import com.trinity.hermes.indicators.bus.entity.BusCommonDelayMV;
 import com.trinity.hermes.indicators.bus.entity.BusRouteMetrics;
 import com.trinity.hermes.indicators.bus.entity.BusTrip;
 import com.trinity.hermes.indicators.bus.repository.*;

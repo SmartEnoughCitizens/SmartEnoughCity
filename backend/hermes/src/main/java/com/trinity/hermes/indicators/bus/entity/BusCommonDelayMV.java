@@ -14,8 +14,7 @@ import org.hibernate.annotations.Immutable;
 @AllArgsConstructor
 public class BusCommonDelayMV {
 
-  @Id
-  private Long id;
+  @Id private Long id;
 
   @Column(name = "period")
   private String period;

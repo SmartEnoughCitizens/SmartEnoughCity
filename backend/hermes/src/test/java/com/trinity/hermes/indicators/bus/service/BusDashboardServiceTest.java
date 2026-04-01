@@ -150,8 +150,10 @@ class BusDashboardServiceTest {
 
   @Test
   void getCommonDelays_returnsMappedResultsFromMv() {
-    BusCommonDelayMV mv1 = new BusCommonDelayMV(1L, "today", "route_1", "42", "City Center - Sandyford", 15.5);
-    BusCommonDelayMV mv2 = new BusCommonDelayMV(2L, "today", "route_2", "16", "Dublin Airport - Ballinteer", 8.3);
+    BusCommonDelayMV mv1 =
+        new BusCommonDelayMV(1L, "today", "route_1", "42", "City Center - Sandyford", 15.5);
+    BusCommonDelayMV mv2 =
+        new BusCommonDelayMV(2L, "today", "route_2", "16", "Dublin Airport - Ballinteer", 8.3);
 
     when(busCommonDelayMvRepository.findByPeriodOrderByAvgDelayMinutesDesc("today"))
         .thenReturn(List.of(mv1, mv2));
@@ -180,16 +182,31 @@ class BusDashboardServiceTest {
   void getRouteBreakdown_returnsMappedPerStopData() {
     BusRouteBreakdownProjection p =
         new BusRouteBreakdownProjection() {
-          public String getStopId() { return "8540B1559201"; }
-          public Double getAvgDelayMinutes() { return 5.2; }
-          public Double getMaxDelayMinutes() { return 12.0; }
-          public Long getTripCount() { return 25L; }
+          @Override
+          public String getStopId() {
+            return "8540B1559201";
+          }
+
+          @Override
+          public Double getAvgDelayMinutes() {
+            return 5.2;
+          }
+
+          @Override
+          public Double getMaxDelayMinutes() {
+            return 12.0;
+          }
+
+          @Override
+          public Long getTripCount() {
+            return 25L;
+          }
         };
 
-    when(busTripUpdateRepository.findBreakdownByRoute("route_1", "today"))
-        .thenReturn(List.of(p));
+    when(busTripUpdateRepository.findBreakdownByRoute("route_1", "today")).thenReturn(List.of(p));
 
-    List<BusRouteBreakdownDTO> breakdown = busDashboardService.getRouteBreakdown("route_1", "today");
+    List<BusRouteBreakdownDTO> breakdown =
+        busDashboardService.getRouteBreakdown("route_1", "today");
 
     assertThat(breakdown).hasSize(1);
     assertThat(breakdown.get(0).getStopId()).isEqualTo("8540B1559201");
