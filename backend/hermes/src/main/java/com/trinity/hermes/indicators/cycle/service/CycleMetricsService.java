@@ -1,6 +1,13 @@
 package com.trinity.hermes.indicators.cycle.service;
 
 import com.trinity.hermes.indicators.cycle.dto.CoverageGapDTO;
+import com.trinity.hermes.indicators.cycle.dto.ProposalReviewDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationProposalDTO;
+import com.trinity.hermes.indicators.cycle.dto.StationProposalSummaryDTO;
+import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.model.enums.Channel;
+import com.trinity.hermes.notification.services.NotificationFacade;
+import com.trinity.hermes.usermanagement.service.UserManagementService;
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRiskScoreDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
@@ -12,6 +19,7 @@ import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
 import com.trinity.hermes.indicators.cycle.repository.DublinBikesSnapshotRepository;
+import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -30,6 +38,38 @@ public class CycleMetricsService {
 
   private final DublinBikesSnapshotRepository snapshotRepository;
   private final JdbcTemplate jdbcTemplate;
+  private final NotificationFacade notificationFacade;
+  private final UserManagementService userManagementService;
+
+  // -------------------------------------------------------------------------
+  // Proposals table initialisation
+  // -------------------------------------------------------------------------
+
+  @PostConstruct
+  public void initProposalsTable() {
+    jdbcTemplate.execute(
+        "CREATE TABLE IF NOT EXISTS backend.cycle_station_proposals ("
+        + "id                  BIGSERIAL PRIMARY KEY, "
+        + "submitted_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(), "
+        + "submitted_by        VARCHAR(100), "
+        + "submitted_by_role   VARCHAR(50), "
+        + "station_count       INTEGER NOT NULL, "
+        + "improved_area_count INTEGER NOT NULL, "
+        + "stations_json       TEXT NOT NULL, "
+        + "impacts_json        TEXT NOT NULL, "
+        + "notes               TEXT, "
+        + "status              VARCHAR(30) NOT NULL DEFAULT 'PENDING'"
+        + ")");
+    jdbcTemplate.execute(
+        "ALTER TABLE backend.cycle_station_proposals "
+        + "ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ");
+    jdbcTemplate.execute(
+        "ALTER TABLE backend.cycle_station_proposals "
+        + "ADD COLUMN IF NOT EXISTS reviewed_by VARCHAR(100)");
+    jdbcTemplate.execute(
+        "ALTER TABLE backend.cycle_station_proposals "
+        + "ADD COLUMN IF NOT EXISTS review_reason TEXT");
+  }
 
   // -------------------------------------------------------------------------
   // Live Station Data
@@ -190,6 +230,183 @@ public class CycleMetricsService {
         """,
         electoralDivision);
     return updated > 0;
+  }
+
+  // -------------------------------------------------------------------------
+  // Proposal Retrieval
+  // -------------------------------------------------------------------------
+
+  @Transactional(readOnly = true)
+  public List<StationProposalSummaryDTO> getPendingProposals(String requesterRole) {
+    // City_Manager reviews proposals from Cycle_Admin, and vice versa
+    String submitterRole = "City_Manager".equals(requesterRole) ? "Cycle_Admin"
+        : "Cycle_Admin".equals(requesterRole) ? "City_Manager"
+        : null;
+
+    if (submitterRole == null) {
+      return List.of();
+    }
+
+    return jdbcTemplate.query(
+        """
+        SELECT id, submitted_at, submitted_by, submitted_by_role,
+               station_count, improved_area_count, status, notes,
+               stations_json, impacts_json
+          FROM backend.cycle_station_proposals
+         WHERE status = 'PENDING'
+           AND submitted_by_role = ?
+         ORDER BY submitted_at DESC
+        """,
+        (rs, rn) -> {
+          StationProposalSummaryDTO dto = new StationProposalSummaryDTO();
+          dto.setId(rs.getLong("id"));
+          dto.setSubmittedAt(rs.getTimestamp("submitted_at").toInstant().toString());
+          dto.setSubmittedBy(rs.getString("submitted_by"));
+          dto.setSubmittedByRole(rs.getString("submitted_by_role"));
+          dto.setStationCount(rs.getInt("station_count"));
+          dto.setImprovedAreaCount(rs.getInt("improved_area_count"));
+          dto.setStatus(rs.getString("status"));
+          dto.setNotes(rs.getString("notes"));
+          dto.setStationsJson(rs.getString("stations_json"));
+          dto.setImpactsJson(rs.getString("impacts_json"));
+          return dto;
+        },
+        submitterRole);
+  }
+
+  // -------------------------------------------------------------------------
+  // Proposal Review
+  // -------------------------------------------------------------------------
+
+  @Transactional
+  public void reviewProposal(Long id, ProposalReviewDTO review, String reviewerUsername) {
+    int updated = jdbcTemplate.update(
+        """
+        UPDATE backend.cycle_station_proposals
+           SET status        = ?,
+               reviewed_at   = NOW(),
+               reviewed_by   = ?,
+               review_reason = ?
+         WHERE id = ? AND status = 'PENDING'
+        """,
+        review.getAction(), reviewerUsername, review.getReason(), id);
+
+    if (updated == 0) {
+      log.warn("Proposal id={} not found or already reviewed", id);
+      return;
+    }
+
+    // Notify the original submitter
+    String submittedBy = jdbcTemplate.queryForObject(
+        "SELECT submitted_by FROM backend.cycle_station_proposals WHERE id = ?",
+        String.class, id);
+
+    if (submittedBy == null) return;
+
+    String subject = "ACCEPTED".equals(review.getAction())
+        ? "Your station proposal was accepted"
+        : "Your station proposal was rejected";
+    String body = "ACCEPTED".equals(review.getAction())
+        ? "Your proposed station(s) have been accepted by " + reviewerUsername + "."
+        : "Your proposed station(s) were rejected by " + reviewerUsername + ". Reason: " + review.getReason();
+
+    try {
+      BackendNotificationRequestDTO notification = new BackendNotificationRequestDTO();
+      notification.setUserId(submittedBy);
+      notification.setSubject(subject);
+      notification.setBody(body);
+      notification.setChannel(Channel.NOTIFICATION);
+      notificationFacade.handleBackendNotification(notification);
+      log.info("Review notification sent to submitter username={}", submittedBy);
+    } catch (Exception e) {
+      log.error("Failed to notify submitter username={}: {}", submittedBy, e.getMessage(), e);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Proposal Submission
+  // -------------------------------------------------------------------------
+
+  @Transactional
+  public void submitStationProposal(StationProposalDTO proposal, String submitterRole) {
+    log.info("Station proposal received from role={}: {} stations, {} areas impacted",
+        submitterRole,
+        proposal.getProposedStations() != null ? proposal.getProposedStations().size() : 0,
+        proposal.getTotalImprovedAreas());
+
+    String stationsJson = proposal.getProposedStations() == null ? "[]"
+        : proposal.getProposedStations().stream()
+            .map(s -> String.format("{\"lat\":%.6f,\"lon\":%.6f}", s.getLatitude(), s.getLongitude()))
+            .collect(Collectors.joining(",", "[", "]"));
+
+    String impactsJson = proposal.getImpactedAreas() == null ? "[]"
+        : proposal.getImpactedAreas().stream()
+            .map(a -> String.format(
+                "{\"area\":\"%s\",\"from\":\"%s\",\"to\":\"%s\",\"distM\":%.1f}",
+                a.getElectoralDivision(), a.getFromCategory(), a.getToCategory(), a.getSimulatedDistanceM()))
+            .collect(Collectors.joining(",", "[", "]"));
+
+    jdbcTemplate.update(
+        """
+        INSERT INTO backend.cycle_station_proposals
+            (submitted_by, submitted_by_role, station_count, improved_area_count, stations_json, impacts_json, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        proposal.getSubmittedBy(),
+        submitterRole,
+        proposal.getProposedStations() != null ? proposal.getProposedStations().size() : 0,
+        proposal.getTotalImprovedAreas(),
+        stationsJson,
+        impactsJson,
+        proposal.getNotes());
+
+    log.info("Station proposal saved — submitted_by={} submitted_by_role={}", proposal.getSubmittedBy(), submitterRole);
+  }
+
+  /**
+   * Sends notifications to target role after a proposal is submitted.
+   * Deliberately NOT @Transactional so Keycloak/SSE failures don't affect the saved proposal.
+   */
+  public void notifyProposalRecipients(StationProposalDTO proposal, String submitterRole) {
+    String targetRole = "City_Manager".equals(submitterRole) ? "Cycle_Admin"
+        : "Cycle_Admin".equals(submitterRole) ? "City_Manager"
+        : null;
+
+    if (targetRole == null) {
+      log.warn("Cannot determine notification target for submitterRole='{}'", submitterRole);
+      return;
+    }
+
+    String submittedBy = proposal.getSubmittedBy() != null ? proposal.getSubmittedBy() : submitterRole;
+    String subject = "New Station Proposal — " + submittedBy;
+    String body = proposal.getProposedStations().size() + " proposed station(s) would improve "
+        + proposal.getTotalImprovedAreas() + " area(s) in Dublin. "
+        + "Submitted by: " + submittedBy + ". "
+        + "Please review the proposal in the Cycle Coverage map.";
+
+    try {
+      var recipients = userManagementService.getUsersByRole(targetRole);
+      if (recipients.isEmpty()) {
+        log.warn("No users found for role={} — no notifications sent", targetRole);
+        return;
+      }
+
+      recipients.forEach(user -> {
+        try {
+          BackendNotificationRequestDTO notification = new BackendNotificationRequestDTO();
+          notification.setUserId(user.getUsername());
+          notification.setSubject(subject);
+          notification.setBody(body);
+          notification.setChannel(Channel.NOTIFICATION);
+          notificationFacade.handleBackendNotification(notification);
+          log.info("Station proposal notification sent to username={}", user.getUsername());
+        } catch (Exception e) {
+          log.error("Failed to notify username={}: {}", user.getUsername(), e.getMessage(), e);
+        }
+      });
+    } catch (Exception e) {
+      log.error("Failed to fetch users for role={}: {}", targetRole, e.getMessage(), e);
+    }
   }
 
   // -------------------------------------------------------------------------
