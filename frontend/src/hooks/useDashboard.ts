@@ -2,7 +2,7 @@
  * React Query hooks for dashboard data
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
 export const MISC_KEYS = {
@@ -39,6 +39,7 @@ export const DASHBOARD_KEYS = {
   cycleStationHourlyUsage: (days?: number, limit?: number) =>
     ["cycle", "demand", "station-hourly", { days, limit }] as const,
   cycleRiskScores: ["cycle", "risk-scores"] as const,
+  cycleCoverageGaps: ["cycle", "coverage-gaps"] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
@@ -459,5 +460,32 @@ export const useActiveDisruptions = () => {
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get cycle coverage gaps (electoral divisions with low station density)
+ */
+export const useCycleCoverageGaps = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleCoverageGaps,
+    queryFn: () => dashboardApi.getCycleCoverageGaps(),
+    staleTime: 3_600_000, // 1 hour — recomputed nightly
+  });
+};
+
+/**
+ * Mark a coverage gap electoral division as planned for implementation
+ */
+export const useMarkCoverageGapProcessed = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (electoralDivision: string) =>
+      dashboardApi.markCoverageGapProcessed(electoralDivision),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleCoverageGaps,
+      });
+    },
   });
 };
