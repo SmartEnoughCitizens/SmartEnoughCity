@@ -84,6 +84,9 @@ export const API_ENDPOINTS = {
   CYCLE_COVERAGE_GAPS: "/api/v1/cycle/coverage-gaps",
   CYCLE_COVERAGE_GAP_PROCESS: (ed: string) =>
     `/api/v1/cycle/coverage-gaps/${encodeURIComponent(ed)}/process`,
+  CYCLE_STATION_PROPOSALS: "/api/v1/cycle/coverage-gaps/proposals",
+  CYCLE_PROPOSAL_REVIEW: (id: number) =>
+    `/api/v1/cycle/coverage-gaps/proposals/${id}/review`,
 
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
