@@ -5,6 +5,7 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  CoverageGapDTO,
   DisruptionItem,
   BusDashboardResponse,
   BusKpis,
@@ -409,5 +410,18 @@ export const dashboardApi = {
    */
   resolveDisruption: async (id: number): Promise<void> => {
     await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
+  },
+
+  getCycleCoverageGaps: async (): Promise<CoverageGapDTO[]> => {
+    const { data } = await axiosInstance.get<CoverageGapDTO[]>(
+      API_ENDPOINTS.CYCLE_COVERAGE_GAPS,
+    );
+    return data;
+  },
+
+  markCoverageGapProcessed: async (electoralDivision: string): Promise<void> => {
+    await axiosInstance.patch(
+      API_ENDPOINTS.CYCLE_COVERAGE_GAP_PROCESS(electoralDivision),
+    );
   },
 };
