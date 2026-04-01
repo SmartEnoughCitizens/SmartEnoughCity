@@ -171,6 +171,22 @@ export interface CoverageGapDTO {
   geomGeoJson: string | null;
 }
 
+/** A submitted station proposal awaiting review. */
+export interface StationProposalSummary {
+  id: number;
+  submittedAt: string;
+  submittedBy: string;
+  submittedByRole: string;
+  stationCount: number;
+  improvedAreaCount: number;
+  status: string;
+  notes: string | null;
+  /** JSON string: [{"lat":53.1,"lon":-6.2},...] */
+  stationsJson: string;
+  /** JSON string: [{"area":"...","from":"...","to":"...","distM":123.4},...] */
+  impactsJson: string;
+}
+
 /** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
 export interface RebalanceSuggestionDTO {
   sourceStationId: number;
