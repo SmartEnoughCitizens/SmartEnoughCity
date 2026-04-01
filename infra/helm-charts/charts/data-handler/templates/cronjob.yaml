@@ -46,6 +46,9 @@ spec:
             - name: data-handler
               image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
               imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              {{- if .args }}
+              args: {{ .args | toJson }}
+              {{- end }}
               {{- if $.Values.containerSecurityContext }}
               securityContext:
 {{- toYaml $.Values.containerSecurityContext | nindent 16 }}
@@ -53,8 +56,10 @@ spec:
               resources:
 {{- toYaml .resources | nindent 16 }}
               env:
+                {{- if .runVar }}
                 - name: {{ .runVar }}
                   value: "true"
+                {{- end }}
                 - name: ENABLE_CYCLE_DATA
                   value: {{ $.Values.dataToggles.enableCycleData | quote }}
                 - name: ENABLE_CAR_DATA

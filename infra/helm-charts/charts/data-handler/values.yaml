@@ -95,16 +95,3 @@ cronjobs:
       limits:
         cpu: "500m"
         memory: "256Mi"
-
-  - name: static
-    schedule: "0 1 1 * *"
-    runVar: ENABLE_STATIC
-    activeDeadlineSeconds: 14400
-    backoffLimit: 2
-    resources:
-      requests:
-        cpu: "500m"
-        memory: "2Gi"
-      limits:
-        cpu: "2"
-        memory: "4Gi"
