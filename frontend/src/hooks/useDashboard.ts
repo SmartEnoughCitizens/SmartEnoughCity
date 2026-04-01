@@ -40,6 +40,7 @@ export const DASHBOARD_KEYS = {
     ["cycle", "demand", "station-hourly", { days, limit }] as const,
   cycleRiskScores: ["cycle", "risk-scores"] as const,
   cycleCoverageGaps: ["cycle", "coverage-gaps"] as const,
+  cyclePendingProposals: ["cycle", "proposals", "pending"] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
@@ -486,6 +487,41 @@ export const useMarkCoverageGapProcessed = () => {
       queryClient.invalidateQueries({
         queryKey: DASHBOARD_KEYS.cycleCoverageGaps,
       });
+    },
+  });
+};
+
+/**
+ * Submit a proposed station placement for review by city manager / cycle admin
+ */
+export const useSubmitStationProposal = () => {
+  return useMutation({
+    mutationFn: dashboardApi.submitStationProposal,
+  });
+};
+
+/**
+ * Fetch proposals pending review for the current user's role
+ */
+export const usePendingProposals = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cyclePendingProposals,
+    queryFn: () => dashboardApi.getPendingProposals(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+/**
+ * Accept or reject a station proposal
+ */
+export const useReviewProposal = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action, reason }: { id: number; action: string; reason: string }) =>
+      dashboardApi.reviewProposal(id, action, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.cyclePendingProposals });
     },
   });
 };
