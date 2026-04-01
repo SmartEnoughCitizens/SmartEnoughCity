@@ -153,6 +153,24 @@ export interface StationRiskScoreDTO {
   modelTrainedAt: string;
 }
 
+export type CoverageCategory = "NO_COVERAGE" | "POOR_COVERAGE" | "PARTIAL_COVERAGE" | "ADEQUATE";
+
+export interface CoverageGapDTO {
+  electoralDivision: string;
+  flatApartmentCount: number;
+  houseBungalowCount: number;
+  totalDwellings: number;
+  centroidLat: number;
+  centroidLon: number;
+  minDistanceM: number | null;
+  coverageCategory: CoverageCategory;
+  priorityScore: number;
+  computedAt: string;
+  processedForImplementation: boolean;
+  processedAt: string | null;
+  geomGeoJson: string | null;
+}
+
 /** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
 export interface RebalanceSuggestionDTO {
   sourceStationId: number;
