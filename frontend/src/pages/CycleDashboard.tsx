@@ -28,6 +28,7 @@ import {
   useCycleRebalancing,
   useCycleODPairs,
   useCycleRiskScores,
+  useCycleCoverageGaps,
   useODRoutes,
 } from "@/hooks";
 import { NetworkSummaryChart } from "@/components/charts/NetworkSummaryChart";
@@ -40,70 +41,61 @@ import {
 } from "@/components/tables/ODFlowTable";
 import { LiveCycleStationMap } from "@/components/map/LiveCycleStationMap";
 import { ODFlowMap } from "@/components/map/ODFlowMap";
+import { CoverageGapMap } from "@/components/map/CoverageGapMap";
 import { StationDemandPanel } from "@/components/cycle/StationDemandPanel";
 import { StationRiskPanel } from "@/components/cycle/StationRiskPanel";
+import { CoverageGapPanel } from "@/components/cycle/CoverageGapPanel";
 import { useAppSelector } from "@/store/hooks";
 
 const SIDE_PANEL_WIDTH = 420;
 const DEMAND_PANEL_HEIGHT = 280;
 const GAP = 16;
 
+// Tab indices
+const TAB_STATIONS = 0;
+const TAB_RANKINGS = 1;
+const TAB_REBALANCING = 2;
+const TAB_OD_FLOW = 3;
+const TAB_RISK = 4;
+const TAB_COVERAGE = 5;
+
 export const CycleDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const [rankingSubTab, setRankingSubTab] = useState(0);
-  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(
-    null,
-  );
-  const [intensityFilter, setIntensityFilter] =
-    useState<IntensityFilter>("all");
+  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(null);
+  const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>("all");
   const [selectedPairKey, setSelectedPairKey] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [demandOpen, setDemandOpen] = useState(false);
+
+  const theme = useAppSelector((state) => state.ui.theme);
 
   const handleIntensityFilterChange = (f: IntensityFilter) => {
     setIntensityFilter(f);
-    setSelectedPairKey(null); // clear selection when filter changes
+    setSelectedPairKey(null);
   };
 
   const handleStationFilterChange = (id: number | null) => {
     setOdFilterStationId(id);
-    setSelectedPairKey(null); // clear selection when station filter changes
+    setSelectedPairKey(null);
   };
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [demandOpen, setDemandOpen] = useState(false);
-  const theme = useAppSelector((state) => state.ui.theme);
 
-  const {
-    data: stations,
-    isLoading: stationsLoading,
-    error,
-  } = useCycleStationsLive();
+  const { data: stations, isLoading: stationsLoading, error } = useCycleStationsLive();
   const { data: summary } = useCycleNetworkSummary();
-  const { data: busiest, isLoading: busiestLoading } =
-    useCycleBusiestStations(10);
-  const { data: underused, isLoading: underusedLoading } =
-    useCycleUnderusedStations(10);
-  const { data: rebalancing, isLoading: rebalancingLoading } =
-    useCycleRebalancing(30);
+  const { data: busiest, isLoading: busiestLoading } = useCycleBusiestStations(10);
+  const { data: underused, isLoading: underusedLoading } = useCycleUnderusedStations(10);
+  const { data: rebalancing, isLoading: rebalancingLoading } = useCycleRebalancing(30);
   const { data: odPairs, isLoading: odLoading } = useCycleODPairs(30, 50);
   const { routeCache, progress: routeProgress } = useODRoutes(odPairs ?? []);
   const { data: riskScores, isLoading: riskLoading } = useCycleRiskScores();
+  const { data: coverageGaps, isLoading: coverageLoading } = useCycleCoverageGaps();
 
   const isLoading =
-    stationsLoading ||
-    busiestLoading ||
-    underusedLoading ||
-    rebalancingLoading ||
-    odLoading;
+    stationsLoading || busiestLoading || underusedLoading || rebalancingLoading || odLoading;
 
   if (isLoading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100%",
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
         <CircularProgress />
       </Box>
     );
@@ -111,12 +103,9 @@ export const CycleDashboard = () => {
 
   const allOdPairs = odPairs ?? [];
 
-  // Compute intensity thresholds from the actual data distribution (percentile-based)
   const odThresholds = (() => {
     if (allOdPairs.length === 0) return { low: 1, high: 1 };
-    const sorted = allOdPairs.toSorted(
-      (a, b) => a.estimatedTrips - b.estimatedTrips,
-    );
+    const sorted = allOdPairs.toSorted((a, b) => a.estimatedTrips - b.estimatedTrips);
     const p33 = sorted[Math.floor(sorted.length * 0.33)]?.estimatedTrips ?? 1;
     const p66 = sorted[Math.floor(sorted.length * 0.66)]?.estimatedTrips ?? 1;
     return { low: p33, high: p66 };
@@ -125,29 +114,25 @@ export const CycleDashboard = () => {
   const filteredOdPairs = (() => {
     const byStation = odFilterStationId
       ? allOdPairs.filter(
-          (p) =>
-            p.originStationId === odFilterStationId ||
-            p.destStationId === odFilterStationId,
+          (p) => p.originStationId === odFilterStationId || p.destStationId === odFilterStationId,
         )
       : allOdPairs;
     if (intensityFilter === "all") return byStation;
     return byStation.filter((p) => {
-      if (intensityFilter === "extreme")
-        return p.estimatedTrips >= odThresholds.high;
+      if (intensityFilter === "extreme") return p.estimatedTrips >= odThresholds.high;
       if (intensityFilter === "medium")
-        return (
-          p.estimatedTrips >= odThresholds.low &&
-          p.estimatedTrips < odThresholds.high
-        );
+        return p.estimatedTrips >= odThresholds.low && p.estimatedTrips < odThresholds.high;
       if (intensityFilter === "low") return p.estimatedTrips < odThresholds.low;
       return true;
     });
   })();
 
+  const isCoverageTab = tabValue === TAB_COVERAGE;
+
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
       {/* ── Full-viewport map ─────────────────────────────────────── */}
-      {tabValue === 3 ? (
+      {tabValue === TAB_OD_FLOW ? (
         <ODFlowMap
           stations={stations ?? []}
           odPairs={filteredOdPairs}
@@ -156,6 +141,12 @@ export const CycleDashboard = () => {
           selectedPairKey={selectedPairKey}
           routeCache={routeCache}
           routeProgress={routeProgress}
+          height="100%"
+          darkTiles={theme === "dark"}
+        />
+      ) : isCoverageTab ? (
+        <CoverageGapMap
+          gaps={coverageGaps ?? []}
           height="100%"
           darkTiles={theme === "dark"}
         />
@@ -201,7 +192,7 @@ export const CycleDashboard = () => {
         </IconButton>
       )}
 
-      {/* ── Floating side panel (Stations / Rankings / Rebalancing / OD) ── */}
+      {/* ── Floating side panel ────────────────────────────────────── */}
       {panelOpen && (
         <Paper
           elevation={0}
@@ -218,22 +209,14 @@ export const CycleDashboard = () => {
             overflow: "hidden",
           }}
         >
-          <Box
-            sx={{
-              p: 2,
-              pb: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <Box sx={{ p: 2, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Typography variant="h5">Cycle Stations</Typography>
             <IconButton size="small" onClick={() => setPanelOpen(false)}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
 
-          {summary && (
+          {summary && !isCoverageTab && (
             <Box sx={{ px: 2, pb: 1 }}>
               <NetworkSummaryChart summary={summary} compact />
             </Box>
@@ -242,15 +225,12 @@ export const CycleDashboard = () => {
           <Tabs
             value={tabValue}
             onChange={(_, v) => setTabValue(v)}
-            variant="fullWidth"
+            variant="scrollable"
+            scrollButtons="auto"
             sx={{
               minHeight: 36,
               px: 1,
-              "& .MuiTab-root": {
-                minHeight: 36,
-                fontSize: "0.7rem",
-                textTransform: "none",
-              },
+              "& .MuiTab-root": { minHeight: 36, fontSize: "0.7rem", textTransform: "none" },
             }}
           >
             <Tab label={`Stations (${stations?.length ?? 0})`} />
@@ -258,14 +238,15 @@ export const CycleDashboard = () => {
             <Tab label={`Rebalancing (${rebalancing?.length ?? 0})`} />
             <Tab label="OD Flow" />
             <Tab label="Risk" />
+            <Tab label="Coverage" />
           </Tabs>
 
           <Box sx={{ flex: 1, overflow: "auto", px: 1, pt: 0.5 }}>
-            {tabValue === 0 && (
+            {tabValue === TAB_STATIONS && (
               <LiveCycleStationTable stations={stations ?? []} compact />
             )}
 
-            {tabValue === 1 && (
+            {tabValue === TAB_RANKINGS && (
               <>
                 <Tabs
                   value={rankingSubTab}
@@ -274,30 +255,22 @@ export const CycleDashboard = () => {
                   sx={{
                     minHeight: 32,
                     mb: 0.5,
-                    "& .MuiTab-root": {
-                      minHeight: 32,
-                      fontSize: "0.7rem",
-                      textTransform: "none",
-                    },
+                    "& .MuiTab-root": { minHeight: 32, fontSize: "0.7rem", textTransform: "none" },
                   }}
                 >
                   <Tab label="Busiest" />
                   <Tab label="Underused" />
                 </Tabs>
-                {rankingSubTab === 0 && (
-                  <CycleRankingTable stations={busiest ?? []} />
-                )}
-                {rankingSubTab === 1 && (
-                  <CycleRankingTable stations={underused ?? []} />
-                )}
+                {rankingSubTab === 0 && <CycleRankingTable stations={busiest ?? []} />}
+                {rankingSubTab === 1 && <CycleRankingTable stations={underused ?? []} />}
               </>
             )}
 
-            {tabValue === 2 && (
+            {tabValue === TAB_REBALANCING && (
               <RebalancingTable suggestions={rebalancing ?? []} />
             )}
 
-            {tabValue === 3 && (
+            {tabValue === TAB_OD_FLOW && (
               <ODFlowTable
                 odPairs={filteredOdPairs}
                 allPairs={allOdPairs}
@@ -311,18 +284,19 @@ export const CycleDashboard = () => {
               />
             )}
 
-            {tabValue === 4 && (
-              <StationRiskPanel
-                scores={riskScores ?? []}
-                isLoading={riskLoading}
-              />
+            {tabValue === TAB_RISK && (
+              <StationRiskPanel scores={riskScores ?? []} isLoading={riskLoading} />
+            )}
+
+            {tabValue === TAB_COVERAGE && (
+              <CoverageGapPanel gaps={coverageGaps ?? []} isLoading={coverageLoading} />
             )}
           </Box>
         </Paper>
       )}
 
-      {/* ── Demand Analysis — bottom floating panel ───────────────── */}
-      {!demandOpen && (
+      {/* ── Demand Analysis chip + panel ──────────────────────────── */}
+      {!isCoverageTab && !demandOpen && (
         <Chip
           icon={<QueryStatsIcon sx={{ fontSize: "1rem !important" }} />}
           label="Demand Analysis"
@@ -342,7 +316,7 @@ export const CycleDashboard = () => {
         />
       )}
 
-      {demandOpen && (
+      {!isCoverageTab && demandOpen && (
         <Paper
           elevation={0}
           sx={{
