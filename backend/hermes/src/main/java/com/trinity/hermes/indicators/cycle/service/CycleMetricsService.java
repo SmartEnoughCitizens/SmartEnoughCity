@@ -11,9 +11,7 @@ import com.trinity.hermes.indicators.cycle.dto.StationHourlyUsageDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
 import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
-import com.trinity.hermes.indicators.cycle.entity.DublinBikesStation;
 import com.trinity.hermes.indicators.cycle.repository.DublinBikesSnapshotRepository;
-import com.trinity.hermes.indicators.cycle.repository.DublinBikesStationRepository;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -30,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CycleMetricsService {
 
-  private final DublinBikesStationRepository stationRepository;
   private final DublinBikesSnapshotRepository snapshotRepository;
   private final JdbcTemplate jdbcTemplate;
 
