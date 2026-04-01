@@ -30,7 +30,10 @@ import {
   useCycleRiskScores,
   useCycleCoverageGaps,
   useODRoutes,
+  usePendingProposals,
+  useReviewProposal,
 } from "@/hooks";
+import type { StationProposalSummary } from "@/types";
 import { NetworkSummaryChart } from "@/components/charts/NetworkSummaryChart";
 import { LiveCycleStationTable } from "@/components/tables/LiveCycleStationTable";
 import { CycleRankingTable } from "@/components/tables/CycleRankingTable";
@@ -45,6 +48,7 @@ import { CoverageGapMap } from "@/components/map/CoverageGapMap";
 import { StationDemandPanel } from "@/components/cycle/StationDemandPanel";
 import { StationRiskPanel } from "@/components/cycle/StationRiskPanel";
 import { CoverageGapPanel } from "@/components/cycle/CoverageGapPanel";
+import { ProposalTray } from "@/components/cycle/ProposalTray";
 import { useAppSelector } from "@/store/hooks";
 
 const SIDE_PANEL_WIDTH = 420;
@@ -69,6 +73,26 @@ export const CycleDashboard = () => {
   const [demandOpen, setDemandOpen] = useState(false);
 
   const theme = useAppSelector((state) => state.ui.theme);
+  const roles = useAppSelector((state) => state.auth.roles);
+
+  const [reviewingProposal, setReviewingProposal] = useState<StationProposalSummary | null>(null);
+
+  const canReviewProposals = roles.includes("City_Manager") || roles.includes("Cycle_Admin");
+
+  const { data: pendingProposals } = usePendingProposals();
+  const { mutate: reviewProposal, isPending: isReviewing } = useReviewProposal();
+
+  const handleAcceptProposal = (proposalId: number) => {
+    reviewProposal({ id: proposalId, action: "ACCEPTED", reason: "" }, {
+      onSuccess: () => setReviewingProposal(null),
+    });
+  };
+
+  const handleRejectProposal = (proposalId: number, reason: string) => {
+    reviewProposal({ id: proposalId, action: "REJECTED", reason }, {
+      onSuccess: () => setReviewingProposal(null),
+    });
+  };
 
   const handleIntensityFilterChange = (f: IntensityFilter) => {
     setIntensityFilter(f);
@@ -149,6 +173,10 @@ export const CycleDashboard = () => {
           gaps={coverageGaps ?? []}
           height="100%"
           darkTiles={theme === "dark"}
+          reviewProposal={reviewingProposal}
+          onAccept={handleAcceptProposal}
+          onReject={handleRejectProposal}
+          isReviewing={isReviewing}
         />
       ) : (
         <LiveCycleStationMap
@@ -172,6 +200,29 @@ export const CycleDashboard = () => {
         >
           Failed to load cycle station data
         </Alert>
+      )}
+
+      {/* ── Proposal review tray — left middle, visible on all tabs ── */}
+      {canReviewProposals && (pendingProposals?.length ?? 0) > 0 && (
+        <Box
+          sx={{
+            position: "absolute",
+            left: GAP,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 1000,
+            width: 260,
+          }}
+        >
+          <ProposalTray
+            proposals={pendingProposals ?? []}
+            onSelect={(p) => {
+              setReviewingProposal(p.id === reviewingProposal?.id ? null : p);
+              if (p.id !== reviewingProposal?.id) setTabValue(TAB_COVERAGE);
+            }}
+            activeProposalId={reviewingProposal?.id}
+          />
+        </Box>
       )}
 
       {/* ── Side panel toggle (when closed) ───────────────────────── */}
