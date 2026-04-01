@@ -1,17 +1,7 @@
 package com.trinity.hermes.indicators.cycle.controller;
 
 import com.trinity.hermes.common.logging.LogSanitizer;
-import com.trinity.hermes.indicators.cycle.dto.CoverageGapDTO;
-import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationRiskScoreDTO;
-import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
-import com.trinity.hermes.indicators.cycle.dto.RebalanceSuggestionDTO;
-import com.trinity.hermes.indicators.cycle.dto.RegionMetricsDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationClassificationDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationHourlyUsageDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationLiveDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationODPairDTO;
-import com.trinity.hermes.indicators.cycle.dto.StationRankingDTO;
+import com.trinity.hermes.indicators.cycle.dto.*;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -21,13 +11,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/cycle")
@@ -206,6 +201,73 @@ public class CycleMetricsController {
       return ResponseEntity.ok(cycleMetricsService.getCoverageGaps());
     } catch (Exception e) {
       log.error("Error fetching coverage gaps: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  @PostMapping("/coverage-gaps/proposals")
+  public ResponseEntity<Void> submitStationProposal(
+      @RequestBody StationProposalDTO proposal,
+      @AuthenticationPrincipal Jwt jwt) {
+    log.info("POST /api/v1/cycle/coverage-gaps/proposals — {} proposed stations, {} impacted areas",
+        proposal.getProposedStations() != null ? proposal.getProposedStations().size() : 0,
+        proposal.getTotalImprovedAreas());
+    try {
+      String submitterRole = resolveSubmitterRole(jwt);
+      cycleMetricsService.submitStationProposal(proposal, submitterRole);
+      cycleMetricsService.notifyProposalRecipients(proposal, submitterRole);
+      return ResponseEntity.status(HttpStatus.CREATED).build();
+    } catch (Exception e) {
+      log.error("Error submitting station proposal: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  /** Returns the highest-priority cycle-related role the caller holds. */
+  private String resolveSubmitterRole(Jwt jwt) {
+    if (jwt == null) return "unknown";
+    var realmAccess = jwt.getClaimAsMap("realm_access");
+    if (realmAccess == null) return "unknown";
+    @SuppressWarnings("unchecked")
+    var roles = (java.util.List<String>) realmAccess.get("roles");
+    if (roles == null) return "unknown";
+    if (roles.contains("City_Manager")) return "City_Manager";
+    if (roles.contains("Cycle_Admin"))  return "Cycle_Admin";
+    return "unknown";
+  }
+
+  // -------------------------------------------------------------------------
+  // Proposal Review
+  // -------------------------------------------------------------------------
+
+  @GetMapping("/coverage-gaps/proposals")
+  public ResponseEntity<List<StationProposalSummaryDTO>> getPendingProposals(
+      @AuthenticationPrincipal Jwt jwt) {
+    log.info("GET /api/v1/cycle/coverage-gaps/proposals");
+    try {
+      String requesterRole = resolveSubmitterRole(jwt);
+      return ResponseEntity.ok(cycleMetricsService.getPendingProposals(requesterRole));
+    } catch (Exception e) {
+      log.error("Error fetching pending proposals: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  @PatchMapping("/coverage-gaps/proposals/{id}/review")
+  public ResponseEntity<Void> reviewProposal(
+      @PathVariable Long id,
+      @RequestBody ProposalReviewDTO review,
+      @AuthenticationPrincipal Jwt jwt) {
+    log.info("PATCH /api/v1/cycle/coverage-gaps/proposals/{}/review action={}", id, review.getAction());
+    if (!"ACCEPTED".equals(review.getAction()) && !"REJECTED".equals(review.getAction())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "action must be ACCEPTED or REJECTED");
+    }
+    try {
+      String reviewerUsername = jwt != null ? jwt.getClaimAsString("preferred_username") : "unknown";
+      cycleMetricsService.reviewProposal(id, review, reviewerUsername);
+      return ResponseEntity.noContent().build();
+    } catch (Exception e) {
+      log.error("Error reviewing proposal id={}: {}", id, e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
