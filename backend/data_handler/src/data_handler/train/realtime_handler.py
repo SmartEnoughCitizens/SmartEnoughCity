@@ -241,7 +241,7 @@ def fetch_all_stations(station_type: str = "A") -> list[dict]:
         return []
 
 
-def irish_rail_stations_to_db() -> None:
+def process_train_station_info() -> None:
     """Fetch all stations and upsert to database."""
     logger.info("Loading Irish Rail stations to database...")
 
@@ -288,7 +288,7 @@ def irish_rail_stations_to_db() -> None:
             session.execute(stmt)
 
         session.commit()
-        logger.info("Inserted/updated %d Irish Rail stations.", len(stations))
+        logger.info("Upserted %d Irish Rail station record(s).", len(stations))
 
     except Exception:
         session.rollback()
@@ -388,7 +388,7 @@ def irish_rail_current_trains_to_db() -> None:
 
         session.add_all(trains)
         session.commit()
-        logger.info("Inserted %d current trains.", len(trains))
+        logger.info("Inserted %d current train record(s).", len(trains))
 
     except Exception:
         session.rollback()
@@ -450,7 +450,7 @@ def irish_rail_station_data_to_db() -> None:
 
         if not station_codes:
             logger.warning(
-                "No stations in database. Run irish_rail_stations_to_db() first."
+                "No stations in database. Run process_train_station_info() first."
             )
             return
 
@@ -467,7 +467,7 @@ def irish_rail_station_data_to_db() -> None:
         if all_data:
             session.add_all(all_data)
             session.commit()
-            logger.info("Inserted %d station data records.", len(all_data))
+            logger.info("Inserted %d station data record(s).", len(all_data))
         else:
             session.commit()
             logger.info("No station data available.")
@@ -564,7 +564,7 @@ def irish_rail_train_movements_to_db() -> None:
         if all_movements:
             session.add_all(all_movements)
             session.commit()
-            logger.info("Inserted %d train movement records.", len(all_movements))
+            logger.info("Inserted %d train movement record(s).", len(all_movements))
         else:
             session.commit()
             logger.info("No train movements available.")
@@ -580,19 +580,20 @@ def irish_rail_train_movements_to_db() -> None:
 # ── Combined Functions ──────────────────────────────────────────────
 
 
-def irish_rail_realtime_to_db() -> None:
+def process_train_live_data() -> None:
     """
-    Fetch all Irish Rail realtime data and store to database.
+    Fetch Irish Rail realtime data and store to database.
 
     This includes:
-    1. All stations
-    2. Current running trains
-    3. Station arrival/departure data for all stations
-    4. Train movements for all current trains
+    1. Current running trains
+    2. Station arrival/departure data for all stations
+    3. Train movements for all current trains
+
+    Note: Station list refresh is handled separately by process_train_station_info(),
+    which should be scheduled as a monthly cron job.
     """
-    logger.info("### Loading all Irish Rail realtime data...")
-    irish_rail_stations_to_db()
+    logger.info("Loading Irish Rail realtime data...")
     irish_rail_current_trains_to_db()
     irish_rail_station_data_to_db()
     irish_rail_train_movements_to_db()
-    logger.info("### Completed loading Irish Rail realtime data.")
+    logger.info("Irish Rail realtime data import complete.")
