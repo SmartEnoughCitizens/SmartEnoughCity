@@ -382,7 +382,10 @@ export const StationDemandPanel = () => {
   );
 
   const classStats = useMemo(() => {
-    const acc: Record<StationClassification, { count: number; totalUsage: number }> = {
+    const acc: Record<
+      StationClassification,
+      { count: number; totalUsage: number }
+    > = {
       MORNING_PEAK: { count: 0, totalUsage: 0 },
       AFTERNOON_PEAK: { count: 0, totalUsage: 0 },
       EVENING_PEAK: { count: 0, totalUsage: 0 },
@@ -500,7 +503,7 @@ export const StationDemandPanel = () => {
                       />
                       <YAxis
                         tick={{ fontSize: 8 }}
-                        tickFormatter={(v) => String(v)}
+                        tickFormatter={String}
                         axisLine={false}
                         tickLine={false}
                       />
