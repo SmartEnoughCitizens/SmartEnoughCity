@@ -25,7 +25,11 @@ interface ProposalTrayProps {
   activeProposalId?: number | null;
 }
 
-export const ProposalTray = ({ proposals, onSelect, activeProposalId }: ProposalTrayProps) => {
+export const ProposalTray = ({
+  proposals,
+  onSelect,
+  activeProposalId,
+}: ProposalTrayProps) => {
   const [open, setOpen] = useState(true);
 
   if (proposals.length === 0) return null;
@@ -55,7 +59,11 @@ export const ProposalTray = ({ proposals, onSelect, activeProposalId }: Proposal
         }}
       >
         <AssignmentIcon sx={{ fontSize: "0.9rem", color: "#fbbf24" }} />
-        <Typography variant="caption" fontWeight={700} sx={{ color: "#fbbf24", fontSize: "0.72rem", flex: 1 }}>
+        <Typography
+          variant="caption"
+          fontWeight={700}
+          sx={{ color: "#fbbf24", fontSize: "0.72rem", flex: 1 }}
+        >
           Pending Proposals
         </Typography>
         <Chip
@@ -112,19 +120,33 @@ export const ProposalTray = ({ proposals, onSelect, activeProposalId }: Proposal
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography variant="caption" fontWeight={600} sx={{ fontSize: "0.68rem" }}>
+                    <Typography
+                      variant="caption"
+                      fontWeight={600}
+                      sx={{ fontSize: "0.68rem" }}
+                    >
                       {p.submittedBy}
                       <Typography
                         component="span"
                         variant="caption"
-                        sx={{ ml: 0.5, fontSize: "0.62rem", color: "text.secondary" }}
+                        sx={{
+                          ml: 0.5,
+                          fontSize: "0.62rem",
+                          color: "text.secondary",
+                        }}
                       >
-                        · {p.stationCount} station{p.stationCount !== 1 ? "s" : ""} · {p.improvedAreaCount} area{p.improvedAreaCount !== 1 ? "s" : ""}
+                        · {p.stationCount} station
+                        {p.stationCount === 1 ? "" : "s"} ·{" "}
+                        {p.improvedAreaCount} area
+                        {p.improvedAreaCount === 1 ? "" : "s"}
                       </Typography>
                     </Typography>
                   }
                   secondary={
-                    <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "text.disabled" }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontSize: "0.6rem", color: "text.disabled" }}
+                    >
                       {date}
                     </Typography>
                   }
@@ -133,7 +155,12 @@ export const ProposalTray = ({ proposals, onSelect, activeProposalId }: Proposal
                   <Chip
                     label="Reviewing"
                     size="small"
-                    sx={{ height: 16, fontSize: "0.58rem", bgcolor: "rgba(251,191,36,0.25)", color: "#fbbf24" }}
+                    sx={{
+                      height: 16,
+                      fontSize: "0.58rem",
+                      bgcolor: "rgba(251,191,36,0.25)",
+                      color: "#fbbf24",
+                    }}
                   />
                 )}
               </ListItemButton>
