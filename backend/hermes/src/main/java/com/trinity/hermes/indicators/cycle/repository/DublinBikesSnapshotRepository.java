@@ -488,8 +488,8 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   List<Object[]> findCoverageGaps();
 
   /**
-   * Latest ML risk scores for all stations joined with station metadata. Returns Object[] rows
-   * with columns: station_id, name, latitude, longitude, empty_risk_2h, full_risk_2h, scored_at,
+   * Latest ML risk scores for all stations joined with station metadata. Returns Object[] rows with
+   * columns: station_id, name, latitude, longitude, empty_risk_2h, full_risk_2h, scored_at,
    * model_trained_at
    */
   @Query(
