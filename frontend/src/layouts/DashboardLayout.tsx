@@ -57,7 +57,7 @@ import { UserManagementPage } from "@/pages/UserManagementPage";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-type DashboardView =
+export type DashboardView =
   | "overview"
   | "bus"
   | "cycle"
@@ -424,7 +424,7 @@ export const DashboardLayout = () => {
               transition: "opacity 0.15s ease-in-out",
             }}
           >
-            <Dashboard />
+            <Dashboard onNavigate={setActiveView} />
           </Box>
         )}
 
