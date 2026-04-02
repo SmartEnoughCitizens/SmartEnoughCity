@@ -10,11 +10,12 @@ import com.trinity.hermes.indicators.events.repository.EventsRepository;
 import com.trinity.hermes.indicators.train.entity.TrainStationData;
 import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
 import com.trinity.hermes.indicators.train.repository.TrainStationRepository;
-import com.trinity.hermes.indicators.tram.entity.TramDisruptionExternal;
+import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
 import com.trinity.hermes.indicators.tram.entity.TramStop;
-import com.trinity.hermes.indicators.tram.repository.TramDisruptionExternalRepository;
+import com.trinity.hermes.indicators.tram.repository.TramLuasForecastRepository;
 import com.trinity.hermes.indicators.tram.repository.TramStopRepository;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,10 @@ public class DisruptionDetectionService {
   private static final int DEDUP_WINDOW_MINUTES = 10; // ignore same disruption within 10 min
   private static final int TRAIN_LATE_THRESHOLD_MINUTES = 10; // lateMinutes > 10
   private static final int TRAIN_MIN_LATE_TRAINS = 3; // ≥3 late trains at same station
+  private static final int TRAM_PEAK_FREQ_MINS = 5; // Luas peak: every ~5 min
+  private static final int TRAM_OFFPEAK_FREQ_MINS = 10; // off-peak: every ~10 min
+  private static final int TRAM_LATE_FREQ_MINS = 15; // late night: every ~15 min
+  private static final int TRAM_DISRUPTION_THRESHOLD_MINS = 10; // delay above expected freq to fire
 
   private final BusRouteMetricsRepository busRouteMetricsRepository;
   private final HighTrafficPointsRepository highTrafficPointsRepository;
@@ -55,7 +60,7 @@ public class DisruptionDetectionService {
   private final DisruptionFacade disruptionFacade;
   private final TrainStationDataRepository trainStationDataRepository;
   private final TrainStationRepository trainStationRepository;
-  private final TramDisruptionExternalRepository tramDisruptionExternalRepository;
+  private final TramLuasForecastRepository tramLuasForecastRepository;
   private final TramStopRepository tramStopRepository;
 
   /**
@@ -259,30 +264,54 @@ public class DisruptionDetectionService {
   }
 
   // ---------------------------------------------------------------------------
-  // TRAM — bridge unresolved rows from external_data.tram_disruptions
+  // TRAM — detect delays directly from live tram_luas_forecasts
   // ---------------------------------------------------------------------------
 
   private int detectTramDisruptions() {
     int count = 0;
     try {
-      LocalDateTime since = LocalDateTime.now(DUBLIN).minusMinutes(DEDUP_WINDOW_MINUTES + 5);
-      List<TramDisruptionExternal> active =
-          tramDisruptionExternalRepository.findActiveDisruptionsSince(since);
+      int hour = LocalTime.now(DUBLIN).getHour();
+      // Luas doesn't run between 01:00 and 05:59 — skip to avoid false positives
+      if (hour >= 1 && hour < 6) return 0;
 
-      // Build a stop-id → TramStop lookup for lat/lon
+      List<TramLuasForecast> allForecasts = tramLuasForecastRepository.findAll();
+      // If no forecasts at all, data hasn't been loaded yet — don't fire
+      if (allForecasts.isEmpty()) return 0;
+
+      int expectedFreq = getTramExpectedFrequency(hour);
+
+      // Group forecasts by stop, then find the minimum due_mins per stop
+      Map<String, List<TramLuasForecast>> byStop =
+          allForecasts.stream().collect(Collectors.groupingBy(TramLuasForecast::getStopId));
+
+      // Build stop lookup for lat/lon and name
       Map<String, TramStop> stopMap =
           tramStopRepository.findAll().stream()
               .collect(Collectors.toMap(TramStop::getStopId, s -> s, (a, b) -> a));
 
-      for (TramDisruptionExternal ext : active) {
-        TramStop stop = stopMap.get(ext.getStopId());
+      for (Map.Entry<String, List<TramLuasForecast>> entry : byStop.entrySet()) {
+        String stopId = entry.getKey();
+
+        // Find the soonest tram at this stop
+        java.util.OptionalInt minDue =
+            entry.getValue().stream()
+                .filter(f -> f.getDueMins() != null)
+                .mapToInt(TramLuasForecast::getDueMins)
+                .min();
+
+        if (minDue.isEmpty()) continue;
+
+        int delayMins = minDue.getAsInt() - expectedFreq;
+        if (delayMins < TRAM_DISRUPTION_THRESHOLD_MINS) continue;
+
+        TramStop stop = stopMap.get(stopId);
         Double lat = stop != null ? stop.getLat() : null;
         Double lon = stop != null ? stop.getLon() : null;
-        String area = stop != null ? stop.getName() : "Tram Stop " + ext.getStopId();
+        String area = stop != null ? stop.getName() : "Tram Stop " + stopId;
+        String severity = delayMins > 20 ? "HIGH" : "MEDIUM";
 
         if (processIfNewWithCoords(
-            "TRAM_DISRUPTION", "TRAM", area, "HIGH", 0,
-            "tram-ext-" + ext.getId(), lat, lon)) {
+            "TRAM_DISRUPTION", "TRAM", area, severity, delayMins, "tram-" + stopId, lat, lon)) {
           count++;
         }
       }
@@ -290,6 +319,12 @@ public class DisruptionDetectionService {
       log.warn("Tram disruption detection failed: {}", e.getMessage());
     }
     return count;
+  }
+
+  private int getTramExpectedFrequency(int hour) {
+    if ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 19)) return TRAM_PEAK_FREQ_MINS;
+    if (hour >= 10 && hour <= 15) return TRAM_OFFPEAK_FREQ_MINS;
+    return TRAM_LATE_FREQ_MINS;
   }
 
   // ---------------------------------------------------------------------------

@@ -351,24 +351,3 @@ class TramLuasForecast(Base):
     stop: Mapped["TramLuasStop"] = relationship(back_populates="forecasts")
 
 
-# ADD at the bottom of models.py, after TramLuasForecast
-
-from datetime import datetime
-from sqlalchemy import DateTime
-
-class TramDisruption(Base):
-    """Detected disruption at a Luas stop."""
-
-    __tablename__ = "tram_disruptions"
-    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    stop_id: Mapped[str] = mapped_column(
-        ForeignKey(f"{DB_SCHEMA}.tram_luas_stops.stop_id"), nullable=False, index=True
-    )
-    line: Mapped[str] = mapped_column(String, nullable=False)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
-    detected_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    resolved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-
-    stop: Mapped["TramLuasStop"] = relationship()

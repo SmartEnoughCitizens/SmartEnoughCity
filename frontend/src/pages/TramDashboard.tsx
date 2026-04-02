@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { DisruptionBanner } from "@/components/disruption/DisruptionBanner";
 import {
   Box,
   Paper,
@@ -440,6 +441,11 @@ const AlternativesSection = ({ stopId }: { stopId: string }) => {
         bgcolor: "#0d1117",
       }}
     >
+      {/* Disruption alert banner */}
+      <Box sx={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 1100, width: "fit-content", minWidth: 300, maxWidth: 520 }}>
+        <DisruptionBanner mode="TRAM" />
+      </Box>
+
       {/* ── Full-viewport map ── */}
       <Box sx={{ height: "100%", width: "100%" }}>
         <MapContainer

@@ -23,12 +23,23 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
+import TrainIcon from "@mui/icons-material/Train";
+import PedalBikeIcon from "@mui/icons-material/PedalBike";
+import EventIcon from "@mui/icons-material/Event";
+import TrafficIcon from "@mui/icons-material/Traffic";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import CloseIcon from "@mui/icons-material/Close";
+import { useQuery } from "@tanstack/react-query";
 import { useActiveDisruptions } from "@/hooks";
 import type {
   ActiveDisruption,
+  DisruptionAlternative,
+  DisruptionCause,
   DisruptionSeverity,
   DisruptionType,
 } from "@/types";
+import { dashboardApi } from "@/api";
 import { NetworkImpactMap } from "@/components/disruption/NetworkImpactMap";
 import { RippleEffectVisualization } from "@/components/disruption/RippleEffectVisualization";
 
@@ -48,7 +59,27 @@ const TYPE_LABELS: Record<DisruptionType, string> = {
   CONSTRUCTION: "Construction",
   EVENT: "Event",
   ACCIDENT: "Accident",
+  TRAM_DISRUPTION: "Tram Disruption",
 };
+
+const CAUSE_ICONS: Record<string, React.ReactNode> = {
+  EVENT: <EventIcon sx={{ fontSize: 16 }} />,
+  CONGESTION: <TrafficIcon sx={{ fontSize: 16 }} />,
+  CROSS_MODE: <CompareArrowsIcon sx={{ fontSize: 16 }} />,
+};
+
+const CONFIDENCE_COLORS: Record<string, string> = {
+  HIGH: "#EF4444",
+  MEDIUM: "#F59E0B",
+  LOW: "#10B981",
+};
+
+function altIcon(mode: string): React.ReactNode {
+  const m = mode.toUpperCase();
+  if (m.includes("BUS")) return <DirectionsBusIcon sx={{ fontSize: 15 }} />;
+  if (m.includes("BIKE") || m.includes("CYCLE")) return <PedalBikeIcon sx={{ fontSize: 15 }} />;
+  return <TrainIcon sx={{ fontSize: 15 }} />;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -251,6 +282,141 @@ function DisruptionRow({
           </Tooltip>
         )}
       </Box>
+    </Box>
+  );
+}
+
+// ── Detail Panel ───────────────────────────────────────────────────────
+
+function DetailPanel({
+  disruptionId,
+  onClose,
+}: {
+  disruptionId: number;
+  onClose: () => void;
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["disruption", "detail", disruptionId],
+    queryFn: () => dashboardApi.getDisruptionById(disruptionId),
+    staleTime: 30_000,
+  });
+
+  const color = data ? (SEVERITY_COLORS[data.severity] ?? "#6B7280") : "#6B7280";
+  const causes: DisruptionCause[] = data?.causes ?? [];
+  const alternatives: DisruptionAlternative[] = data?.alternatives ?? [];
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
+      {/* Panel header */}
+      <Box
+        sx={{
+          px: 2,
+          py: 1.25,
+          borderBottom: "1px solid rgba(0,0,0,0.08)",
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          flexShrink: 0,
+        }}
+      >
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            bgcolor: color,
+            flexShrink: 0,
+          }}
+        />
+        <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }} noWrap>
+          {data?.name ?? "Disruption Detail"}
+        </Typography>
+        <Box
+          onClick={onClose}
+          sx={{ cursor: "pointer", color: "text.disabled", display: "flex", "&:hover": { color: "text.primary" } }}
+        >
+          <CloseIcon sx={{ fontSize: 16 }} />
+        </Box>
+      </Box>
+
+      {isLoading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+          <CircularProgress size={20} sx={{ color }} />
+        </Box>
+      ) : (
+        <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
+          {/* Causes */}
+          {causes.length > 0 && (
+            <Box sx={{ mb: 1.5 }}>
+              <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: "text.disabled", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.75 }}>
+                Possible Causes
+              </Typography>
+              {causes.map((c) => (
+                <Box key={c.id} sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.5 }}>
+                  <Box sx={{ color: CONFIDENCE_COLORS[c.confidence], mt: 0.1, flexShrink: 0 }}>
+                    {CAUSE_ICONS[c.causeType] ?? <WarningAmberIcon sx={{ fontSize: 16 }} />}
+                  </Box>
+                  <Typography sx={{ fontSize: "0.78rem", flex: 1, color: "text.secondary", lineHeight: 1.4 }}>
+                    {c.causeDescription}
+                  </Typography>
+                  <Chip
+                    label={c.confidence}
+                    size="small"
+                    sx={{
+                      fontSize: "0.55rem",
+                      height: 14,
+                      bgcolor: CONFIDENCE_COLORS[c.confidence] + "18",
+                      color: CONFIDENCE_COLORS[c.confidence],
+                      flexShrink: 0,
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {causes.length > 0 && alternatives.length > 0 && (
+            <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mb: 1.5 }} />
+          )}
+
+          {/* Alternatives */}
+          {alternatives.length > 0 && (
+            <Box>
+              <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: "text.disabled", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.75 }}>
+                Alternative Transport
+              </Typography>
+              {alternatives.map((a) => (
+                <Box key={a.id} sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.5 }}>
+                  <Box sx={{ color: "text.disabled", mt: 0.1, flexShrink: 0 }}>
+                    {altIcon(a.mode)}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", lineHeight: 1.3 }} noWrap>
+                      {a.description}
+                    </Typography>
+                    {a.etaMinutes != null && (
+                      <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }}>
+                        ~{a.etaMinutes} min
+                      </Typography>
+                    )}
+                  </Box>
+                  {a.availabilityCount != null && (
+                    <Typography sx={{ fontSize: "0.68rem", color: "text.disabled", flexShrink: 0 }}>
+                      {a.availabilityCount} avail.
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {causes.length === 0 && alternatives.length === 0 && (
+            <Typography sx={{ fontSize: "0.78rem", color: "text.disabled", textAlign: "center", py: 2 }}>
+              No additional details available
+            </Typography>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }
@@ -509,11 +675,11 @@ export const DisruptionDashboard = () => {
             </Typography>
           </Box>
           <Box sx={{ flex: 1, overflow: "hidden" }}>
-            <NetworkImpactMap disruptions={disruptions} />
+            <NetworkImpactMap disruptions={disruptions} selectedId={selectedId} />
           </Box>
         </Paper>
 
-        {/* ── Ripple Effect Visualization ── */}
+        {/* ── Detail Panel / Ripple Visualization ── */}
         <Paper
           elevation={0}
           sx={{
@@ -526,24 +692,33 @@ export const DisruptionDashboard = () => {
             minHeight: 200,
           }}
         >
-          <Box
-            sx={{
-              px: 2,
-              py: 1.25,
-              borderBottom: "1px solid rgba(0,0,0,0.08)",
-              flexShrink: 0,
-            }}
-          >
-            <Typography variant="subtitle2" fontWeight={700}>
-              Mode Impact
-            </Typography>
-            <Typography sx={{ fontSize: "0.62rem", color: "text.secondary" }}>
-              Ripple effect across transport modes
-            </Typography>
-          </Box>
-          <Box sx={{ flex: 1, overflow: "hidden" }}>
-            <RippleEffectVisualization disruptions={disruptions} />
-          </Box>
+          {selectedId != null ? (
+            <DetailPanel
+              disruptionId={selectedId}
+              onClose={() => setSelectedId(null)}
+            />
+          ) : (
+            <>
+              <Box
+                sx={{
+                  px: 2,
+                  py: 1.25,
+                  borderBottom: "1px solid rgba(0,0,0,0.08)",
+                  flexShrink: 0,
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Mode Impact
+                </Typography>
+                <Typography sx={{ fontSize: "0.62rem", color: "text.secondary" }}>
+                  Click a disruption to see causes & alternatives
+                </Typography>
+              </Box>
+              <Box sx={{ flex: 1, overflow: "hidden" }}>
+                <RippleEffectVisualization disruptions={disruptions} />
+              </Box>
+            </>
+          )}
         </Paper>
       </Box>
     </Box>

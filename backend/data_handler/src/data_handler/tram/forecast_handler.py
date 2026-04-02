@@ -1,5 +1,4 @@
 import logging
-import random
 import xml.parsers.expat
 
 import pandas as pd
@@ -9,8 +8,7 @@ from sqlalchemy import delete, select
 
 from data_handler.db import SessionLocal
 from data_handler.settings.api_settings import get_api_settings
-from data_handler.tram.models import TramDisruption, TramLuasForecast, TramLuasStop
-from data_handler.tram.disruption_service import DEBUG_FORCE_DISRUPTION, FAKE_DISRUPTIONS, check_for_disruptions, format_report_for_provider
+from data_handler.tram.models import TramLuasForecast, TramLuasStop
 
 logger = logging.getLogger(__name__)
 
@@ -188,9 +186,6 @@ def process_tram_live_data() -> None:
             entries = fetch_forecast_for_stop(stop_id)
 
             for e in entries:
-                if DEBUG_FORCE_DISRUPTION and random.random() < 0.5:  # 50% chance
-                    e["message"] = random.choice(FAKE_DISRUPTIONS)
-                
                 session.add(
                     TramLuasForecast(
                         stop_id=stop_id,
@@ -205,34 +200,6 @@ def process_tram_live_data() -> None:
 
         session.commit()
         logger.info("Inserted %d LUAS forecast record(s).", forecast_count)
-
-        logger.info("Checking for disruptions...")
-
-        # ── Disruption check ────────────────────────────────────────
-        from data_handler.tram.disruption_service import (
-            check_for_disruptions,
-            format_report_for_provider,
-        )
-        reports = check_for_disruptions(session)
-        for report in reports:
-            payload = format_report_for_provider(report)
-            logger.info("Disruption payload: %s", payload)
-
-            session.add(
-                TramDisruption(
-                    stop_id=report.stop_id,
-                    line=report.line,
-                    message=report.message,
-                    detected_at=report.detected_at,
-                )
-            )
-
-            # Replace the logger call above with your notification method:
-            #   requests.post(WEBHOOK_URL, json=payload)
-            #   queue.publish("disruptions", payload)
-
-        session.commit()
-        logger.info("Inserted %d disruption reports.", len(reports))
 
     except Exception:
         session.rollback()

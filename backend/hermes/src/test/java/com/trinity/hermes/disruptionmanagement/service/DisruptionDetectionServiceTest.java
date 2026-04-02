@@ -1,7 +1,6 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
 import static org.mockito.ArgumentMatchers.any;
-import java.time.ZoneId;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,11 +16,10 @@ import com.trinity.hermes.indicators.train.entity.TrainStation;
 import com.trinity.hermes.indicators.train.entity.TrainStationData;
 import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
 import com.trinity.hermes.indicators.train.repository.TrainStationRepository;
-import com.trinity.hermes.indicators.tram.entity.TramDisruptionExternal;
+import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
 import com.trinity.hermes.indicators.tram.entity.TramStop;
-import com.trinity.hermes.indicators.tram.repository.TramDisruptionExternalRepository;
+import com.trinity.hermes.indicators.tram.repository.TramLuasForecastRepository;
 import com.trinity.hermes.indicators.tram.repository.TramStopRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +41,7 @@ class DisruptionDetectionServiceTest {
   @Mock private DisruptionFacade disruptionFacade;
   @Mock private TrainStationDataRepository trainStationDataRepository;
   @Mock private TrainStationRepository trainStationRepository;
-  @Mock private TramDisruptionExternalRepository tramDisruptionExternalRepository;
+  @Mock private TramLuasForecastRepository tramLuasForecastRepository;
   @Mock private TramStopRepository tramStopRepository;
 
   @InjectMocks private DisruptionDetectionService service;
@@ -55,7 +53,7 @@ class DisruptionDetectionServiceTest {
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
     when(eventsRepository.findUpcomingEvents(any())).thenReturn(List.of());
     when(trainStationDataRepository.findLatestPerStationTrain()).thenReturn(List.of());
-    when(tramDisruptionExternalRepository.findActiveDisruptionsSince(any())).thenReturn(List.of());
+    when(tramLuasForecastRepository.findAll()).thenReturn(List.of());
     when(tramStopRepository.findAll()).thenReturn(List.of());
     // Default: no recent duplicates
     when(disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
@@ -68,7 +66,7 @@ class DisruptionDetectionServiceTest {
   @Test
   void detectDisruptions_threeLateTrams_createsTrainDisruption() {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
-    TrainStationData late2 = lateTrainAt("CNLY", "E802", 18);
+    TrainStationData late2 = lateTrainAt("CNLY", "E802", 22); // >20 → MEDIUM severity (not skipped)
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
     when(trainStationDataRepository.findLatestPerStationTrain())
         .thenReturn(List.of(late1, late2, late3));
@@ -114,7 +112,7 @@ class DisruptionDetectionServiceTest {
   void detectDisruptions_multipleStations_onlyDisruptedStationTriggered() {
     // CNLY: 3 late trains → disruption
     TrainStationData cnly1 = lateTrainAt("CNLY", "E801", 15);
-    TrainStationData cnly2 = lateTrainAt("CNLY", "E802", 20);
+    TrainStationData cnly2 = lateTrainAt("CNLY", "E802", 21); // >20 → MEDIUM severity (not skipped)
     TrainStationData cnly3 = lateTrainAt("CNLY", "E803", 12);
     // PEAR: only 1 late train → no disruption
     TrainStationData pear1 = lateTrainAt("PEAR", "E901", 11);
@@ -133,13 +131,12 @@ class DisruptionDetectionServiceTest {
   // ── Tram detection ─────────────────────────────────────────────────
 
   @Test
-  void detectDisruptions_activeTramDisruption_createsTramDisruption() {
-    TramDisruptionExternal ext = new TramDisruptionExternal(
-        1, "STS", "green", "Service disrupted", LocalDateTime.now(ZoneId.of("Europe/Dublin")), false);
-    when(tramDisruptionExternalRepository.findActiveDisruptionsSince(any()))
-        .thenReturn(List.of(ext));
+  void detectDisruptions_highDueMins_createsTramDisruption() {
+    // Off-peak: expected freq = 10 min. due_mins = 25 → delay = 15 ≥ threshold (10) → MEDIUM
+    TramLuasForecast forecast = tramForecastAt("STS", "green", 25);
+    when(tramLuasForecastRepository.findAll()).thenReturn(List.of(forecast));
 
-    TramStop stop = new TramStop("STS", "green", "St. Stephen's Green", null, false, false, 53.3382, -6.2591);
+    TramStop stop = tramStopAt("STS", "green", "St. Stephen's Green", 53.3382, -6.2591);
     when(tramStopRepository.findAll()).thenReturn(List.of(stop));
 
     service.detectDisruptions();
@@ -150,9 +147,23 @@ class DisruptionDetectionServiceTest {
   }
 
   @Test
-  void detectDisruptions_noActiveTramDisruptions_noTramDisruptionCreated() {
-    when(tramDisruptionExternalRepository.findActiveDisruptionsSince(any()))
-        .thenReturn(List.of());
+  void detectDisruptions_lowDueMins_noTramDisruption() {
+    // Off-peak: expected freq = 10 min. due_mins = 12 → delay = 2 < threshold (10) → no disruption
+    TramLuasForecast forecast = tramForecastAt("STS", "green", 12);
+    when(tramLuasForecastRepository.findAll()).thenReturn(List.of(forecast));
+
+    TramStop stop = tramStopAt("STS", "green", "St. Stephen's Green", 53.3382, -6.2591);
+    when(tramStopRepository.findAll()).thenReturn(List.of(stop));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade, never()).handleDisruptionDetection(any());
+  }
+
+  @Test
+  void detectDisruptions_noTramForecasts_noTramDisruption() {
+    // Empty forecasts — data not loaded yet, no false positives
+    when(tramLuasForecastRepository.findAll()).thenReturn(List.of());
 
     service.detectDisruptions();
 
@@ -162,7 +173,7 @@ class DisruptionDetectionServiceTest {
   @Test
   void detectDisruptions_deduplication_skipsAlreadyDetectedDisruption() {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
-    TrainStationData late2 = lateTrainAt("CNLY", "E802", 18);
+    TrainStationData late2 = lateTrainAt("CNLY", "E802", 22); // >20 → MEDIUM, so dedup check is reached
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
     when(trainStationDataRepository.findLatestPerStationTrain())
         .thenReturn(List.of(late1, late2, late3));
@@ -189,6 +200,27 @@ class DisruptionDetectionServiceTest {
     d.setTrainCode(trainCode);
     d.setLateMinutes(lateMinutes);
     return d;
+  }
+
+  private TramLuasForecast tramForecastAt(String stopId, String line, int dueMins) {
+    TramLuasForecast f = new TramLuasForecast();
+    f.setStopId(stopId);
+    f.setLine(line);
+    f.setDirection("Outbound");
+    f.setDestination("Bride's Glen");
+    f.setDueMins(dueMins);
+    f.setMessage("");
+    return f;
+  }
+
+  private TramStop tramStopAt(String stopId, String line, String name, double lat, double lon) {
+    TramStop s = new TramStop();
+    s.setStopId(stopId);
+    s.setLine(line);
+    s.setName(name);
+    s.setLat(lat);
+    s.setLon(lon);
+    return s;
   }
 
   /** Mockito argThat shorthand — avoids static import clash with assertThat. */

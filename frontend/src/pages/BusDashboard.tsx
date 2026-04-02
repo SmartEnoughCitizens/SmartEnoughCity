@@ -12,6 +12,7 @@ import {
   Autocomplete,
   TextField,
 } from "@mui/material";
+import { DisruptionBanner } from "@/components/disruption/DisruptionBanner";
 import CommuteIcon from "@mui/icons-material/Commute";
 import WarningIcon from "@mui/icons-material/Warning";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
@@ -197,6 +198,11 @@ export const BusDashboard = () => {
 
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
+      {/* Disruption alert banner */}
+      <Box sx={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 1100, width: "fit-content", minWidth: 300, maxWidth: 520 }}>
+        <DisruptionBanner mode="BUS" />
+      </Box>
+
       {/* Full-viewport map background */}
       <Box sx={{ height: "100%", width: "100%" }}>
         <MapContainer

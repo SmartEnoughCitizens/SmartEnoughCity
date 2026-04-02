@@ -3,10 +3,16 @@ package com.trinity.hermes.disruptionmanagement.facade;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.disruptionmanagement.dto.*;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
+import com.trinity.hermes.disruptionmanagement.entity.DisruptionAlternative;
+import com.trinity.hermes.disruptionmanagement.entity.DisruptionCause;
+import com.trinity.hermes.disruptionmanagement.repository.DisruptionAlternativeRepository;
+import com.trinity.hermes.disruptionmanagement.repository.DisruptionCauseRepository;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.disruptionmanagement.service.*;
+import com.trinity.hermes.usermanagement.service.UserManagementService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -35,8 +41,15 @@ public class DisruptionFacade {
   @SuppressFBWarnings(value = "EI2", justification = "Spring-injected service dependency")
   private final IncidentLoggingService incidentLoggingService;
 
-  // Repository
+  // Intelligence services
+  private final CauseCorrelationService causeCorrelationService;
+  private final AlternativeTransportService alternativeTransportService;
+  private final UserManagementService userManagementService;
+
+  // Repositories
   private final DisruptionRepository disruptionRepository;
+  private final DisruptionCauseRepository disruptionCauseRepository;
+  private final DisruptionAlternativeRepository disruptionAlternativeRepository;
 
   // TODO: Inject Recommendation Facade when needed
   // private final RecommendationFacade recommendationFacade;
@@ -124,7 +137,32 @@ public class DisruptionFacade {
   public DisruptionSolution processDisruption(Disruption disruption) {
     log.info("Processing disruption ID: {}", disruption.getId());
 
-    // Create dummy solution object populated for notification
+    // Correlate causes and persist
+    List<DisruptionCause> causes = List.of();
+    try {
+      causes = causeCorrelationService.correlateCauses(disruption);
+      if (!causes.isEmpty()) {
+        disruptionCauseRepository.saveAll(causes);
+      }
+    } catch (Exception e) {
+      log.warn("Cause correlation failed for disruption {}: {}", disruption.getId(), e.getMessage());
+    }
+
+    // Find alternative transport and persist
+    List<DisruptionAlternative> alternatives = List.of();
+    try {
+      alternatives = alternativeTransportService.getAlternatives(disruption);
+      if (!alternatives.isEmpty()) {
+        disruptionAlternativeRepository.saveAll(alternatives);
+      }
+    } catch (Exception e) {
+      log.warn(
+          "Alternative transport lookup failed for disruption {}: {}",
+          disruption.getId(),
+          e.getMessage());
+    }
+
+    // Build solution
     DisruptionSolution solution = new DisruptionSolution();
     solution.setDisruptionId(disruption.getId());
     solution.setDisruptionType(disruption.getDisruptionType());
@@ -138,23 +176,55 @@ public class DisruptionFacade {
             + disruption.getAffectedArea());
     solution.setCalculatedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
 
-    // Good dummy data for notification testing
-    solution.setPrimaryRecommendation(
-        "Take Luas Green Line from Stephen's Green to Sandyford (15 mins)");
-    solution.setAlternativeRoutes(
-        List.of(
-            "Option A: Dublin Bus Route 46A - Departs in 5 mins from Stop 792",
-            "Option B: Dublin Bikes - Station 12 (Earlsfort Terrace) has 5 bikes available",
-            "Option C: Walk - 25 mins via Ranelagh Road"));
+    // Use real alternative routes if available, otherwise fallback to defaults
+    if (!alternatives.isEmpty()) {
+      List<String> altDescriptions =
+          alternatives.stream()
+              .map(DisruptionAlternative::getDescription)
+              .collect(Collectors.toList());
+      solution.setAlternativeRoutes(altDescriptions);
+      solution.setPrimaryRecommendation(altDescriptions.get(0));
+    } else {
+      solution.setPrimaryRecommendation(
+          "Take Luas Green Line from Stephen's Green to Sandyford (15 mins)");
+      solution.setAlternativeRoutes(
+          List.of(
+              "Option A: Dublin Bus Route 46A - Departs in 5 mins from Stop 792",
+              "Option B: Dublin Bikes - Station 12 (Earlsfort Terrace) has 5 bikes available",
+              "Option C: Walk - 25 mins via Ranelagh Road"));
+    }
     solution.setSecondaryRecommendations(List.of("Check Uber availability (approx €15)"));
     solution.setStepByStepInstructions(
         List.of(
             "1. Leave the disrupted stop immediately.",
-            "2. Walk 200m to Luas Stop (Stephen's Green).",
-            "3. Board Green Line (Southbound).",
-            "4. Alight at destination."));
+            "2. Walk to the nearest alternative stop.",
+            "3. Board the alternative service.",
+            "4. Alight at your destination."));
+
+    // Populate affected user groups from Keycloak roles
+    List<String> roles = getRolesToNotify(disruption);
+    List<String> userIds = new ArrayList<>();
+    for (String role : roles) {
+      try {
+        userManagementService.getUsersByRole(role).stream()
+            .map(org.keycloak.representations.idm.UserRepresentation::getId)
+            .forEach(userIds::add);
+      } catch (Exception e) {
+        log.warn("Failed to fetch users for role {}: {}", role, e.getMessage());
+      }
+    }
+    solution.setAffectedUserGroups(userIds);
 
     return solution;
+  }
+
+  private List<String> getRolesToNotify(Disruption disruption) {
+    List<String> modes = disruption.getAffectedTransportModes();
+    if (modes == null || modes.isEmpty()) return List.of("City_Manager");
+    if (modes.contains("BUS")) return List.of("Bus_Admin", "Bus_Provider", "City_Manager");
+    if (modes.contains("TRAIN")) return List.of("Train_Admin", "Train_Provider", "City_Manager");
+    if (modes.contains("TRAM")) return List.of("Tram_Admin", "Tram_Provider", "City_Manager");
+    return List.of("City_Manager");
   }
 
   /**
@@ -213,6 +283,17 @@ public class DisruptionFacade {
   // =============================================================================
   // STANDARD CRUD OPERATIONS (For manual disruption management)
   // =============================================================================
+
+  public List<DisruptionResponse> getActiveDisruptionsByTransportMode(String mode) {
+    String normalised = mode != null ? mode.toUpperCase(java.util.Locale.ROOT) : "";
+    return disruptionRepository.findAllActiveOrderByDetectedAtDesc().stream()
+        .filter(
+            d ->
+                d.getAffectedTransportModes() != null
+                    && d.getAffectedTransportModes().contains(normalised))
+        .map(disruptionService::mapToResponse)
+        .collect(Collectors.toList());
+  }
 
   public List<DisruptionResponse> getAllDisruptions() {
     return disruptionService.getAllDisruptions();

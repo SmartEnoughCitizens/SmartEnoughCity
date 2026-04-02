@@ -1,13 +1,12 @@
 package com.trinity.hermes.indicators.tram.service;
 
+import com.trinity.hermes.disruptionmanagement.service.AlternativeTransportService;
 import com.trinity.hermes.indicators.tram.dto.*;
 import com.trinity.hermes.indicators.tram.entity.TramHourlyDistribution;
 import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
 import com.trinity.hermes.indicators.tram.entity.TramStop;
 import com.trinity.hermes.indicators.tram.repository.*;
-
 import jakarta.persistence.EntityNotFoundException;
-
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -17,9 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-
-import com.trinity.hermes.indicators.tram.entity.VTramAlternateStop;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +39,7 @@ public class TramDashboardService {
   private final TramStopRepository tramStopRepository;
   private final TramLuasForecastRepository tramLuasForecastRepository;
   private final TramHourlyDistributionRepository tramHourlyDistributionRepository;
+  private final AlternativeTransportService alternativeTransportService;
 
   // ── KPIs ────────────────────────────────────────────────────────
 
@@ -83,8 +80,6 @@ public class TramDashboardService {
         .collect(Collectors.toList());
   }
 
-private final VTramAlternateStopRepository alternateStopRepository;
-
 @Transactional(readOnly = true)
 public List<TramAlternativeRouteDTO> getAlternativeRoutes(String stopId) {
     List<TramLuasForecast> forecasts = tramLuasForecastRepository.findByStopId(stopId);
@@ -93,24 +88,27 @@ public List<TramAlternativeRouteDTO> getAlternativeRoutes(String stopId) {
 
     if (!isDisrupted) return List.of();
 
-    return alternateStopRepository
-        .findByTramStopIdOrderByDistanceM(stopId)
-        .stream()
-        .map(this::mapToAlternativeRouteDTO)
-        .collect(Collectors.toList());
-}
+    TramStop stop = tramStopRepository.findAll().stream()
+        .filter(s -> s.getStopId().equals(stopId))
+        .findFirst()
+        .orElse(null);
 
-private TramAlternativeRouteDTO mapToAlternativeRouteDTO(VTramAlternateStop alt) {
-    return TramAlternativeRouteDTO.builder()
-        .transportType(alt.getTransportType())
-        .stopId(alt.getStopId())
-        .stopName(alt.getStopName())
-        .lat(alt.getLat())
-        .lon(alt.getLon())
-        .distanceM(alt.getDistanceM())
-        .availableBikes(alt.getAvailableBikes())
-        .capacity(alt.getCapacity())
-        .build();
+    if (stop == null || stop.getLat() == null || stop.getLon() == null) {
+        return List.of();
+    }
+
+    return alternativeTransportService.findNearby(stop.getLat(), stop.getLon()).stream()
+        .map(r -> TramAlternativeRouteDTO.builder()
+            .transportType(r.transportType())
+            .stopId(r.stopId())
+            .stopName(r.stopName())
+            .lat(r.lat())
+            .lon(r.lon())
+            .distanceM(r.distanceM())
+            .availableBikes(r.availableBikes())
+            .capacity(r.capacity())
+            .build())
+        .collect(Collectors.toList());
 }
 private boolean isDisruptionMessage(String message) {
     if (message == null) return false;

@@ -1,9 +1,11 @@
 /**
  * NetworkImpactMap — Leaflet map showing active disruption locations with
- * severity-coloured markers and ripple pulse animations.
+ * severity-coloured pulsating DivIcon markers. Flies to the selected marker.
  */
 
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import { useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
 import { Box, Typography, Chip } from "@mui/material";
 import type { ActiveDisruption, DisruptionSeverity } from "@/types";
 import "leaflet/dist/leaflet.css";
@@ -17,12 +19,68 @@ const SEVERITY_COLORS: Record<DisruptionSeverity, string> = {
   CRITICAL: "#7C3AED",
 };
 
-const SEVERITY_RADIUS: Record<DisruptionSeverity, number> = {
-  LOW: 10,
-  MEDIUM: 14,
-  HIGH: 18,
-  CRITICAL: 22,
+const SEVERITY_SIZE: Record<DisruptionSeverity, number> = {
+  LOW: 18,
+  MEDIUM: 22,
+  HIGH: 26,
+  CRITICAL: 30,
 };
+
+// Inject pulse keyframes once
+const STYLE_ID = "disruption-pulse-styles";
+function ensurePulseStyles() {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = `
+    @keyframes disruption-ripple {
+      0%   { transform: scale(1);   opacity: 0.9; }
+      70%  { transform: scale(2.4); opacity: 0;   }
+      100% { transform: scale(2.4); opacity: 0;   }
+    }
+    .disruption-marker-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      animation: disruption-ripple 1.8s ease-out infinite;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function makeDivIcon(severity: DisruptionSeverity, selected: boolean): L.DivIcon {
+  ensurePulseStyles();
+  const color = SEVERITY_COLORS[severity] ?? "#6B7280";
+  const size = SEVERITY_SIZE[severity] ?? 22;
+  const ring = selected
+    ? `<span class="disruption-marker-ring" style="border: 3px solid ${color};"></span>`
+    : `<span class="disruption-marker-ring" style="border: 2px solid ${color}88;"></span>`;
+
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="
+        position: relative;
+        width: ${size}px;
+        height: ${size}px;
+      ">
+        ${ring}
+        <div style="
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: ${color};
+          opacity: ${selected ? 1 : 0.75};
+          border: 2px solid ${selected ? "#fff" : color + "cc"};
+          box-shadow: 0 0 ${selected ? 10 : 6}px ${color}99;
+        "></div>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2) - 4],
+  });
+}
 
 function formatTime(iso: string | null): string {
   if (!iso) return "—";
@@ -36,11 +94,35 @@ function formatTime(iso: string | null): string {
   }
 }
 
-interface Props {
+// Flies to the selected disruption
+function FlyToSelected({
+  disruptions,
+  selectedId,
+}: {
   disruptions: ActiveDisruption[];
+  selectedId: number | null;
+}) {
+  const map = useMap();
+  const prevId = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (selectedId === null || selectedId === prevId.current) return;
+    const d = disruptions.find((x) => x.id === selectedId);
+    if (d?.latitude != null && d?.longitude != null) {
+      map.flyTo([d.latitude, d.longitude], 15, { duration: 1.2 });
+    }
+    prevId.current = selectedId;
+  }, [selectedId, disruptions, map]);
+
+  return null;
 }
 
-export const NetworkImpactMap = ({ disruptions }: Props) => {
+interface Props {
+  disruptions: ActiveDisruption[];
+  selectedId?: number | null;
+}
+
+export const NetworkImpactMap = ({ disruptions, selectedId = null }: Props) => {
   const mappable = disruptions.filter(
     (d) => d.latitude != null && d.longitude != null,
   );
@@ -67,36 +149,23 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        <FlyToSelected disruptions={mappable} selectedId={selectedId} />
+
         {mappable.map((d) => {
           const color = SEVERITY_COLORS[d.severity] ?? "#6B7280";
-          const radius = SEVERITY_RADIUS[d.severity] ?? 12;
+          const isSelected = d.id === selectedId;
           return (
-            <CircleMarker
+            <Marker
               key={d.id}
-              center={[d.latitude!, d.longitude!]}
-              radius={radius}
-              pathOptions={{
-                color,
-                fillColor: color,
-                fillOpacity: 0.55,
-                weight: 2,
-              }}
+              position={[d.latitude!, d.longitude!]}
+              icon={makeDivIcon(d.severity, isSelected)}
             >
               <Popup>
                 <Box sx={{ minWidth: 180 }}>
-                  <Typography
-                    sx={{ fontWeight: 700, fontSize: "0.85rem", mb: 0.5 }}
-                  >
+                  <Typography sx={{ fontWeight: 700, fontSize: "0.85rem", mb: 0.5 }}>
                     {d.name}
                   </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      gap: 0.5,
-                      flexWrap: "wrap",
-                      mb: 0.5,
-                    }}
-                  >
+                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 0.5 }}>
                     <Chip
                       size="small"
                       label={d.severity}
@@ -115,9 +184,7 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
                     />
                   </Box>
                   {d.description && (
-                    <Typography
-                      sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.5 }}
-                    >
+                    <Typography sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.5 }}>
                       {d.description}
                     </Typography>
                   )}
@@ -131,19 +198,17 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
                       Delay: ~{d.delayMinutes} min
                     </Typography>
                   )}
-                  <Typography
-                    sx={{ fontSize: "0.68rem", color: "#9CA3AF", mt: 0.5 }}
-                  >
+                  <Typography sx={{ fontSize: "0.68rem", color: "#9CA3AF", mt: 0.5 }}>
                     Detected: {formatTime(d.detectedAt)}
                   </Typography>
                 </Box>
               </Popup>
-            </CircleMarker>
+            </Marker>
           );
         })}
       </MapContainer>
 
-      {/* Legend overlay */}
+      {/* Legend */}
       <Box
         sx={{
           position: "absolute",
@@ -160,26 +225,19 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
           gap: 0.4,
         }}
       >
-        {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as DisruptionSeverity[]).map(
-          (s) => (
+        {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as DisruptionSeverity[]).map((s) => (
+          <Box key={s} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
             <Box
-              key={s}
-              sx={{ display: "flex", alignItems: "center", gap: 0.6 }}
-            >
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: "50%",
-                  bgcolor: SEVERITY_COLORS[s],
-                }}
-              />
-              <Typography sx={{ fontSize: "0.62rem", color: "#374151" }}>
-                {s}
-              </Typography>
-            </Box>
-          ),
-        )}
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                bgcolor: SEVERITY_COLORS[s],
+              }}
+            />
+            <Typography sx={{ fontSize: "0.62rem", color: "#374151" }}>{s}</Typography>
+          </Box>
+        ))}
       </Box>
 
       {mappable.length === 0 && (
