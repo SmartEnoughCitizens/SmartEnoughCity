@@ -66,8 +66,11 @@ const TAB_COVERAGE = 5;
 export const CycleDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const [rankingSubTab, setRankingSubTab] = useState(0);
-  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(null);
-  const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>("all");
+  const [odFilterStationId, setOdFilterStationId] = useState<number | null>(
+    null,
+  );
+  const [intensityFilter, setIntensityFilter] =
+    useState<IntensityFilter>("all");
   const [selectedPairKey, setSelectedPairKey] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [demandOpen, setDemandOpen] = useState(false);
@@ -75,23 +78,32 @@ export const CycleDashboard = () => {
   const theme = useAppSelector((state) => state.ui.theme);
   const roles = useAppSelector((state) => state.auth.roles);
 
-  const [reviewingProposal, setReviewingProposal] = useState<StationProposalSummary | null>(null);
+  const [reviewingProposal, setReviewingProposal] =
+    useState<StationProposalSummary | null>(null);
 
-  const canReviewProposals = roles.includes("City_Manager") || roles.includes("Cycle_Admin");
+  const canReviewProposals =
+    roles.includes("City_Manager") || roles.includes("Cycle_Admin");
 
   const { data: pendingProposals } = usePendingProposals();
-  const { mutate: reviewProposal, isPending: isReviewing } = useReviewProposal();
+  const { mutate: reviewProposal, isPending: isReviewing } =
+    useReviewProposal();
 
   const handleAcceptProposal = (proposalId: number) => {
-    reviewProposal({ id: proposalId, action: "ACCEPTED", reason: "" }, {
-      onSuccess: () => setReviewingProposal(null),
-    });
+    reviewProposal(
+      { id: proposalId, action: "ACCEPTED", reason: "" },
+      {
+        onSuccess: () => setReviewingProposal(null),
+      },
+    );
   };
 
   const handleRejectProposal = (proposalId: number, reason: string) => {
-    reviewProposal({ id: proposalId, action: "REJECTED", reason }, {
-      onSuccess: () => setReviewingProposal(null),
-    });
+    reviewProposal(
+      { id: proposalId, action: "REJECTED", reason },
+      {
+        onSuccess: () => setReviewingProposal(null),
+      },
+    );
   };
 
   const handleIntensityFilterChange = (f: IntensityFilter) => {
@@ -104,22 +116,41 @@ export const CycleDashboard = () => {
     setSelectedPairKey(null);
   };
 
-  const { data: stations, isLoading: stationsLoading, error } = useCycleStationsLive();
+  const {
+    data: stations,
+    isLoading: stationsLoading,
+    error,
+  } = useCycleStationsLive();
   const { data: summary } = useCycleNetworkSummary();
-  const { data: busiest, isLoading: busiestLoading } = useCycleBusiestStations(10);
-  const { data: underused, isLoading: underusedLoading } = useCycleUnderusedStations(10);
-  const { data: rebalancing, isLoading: rebalancingLoading } = useCycleRebalancing(30);
+  const { data: busiest, isLoading: busiestLoading } =
+    useCycleBusiestStations(10);
+  const { data: underused, isLoading: underusedLoading } =
+    useCycleUnderusedStations(10);
+  const { data: rebalancing, isLoading: rebalancingLoading } =
+    useCycleRebalancing(30);
   const { data: odPairs, isLoading: odLoading } = useCycleODPairs(30, 50);
   const { routeCache, progress: routeProgress } = useODRoutes(odPairs ?? []);
   const { data: riskScores, isLoading: riskLoading } = useCycleRiskScores();
-  const { data: coverageGaps, isLoading: coverageLoading } = useCycleCoverageGaps();
+  const { data: coverageGaps, isLoading: coverageLoading } =
+    useCycleCoverageGaps();
 
   const isLoading =
-    stationsLoading || busiestLoading || underusedLoading || rebalancingLoading || odLoading;
+    stationsLoading ||
+    busiestLoading ||
+    underusedLoading ||
+    rebalancingLoading ||
+    odLoading;
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -129,7 +160,9 @@ export const CycleDashboard = () => {
 
   const odThresholds = (() => {
     if (allOdPairs.length === 0) return { low: 1, high: 1 };
-    const sorted = allOdPairs.toSorted((a, b) => a.estimatedTrips - b.estimatedTrips);
+    const sorted = allOdPairs.toSorted(
+      (a, b) => a.estimatedTrips - b.estimatedTrips,
+    );
     const p33 = sorted[Math.floor(sorted.length * 0.33)]?.estimatedTrips ?? 1;
     const p66 = sorted[Math.floor(sorted.length * 0.66)]?.estimatedTrips ?? 1;
     return { low: p33, high: p66 };
@@ -138,14 +171,20 @@ export const CycleDashboard = () => {
   const filteredOdPairs = (() => {
     const byStation = odFilterStationId
       ? allOdPairs.filter(
-          (p) => p.originStationId === odFilterStationId || p.destStationId === odFilterStationId,
+          (p) =>
+            p.originStationId === odFilterStationId ||
+            p.destStationId === odFilterStationId,
         )
       : allOdPairs;
     if (intensityFilter === "all") return byStation;
     return byStation.filter((p) => {
-      if (intensityFilter === "extreme") return p.estimatedTrips >= odThresholds.high;
+      if (intensityFilter === "extreme")
+        return p.estimatedTrips >= odThresholds.high;
       if (intensityFilter === "medium")
-        return p.estimatedTrips >= odThresholds.low && p.estimatedTrips < odThresholds.high;
+        return (
+          p.estimatedTrips >= odThresholds.low &&
+          p.estimatedTrips < odThresholds.high
+        );
       if (intensityFilter === "low") return p.estimatedTrips < odThresholds.low;
       return true;
     });
@@ -260,7 +299,15 @@ export const CycleDashboard = () => {
             overflow: "hidden",
           }}
         >
-          <Box sx={{ p: 2, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box
+            sx={{
+              p: 2,
+              pb: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Typography variant="h5">Cycle Stations</Typography>
             <IconButton size="small" onClick={() => setPanelOpen(false)}>
               <CloseIcon fontSize="small" />
@@ -281,7 +328,11 @@ export const CycleDashboard = () => {
             sx={{
               minHeight: 36,
               px: 1,
-              "& .MuiTab-root": { minHeight: 36, fontSize: "0.7rem", textTransform: "none" },
+              "& .MuiTab-root": {
+                minHeight: 36,
+                fontSize: "0.7rem",
+                textTransform: "none",
+              },
             }}
           >
             <Tab label={`Stations (${stations?.length ?? 0})`} />
@@ -306,14 +357,22 @@ export const CycleDashboard = () => {
                   sx={{
                     minHeight: 32,
                     mb: 0.5,
-                    "& .MuiTab-root": { minHeight: 32, fontSize: "0.7rem", textTransform: "none" },
+                    "& .MuiTab-root": {
+                      minHeight: 32,
+                      fontSize: "0.7rem",
+                      textTransform: "none",
+                    },
                   }}
                 >
                   <Tab label="Busiest" />
                   <Tab label="Underused" />
                 </Tabs>
-                {rankingSubTab === 0 && <CycleRankingTable stations={busiest ?? []} />}
-                {rankingSubTab === 1 && <CycleRankingTable stations={underused ?? []} />}
+                {rankingSubTab === 0 && (
+                  <CycleRankingTable stations={busiest ?? []} />
+                )}
+                {rankingSubTab === 1 && (
+                  <CycleRankingTable stations={underused ?? []} />
+                )}
               </>
             )}
 
@@ -336,11 +395,17 @@ export const CycleDashboard = () => {
             )}
 
             {tabValue === TAB_RISK && (
-              <StationRiskPanel scores={riskScores ?? []} isLoading={riskLoading} />
+              <StationRiskPanel
+                scores={riskScores ?? []}
+                isLoading={riskLoading}
+              />
             )}
 
             {tabValue === TAB_COVERAGE && (
-              <CoverageGapPanel gaps={coverageGaps ?? []} isLoading={coverageLoading} />
+              <CoverageGapPanel
+                gaps={coverageGaps ?? []}
+                isLoading={coverageLoading}
+              />
             )}
           </Box>
         </Paper>
