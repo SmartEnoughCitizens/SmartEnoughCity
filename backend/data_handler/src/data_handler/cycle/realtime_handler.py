@@ -51,7 +51,7 @@ def _transform_station_records(stations: list[dict], fetch_ts: datetime) -> list
     ]
 
 
-def fetch_and_store_station_snapshots() -> None:
+def process_cycle_live_data() -> None:
     """Fetch and store real-time station status.
 
     This function:
@@ -59,7 +59,7 @@ def fetch_and_store_station_snapshots() -> None:
     2. Stores in station_snapshots table
 
     Note: Requires that static station data has been loaded first via
-    process_station_information() to avoid foreign key violations.
+    process_cycle_station_info() to avoid foreign key violations.
     """
     logger.info("Fetching real-time station snapshots...")
 
@@ -82,20 +82,21 @@ def fetch_and_store_station_snapshots() -> None:
             skipped = len(records) - len(filtered)
             if skipped:
                 logger.warning(
-                    "Skipping %d snapshot(s) for unknown station_id(s).", skipped
+                    "Skipped %d station snapshot record(s) — unknown station_id.",
+                    skipped,
                 )
             if filtered:
                 session.execute(pg_insert(DublinBikesStationSnapshot).values(filtered))
                 session.commit()
 
-        logger.info("Successfully stored %d station snapshots", len(filtered))
+        logger.info("Inserted %d station snapshot record(s).", len(filtered))
 
     except IntegrityError as e:
         error_msg = str(e.orig) if hasattr(e, "orig") else str(e)
         if "foreign key" in error_msg.lower():
             logger.exception(
                 "Foreign key violation: Station data must be loaded first. "
-                "Run process_station_information() before fetching snapshots."
+                "Run process_cycle_station_info() before fetching snapshots."
             )
         raise
     except Exception:

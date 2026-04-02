@@ -2,14 +2,15 @@
  * Shared types, constants, and helpers for the event map
  */
 
-import type { DisruptionItem, EventItem } from "@/types";
+import type { DisruptionItem, EventItem, PedestrianLive } from "@/types";
 
 export type EventCategory = "construction" | "public" | "emergency";
 export type EventSeverity = "high" | "medium" | "low";
 
 export type SelectedMapItem =
   | { kind: "event"; item: EventItem }
-  | { kind: "disruption"; item: DisruptionItem };
+  | { kind: "disruption"; item: DisruptionItem }
+  | { kind: "pedestrian"; item: PedestrianLive };
 
 export const CATEGORY_EMOJI: Record<EventCategory, string> = {
   construction: "🚧",
@@ -64,5 +65,14 @@ export function getEventSeverity(event: EventItem): EventSeverity {
   const att = event.estimatedAttendance ?? 0;
   if (att > 5000) return "high";
   if (att > 1000) return "medium";
+  return "low";
+}
+
+export function getPedestrianSeverity(
+  pedestrian: PedestrianLive,
+): EventSeverity {
+  const count = pedestrian.totalCount;
+  if (count >= 140) return "high";
+  if (count >= 70) return "medium";
   return "low";
 }

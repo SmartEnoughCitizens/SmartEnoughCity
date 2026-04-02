@@ -11,10 +11,15 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
+  InputAdornment,
   TextField,
 } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { isAxiosError } from "axios";
 import { useChangePassword } from "@/hooks";
+import { PasswordStrengthIndicator } from "@/components/common/PasswordStrengthIndicator";
 
 const getErrorMessage = (error: Error | null): string => {
   if (!error) return "Failed to change password";
@@ -38,6 +43,9 @@ export const ChangePasswordDialog = ({
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const changePasswordMutation = useChangePassword();
 
@@ -48,6 +56,9 @@ export const ChangePasswordDialog = ({
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
     changePasswordMutation.reset();
   };
 
@@ -92,17 +103,38 @@ export const ChangePasswordDialog = ({
 
           <TextField
             label="Current Password"
-            type="password"
+            type={showCurrentPassword ? "text" : "password"}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             disabled={changePasswordMutation.isPending}
             required
             fullWidth
             margin="dense"
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowCurrentPassword((v) => !v)}
+                      edge="end"
+                      aria-label={
+                        showCurrentPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showCurrentPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
           <TextField
             label="New Password"
-            type="password"
+            type={showNewPassword ? "text" : "password"}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             disabled={changePasswordMutation.isPending}
@@ -110,10 +142,32 @@ export const ChangePasswordDialog = ({
             fullWidth
             margin="dense"
             helperText="Minimum 8 characters"
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowNewPassword((v) => !v)}
+                      edge="end"
+                      aria-label={
+                        showNewPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showNewPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
+          <PasswordStrengthIndicator password={newPassword} />
           <TextField
             label="Confirm New Password"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={changePasswordMutation.isPending}
@@ -122,6 +176,27 @@ export const ChangePasswordDialog = ({
             margin="dense"
             error={passwordMismatch}
             helperText={passwordMismatch ? "Passwords do not match" : ""}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      edge="end"
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showConfirmPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

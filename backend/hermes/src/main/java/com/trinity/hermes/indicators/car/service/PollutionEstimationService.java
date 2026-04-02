@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -117,6 +118,7 @@ public class PollutionEstimationService {
    *
    * Within car volume: EV 15%, ICE bands 85% (distributed by dynamic band percentages).
    */
+  @Cacheable("junctionEmissions")
   @Transactional(readOnly = true)
   public List<JunctionEmissionDTO> computeEmissions() {
     log.info("Computing junction emissions");

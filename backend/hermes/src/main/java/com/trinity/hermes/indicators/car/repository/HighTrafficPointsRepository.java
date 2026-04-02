@@ -13,10 +13,8 @@ public interface HighTrafficPointsRepository
 
   @Query(
       value =
-          "SELECT tv.site_id, tv.end_time, SUM(tv.sum_volume) AS total_volume, ss.lat, ss.lon"
-              + " FROM external_data.traffic_volumes tv"
-              + " LEFT JOIN external_data.scats_sites ss ON tv.site_id = ss.site_id"
-              + " GROUP BY tv.site_id, tv.end_time, ss.lat, ss.lon",
+          "SELECT site_id, lat, lon, day_type, time_slot, avg_volume"
+              + " FROM backend.traffic_aggregated",
       nativeQuery = true)
   List<Object[]> findAggregatedTrafficWithLocation();
 }

@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml .Values.labels | nindent 4 }}
   annotations:
-    "helm.sh/hook": post-install
+    "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "5"
     "helm.sh/hook-delete-policy": before-hook-creation
 spec:
@@ -36,7 +36,6 @@ spec:
         - name: data-handler-init
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["--static"]
           {{- if .Values.containerSecurityContext }}
           securityContext:
 {{- toYaml .Values.containerSecurityContext | nindent 12 }}
@@ -97,20 +96,26 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.ticketmasterApiKey.name | quote }}
                   key: TICKETMASTER_API_KEY
+            - name: ENABLE_STATIC
+              value: "true"
+            - name: ENABLE_ONE_DAY
+              value: "true"
+            - name: ENABLE_ONE_MONTH
+              value: "true"
             - name: ENABLE_CYCLE_DATA
-              value: {{ .Values.enableCycleData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enableCycleData | quote }}
             - name: ENABLE_CAR_DATA
-              value: {{ .Values.enableCarData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enableCarData | quote }}
             - name: ENABLE_BUS_DATA
-              value: {{ .Values.enableBusData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enableBusData | quote }}
             - name: ENABLE_TRAIN_DATA
-              value: {{ .Values.enableTrainData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enableTrainData | quote }}
             - name: ENABLE_TRAM_DATA
-              value: {{ .Values.enableTramData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enableTramData | quote }}
             - name: ENABLE_CONSTRUCTION_DATA
-              value: {{ .Values.enableConstructionData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enableConstructionData | quote }}
             - name: ENABLE_EVENTS_DATA
-              value: {{ .Values.enableEventsData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enableEventsData | quote }}
             - name: ENABLE_POPULATION_DATA
-              value: {{ .Values.enablePopulationData | default "true" | quote }}
+              value: {{ .Values.dataToggles.enablePopulationData | quote }}
 {{- end }}
