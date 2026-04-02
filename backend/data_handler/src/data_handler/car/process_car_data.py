@@ -363,7 +363,35 @@ def _process_charging_demand(session: Session, path: Path) -> None:
         for row in read_csv_file(path, _CHARGING_DEMAND_CSV_REQUIRED_HEADERS)
     ]
     session.add_all(rows)
-    logger.info("  Added %d charging demand rows", len(rows))
+    logger.info("  Inserted %d charging demand record(s).", len(rows))
+
+
+def _to_wkt_multipolygon(geometry: dict) -> str:
+    """Convert a GeoJSON geometry dict to a WKT MULTIPOLYGON string."""
+    s_geom = shape(geometry)
+    if isinstance(s_geom, Polygon):
+        s_geom = MultiPolygon([s_geom])
+    return f"SRID=4326;{s_geom.wkt}"
+
+
+def _process_ev_geojson(session: Session, geojson_path: Path) -> None:
+    """Read the electoral division GeoJSON and bulk-add Dublin boundary rows."""
+    logger.info("Processing %s...", geojson_path.name)
+    with geojson_path.open(encoding="utf-8") as f:
+        geojson = json.load(f)
+
+    rows = [
+        EVElectoralDivision(
+            ed_english=feature["properties"]["ED_ENGLISH"],
+            county_english=feature["properties"]["COUNTY_ENGLISH"],
+            geom=_to_wkt_multipolygon(feature["geometry"]),
+        )
+        for feature in geojson["features"]
+        if (feature["properties"].get("COUNTY_ENGLISH") or "").upper()
+        in {"DUBLIN CITY", "FINGAL", "SOUTH DUBLIN"}
+    ]
+    session.add_all(rows)
+    logger.info("  Added %d electoral division boundaries", len(rows))
 
 
 def _validate_files(data_dir: Path, ev_csv_path: Path, ev_geojson_path: Path) -> None:
@@ -411,35 +439,6 @@ def _clear_existing_data(session: Session) -> None:
     session.commit()
 
 
-def _to_wkt_multipolygon(geometry: dict) -> str:
-    """Convert a GeoJSON geometry dict to a WKT MULTIPOLYGON string."""
-    s_geom = shape(geometry)
-    if isinstance(s_geom, Polygon):
-        s_geom = MultiPolygon([s_geom])
-    return f"SRID=4326;{s_geom.wkt}"
-
-
-def _process_ev_geojson(session: Session, geojson_path: Path) -> None:
-    """Read the electoral division GeoJSON and bulk-add Dublin boundary rows."""
-    logger.info("Processing %s...", geojson_path.name)
-    with geojson_path.open(encoding="utf-8") as f:
-        geojson = json.load(f)
-
-    rows = [
-        EVElectoralDivision(
-            ed_english=feature["properties"]["ED_ENGLISH"],
-            county_english=feature["properties"]["COUNTY_ENGLISH"],
-            geom=_to_wkt_multipolygon(feature["geometry"]),
-        )
-        for feature in geojson["features"]
-        if (feature["properties"].get("COUNTY_ENGLISH") or "").upper()
-        in {"DUBLIN CITY", "FINGAL", "SOUTH DUBLIN"}
-    ]
-
-    session.add_all(rows)
-    logger.info("  Added %d electoral division boundaries", len(rows))
-
-
 def _process_csv_file(
     session: Session,
     data_dir: Path,
@@ -467,7 +466,7 @@ def _process_csv_file(
         rows = list(deduped.values())
 
     session.add_all(rows)
-    logger.info("  Added %d rows from %s", len(rows), filename)
+    logger.info("  Inserted %d record(s) from %s.", len(rows), filename)
 
 
 def _process_emission_files(session: Session, data_dir: Path) -> None:
@@ -483,7 +482,7 @@ def _process_emission_files(session: Session, data_dir: Path) -> None:
 
     session.add_all(emission_rows)
     logger.info(
-        "  Added %d emission rows from %d files",
+        "  Inserted %d emission record(s) from %d files.",
         len(emission_rows),
         len(_EMISSION_FILES),
     )
@@ -534,7 +533,7 @@ def _process_traffic_volumes(session: Session, data_dir: Path) -> None:
         total += len(chunk)
 
     logger.info(
-        "  Added %d rows from %s (%d skipped — unknown sites)",
+        "  Inserted %d record(s) from %s. Skipped %d — unknown SCATS sites.",
         total,
         _TRAFFIC_VOLUME_FILE,
         skipped,
@@ -551,7 +550,7 @@ def _process_ev_charging_points(session: Session, ev_csv_path: Path) -> None:
             ev_rows.append(parsed_row)
 
     session.add_all(ev_rows)
-    logger.info("  Added %d EV charging point rows", len(ev_rows))
+    logger.info("  Inserted %d EV charging point record(s).", len(ev_rows))
 
 
 def process_car_static_data(data_dir: Path) -> None:
@@ -599,7 +598,7 @@ def process_car_static_data(data_dir: Path) -> None:
 
         logger.info("Committing changes to database...")
         session.commit()
-        logger.info("Successfully processed static car data.")
+        logger.info("Static car data import complete.")
 
     except Exception:
         session.rollback()

@@ -35,7 +35,7 @@ public class BusDashboardService {
   private final BusRidershipRepository busRidershipRepository;
   private final BusTripRepository busTripRepository;
   private final BusRouteRepository busRouteRepository;
-  private final BusTripUpdateRepository busTripUpdateRepository;
+  private final BusCommonDelayMvRepository busCommonDelayMvRepository;
 
   @Transactional(readOnly = true)
   public BusDashboardKpiDTO getKpis() {
@@ -114,16 +114,16 @@ public class BusDashboardService {
 
   @Transactional(readOnly = true)
   public List<BusCommonDelayDTO> getCommonDelays(String filter) {
-    log.info("Fetching common bus delays, filter={}", filter);
+    log.info("Fetching common bus delays from MV, filter={}", filter);
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
-    return busTripUpdateRepository.findCommonDelays(safeFilter).stream()
+    return busCommonDelayMvRepository.findByPeriodOrderByAvgDelayMinutesDesc(safeFilter).stream()
         .map(
-            p ->
+            mv ->
                 BusCommonDelayDTO.builder()
-                    .routeId(p.getRouteId())
-                    .routeShortName(p.getRouteShortName())
-                    .routeLongName(p.getRouteLongName())
-                    .avgDelayMinutes(p.getAvgDelayMinutes())
+                    .routeId(mv.getRouteId())
+                    .routeShortName(mv.getRouteShortName())
+                    .routeLongName(mv.getRouteLongName())
+                    .avgDelayMinutes(mv.getAvgDelayMinutes())
                     .build())
         .collect(Collectors.toList());
   }
@@ -132,7 +132,7 @@ public class BusDashboardService {
   public List<BusRouteBreakdownDTO> getRouteBreakdown(String routeId, String filter) {
     log.info("Fetching bus route breakdown, routeId={}, filter={}", routeId, filter);
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
-    return busTripUpdateRepository.findBreakdownByRoute(routeId, safeFilter).stream()
+    return busLiveStopTimeUpdateRepository.findBreakdownByRoute(routeId, safeFilter).stream()
         .map(
             p ->
                 BusRouteBreakdownDTO.builder()

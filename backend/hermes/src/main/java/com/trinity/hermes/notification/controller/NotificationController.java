@@ -1,6 +1,7 @@
 package com.trinity.hermes.notification.controller;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.dto.BroadcastNotificationRequestDTO;
 import com.trinity.hermes.notification.dto.NotificationResponseDTO;
 import com.trinity.hermes.notification.services.NotificationFacade;
 import com.trinity.hermes.notification.util.SseManager;
@@ -35,6 +36,15 @@ public class NotificationController {
     return ResponseEntity.ok(Map.of("status", "accepted"));
   }
 
+  /** Internal endpoint for broadcasting a notification to all providers of a given indicator. */
+  @PostMapping("/broadcast")
+  public ResponseEntity<?> broadcastByIndicator(
+      @RequestBody BroadcastNotificationRequestDTO request) {
+    log.info("Received broadcast request for indicator={}", request.getDataIndicator());
+    notificationFacade.broadcastByIndicator(request);
+    return ResponseEntity.ok(Map.of("status", "broadcast accepted"));
+  }
+
   /** Endpoint to establish an SSE connection for streaming notifications. */
   @GetMapping("/notifications/stream")
   public SseEmitter stream(@RequestParam String userId) {
@@ -44,6 +54,11 @@ public class NotificationController {
   @GetMapping("/{userId}")
   public ResponseEntity<NotificationResponseDTO> getUserNotifications(@PathVariable String userId) {
     return ResponseEntity.ok(notificationFacade.getAll(userId));
+  }
+
+  @org.springframework.web.bind.annotation.ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
+    return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
   }
 
   /**

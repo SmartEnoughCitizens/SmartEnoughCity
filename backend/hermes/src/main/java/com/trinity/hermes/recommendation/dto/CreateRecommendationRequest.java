@@ -8,6 +8,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateRecommendationRequest {
-  private String name;
-  private String description;
+  private String indicator;
+  private String recommendation;
+  private String usecase;
+  private String simulation;
+  private Boolean deleted;
+  private String status;
 }

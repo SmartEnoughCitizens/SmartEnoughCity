@@ -6,4 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 // TODO: Move it to a mongo repo
-public interface RecommendationRepository extends JpaRepository<Recommendation, Long> {}
+public interface RecommendationRepository extends JpaRepository<Recommendation, Integer> {}

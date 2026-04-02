@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.dto.BroadcastNotificationRequestDTO;
 import com.trinity.hermes.notification.dto.NotificationItemDTO;
 import com.trinity.hermes.notification.dto.NotificationResponseDTO;
 import com.trinity.hermes.notification.entity.NotificationEntity;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -157,6 +159,118 @@ public class NotificationFacadeTest {
 
       facade.handleBackendNotification(dto);
 
+      verifyNoInteractions(notificationDispatcher);
+      verifyNoInteractions(notificationRepository);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // broadcastByIndicator
+  // ─────────────────────────────────────────────────────────────────────────
+  @Nested
+  @DisplayName("broadcastByIndicator")
+  class BroadcastByIndicator {
+
+    @Test
+    @DisplayName(
+        "known indicator: fetches providers by role and calls handleBackendNotification per user")
+    void knownIndicator_fanOutToProviders() {
+      UserRepresentation user1 = new UserRepresentation();
+      user1.setId("uuid-1");
+      user1.setUsername("bus-provider-1");
+
+      UserRepresentation user2 = new UserRepresentation();
+      user2.setId("uuid-2");
+      user2.setUsername("bus-provider-2");
+
+      when(userManagementService.getUsersByRole("Bus_Provider")).thenReturn(List.of(user1, user2));
+
+      Notification notification =
+          Notification.builder()
+              .subject("Bus update")
+              .body("Route delayed")
+              .recipient("p@example.com")
+              .channel(Channel.NOTIFICATION)
+              .build();
+      when(notificationService.createNotification(
+              any(User.class), any(BackendNotificationRequestDTO.class)))
+          .thenReturn(Set.of(notification));
+
+      BroadcastNotificationRequestDTO request = new BroadcastNotificationRequestDTO();
+      request.setDataIndicator("bus");
+      request.setSubject("Bus update");
+      request.setBody("Route delayed");
+      request.setChannel(Channel.NOTIFICATION);
+
+      facade.broadcastByIndicator(request);
+
+      verify(userManagementService).getUsersByRole("Bus_Provider");
+      // createNotification called once per user
+      verify(notificationService, times(2))
+          .createNotification(any(User.class), any(BackendNotificationRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName(
+        "known indicator: BackendNotificationRequestDTO is built with correct userId per user")
+    void knownIndicator_dtoHasCorrectUserId() {
+      UserRepresentation user = new UserRepresentation();
+      user.setId("uuid-bus-1");
+      user.setUsername("bus-provider-1");
+
+      when(userManagementService.getUsersByRole("Bus_Provider")).thenReturn(List.of(user));
+      when(notificationService.createNotification(
+              any(User.class), any(BackendNotificationRequestDTO.class)))
+          .thenReturn(null);
+
+      BroadcastNotificationRequestDTO request = new BroadcastNotificationRequestDTO();
+      request.setDataIndicator("bus");
+      request.setSubject("Test subject");
+      request.setBody("Test body");
+      request.setChannel(Channel.NOTIFICATION);
+
+      facade.broadcastByIndicator(request);
+
+      ArgumentCaptor<BackendNotificationRequestDTO> captor =
+          ArgumentCaptor.forClass(BackendNotificationRequestDTO.class);
+      verify(notificationService).createNotification(any(User.class), captor.capture());
+
+      BackendNotificationRequestDTO captured = captor.getValue();
+      assertEquals("bus-provider-1", captured.getUserId());
+      assertEquals("bus-provider-1", captured.getUserName());
+      assertEquals("bus", captured.getDataIndicator());
+      assertEquals("Test subject", captured.getSubject());
+      assertEquals("Test body", captured.getBody());
+      assertEquals(Channel.NOTIFICATION, captured.getChannel());
+    }
+
+    @Test
+    @DisplayName("unknown indicator: throws IllegalArgumentException without calling Keycloak")
+    void unknownIndicator_throwsIllegalArgumentException() {
+      BroadcastNotificationRequestDTO request = new BroadcastNotificationRequestDTO();
+      request.setDataIndicator("car");
+
+      assertThrows(IllegalArgumentException.class, () -> facade.broadcastByIndicator(request));
+
+      verifyNoInteractions(userManagementService);
+      verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    @DisplayName("no providers found: completes without sending any notifications")
+    void noProviders_doesNothing() {
+      when(userManagementService.getUsersByRole("Train_Provider")).thenReturn(List.of());
+
+      BroadcastNotificationRequestDTO request = new BroadcastNotificationRequestDTO();
+      request.setDataIndicator("train");
+      request.setSubject("Train update");
+      request.setBody("Delays on Green Line");
+      request.setChannel(Channel.NOTIFICATION);
+
+      facade.broadcastByIndicator(request);
+
+      verify(userManagementService).getUsersByRole("Train_Provider");
+      verifyNoInteractions(notificationService);
       verifyNoInteractions(notificationDispatcher);
       verifyNoInteractions(notificationRepository);
     }
