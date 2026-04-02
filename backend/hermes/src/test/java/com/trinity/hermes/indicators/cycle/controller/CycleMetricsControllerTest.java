@@ -151,7 +151,7 @@ public class CycleMetricsControllerTest {
   private HourlyNetworkProfileDTO buildHourlyProfileDTO(int hour) {
     HourlyNetworkProfileDTO dto = new HourlyNetworkProfileDTO();
     dto.setHourOfDay(hour);
-    dto.setAvgUsageRate(65.0);
+    dto.setAvgTurnover(65.0);
     dto.setStationCount(100L);
     return dto;
   }
@@ -186,7 +186,7 @@ public class CycleMetricsControllerTest {
     dto.setStationId(stationId);
     dto.setName("Station " + stationId);
     dto.setHourOfDay(hour);
-    dto.setAvgUsageRate(72.5);
+    dto.setAvgTurnover(72.5);
     return dto;
   }
 
