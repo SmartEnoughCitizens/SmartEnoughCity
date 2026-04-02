@@ -554,10 +554,19 @@ export const usePendingProposals = () => {
 export const useReviewProposal = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action, reason }: { id: number; action: string; reason: string }) =>
-      dashboardApi.reviewProposal(id, action, reason),
+    mutationFn: ({
+      id,
+      action,
+      reason,
+    }: {
+      id: number;
+      action: string;
+      reason: string;
+    }) => dashboardApi.reviewProposal(id, action, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.cyclePendingProposals });
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cyclePendingProposals,
+      });
     },
   });
 };
