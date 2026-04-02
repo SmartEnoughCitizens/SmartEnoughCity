@@ -202,7 +202,8 @@ class BusDashboardServiceTest {
           }
         };
 
-    when(busLiveStopTimeUpdateRepository.findBreakdownByRoute("route_1", "today")).thenReturn(List.of(p));
+    when(busLiveStopTimeUpdateRepository.findBreakdownByRoute("route_1", "today"))
+        .thenReturn(List.of(p));
 
     List<BusRouteBreakdownDTO> breakdown =
         busDashboardService.getRouteBreakdown("route_1", "today");

@@ -29,5 +29,4 @@ public interface BusTripUpdateRepository extends JpaRepository<BusTripUpdate, Lo
   @Query(
       "SELECT AVG(b.departureDelay) FROM BusTripUpdate b WHERE b.routeId = :routeId AND b.departureDelay IS NOT NULL")
   Double findAverageDepartureDelayByRouteId(@Param("routeId") String routeId);
-
 }
