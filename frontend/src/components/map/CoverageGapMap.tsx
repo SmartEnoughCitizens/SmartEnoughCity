@@ -3,8 +3,15 @@
  * with a simulation mode to place proposed stations and see instant impact.
  */
 
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { Fragment, useEffect, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import {
   Box,
   Paper,
@@ -23,6 +30,7 @@ import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { useSubmitStationProposal } from "@/hooks";
 import L from "leaflet";
 import type { CoverageGapDTO, StationProposalSummary } from "@/types";
+import { safeJsonParse } from "@/utils/safeJsonParse";
 import "leaflet/dist/leaflet.css";
 
 const COVERAGE_FILL: Record<string, string> = {
@@ -39,11 +47,19 @@ const CAT_LABEL: Record<string, string> = {
   ADEQUATE: "Adequate (<500 m)",
 };
 
-const DUBLIN_BOUNDS = L.latLngBounds([[53.22, -6.55], [53.55, -5.95]]);
+const DUBLIN_BOUNDS = L.latLngBounds([
+  [53.22, -6.55],
+  [53.55, -5.95],
+]);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function haversineM(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
   const R = 6_371_000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -90,7 +106,12 @@ function MapClickHandler({
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type CategoryFilter = "ALL" | "NO_COVERAGE" | "POOR_COVERAGE" | "PARTIAL_COVERAGE" | "ADEQUATE";
+type CategoryFilter =
+  | "ALL"
+  | "NO_COVERAGE"
+  | "POOR_COVERAGE"
+  | "PARTIAL_COVERAGE"
+  | "ADEQUATE";
 
 interface CoverageGapMapProps {
   gaps: CoverageGapDTO[];
@@ -116,20 +137,30 @@ export const CoverageGapMap = ({
 }: CoverageGapMapProps) => {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [simulateMode, setSimulateMode] = useState(false);
-  const [proposedStations, setProposedStations] = useState<[number, number][]>([]);
+  const [proposedStations, setProposedStations] = useState<[number, number][]>(
+    [],
+  );
   const [submitted, setSubmitted] = useState(false);
   const [rejectMode, setRejectMode] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const { mutate: submitProposal, isPending: isSubmitting } = useSubmitStationProposal();
+  const { mutate: submitProposal, isPending: isSubmitting } =
+    useSubmitStationProposal();
 
   const isReviewMode = !!reviewProposal;
 
-  // Sync pre-loaded stations when reviewProposal changes
+  // Sync pre-loaded stations when reviewProposal changes.
+  // Multiple synchronous setState calls here are intentional: they batch into a single render
+  // cycle in React 18+ and keep the proposal review state consistent.
   useEffect(() => {
     if (reviewProposal) {
-      const parsed: [number, number][] = JSON.parse(reviewProposal.stationsJson).map(
-        (s: { lat: number; lon: number }) => [s.lat, s.lon] as [number, number],
-      );
+      const stationSchema = {
+        parse: (data: unknown) =>
+          (data as Array<{ lat: number; lon: number }>).map(
+            (s) => [s.lat, s.lon] as [number, number],
+          ),
+      };
+      const parsed = safeJsonParse(reviewProposal.stationsJson, stationSchema);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProposedStations(parsed);
       setSimulateMode(true);
       setSubmitted(false);
@@ -156,15 +187,31 @@ export const CoverageGapMap = ({
 
   // Compute simulated category for each gap
   const gapsWithSim = gaps.map((g) => {
-    if (proposedStations.length === 0) return { ...g, simCategory: g.coverageCategory, simDistM: g.minDistanceM };
+    if (proposedStations.length === 0)
+      return {
+        ...g,
+        simCategory: g.coverageCategory,
+        simDistM: g.minDistanceM,
+      };
     const minProposedDist = Math.min(
-      ...proposedStations.map(([lat, lon]) => haversineM(g.centroidLat, g.centroidLon, lat, lon)),
+      ...proposedStations.map(([lat, lon]) =>
+        haversineM(g.centroidLat, g.centroidLon, lat, lon),
+      ),
     );
-    const simDistM = g.minDistanceM != null ? Math.min(g.minDistanceM, minProposedDist) : minProposedDist;
-    return { ...g, simDistM, simCategory: categorize(g.flatApartmentCount, simDistM) };
+    const simDistM =
+      g.minDistanceM == null
+        ? minProposedDist
+        : Math.min(g.minDistanceM, minProposedDist);
+    return {
+      ...g,
+      simDistM,
+      simCategory: categorize(g.flatApartmentCount, simDistM),
+    };
   });
 
-  const improvedCount = gapsWithSim.filter((g) => g.simCategory !== g.coverageCategory).length;
+  const improvedCount = gapsWithSim.filter(
+    (g) => g.simCategory !== g.coverageCategory,
+  ).length;
 
   const filtered = (simulateMode ? gapsWithSim : gapsWithSim).filter((g) => {
     const cat = simulateMode ? g.simCategory : g.coverageCategory;
@@ -192,7 +239,10 @@ export const CoverageGapMap = ({
 
     submitProposal(
       {
-        proposedStations: proposedStations.map(([lat, lon]) => ({ latitude: lat, longitude: lon })),
+        proposedStations: proposedStations.map(([lat, lon]) => ({
+          latitude: lat,
+          longitude: lon,
+        })),
         impactedAreas,
         totalImprovedAreas: improvedCount,
         submittedBy: localStorage.getItem("username") ?? "unknown",
@@ -223,10 +273,14 @@ export const CoverageGapMap = ({
         <ToggleButtonGroup
           value={categoryFilter}
           exclusive
-          onChange={(_, v) => { if (v) setCategoryFilter(v); }}
+          onChange={(_, v) => {
+            if (v) setCategoryFilter(v);
+          }}
           size="small"
           sx={{
-            bgcolor: darkTiles ? "rgba(20,20,20,0.85)" : "rgba(255,255,255,0.9)",
+            bgcolor: darkTiles
+              ? "rgba(20,20,20,0.85)"
+              : "rgba(255,255,255,0.9)",
             backdropFilter: "blur(8px)",
             borderRadius: 2,
             "& .MuiToggleButton-root": {
@@ -242,20 +296,53 @@ export const CoverageGapMap = ({
         >
           <ToggleButton
             value="ALL"
-            sx={{ "&.Mui-selected": { bgcolor: "rgba(148,163,184,0.4) !important", color: "#fff !important" } }}
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: "rgba(148,163,184,0.4) !important",
+                color: "#fff !important",
+              },
+            }}
           >
             All
           </ToggleButton>
-          <ToggleButton value="NO_COVERAGE" sx={{ "&.Mui-selected": { bgcolor: `${COVERAGE_FILL.NO_COVERAGE} !important` } }}>
+          <ToggleButton
+            value="NO_COVERAGE"
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: `${COVERAGE_FILL.NO_COVERAGE} !important`,
+              },
+            }}
+          >
             No Coverage
           </ToggleButton>
-          <ToggleButton value="POOR_COVERAGE" sx={{ "&.Mui-selected": { bgcolor: `${COVERAGE_FILL.POOR_COVERAGE} !important` } }}>
+          <ToggleButton
+            value="POOR_COVERAGE"
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: `${COVERAGE_FILL.POOR_COVERAGE} !important`,
+              },
+            }}
+          >
             Poor Coverage
           </ToggleButton>
-          <ToggleButton value="PARTIAL_COVERAGE" sx={{ "&.Mui-selected": { bgcolor: `${COVERAGE_FILL.PARTIAL_COVERAGE} !important` } }}>
+          <ToggleButton
+            value="PARTIAL_COVERAGE"
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: `${COVERAGE_FILL.PARTIAL_COVERAGE} !important`,
+              },
+            }}
+          >
             Partial Coverage
           </ToggleButton>
-          <ToggleButton value="ADEQUATE" sx={{ "&.Mui-selected": { bgcolor: `${COVERAGE_FILL.ADEQUATE} !important` } }}>
+          <ToggleButton
+            value="ADEQUATE"
+            sx={{
+              "&.Mui-selected": {
+                bgcolor: `${COVERAGE_FILL.ADEQUATE} !important`,
+              },
+            }}
+          >
             Adequate
           </ToggleButton>
         </ToggleButtonGroup>
@@ -263,7 +350,16 @@ export const CoverageGapMap = ({
 
       {/* Simulate toggle button — hidden in review mode */}
       {!isReviewMode && (
-        <Box sx={{ position: "absolute", top: 16, left: 16, zIndex: 1000, display: "flex", gap: 1 }}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            zIndex: 1000,
+            display: "flex",
+            gap: 1,
+          }}
+        >
           {simulateMode && proposedStations.length > 0 && (
             <Button
               size="small"
@@ -275,7 +371,9 @@ export const CoverageGapMap = ({
                 textTransform: "none",
                 borderColor: "#94a3b8",
                 color: darkTiles ? "#cbd5e1" : "text.secondary",
-                bgcolor: darkTiles ? "rgba(20,20,20,0.85)" : "rgba(255,255,255,0.9)",
+                bgcolor: darkTiles
+                  ? "rgba(20,20,20,0.85)"
+                  : "rgba(255,255,255,0.9)",
                 backdropFilter: "blur(8px)",
                 "&:hover": { borderColor: "#ef4444", color: "#ef4444" },
               }}
@@ -293,9 +391,15 @@ export const CoverageGapMap = ({
               textTransform: "none",
               bgcolor: simulateMode
                 ? "#3b82f6"
-                : darkTiles ? "rgba(20,20,20,0.85)" : "rgba(255,255,255,0.9)",
+                : darkTiles
+                  ? "rgba(20,20,20,0.85)"
+                  : "rgba(255,255,255,0.9)",
               borderColor: simulateMode ? "#3b82f6" : "#94a3b8",
-              color: simulateMode ? "#fff" : darkTiles ? "#cbd5e1" : "text.secondary",
+              color: simulateMode
+                ? "#fff"
+                : darkTiles
+                  ? "#cbd5e1"
+                  : "text.secondary",
               backdropFilter: "blur(8px)",
               "&:hover": { bgcolor: simulateMode ? "#2563eb" : undefined },
             }}
@@ -308,7 +412,7 @@ export const CoverageGapMap = ({
       {/* Review mode badge */}
       {isReviewMode && (
         <Chip
-          label={`Reviewing proposal from ${reviewProposal!.submittedBy}`}
+          label={`Reviewing proposal from ${reviewProposal?.submittedBy ?? ""}`}
           size="small"
           sx={{
             position: "absolute",
@@ -344,190 +448,342 @@ export const CoverageGapMap = ({
       )}
 
       {/* Improvement panel */}
-      {simulateMode && proposedStations.length > 0 && improvedCount > 0 && (() => {
-        // Group improvements by "from → to" transition
-        const groups: Record<string, { from: string; to: string; areas: string[] }> = {};
-        gapsWithSim.forEach((g) => {
-          if (g.simCategory === g.coverageCategory) return;
-          const key = `${g.coverageCategory}__${g.simCategory}`;
-          if (!groups[key]) groups[key] = { from: g.coverageCategory, to: g.simCategory, areas: [] };
-          groups[key].areas.push(g.electoralDivision);
-        });
-        const entries = Object.values(groups).sort((a, b) => b.areas.length - a.areas.length);
-        return (
-          <Paper
-            elevation={0}
-            sx={{
-              position: "absolute",
-              bottom: 24,
-              left: 16,
-              zIndex: 1000,
-              width: 280,
-              maxHeight: 360,
-              borderRadius: 2,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              bgcolor: darkTiles ? "rgba(20,20,20,0.92)" : "rgba(255,255,255,0.95)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(34,197,94,0.4)",
-            }}
-          >
-            {/* Header */}
-            <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              <Typography variant="caption" fontWeight={700} sx={{ color: isReviewMode ? "#fbbf24" : "#22c55e", fontSize: "0.72rem" }}>
-                {isReviewMode ? "Proposal Impact" : "Simulation Impact"}
-              </Typography>
-              <Typography variant="caption" sx={{ display: "block", color: darkTiles ? "#94a3b8" : "text.secondary", fontSize: "0.65rem" }}>
-                {improvedCount} area{improvedCount > 1 ? "s" : ""} improve with {proposedStations.length} proposed station{proposedStations.length > 1 ? "s" : ""}
-              </Typography>
-            </Box>
+      {simulateMode &&
+        proposedStations.length > 0 &&
+        improvedCount > 0 &&
+        (() => {
+          // Group improvements by "from → to" transition
+          const groups: Record<
+            string,
+            { from: string; to: string; areas: string[] }
+          > = {};
+          for (const g of gapsWithSim) {
+            if (g.simCategory === g.coverageCategory) continue;
+            const key = `${g.coverageCategory}__${g.simCategory}`;
+            if (!groups[key])
+              groups[key] = {
+                from: g.coverageCategory,
+                to: g.simCategory,
+                areas: [],
+              };
+            groups[key].areas.push(g.electoralDivision);
+          }
+          const entries = Object.values(groups).toSorted(
+            (a, b) => b.areas.length - a.areas.length,
+          );
+          return (
+            <Paper
+              elevation={0}
+              sx={{
+                position: "absolute",
+                bottom: 24,
+                left: 16,
+                zIndex: 1000,
+                width: 280,
+                maxHeight: 360,
+                borderRadius: 2,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                bgcolor: darkTiles
+                  ? "rgba(20,20,20,0.92)"
+                  : "rgba(255,255,255,0.95)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(34,197,94,0.4)",
+              }}
+            >
+              {/* Header */}
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  borderBottom: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={700}
+                  sx={{
+                    color: isReviewMode ? "#fbbf24" : "#22c55e",
+                    fontSize: "0.72rem",
+                  }}
+                >
+                  {isReviewMode ? "Proposal Impact" : "Simulation Impact"}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    color: darkTiles ? "#94a3b8" : "text.secondary",
+                    fontSize: "0.65rem",
+                  }}
+                >
+                  {improvedCount} area{improvedCount > 1 ? "s" : ""} improve
+                  with {proposedStations.length} proposed station
+                  {proposedStations.length > 1 ? "s" : ""}
+                </Typography>
+              </Box>
 
-            {/* Groups */}
-            <Box sx={{ flex: 1, overflow: "auto", px: 1.5, py: 0.75, pb: 0 }}>
-              {entries.map((entry) => (
-                <Box key={`${entry.from}-${entry.to}`} sx={{ mb: 1.25 }}>
-                  {/* Transition label */}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COVERAGE_FILL[entry.from], flexShrink: 0 }} />
-                    <Typography variant="caption" sx={{ fontSize: "0.65rem", color: COVERAGE_FILL[entry.from], fontWeight: 700 }}>
-                      {entry.from.replace("_", " ")}
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontSize: "0.65rem", color: darkTiles ? "#64748b" : "text.disabled" }}>→</Typography>
-                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COVERAGE_FILL[entry.to], flexShrink: 0 }} />
-                    <Typography variant="caption" sx={{ fontSize: "0.65rem", color: COVERAGE_FILL[entry.to], fontWeight: 700 }}>
-                      {entry.to.replace("_", " ")}
-                    </Typography>
-                    <Chip
-                      label={entry.areas.length}
-                      size="small"
-                      sx={{ ml: "auto", height: 16, fontSize: "0.6rem", bgcolor: COVERAGE_FILL[entry.to] + "33", color: COVERAGE_FILL[entry.to], fontWeight: 700 }}
-                    />
-                  </Box>
-                  {/* Area names */}
-                  {entry.areas.map((name) => (
-                    <Box key={name} sx={{ display: "flex", alignItems: "center", gap: 0.5, pl: 1, py: 0.15 }}>
-                      <Box sx={{ width: 4, height: 4, borderRadius: "50%", bgcolor: COVERAGE_FILL[entry.to], flexShrink: 0 }} />
+              {/* Groups */}
+              <Box sx={{ flex: 1, overflow: "auto", px: 1.5, py: 0.75, pb: 0 }}>
+                {entries.map((entry) => (
+                  <Box key={`${entry.from}-${entry.to}`} sx={{ mb: 1.25 }}>
+                    {/* Transition label */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        mb: 0.5,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          bgcolor: COVERAGE_FILL[entry.from],
+                          flexShrink: 0,
+                        }}
+                      />
                       <Typography
                         variant="caption"
                         sx={{
-                          fontSize: "0.62rem",
-                          color: darkTiles ? "#94a3b8" : "text.secondary",
-                          lineHeight: 1.5,
+                          fontSize: "0.65rem",
+                          color: COVERAGE_FILL[entry.from],
+                          fontWeight: 700,
                         }}
                       >
-                        {name}
+                        {entry.from.replace("_", " ")}
                       </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: "0.65rem",
+                          color: darkTiles ? "#64748b" : "text.disabled",
+                        }}
+                      >
+                        →
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          bgcolor: COVERAGE_FILL[entry.to],
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: "0.65rem",
+                          color: COVERAGE_FILL[entry.to],
+                          fontWeight: 700,
+                        }}
+                      >
+                        {entry.to.replace("_", " ")}
+                      </Typography>
+                      <Chip
+                        label={entry.areas.length}
+                        size="small"
+                        sx={{
+                          ml: "auto",
+                          height: 16,
+                          fontSize: "0.6rem",
+                          bgcolor: COVERAGE_FILL[entry.to] + "33",
+                          color: COVERAGE_FILL[entry.to],
+                          fontWeight: 700,
+                        }}
+                      />
                     </Box>
-                  ))}
-                </Box>
-              ))}
-            </Box>
+                    {/* Area names */}
+                    {entry.areas.map((name) => (
+                      <Box
+                        key={name}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          pl: 1,
+                          py: 0.15,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: "50%",
+                            bgcolor: COVERAGE_FILL[entry.to],
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: darkTiles ? "#94a3b8" : "text.secondary",
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {name}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                ))}
+              </Box>
 
-            {/* Action buttons */}
-            <Box sx={{ px: 1.5, py: 1, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-              {isReviewMode ? (
-                // ── Review mode: Accept / Reject ──
-                rejectMode ? (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
-                    <TextField
-                      size="small"
-                      placeholder="Reason for rejection..."
-                      value={rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
-                      multiline
-                      minRows={2}
-                      fullWidth
+              {/* Action buttons */}
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  borderTop: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                {isReviewMode ? (
+                  // ── Review mode: Accept / Reject ──
+                  rejectMode ? (
+                    <Box
                       sx={{
-                        "& .MuiInputBase-root": { fontSize: "0.7rem", bgcolor: "rgba(255,255,255,0.05)" },
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.75,
                       }}
-                    />
+                    >
+                      <TextField
+                        size="small"
+                        placeholder="Reason for rejection..."
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        multiline
+                        minRows={2}
+                        fullWidth
+                        sx={{
+                          "& .MuiInputBase-root": {
+                            fontSize: "0.7rem",
+                            bgcolor: "rgba(255,255,255,0.05)",
+                          },
+                        }}
+                      />
+                      <Box sx={{ display: "flex", gap: 0.75 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setRejectMode(false);
+                            setRejectReason("");
+                          }}
+                          sx={{
+                            flex: 1,
+                            fontSize: "0.68rem",
+                            textTransform: "none",
+                            borderColor: "#475569",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          disabled={!rejectReason.trim() || isReviewing}
+                          onClick={() =>
+                            onReject?.(
+                              reviewProposal?.id ?? 0,
+                              rejectReason.trim(),
+                            )
+                          }
+                          sx={{
+                            flex: 1,
+                            fontSize: "0.68rem",
+                            textTransform: "none",
+                            bgcolor: "#ef4444",
+                            "&:hover": { bgcolor: "#dc2626" },
+                          }}
+                        >
+                          Confirm Reject
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : (
                     <Box sx={{ display: "flex", gap: 0.75 }}>
                       <Button
                         size="small"
-                        variant="outlined"
-                        onClick={() => { setRejectMode(false); setRejectReason(""); }}
-                        sx={{ flex: 1, fontSize: "0.68rem", textTransform: "none", borderColor: "#475569", color: "#94a3b8" }}
+                        variant="contained"
+                        fullWidth
+                        startIcon={
+                          <CheckCircleIcon sx={{ fontSize: "0.85rem" }} />
+                        }
+                        disabled={isReviewing}
+                        onClick={() => onAccept?.(reviewProposal?.id ?? 0)}
+                        sx={{
+                          fontSize: "0.7rem",
+                          textTransform: "none",
+                          fontWeight: 700,
+                          bgcolor: "#22c55e",
+                          "&:hover": { bgcolor: "#16a34a" },
+                        }}
                       >
-                        Cancel
+                        Accept
                       </Button>
                       <Button
                         size="small"
-                        variant="contained"
-                        disabled={!rejectReason.trim() || isReviewing}
-                        onClick={() => onReject?.(reviewProposal!.id, rejectReason.trim())}
-                        sx={{ flex: 1, fontSize: "0.68rem", textTransform: "none", bgcolor: "#ef4444", "&:hover": { bgcolor: "#dc2626" } }}
+                        variant="outlined"
+                        fullWidth
+                        startIcon={
+                          <ThumbDownIcon sx={{ fontSize: "0.85rem" }} />
+                        }
+                        disabled={isReviewing}
+                        onClick={() => setRejectMode(true)}
+                        sx={{
+                          fontSize: "0.7rem",
+                          textTransform: "none",
+                          fontWeight: 700,
+                          borderColor: "#ef4444",
+                          color: "#ef4444",
+                          "&:hover": { bgcolor: "rgba(239,68,68,0.1)" },
+                        }}
                       >
-                        Confirm Reject
+                        Reject
                       </Button>
                     </Box>
-                  </Box>
+                  )
+                ) : submitted ? (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "#22c55e",
+                      fontWeight: 700,
+                      fontSize: "0.7rem",
+                    }}
+                  >
+                    ✓ Proposal sent for review
+                  </Typography>
                 ) : (
-                  <Box sx={{ display: "flex", gap: 0.75 }}>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      fullWidth
-                      startIcon={<CheckCircleIcon sx={{ fontSize: "0.85rem" }} />}
-                      disabled={isReviewing}
-                      onClick={() => onAccept?.(reviewProposal!.id)}
-                      sx={{
-                        fontSize: "0.7rem",
-                        textTransform: "none",
-                        fontWeight: 700,
-                        bgcolor: "#22c55e",
-                        "&:hover": { bgcolor: "#16a34a" },
-                      }}
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      fullWidth
-                      startIcon={<ThumbDownIcon sx={{ fontSize: "0.85rem" }} />}
-                      disabled={isReviewing}
-                      onClick={() => setRejectMode(true)}
-                      sx={{
-                        fontSize: "0.7rem",
-                        textTransform: "none",
-                        fontWeight: 700,
-                        borderColor: "#ef4444",
-                        color: "#ef4444",
-                        "&:hover": { bgcolor: "rgba(239,68,68,0.1)" },
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  </Box>
-                )
-              ) : submitted ? (
-                <Typography variant="caption" sx={{ color: "#22c55e", fontWeight: 700, fontSize: "0.7rem" }}>
-                  ✓ Proposal sent for review
-                </Typography>
-              ) : (
-                <Button
-                  fullWidth
-                  size="small"
-                  variant="contained"
-                  startIcon={<SendIcon sx={{ fontSize: "0.85rem" }} />}
-                  disabled={isSubmitting}
-                  onClick={handleSubmitProposal}
-                  sx={{
-                    fontSize: "0.7rem",
-                    textTransform: "none",
-                    fontWeight: 700,
-                    bgcolor: "#3b82f6",
-                    "&:hover": { bgcolor: "#2563eb" },
-                  }}
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Station Proposal"}
-                </Button>
-              )}
-            </Box>
-          </Paper>
-        );
-      })()}
+                  <Button
+                    fullWidth
+                    size="small"
+                    variant="contained"
+                    startIcon={<SendIcon sx={{ fontSize: "0.85rem" }} />}
+                    disabled={isSubmitting}
+                    onClick={handleSubmitProposal}
+                    sx={{
+                      fontSize: "0.7rem",
+                      textTransform: "none",
+                      fontWeight: 700,
+                      bgcolor: "#3b82f6",
+                      "&:hover": { bgcolor: "#2563eb" },
+                    }}
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Station Proposal"}
+                  </Button>
+                )}
+              </Box>
+            </Paper>
+          );
+        })()}
 
       <MapContainer
         center={defaultCenter}
@@ -539,7 +795,9 @@ export const CoverageGapMap = ({
         <FitDublin />
         <MapClickHandler
           active={simulateMode && !isReviewMode}
-          onPlace={(lat, lon) => setProposedStations((prev) => [...prev, [lat, lon]])}
+          onPlace={(lat, lon) =>
+            setProposedStations((prev) => [...prev, [lat, lon]])
+          }
         />
 
         {/* Gap circles */}
@@ -548,15 +806,18 @@ export const CoverageGapMap = ({
           const improved = simulateMode && g.simCategory !== g.coverageCategory;
           const color = COVERAGE_FILL[displayCat] ?? "#94a3b8";
           const distText =
-            g.minDistanceM != null ? `${(g.minDistanceM / 1000).toFixed(2)} km` : "N/A";
+            g.minDistanceM == null
+              ? "N/A"
+              : `${(g.minDistanceM / 1000).toFixed(2)} km`;
           const simDistText =
-            improved && g.simDistM != null ? `${(g.simDistM / 1000).toFixed(2)} km` : null;
+            improved && g.simDistM != null
+              ? `${(g.simDistM / 1000).toFixed(2)} km`
+              : null;
 
           return (
-            <>
+            <Fragment key={g.electoralDivision}>
               {/* Halo */}
               <CircleMarker
-                key={`${g.electoralDivision}-halo`}
                 center={[g.centroidLat, g.centroidLon]}
                 radius={improved ? 32 : 26}
                 pathOptions={{
@@ -569,7 +830,6 @@ export const CoverageGapMap = ({
               />
               {/* Main circle */}
               <CircleMarker
-                key={g.electoralDivision}
                 center={[g.centroidLat, g.centroidLon]}
                 radius={14}
                 pathOptions={{
@@ -581,12 +841,24 @@ export const CoverageGapMap = ({
                 }}
               >
                 <Popup>
-                  <div style={{ minWidth: 210, fontFamily: "sans-serif", fontSize: 13 }}>
+                  <div
+                    style={{
+                      minWidth: 210,
+                      fontFamily: "sans-serif",
+                      fontSize: 13,
+                    }}
+                  >
                     <strong>{g.electoralDivision}</strong>
                     <br />
                     {improved ? (
                       <span style={{ fontSize: 12 }}>
-                        <span style={{ color: COVERAGE_FILL[g.coverageCategory], fontWeight: 600, textDecoration: "line-through" }}>
+                        <span
+                          style={{
+                            color: COVERAGE_FILL[g.coverageCategory],
+                            fontWeight: 600,
+                            textDecoration: "line-through",
+                          }}
+                        >
                           {CAT_LABEL[g.coverageCategory] ?? g.coverageCategory}
                         </span>
                         {" → "}
@@ -599,12 +871,21 @@ export const CoverageGapMap = ({
                         {CAT_LABEL[displayCat] ?? displayCat}
                       </span>
                     )}
-                    <hr style={{ margin: "6px 0", border: "none", borderTop: "1px solid #ccc" }} />
-                    <b>Apartments / Flats:</b> {Number(g.flatApartmentCount).toLocaleString()}
+                    <hr
+                      style={{
+                        margin: "6px 0",
+                        border: "none",
+                        borderTop: "1px solid #ccc",
+                      }}
+                    />
+                    <b>Apartments / Flats:</b>{" "}
+                    {Number(g.flatApartmentCount).toLocaleString()}
                     <br />
-                    <b>Houses / Bungalows:</b> {Number(g.houseBungalowCount).toLocaleString()}
+                    <b>Houses / Bungalows:</b>{" "}
+                    {Number(g.houseBungalowCount).toLocaleString()}
                     <br />
-                    <b>Total Dwellings:</b> {Number(g.totalDwellings).toLocaleString()}
+                    <b>Total Dwellings:</b>{" "}
+                    {Number(g.totalDwellings).toLocaleString()}
                     <br />
                     <b>Nearest station:</b> {distText}
                     {simDistText && (
@@ -618,34 +899,47 @@ export const CoverageGapMap = ({
                     {g.processedForImplementation && (
                       <>
                         <br />
-                        <span style={{ color: "#22c55e" }}>✓ Planned for implementation</span>
+                        <span style={{ color: "#22c55e" }}>
+                          ✓ Planned for implementation
+                        </span>
                       </>
                     )}
                   </div>
                 </Popup>
               </CircleMarker>
-            </>
+            </Fragment>
           );
         })}
 
         {/* Proposed station markers */}
         {proposedStations.map(([lat, lon], i) => (
-          <>
+          <Fragment key={`proposed-${i}`}>
             <CircleMarker
-              key={`proposed-halo-${i}`}
               center={[lat, lon]}
               radius={22}
-              pathOptions={{ fillColor: "#3b82f6", fillOpacity: 0.15, color: "#3b82f6", weight: 1.5, dashArray: "4 3" }}
+              pathOptions={{
+                fillColor: "#3b82f6",
+                fillOpacity: 0.15,
+                color: "#3b82f6",
+                weight: 1.5,
+                dashArray: "4 3",
+              }}
             />
             <CircleMarker
-              key={`proposed-${i}`}
               center={[lat, lon]}
               radius={10}
-              pathOptions={{ fillColor: "#3b82f6", fillOpacity: 0.95, color: "#fff", weight: 2.5 }}
+              pathOptions={{
+                fillColor: "#3b82f6",
+                fillOpacity: 0.95,
+                color: "#fff",
+                weight: 2.5,
+              }}
             >
               <Popup>
                 <div style={{ fontFamily: "sans-serif", fontSize: 13 }}>
-                  <strong style={{ color: "#3b82f6" }}>Proposed Station #{i + 1}</strong>
+                  <strong style={{ color: "#3b82f6" }}>
+                    Proposed Station #{i + 1}
+                  </strong>
                   <br />
                   <span style={{ fontSize: 11, color: "#64748b" }}>
                     {lat.toFixed(5)}, {lon.toFixed(5)}
@@ -653,7 +947,7 @@ export const CoverageGapMap = ({
                 </div>
               </Popup>
             </CircleMarker>
-          </>
+          </Fragment>
         ))}
       </MapContainer>
 
@@ -676,22 +970,68 @@ export const CoverageGapMap = ({
         <Typography
           variant="caption"
           fontWeight={700}
-          sx={{ display: "block", mb: 0.5, color: darkTiles ? "#e2e8f0" : "text.primary" }}
+          sx={{
+            display: "block",
+            mb: 0.5,
+            color: darkTiles ? "#e2e8f0" : "text.primary",
+          }}
         >
-          {categoryFilter === "ALL" ? "All Coverage Gaps" : CAT_LABEL[categoryFilter]}
+          {categoryFilter === "ALL"
+            ? "All Coverage Gaps"
+            : CAT_LABEL[categoryFilter]}
         </Typography>
-        {(["NO_COVERAGE", "POOR_COVERAGE", "PARTIAL_COVERAGE", "ADEQUATE"] as const).map((cat) => (
-          <Box key={cat} sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.25 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: COVERAGE_FILL[cat], flexShrink: 0 }} />
-            <Typography variant="caption" sx={{ color: darkTiles ? "#cbd5e1" : "text.secondary", fontSize: "0.65rem" }}>
+        {(
+          [
+            "NO_COVERAGE",
+            "POOR_COVERAGE",
+            "PARTIAL_COVERAGE",
+            "ADEQUATE",
+          ] as const
+        ).map((cat) => (
+          <Box
+            key={cat}
+            sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.25 }}
+          >
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                bgcolor: COVERAGE_FILL[cat],
+                flexShrink: 0,
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                color: darkTiles ? "#cbd5e1" : "text.secondary",
+                fontSize: "0.65rem",
+              }}
+            >
               {CAT_LABEL[cat]}
             </Typography>
           </Box>
         ))}
         {simulateMode && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mt: 0.5 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: "#3b82f6", flexShrink: 0 }} />
-            <Typography variant="caption" sx={{ color: darkTiles ? "#cbd5e1" : "text.secondary", fontSize: "0.65rem" }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", gap: 0.75, mt: 0.5 }}
+          >
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                bgcolor: "#3b82f6",
+                flexShrink: 0,
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                color: darkTiles ? "#cbd5e1" : "text.secondary",
+                fontSize: "0.65rem",
+              }}
+            >
               Proposed Station
             </Typography>
           </Box>
