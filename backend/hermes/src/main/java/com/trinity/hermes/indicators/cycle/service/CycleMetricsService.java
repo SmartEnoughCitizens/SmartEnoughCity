@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.cycle.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.CoverageGapDTO;
 import com.trinity.hermes.indicators.cycle.dto.HourlyNetworkProfileDTO;
 import com.trinity.hermes.indicators.cycle.dto.NetworkSummaryDTO;
@@ -220,7 +221,7 @@ public class CycleMetricsService {
 
   @Transactional
   public boolean processGap(String electoralDivision) {
-    log.info("Marking coverage gap as processed: {}", electoralDivision);
+    log.info("Marking coverage gap as processed: {}", LogSanitizer.sanitizeLog(electoralDivision));
     int updated =
         jdbcTemplate.update(
             """
@@ -298,7 +299,7 @@ public class CycleMetricsService {
             id);
 
     if (updated == 0) {
-      log.warn("Proposal id={} not found or already reviewed", id);
+      log.warn("Proposal id={} not found or already reviewed", LogSanitizer.sanitizeLog(id));
       return;
     }
 
