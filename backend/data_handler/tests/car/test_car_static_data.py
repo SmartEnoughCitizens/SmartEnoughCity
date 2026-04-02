@@ -6,7 +6,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from data_handler.car.process_car_data import process_car_static_data
-from tests.utils import assert_row_count, assert_rows
+from tests.utils import ANY, assert_row_count, assert_rows
 
 
 def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> None:
@@ -22,6 +22,7 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
     assert_row_count(db_session, "private_car_emissions", 0)
     assert_row_count(db_session, "ev_charging_points", 0)
     assert_row_count(db_session, "ev_charging_demand", 0)
+    assert_row_count(db_session, "ev_electoral_divisions", 0)
 
     # ACT: Import car data
     process_car_static_data(tests_data_dir / "static_data" / "car")
@@ -38,6 +39,7 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
     assert_row_count(db_session, "private_car_emissions", 3)
     assert_row_count(db_session, "ev_charging_points", 2)  # Only Dublin (Cork filtered)
     assert_row_count(db_session, "ev_charging_demand", 3)
+    assert_row_count(db_session, "ev_electoral_divisions", 2)  # Dublin City + Fingal (Cork filtered)
 
     # ASSERT: Verify SCATS sites data
     assert_rows(
@@ -139,7 +141,9 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
         [
             {
                 "id": 1,
+                "address": "Chargepoint Dublin 1",
                 "county": "Dublin",
+                "charger_count": 2,
                 "lat": 53.3498,
                 "lon": -6.2603,
                 "power_rating_of_ccs_connectors_kw": 50.0,
@@ -150,7 +154,9 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
             },
             {
                 "id": 2,
+                "address": "Chargepoint Dublin 2",
                 "county": "Dublin",
+                "charger_count": 1,
                 "lat": 53.3441,
                 "lon": -6.2675,
                 "power_rating_of_ccs_connectors_kw": 150.0,
@@ -211,6 +217,26 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
                 "home_charge_pct": 0.42415789473684207,
                 "charge_frequency": 0.09789315789473686,
                 "charging_demand": 13.0,
+            },
+        ],
+    )
+
+    # ASSERT: Verify electoral divisions (Dublin City + Fingal, Cork filtered)
+    assert_rows(
+        db_session,
+        "ev_electoral_divisions",
+        [
+            {
+                "id": 1,
+                "ed_english": "Arran Quay A",
+                "county_english": "DUBLIN CITY",
+                "geom": ANY,
+            },
+            {
+                "id": 2,
+                "ed_english": "Swords Rural",
+                "county_english": "FINGAL",
+                "geom": ANY,
             },
         ],
     )
