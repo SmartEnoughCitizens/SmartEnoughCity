@@ -11,6 +11,8 @@ import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.indicators.bus.repository.BusRouteMetricsRepository;
 import com.trinity.hermes.indicators.car.repository.HighTrafficPointsRepository;
+import com.trinity.hermes.indicators.events.entity.Events;
+import com.trinity.hermes.indicators.events.entity.Venue;
 import com.trinity.hermes.indicators.events.repository.EventsRepository;
 import com.trinity.hermes.indicators.train.entity.TrainStation;
 import com.trinity.hermes.indicators.train.entity.TrainStationData;
@@ -20,6 +22,8 @@ import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
 import com.trinity.hermes.indicators.tram.entity.TramStop;
 import com.trinity.hermes.indicators.tram.repository.TramLuasForecastRepository;
 import com.trinity.hermes.indicators.tram.repository.TramStopRepository;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,11 +55,16 @@ class DisruptionDetectionServiceTest {
     // Prevent NPE in bus/car/event/train/tram detection for tests that only care about one mode
     when(busRouteMetricsRepository.findCandidatesForDisruptionDetection()).thenReturn(List.of());
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
-    when(eventsRepository.findUpcomingEvents(any())).thenReturn(List.of());
+    when(eventsRepository.findUpcomingEventsAtLargeVenues(
+            org.mockito.ArgumentMatchers.anyInt(), any()))
+        .thenReturn(List.of());
     when(trainStationDataRepository.findLatestPerStationTrain()).thenReturn(List.of());
     when(tramLuasForecastRepository.findAll()).thenReturn(List.of());
     when(tramStopRepository.findAll()).thenReturn(List.of());
-    // Default: no recent duplicates
+    // Default: no active disruption and no recent duplicates
+    when(disruptionRepository.existsByDisruptionTypeAndAffectedAreaAndStatus(
+            anyString(), anyString(), anyString()))
+        .thenReturn(false);
     when(disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
             anyString(), anyString(), any()))
         .thenReturn(List.of());
@@ -76,9 +85,12 @@ class DisruptionDetectionServiceTest {
 
     service.detectDisruptions();
 
-    verify(disruptionFacade).handleDisruptionDetection(
-        argThat(r -> "DELAY".equals(r.getDisruptionType())
-            && "TRAIN".equals(r.getAffectedTransportModes().get(0))));
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(
+                r ->
+                    "DELAY".equals(r.getDisruptionType())
+                        && "TRAIN".equals(r.getAffectedTransportModes().get(0))));
   }
 
   @Test
@@ -86,8 +98,7 @@ class DisruptionDetectionServiceTest {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 18);
     // Only 2 late — below threshold of 3
-    when(trainStationDataRepository.findLatestPerStationTrain())
-        .thenReturn(List.of(late1, late2));
+    when(trainStationDataRepository.findLatestPerStationTrain()).thenReturn(List.of(late1, late2));
 
     service.detectDisruptions();
 
@@ -141,9 +152,12 @@ class DisruptionDetectionServiceTest {
 
     service.detectDisruptions();
 
-    verify(disruptionFacade).handleDisruptionDetection(
-        argThat(r -> "TRAM_DISRUPTION".equals(r.getDisruptionType())
-            && "TRAM".equals(r.getAffectedTransportModes().get(0))));
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(
+                r ->
+                    "TRAM_DISRUPTION".equals(r.getDisruptionType())
+                        && "TRAM".equals(r.getAffectedTransportModes().get(0))));
   }
 
   @Test
@@ -173,7 +187,8 @@ class DisruptionDetectionServiceTest {
   @Test
   void detectDisruptions_deduplication_skipsAlreadyDetectedDisruption() {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
-    TrainStationData late2 = lateTrainAt("CNLY", "E802", 22); // >20 → MEDIUM, so dedup check is reached
+    TrainStationData late2 =
+        lateTrainAt("CNLY", "E802", 22); // >20 → MEDIUM, so dedup check is reached
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
     when(trainStationDataRepository.findLatestPerStationTrain())
         .thenReturn(List.of(late1, late2, late3));
@@ -221,6 +236,95 @@ class DisruptionDetectionServiceTest {
     s.setLat(lat);
     s.setLon(lon);
     return s;
+  }
+
+  // ── Event detection ────────────────────────────────────────────────
+
+  @Test
+  void detectDisruptions_venueCapacity21000_criticalSeverity() {
+    when(eventsRepository.findUpcomingEventsAtLargeVenues(
+            org.mockito.ArgumentMatchers.anyInt(), any()))
+        .thenReturn(List.of(eventAtVenue("Aviva Stadium", 21000)));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(
+                r -> "EVENT".equals(r.getDisruptionType()) && "CRITICAL".equals(r.getSeverity())));
+  }
+
+  @Test
+  void detectDisruptions_venueCapacity6000_highSeverity() {
+    when(eventsRepository.findUpcomingEventsAtLargeVenues(
+            org.mockito.ArgumentMatchers.anyInt(), any()))
+        .thenReturn(List.of(eventAtVenue("RDS Arena", 6000)));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(r -> "EVENT".equals(r.getDisruptionType()) && "HIGH".equals(r.getSeverity())));
+  }
+
+  @Test
+  void detectDisruptions_venueCapacity2600_mediumSeverity() {
+    when(eventsRepository.findUpcomingEventsAtLargeVenues(
+            org.mockito.ArgumentMatchers.anyInt(), any()))
+        .thenReturn(List.of(eventAtVenue("Bord Gáis Energy Theatre", 2600)));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(
+                r -> "EVENT".equals(r.getDisruptionType()) && "MEDIUM".equals(r.getSeverity())));
+  }
+
+  @Test
+  void detectDisruptions_venueCapacity1200_lowSeverity_notSuppressed() {
+    // LOW severity is suppressed for non-EVENT types, but EVENT type is explicitly exempt.
+    when(eventsRepository.findUpcomingEventsAtLargeVenues(
+            org.mockito.ArgumentMatchers.anyInt(), any()))
+        .thenReturn(List.of(eventAtVenue("Vicar Street", 1200)));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(r -> "EVENT".equals(r.getDisruptionType()) && "LOW".equals(r.getSeverity())));
+  }
+
+  @Test
+  void detectDisruptions_venueCapacity800_belowThreshold_noDisruption() {
+    // capacity 800 < LARGE_EVENT_VENUE_CAPACITY_THRESHOLD (1000) — query won't return it
+    when(eventsRepository.findUpcomingEventsAtLargeVenues(
+            org.mockito.ArgumentMatchers.anyInt(), any()))
+        .thenReturn(List.of()); // query filters it out
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade, never()).handleDisruptionDetection(any());
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────
+
+  private Events eventAtVenue(String venueName, int capacity) {
+    Venue venue = new Venue();
+    venue.setId(1);
+    venue.setName(venueName);
+    venue.setCapacity(capacity);
+    venue.setLatitude(53.336);
+    venue.setLongitude(-6.229);
+
+    Events event = new Events();
+    event.setId(1);
+    event.setEventDate(LocalDate.now(ZoneId.of("Europe/Dublin")).plusDays(1));
+    event.setVenueName(venueName);
+    event.setLatitude(venue.getLatitude());
+    event.setLongitude(venue.getLongitude());
+    event.setVenue(venue);
+    return event;
   }
 
   /** Mockito argThat shorthand — avoids static import clash with assertThat. */

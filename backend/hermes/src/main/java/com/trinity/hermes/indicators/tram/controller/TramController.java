@@ -55,7 +55,8 @@ public class TramController {
   }
 
   @GetMapping("/api/v1/tram/alternative-routes")
-  public ResponseEntity<List<TramAlternativeRouteDTO>> getAlternativeRoutes(@RequestParam String stopId) {
+  public ResponseEntity<List<TramAlternativeRouteDTO>> getAlternativeRoutes(
+      @RequestParam String stopId) {
     log.info("GET /api/v1/tram/alternative-routes");
     return ResponseEntity.ok(tramFacade.getAlternativeRoutes(stopId));
   }

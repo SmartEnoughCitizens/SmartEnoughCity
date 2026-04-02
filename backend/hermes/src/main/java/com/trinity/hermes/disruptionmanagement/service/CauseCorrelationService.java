@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Correlates the probable causes of a detected disruption using temporal co-occurrence — no spatial
@@ -42,6 +44,7 @@ public class CauseCorrelationService {
    * Returns a list of correlated causes for the given disruption. Does not persist — caller is
    * responsible for saving.
    */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public List<DisruptionCause> correlateCauses(Disruption disruption) {
     List<DisruptionCause> causes = new ArrayList<>();
 
@@ -129,8 +132,7 @@ public class CauseCorrelationService {
                     d.getAffectedTransportModes() != null
                         && disruption.getAffectedTransportModes() != null
                         && d.getAffectedTransportModes().stream()
-                            .noneMatch(
-                                m -> disruption.getAffectedTransportModes().contains(m)));
+                            .noneMatch(m -> disruption.getAffectedTransportModes().contains(m)));
 
     if (otherModeActive) {
       causes.add(

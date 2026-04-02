@@ -25,6 +25,10 @@ public interface DisruptionRepository extends JpaRepository<Disruption, Long> {
   List<Disruption> findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
       String disruptionType, String affectedArea, java.time.LocalDateTime after);
 
+  /** Check whether an ACTIVE disruption already exists for the given type and area */
+  boolean existsByDisruptionTypeAndAffectedAreaAndStatus(
+      String disruptionType, String affectedArea, String status);
+
   /** Find all non-resolved disruptions ordered by detected time */
   @org.springframework.data.jpa.repository.Query(
       "SELECT d FROM Disruption d WHERE d.status NOT IN ('RESOLVED', 'CANCELLED')"

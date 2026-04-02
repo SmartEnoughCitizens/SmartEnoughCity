@@ -26,10 +26,9 @@ public class TramFacade {
     return tramDashboardService.getLiveForecasts();
   }
 
-   public List<TramAlternativeRouteDTO> getAlternativeRoutes(String stopId) {
+  public List<TramAlternativeRouteDTO> getAlternativeRoutes(String stopId) {
     return tramDashboardService.getAlternativeRoutes(stopId);
   }
-
 
   public List<TramDelayDTO> getDelays() {
     return tramDashboardService.getDelays();

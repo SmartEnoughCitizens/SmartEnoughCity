@@ -1,6 +1,8 @@
 package com.trinity.hermes.disruptionmanagement.dto;
 
-/** A nearby alternative transport option returned by AlternativeTransportRepository.findNearby(). */
+/**
+ * A nearby alternative transport option returned by AlternativeTransportRepository.findNearby().
+ */
 public record AlternativeTransportResult(
     String transportType, // "bus", "rail", "bike"
     String stopId,

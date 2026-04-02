@@ -10,12 +10,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class TramAlternativeRouteDTO {
-    private String transportType;
-    private String stopId;
-    private String stopName;
-    private Double lat;
-    private Double lon;
-    private Integer distanceM;
-    private Integer availableBikes;
-    private Integer capacity;
+  private String transportType;
+  private String stopId;
+  private String stopName;
+  private Double lat;
+  private Double lon;
+  private Integer distanceM;
+  private Integer availableBikes;
+  private Integer capacity;
 }

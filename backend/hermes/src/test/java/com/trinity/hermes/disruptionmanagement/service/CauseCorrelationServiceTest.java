@@ -53,11 +53,13 @@ class CauseCorrelationServiceTest {
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
 
-    assertThat(causes).anySatisfy(c -> {
-      assertThat(c.getCauseType()).isEqualTo("EVENT");
-      assertThat(c.getConfidence()).isEqualTo("HIGH");
-      assertThat(c.getCauseDescription()).contains("Aviva Stadium");
-    });
+    assertThat(causes)
+        .anySatisfy(
+            c -> {
+              assertThat(c.getCauseType()).isEqualTo("EVENT");
+              assertThat(c.getConfidence()).isEqualTo("HIGH");
+              assertThat(c.getCauseDescription()).contains("Aviva Stadium");
+            });
   }
 
   @Test
@@ -96,10 +98,12 @@ class CauseCorrelationServiceTest {
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
 
-    assertThat(causes).anySatisfy(c -> {
-      assertThat(c.getCauseType()).isEqualTo("CONGESTION");
-      assertThat(c.getConfidence()).isEqualTo("MEDIUM");
-    });
+    assertThat(causes)
+        .anySatisfy(
+            c -> {
+              assertThat(c.getCauseType()).isEqualTo("CONGESTION");
+              assertThat(c.getConfidence()).isEqualTo("MEDIUM");
+            });
   }
 
   @Test
@@ -122,7 +126,8 @@ class CauseCorrelationServiceTest {
     Disruption tramDisruption = new Disruption();
     tramDisruption.setId(2L);
     tramDisruption.setAffectedTransportModes(List.of("TRAM")); // different mode
-    tramDisruption.setDetectedAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")).minusMinutes(5)); // within window
+    tramDisruption.setDetectedAt(
+        LocalDateTime.now(ZoneId.of("Europe/Dublin")).minusMinutes(5)); // within window
 
     when(eventsRepository.findUpcomingEvents(any())).thenReturn(List.of());
     when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
@@ -131,10 +136,12 @@ class CauseCorrelationServiceTest {
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
 
-    assertThat(causes).anySatisfy(c -> {
-      assertThat(c.getCauseType()).isEqualTo("CROSS_MODE");
-      assertThat(c.getConfidence()).isEqualTo("LOW");
-    });
+    assertThat(causes)
+        .anySatisfy(
+            c -> {
+              assertThat(c.getCauseType()).isEqualTo("CROSS_MODE");
+              assertThat(c.getConfidence()).isEqualTo("LOW");
+            });
   }
 
   @Test
@@ -188,7 +195,8 @@ class CauseCorrelationServiceTest {
     List<DisruptionCause> causes = service.correlateCauses(disruption);
 
     assertThat(causes).hasSize(3);
-    assertThat(causes).extracting(DisruptionCause::getCauseType)
+    assertThat(causes)
+        .extracting(DisruptionCause::getCauseType)
         .containsExactlyInAnyOrder("EVENT", "CONGESTION", "CROSS_MODE");
   }
 

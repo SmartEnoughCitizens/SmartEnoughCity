@@ -41,9 +41,11 @@ class AlternativeTransportServiceTest {
   @Test
   void getAlternatives_returnsAlternativesForDisruptionWithCoords() {
     AlternativeTransportResult busResult =
-        new AlternativeTransportResult("bus", "stop_1", "College Green", 53.34, -6.26, null, null, 120);
+        new AlternativeTransportResult(
+            "bus", "stop_1", "College Green", 53.34, -6.26, null, null, 120);
     AlternativeTransportResult bikeResult =
-        new AlternativeTransportResult("bike", "db_12", "Earlsfort Terrace", 53.33, -6.25, 5, 20, 300);
+        new AlternativeTransportResult(
+            "bike", "db_12", "Earlsfort Terrace", 53.33, -6.25, 5, 20, 300);
 
     when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
         .thenReturn(List.of(busResult, bikeResult));
@@ -51,7 +53,8 @@ class AlternativeTransportServiceTest {
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
 
     assertThat(alts).hasSize(2);
-    assertThat(alts).extracting(DisruptionAlternative::getMode)
+    assertThat(alts)
+        .extracting(DisruptionAlternative::getMode)
         .containsExactlyInAnyOrder("bus", "bike");
   }
 
@@ -90,7 +93,8 @@ class AlternativeTransportServiceTest {
   @Test
   void getAlternatives_busResult_descriptionContainsBusStop() {
     AlternativeTransportResult busResult =
-        new AlternativeTransportResult("bus", "stop_1", "Westmoreland St", 53.34, -6.26, null, null, 80);
+        new AlternativeTransportResult(
+            "bus", "stop_1", "Westmoreland St", 53.34, -6.26, null, null, 80);
     when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
         .thenReturn(List.of(busResult));
 
@@ -141,8 +145,7 @@ class AlternativeTransportServiceTest {
   void findNearby_delegatesToRepository() {
     AlternativeTransportResult r =
         new AlternativeTransportResult("rail", "PEARSE", "Pearse", 53.34, -6.25, null, null, 250);
-    when(alternativeTransportRepository.findNearby(53.3498, -6.2603, 500))
-        .thenReturn(List.of(r));
+    when(alternativeTransportRepository.findNearby(53.3498, -6.2603, 500)).thenReturn(List.of(r));
 
     List<AlternativeTransportResult> results = service.findNearby(53.3498, -6.2603);
 

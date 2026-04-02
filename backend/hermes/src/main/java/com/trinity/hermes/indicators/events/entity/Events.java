@@ -2,7 +2,10 @@ package com.trinity.hermes.indicators.events.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,6 +55,13 @@ public class Events {
 
   @Column(name = "end_time")
   private LocalDateTime endTime;
+
+  @Column(name = "venue_id", insertable = false, updatable = false)
+  private Integer venueId;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "venue_id", referencedColumnName = "id")
+  private Venue venue;
 
   @Column(name = "estimated_attendance")
   private Integer estimatedAttendance;

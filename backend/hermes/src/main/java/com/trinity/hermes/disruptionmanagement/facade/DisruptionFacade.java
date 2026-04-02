@@ -103,8 +103,13 @@ public class DisruptionFacade {
 
       // Step 4: Send to notification handler
       disruption.setStatus("NOTIFYING");
-      notificationFacade.sendDisruptionNotification(solution);
-      boolean notificationSent = true;
+      boolean notificationSent = false;
+      try {
+        notificationFacade.sendDisruptionNotification(solution);
+        notificationSent = true;
+      } catch (Exception e) {
+        log.warn("Notification failed for disruption {}: {}", disruption.getId(), e.getMessage());
+      }
       disruption.setNotificationSent(notificationSent);
 
       // Step 5: Update status
@@ -145,7 +150,8 @@ public class DisruptionFacade {
         disruptionCauseRepository.saveAll(causes);
       }
     } catch (Exception e) {
-      log.warn("Cause correlation failed for disruption {}: {}", disruption.getId(), e.getMessage());
+      log.warn(
+          "Cause correlation failed for disruption {}: {}", disruption.getId(), e.getMessage());
     }
 
     // Find alternative transport and persist

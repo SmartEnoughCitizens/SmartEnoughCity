@@ -9,11 +9,13 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Finds nearby alternative transport for any disruption type using the unified
- * AlternativeTransportRepository. Caller passes the disruption's lat/lon — no mode-specific
- * special casing.
+ * AlternativeTransportRepository. Caller passes the disruption's lat/lon — no mode-specific special
+ * casing.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class AlternativeTransportService {
    * @param disruption the detected disruption
    * @return list of DisruptionAlternative entities (not yet persisted)
    */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public List<DisruptionAlternative> getAlternatives(Disruption disruption) {
     if (disruption.getLatitude() == null || disruption.getLongitude() == null) {
       log.debug(

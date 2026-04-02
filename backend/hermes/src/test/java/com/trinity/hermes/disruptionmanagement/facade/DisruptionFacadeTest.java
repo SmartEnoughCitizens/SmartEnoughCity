@@ -63,9 +63,13 @@ class DisruptionFacadeTest {
   @Test
   void processDisruption_withCauses_savesAllCauses() {
     Disruption disruption = busDisruption();
-    DisruptionCause cause = DisruptionCause.builder()
-        .disruption(disruption).causeType("EVENT").causeDescription("Test").confidence("HIGH")
-        .build();
+    DisruptionCause cause =
+        DisruptionCause.builder()
+            .disruption(disruption)
+            .causeType("EVENT")
+            .causeDescription("Test")
+            .confidence("HIGH")
+            .build();
     when(causeCorrelationService.correlateCauses(disruption)).thenReturn(List.of(cause));
 
     facade.processDisruption(disruption);
@@ -88,8 +92,12 @@ class DisruptionFacadeTest {
   @Test
   void processDisruption_withAlternatives_savesAllAlternatives() {
     Disruption disruption = busDisruption();
-    DisruptionAlternative alt = DisruptionAlternative.builder()
-        .disruption(disruption).mode("bus").description("Nearby bus stop").build();
+    DisruptionAlternative alt =
+        DisruptionAlternative.builder()
+            .disruption(disruption)
+            .mode("bus")
+            .description("Nearby bus stop")
+            .build();
     when(alternativeTransportService.getAlternatives(disruption)).thenReturn(List.of(alt));
 
     facade.processDisruption(disruption);
@@ -110,8 +118,12 @@ class DisruptionFacadeTest {
   @Test
   void processDisruption_alternativesPopulateSolutionRoutes() {
     Disruption disruption = busDisruption();
-    DisruptionAlternative alt = DisruptionAlternative.builder()
-        .disruption(disruption).mode("bus").description("Bus stop: Collins Ave (150m away)").build();
+    DisruptionAlternative alt =
+        DisruptionAlternative.builder()
+            .disruption(disruption)
+            .mode("bus")
+            .description("Bus stop: Collins Ave (150m away)")
+            .build();
     when(alternativeTransportService.getAlternatives(disruption)).thenReturn(List.of(alt));
 
     DisruptionSolution solution = facade.processDisruption(disruption);
@@ -134,15 +146,16 @@ class DisruptionFacadeTest {
 
     DisruptionSolution solution = facade.processDisruption(disruption);
 
-    assertThat(solution.getAffectedUserGroups()).containsExactlyInAnyOrder(
-        "admin-id", "provider-id", "manager-id");
+    assertThat(solution.getAffectedUserGroups())
+        .containsExactlyInAnyOrder("admin-id", "provider-id", "manager-id");
   }
 
   @Test
   void processDisruption_trainMode_notifiesTrainRoles() {
     Disruption disruption = disruptionWithModes("TRAIN");
     when(userManagementService.getUsersByRole("Train_Admin")).thenReturn(List.of(mockUser("ta")));
-    when(userManagementService.getUsersByRole("Train_Provider")).thenReturn(List.of(mockUser("tp")));
+    when(userManagementService.getUsersByRole("Train_Provider"))
+        .thenReturn(List.of(mockUser("tp")));
     when(userManagementService.getUsersByRole("City_Manager")).thenReturn(List.of(mockUser("cm")));
 
     DisruptionSolution solution = facade.processDisruption(disruption);
@@ -154,7 +167,8 @@ class DisruptionFacadeTest {
   void processDisruption_tramMode_notifiesTramRoles() {
     Disruption disruption = disruptionWithModes("TRAM");
     when(userManagementService.getUsersByRole("Tram_Admin")).thenReturn(List.of(mockUser("tma")));
-    when(userManagementService.getUsersByRole("Tram_Provider")).thenReturn(List.of(mockUser("tmp")));
+    when(userManagementService.getUsersByRole("Tram_Provider"))
+        .thenReturn(List.of(mockUser("tmp")));
     when(userManagementService.getUsersByRole("City_Manager")).thenReturn(List.of(mockUser("cm")));
 
     DisruptionSolution solution = facade.processDisruption(disruption);

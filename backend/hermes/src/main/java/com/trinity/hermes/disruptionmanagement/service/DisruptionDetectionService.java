@@ -44,7 +44,7 @@ public class DisruptionDetectionService {
   private static final double BUS_AVG_DELAY_THRESHOLD_SECONDS = 600.0; // >10 min avg delay
   private static final int BUS_MAX_DELAY_THRESHOLD_SECONDS = 1800; // >30 min max delay
   private static final long HIGH_TRAFFIC_VOLUME_THRESHOLD = 1500L; // vehicles per period
-  private static final int LARGE_EVENT_ATTENDANCE_THRESHOLD = 5000; // estimated attendees
+  private static final int LARGE_EVENT_VENUE_CAPACITY_THRESHOLD = 1000; // venue capacity
   private static final int DEDUP_WINDOW_MINUTES = 10; // ignore same disruption within 10 min
   private static final int TRAIN_LATE_THRESHOLD_MINUTES = 10; // lateMinutes > 10
   private static final int TRAIN_MIN_LATE_TRAINS = 3; // ≥3 late trains at same station
@@ -181,20 +181,28 @@ public class DisruptionDetectionService {
     int count = 0;
     try {
       List<com.trinity.hermes.indicators.events.entity.Events> events =
-          eventsRepository.findUpcomingEvents(
+          eventsRepository.findUpcomingEventsAtLargeVenues(
+              LARGE_EVENT_VENUE_CAPACITY_THRESHOLD,
               org.springframework.data.domain.PageRequest.of(0, 20));
 
       for (com.trinity.hermes.indicators.events.entity.Events ev : events) {
-        if (ev.getEstimatedAttendance() == null
-            || ev.getEstimatedAttendance() < LARGE_EVENT_ATTENDANCE_THRESHOLD) {
-          continue;
-        }
-
+        int capacity = ev.getVenue().getCapacity();
         String area = ev.getVenueName() != null ? ev.getVenueName() : "Dublin";
-        String severity =
-            ev.getEstimatedAttendance() > 20000
-                ? "HIGH"
-                : ev.getEstimatedAttendance() > 10000 ? "MEDIUM" : "LOW";
+        // Severity by venue capacity:
+        //   CRITICAL ≥ 15000  (stadium-scale: Aviva, 3Arena, Croke Park)
+        //   HIGH     ≥ 5000   (large: RDS, Marlay Park)
+        //   MEDIUM   ≥ 2500   (mid-size: Bord Gáis, Gaiety)
+        //   LOW      ≥ 1000   (small: Vicar Street, Olympia, Ambassador)
+        String severity;
+        if (capacity >= 15000) {
+          severity = "CRITICAL";
+        } else if (capacity >= 5000) {
+          severity = "HIGH";
+        } else if (capacity >= 2500) {
+          severity = "MEDIUM";
+        } else {
+          severity = "LOW";
+        }
 
         if (processIfNewWithCoords(
             "EVENT",
@@ -237,10 +245,7 @@ public class DisruptionDetectionService {
 
         String stationCode = entry.getKey();
         int maxDelay =
-            entry.getValue().stream()
-                .mapToInt(TrainStationData::getLateMinutes)
-                .max()
-                .orElse(0);
+            entry.getValue().stream().mapToInt(TrainStationData::getLateMinutes).max().orElse(0);
         String severity = maxDelay > 30 ? "HIGH" : maxDelay > 20 ? "MEDIUM" : "LOW";
 
         // Look up lat/lon from stations table
@@ -253,7 +258,8 @@ public class DisruptionDetectionService {
                 ? station.getStationDesc()
                 : "Train Station " + stationCode;
 
-        if (processIfNewWithCoords("DELAY", "TRAIN", area, severity, maxDelay, stationCode, lat, lon)) {
+        if (processIfNewWithCoords(
+            "DELAY", "TRAIN", area, severity, maxDelay, stationCode, lat, lon)) {
           count++;
         }
       }
@@ -358,7 +364,20 @@ public class DisruptionDetectionService {
       Double lat,
       Double lon) {
 
-    // Deduplication: skip if same type+area was already detected within the window
+    // Primary guard: never open a new record while an ACTIVE one already exists for the same
+    // type + area. This prevents repeated notifications for persistent disruptions (e.g. a bus
+    // route that stays delayed across many 5-min scheduler cycles).
+    if (disruptionRepository.existsByDisruptionTypeAndAffectedAreaAndStatus(
+        disruptionType, affectedArea, "ACTIVE")) {
+      log.debug(
+          "Skipping: active disruption already exists: type={}, area={}",
+          disruptionType,
+          affectedArea);
+      return false;
+    }
+
+    // Secondary guard: dedup window catches the brief gap while a record is transitioning from
+    // DETECTED/ANALYZING to ACTIVE (i.e. not yet visible to the primary guard above).
     LocalDateTime dedupCutoff = LocalDateTime.now(DUBLIN).minusMinutes(DEDUP_WINDOW_MINUTES);
     List<Disruption> recent =
         disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
