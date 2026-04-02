@@ -458,7 +458,9 @@ export const dashboardApi = {
     return data;
   },
 
-  markCoverageGapProcessed: async (electoralDivision: string): Promise<void> => {
+  markCoverageGapProcessed: async (
+    electoralDivision: string,
+  ): Promise<void> => {
     await axiosInstance.patch(
       API_ENDPOINTS.CYCLE_COVERAGE_GAP_PROCESS(electoralDivision),
     );
@@ -466,7 +468,12 @@ export const dashboardApi = {
 
   submitStationProposal: async (proposal: {
     proposedStations: { latitude: number; longitude: number }[];
-    impactedAreas: { electoralDivision: string; fromCategory: string; toCategory: string; simulatedDistanceM: number }[];
+    impactedAreas: {
+      electoralDivision: string;
+      fromCategory: string;
+      toCategory: string;
+      simulatedDistanceM: number;
+    }[];
     totalImprovedAreas: number;
     submittedBy?: string;
     notes?: string;
@@ -481,7 +488,14 @@ export const dashboardApi = {
     return data;
   },
 
-  reviewProposal: async (id: number, action: string, reason: string): Promise<void> => {
-    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_REVIEW(id), { action, reason });
+  reviewProposal: async (
+    id: number,
+    action: string,
+    reason: string,
+  ): Promise<void> => {
+    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_REVIEW(id), {
+      action,
+      reason,
+    });
   },
 };
