@@ -10,9 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -207,9 +207,9 @@ public class CycleMetricsController {
 
   @PostMapping("/coverage-gaps/proposals")
   public ResponseEntity<Void> submitStationProposal(
-      @RequestBody StationProposalDTO proposal,
-      @AuthenticationPrincipal Jwt jwt) {
-    log.info("POST /api/v1/cycle/coverage-gaps/proposals — {} proposed stations, {} impacted areas",
+      @RequestBody StationProposalDTO proposal, @AuthenticationPrincipal Jwt jwt) {
+    log.info(
+        "POST /api/v1/cycle/coverage-gaps/proposals — {} proposed stations, {} impacted areas",
         proposal.getProposedStations() != null ? proposal.getProposedStations().size() : 0,
         proposal.getTotalImprovedAreas());
     try {
@@ -232,7 +232,7 @@ public class CycleMetricsController {
     var roles = (java.util.List<String>) realmAccess.get("roles");
     if (roles == null) return "unknown";
     if (roles.contains("City_Manager")) return "City_Manager";
-    if (roles.contains("Cycle_Admin"))  return "Cycle_Admin";
+    if (roles.contains("Cycle_Admin")) return "Cycle_Admin";
     return "unknown";
   }
 
@@ -258,12 +258,15 @@ public class CycleMetricsController {
       @PathVariable Long id,
       @RequestBody ProposalReviewDTO review,
       @AuthenticationPrincipal Jwt jwt) {
-    log.info("PATCH /api/v1/cycle/coverage-gaps/proposals/{}/review action={}", id, review.getAction());
+    log.info(
+        "PATCH /api/v1/cycle/coverage-gaps/proposals/{}/review action={}", id, review.getAction());
     if (!"ACCEPTED".equals(review.getAction()) && !"REJECTED".equals(review.getAction())) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "action must be ACCEPTED or REJECTED");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "action must be ACCEPTED or REJECTED");
     }
     try {
-      String reviewerUsername = jwt != null ? jwt.getClaimAsString("preferred_username") : "unknown";
+      String reviewerUsername =
+          jwt != null ? jwt.getClaimAsString("preferred_username") : "unknown";
       cycleMetricsService.reviewProposal(id, review, reviewerUsername);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
@@ -274,7 +277,8 @@ public class CycleMetricsController {
 
   @PatchMapping("/coverage-gaps/{electoralDivision}/process")
   public ResponseEntity<Void> processGap(@PathVariable String electoralDivision) {
-    log.info("PATCH /api/v1/cycle/coverage-gaps/{}/process",
+    log.info(
+        "PATCH /api/v1/cycle/coverage-gaps/{}/process",
         LogSanitizer.sanitizeLog(electoralDivision));
     try {
       boolean updated = cycleMetricsService.processGap(electoralDivision);
