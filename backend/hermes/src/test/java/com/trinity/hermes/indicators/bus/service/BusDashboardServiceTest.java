@@ -37,7 +37,6 @@ class BusDashboardServiceTest {
   @Mock private BusRidershipRepository busRidershipRepository;
   @Mock private BusTripRepository busTripRepository;
   @Mock private BusRouteRepository busRouteRepository;
-  @Mock private BusTripUpdateRepository busTripUpdateRepository;
   @Mock private BusCommonDelayMvRepository busCommonDelayMvRepository;
 
   @InjectMocks private BusDashboardService busDashboardService;
@@ -203,7 +202,7 @@ class BusDashboardServiceTest {
           }
         };
 
-    when(busTripUpdateRepository.findBreakdownByRoute("route_1", "today")).thenReturn(List.of(p));
+    when(busLiveStopTimeUpdateRepository.findBreakdownByRoute("route_1", "today")).thenReturn(List.of(p));
 
     List<BusRouteBreakdownDTO> breakdown =
         busDashboardService.getRouteBreakdown("route_1", "today");
