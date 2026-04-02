@@ -7,8 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.dto.BroadcastNotificationRequestDTO;
 import com.trinity.hermes.notification.dto.NotificationItemDTO;
 import com.trinity.hermes.notification.dto.NotificationResponseDTO;
+import com.trinity.hermes.notification.model.enums.Channel;
 import com.trinity.hermes.notification.services.NotificationFacade;
 import com.trinity.hermes.notification.util.SseManager;
 import java.util.List;
@@ -82,6 +84,58 @@ public class NotificationControllerTest {
 
       verify(notificationFacade)
           .handleBackendNotification(any(BackendNotificationRequestDTO.class));
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // POST /api/notification/v1/broadcast
+  // ─────────────────────────────────────────────────────────────────────────
+  @Nested
+  @DisplayName("POST /api/notification/v1/broadcast")
+  class BroadcastByIndicator {
+
+    @Test
+    @DisplayName("200 with status=broadcast accepted and delegates to facade")
+    void broadcast_callsFacadeAndReturnsAccepted() throws Exception {
+      BroadcastNotificationRequestDTO dto = new BroadcastNotificationRequestDTO();
+      dto.setDataIndicator("bus");
+      dto.setSubject("Bus update");
+      dto.setBody("Route 46A is delayed");
+      dto.setChannel(Channel.NOTIFICATION);
+
+      doNothing().when(notificationFacade).broadcastByIndicator(any());
+
+      mockMvc
+          .perform(
+              post("/api/notification/v1/broadcast")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(dto)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.status").value("broadcast accepted"));
+
+      verify(notificationFacade).broadcastByIndicator(any(BroadcastNotificationRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("400 when facade throws IllegalArgumentException for unmapped indicator")
+    void broadcast_unknownIndicator_returns400() throws Exception {
+      BroadcastNotificationRequestDTO dto = new BroadcastNotificationRequestDTO();
+      dto.setDataIndicator("car");
+      dto.setSubject("Car update");
+      dto.setBody("Heavy traffic");
+      dto.setChannel(Channel.NOTIFICATION);
+
+      doThrow(new IllegalArgumentException("No provider role mapped for indicator: car"))
+          .when(notificationFacade)
+          .broadcastByIndicator(any());
+
+      mockMvc
+          .perform(
+              post("/api/notification/v1/broadcast")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(dto)))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.error").value("No provider role mapped for indicator: car"));
     }
   }
 
