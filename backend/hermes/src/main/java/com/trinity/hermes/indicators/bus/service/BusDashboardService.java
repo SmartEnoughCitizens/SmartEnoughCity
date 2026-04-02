@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.bus.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
@@ -114,7 +115,7 @@ public class BusDashboardService {
 
   @Transactional(readOnly = true)
   public List<BusCommonDelayDTO> getCommonDelays(String filter) {
-    log.info("Fetching common bus delays, filter={}", filter);
+    log.info("Fetching common bus delays, filter={}", LogSanitizer.sanitizeLog(filter));
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
     return busTripUpdateRepository.findCommonDelays(safeFilter).stream()
         .map(
@@ -130,7 +131,10 @@ public class BusDashboardService {
 
   @Transactional(readOnly = true)
   public List<BusRouteBreakdownDTO> getRouteBreakdown(String routeId, String filter) {
-    log.info("Fetching bus route breakdown, routeId={}, filter={}", routeId, filter);
+    log.info(
+        "Fetching bus route breakdown, routeId={}, filter={}",
+        LogSanitizer.sanitizeLog(routeId),
+        LogSanitizer.sanitizeLog(filter));
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
     return busTripUpdateRepository.findBreakdownByRoute(routeId, safeFilter).stream()
         .map(
