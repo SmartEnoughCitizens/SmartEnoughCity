@@ -153,7 +153,11 @@ export interface StationRiskScoreDTO {
   modelTrainedAt: string;
 }
 
-export type CoverageCategory = "NO_COVERAGE" | "POOR_COVERAGE" | "PARTIAL_COVERAGE" | "ADEQUATE";
+export type CoverageCategory =
+  | "NO_COVERAGE"
+  | "POOR_COVERAGE"
+  | "PARTIAL_COVERAGE"
+  | "ADEQUATE";
 
 export interface CoverageGapDTO {
   electoralDivision: string;
