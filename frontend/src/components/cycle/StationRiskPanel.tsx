@@ -42,27 +42,35 @@ const RISK_META: Record<
 
 function emptyDescription(level: RiskLevel, name: string): string {
   switch (level) {
-    case "VERY_HIGH":
+    case "VERY_HIGH": {
       return `${name} is very likely to run out of bikes within 2 hours.`;
-    case "HIGH":
+    }
+    case "HIGH": {
       return `${name} may run out of bikes within 2 hours.`;
-    case "MODERATE":
+    }
+    case "MODERATE": {
       return `${name} has a moderate chance of running low on bikes.`;
-    default:
+    }
+    default: {
       return `${name} has sufficient bikes available.`;
+    }
   }
 }
 
 function fullDescription(level: RiskLevel, name: string): string {
   switch (level) {
-    case "VERY_HIGH":
+    case "VERY_HIGH": {
       return `${name} is very likely to have no free docks within 2 hours.`;
-    case "HIGH":
+    }
+    case "HIGH": {
       return `${name} may fill up and have no free docks within 2 hours.`;
-    case "MODERATE":
+    }
+    case "MODERATE": {
       return `${name} has a moderate chance of filling up.`;
-    default:
+    }
+    default: {
       return `${name} has sufficient free docks available.`;
+    }
   }
 }
 
@@ -89,10 +97,18 @@ function RiskBadge({ level }: { level: RiskLevel }) {
 function RiskBar({ value }: { value: number }) {
   const pct = Math.round(value * 100);
   const color =
-    pct >= 100 ? "#ef4444" : pct >= 60 ? "#f97316" : pct >= 30 ? "#eab308" : "#22c55e";
+    pct >= 100
+      ? "#ef4444"
+      : pct >= 60
+        ? "#f97316"
+        : pct >= 30
+          ? "#eab308"
+          : "#22c55e";
   return (
     <Tooltip title={`${pct}% probability`}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 80 }}>
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 80 }}
+      >
         <Box
           sx={{
             flex: 1,
@@ -112,7 +128,10 @@ function RiskBar({ value }: { value: number }) {
             }}
           />
         </Box>
-        <Typography variant="caption" sx={{ fontWeight: 600, color, minWidth: 30 }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, color, minWidth: 30 }}
+        >
           {pct}%
         </Typography>
       </Box>
@@ -135,8 +154,19 @@ function RiskCard({ score }: { score: StationRiskScoreDTO }) {
         "&:hover": { bgcolor: "action.hover" },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 0.5 }}>
-        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, flex: 1, mr: 1 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          mb: 0.5,
+        }}
+      >
+        <Typography
+          variant="body2"
+          fontWeight={600}
+          sx={{ lineHeight: 1.3, flex: 1, mr: 1 }}
+        >
           {score.name}
         </Typography>
         <RiskBadge level={primaryLevel} />
@@ -145,7 +175,9 @@ function RiskCard({ score }: { score: StationRiskScoreDTO }) {
       {/* Empty risk row */}
       {eLevel !== "LOW" && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.25 }}>
-          <DirectionsBikeIcon sx={{ fontSize: "0.8rem", color: "text.secondary" }} />
+          <DirectionsBikeIcon
+            sx={{ fontSize: "0.8rem", color: "text.secondary" }}
+          />
           <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
             {emptyDescription(eLevel, score.name)}
           </Typography>
@@ -153,7 +185,9 @@ function RiskCard({ score }: { score: StationRiskScoreDTO }) {
       )}
       {fLevel !== "LOW" && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.25 }}>
-          <WarningAmberIcon sx={{ fontSize: "0.8rem", color: "text.secondary" }} />
+          <WarningAmberIcon
+            sx={{ fontSize: "0.8rem", color: "text.secondary" }}
+          />
           <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
             {fullDescription(fLevel, score.name)}
           </Typography>
@@ -161,7 +195,9 @@ function RiskCard({ score }: { score: StationRiskScoreDTO }) {
       )}
       {eLevel === "LOW" && fLevel === "LOW" && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <CheckCircleOutlineIcon sx={{ fontSize: "0.8rem", color: "#22c55e" }} />
+          <CheckCircleOutlineIcon
+            sx={{ fontSize: "0.8rem", color: "#22c55e" }}
+          />
           <Typography variant="caption" color="text.secondary">
             Station is operating normally.
           </Typography>
@@ -171,13 +207,21 @@ function RiskCard({ score }: { score: StationRiskScoreDTO }) {
       {/* Probability bars */}
       <Box sx={{ mt: 0.75, display: "flex", gap: 2 }}>
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "0.6rem" }}
+          >
             EMPTY RISK
           </Typography>
           <RiskBar value={score.emptyRisk2h} />
         </Box>
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "0.6rem" }}
+          >
             FULL RISK
           </Typography>
           <RiskBar value={score.fullRisk2h} />
@@ -190,11 +234,17 @@ function RiskCard({ score }: { score: StationRiskScoreDTO }) {
 // ── Summary row ───────────────────────────────────────────────────────────────
 
 function RiskSummaryRow({ scores }: { scores: StationRiskScoreDTO[] }) {
-  const veryHigh = scores.filter((s) => emptyRiskLevel(s.emptyRisk2h) === "VERY_HIGH" || fullRiskLevel(s.fullRisk2h) === "VERY_HIGH").length;
+  const veryHigh = scores.filter(
+    (s) =>
+      emptyRiskLevel(s.emptyRisk2h) === "VERY_HIGH" ||
+      fullRiskLevel(s.fullRisk2h) === "VERY_HIGH",
+  ).length;
   const high = scores.filter((s) => {
     const e = emptyRiskLevel(s.emptyRisk2h);
     const f = fullRiskLevel(s.fullRisk2h);
-    return (e === "HIGH" || f === "HIGH") && e !== "VERY_HIGH" && f !== "VERY_HIGH";
+    return (
+      (e === "HIGH" || f === "HIGH") && e !== "VERY_HIGH" && f !== "VERY_HIGH"
+    );
   }).length;
   const ok = scores.length - veryHigh - high;
 
@@ -206,16 +256,28 @@ function RiskSummaryRow({ scores }: { scores: StationRiskScoreDTO[] }) {
         { count: ok, label: "Normal", color: "#22c55e" },
       ].map(({ count, label, color }) => (
         <Box key={label} sx={{ textAlign: "center" }}>
-          <Typography variant="h6" fontWeight={700} sx={{ color, lineHeight: 1 }}>
+          <Typography
+            variant="h6"
+            fontWeight={700}
+            sx={{ color, lineHeight: 1 }}
+          >
             {count}
           </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "0.6rem" }}
+          >
             {label}
           </Typography>
         </Box>
       ))}
       <Box sx={{ flex: 1 }} />
-      <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "flex-end", fontSize: "0.6rem" }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ alignSelf: "flex-end", fontSize: "0.6rem" }}
+      >
         Updated every 5 min · 2-hour horizon
       </Typography>
     </Box>
@@ -250,8 +312,10 @@ export function StationRiskPanel({ scores, isLoading }: Props) {
   }
 
   // Sort: very high empty first, then high, then others
-  const sorted = [...scores].sort(
-    (a, b) => Math.max(b.emptyRisk2h, b.fullRisk2h) - Math.max(a.emptyRisk2h, a.fullRisk2h),
+  const sorted = scores.toSorted(
+    (a, b) =>
+      Math.max(b.emptyRisk2h, b.fullRisk2h) -
+      Math.max(a.emptyRisk2h, a.fullRisk2h),
   );
 
   return (
