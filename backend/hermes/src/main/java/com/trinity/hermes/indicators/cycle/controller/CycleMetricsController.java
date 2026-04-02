@@ -270,7 +270,7 @@ public class CycleMetricsController {
       cycleMetricsService.reviewProposal(id, review, reviewerUsername);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
-      log.error("Error reviewing proposal id={}: {}", id, e.getMessage(), e);
+      log.error("Error reviewing proposal id={}", id, e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
