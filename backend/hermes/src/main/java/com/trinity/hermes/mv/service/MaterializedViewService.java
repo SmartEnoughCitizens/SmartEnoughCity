@@ -1,11 +1,13 @@
 package com.trinity.hermes.mv.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.mv.dto.MvRefreshResult;
 import com.trinity.hermes.mv.dto.MvRegistryDTO;
 import com.trinity.hermes.mv.dto.UpsertMvRequest;
 import com.trinity.hermes.mv.entity.MvRegistry;
 import com.trinity.hermes.mv.repository.MvRefreshLogRepository;
 import com.trinity.hermes.mv.repository.MvRegistryRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +22,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+@SuppressFBWarnings(
+    value = {"SECSQLISPRJDBC", "SECRD"},
+    justification =
+        "DDL-only SQL built from internally-validated MV names (not user input)."
+            + " Regex validates a safe character set against a known-good pattern.")
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -130,7 +137,7 @@ public class MaterializedViewService {
       long durationMs = System.currentTimeMillis() - start;
       status = "SUCCESS";
       mvRefreshLogger.recordResult(registry, status, durationMs, refreshedAt, null, triggeredBy);
-      log.info("Refreshed MV '{}' in {}ms", name, durationMs);
+      log.info("Refreshed MV '{}' in {}ms", LogSanitizer.sanitizeLog(name), durationMs);
       return MvRefreshResult.builder()
           .mvName(name)
           .status(status)
@@ -177,7 +184,7 @@ public class MaterializedViewService {
             "DROP MATERIALIZED VIEW IF EXISTS %s.%s CASCADE", registry.getViewSchema(), name));
     mvRefreshLogRepository.deleteByMvName(name);
     mvRegistryRepository.delete(registry);
-    log.info("Dropped MV '{}' and removed from registry", name);
+    log.info("Dropped MV '{}' and removed from registry", LogSanitizer.sanitizeLog(name));
   }
 
   // ── Toggle enabled ────────────────────────────────────────────────────────
