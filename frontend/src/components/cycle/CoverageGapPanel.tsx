@@ -15,6 +15,16 @@ import ApartmentIcon from "@mui/icons-material/Apartment";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import type { CoverageCategory, CoverageGapDTO } from "@/types";
 
+function gapPriority(g: CoverageGapDTO): number {
+  const order: Record<CoverageCategory, number> = {
+    NO_COVERAGE: 0,
+    POOR_COVERAGE: 1,
+    PARTIAL_COVERAGE: 2,
+    ADEQUATE: 3,
+  };
+  return order[g.coverageCategory];
+}
+
 // ── Category helpers ───────────────────────────────────────────────────────────
 
 const CATEGORY_META: Record<
@@ -55,7 +65,7 @@ function distanceText(m: number | null): string {
 // ── Gap card ───────────────────────────────────────────────────────────────────
 
 function GapCard({ gap }: { gap: CoverageGapDTO }) {
-  const meta = CATEGORY_META[gap.coverageCategory as CoverageCategory] ?? CATEGORY_META.ADEQUATE;
+  const meta = CATEGORY_META[gap.coverageCategory] ?? CATEGORY_META.ADEQUATE;
   const processed = gap.processedForImplementation;
 
   return (
@@ -70,11 +80,23 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
       }}
     >
       {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 0.5 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          mb: 0.5,
+        }}
+      >
         <Typography
           variant="body2"
           fontWeight={600}
-          sx={{ lineHeight: 1.3, flex: 1, mr: 1, textDecoration: processed ? "line-through" : "none" }}
+          sx={{
+            lineHeight: 1.3,
+            flex: 1,
+            mr: 1,
+            textDecoration: processed ? "line-through" : "none",
+          }}
         >
           {gap.electoralDivision}
         </Typography>
@@ -83,7 +105,12 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
             size="small"
             icon={<TaskAltIcon sx={{ fontSize: "0.7rem !important" }} />}
             label="Planned"
-            sx={{ fontSize: "0.65rem", height: 20, color: "#64748b", bgcolor: "#f1f5f9" }}
+            sx={{
+              fontSize: "0.65rem",
+              height: 20,
+              color: "#64748b",
+              bgcolor: "#f1f5f9",
+            }}
           />
         ) : (
           <Chip
@@ -103,22 +130,30 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
 
       {/* Description */}
       {!processed && (
-        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mb: 0.5 }}>
-          <Box sx={{ color: meta.color, mt: "1px", flexShrink: 0 }}>{meta.icon}</Box>
+        <Box
+          sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mb: 0.5 }}
+        >
+          <Box sx={{ color: meta.color, mt: "1px", flexShrink: 0 }}>
+            {meta.icon}
+          </Box>
           <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
             {gap.coverageCategory === "NO_COVERAGE"
               ? `No station within 3 km — nearest is ${distanceText(gap.minDistanceM)} away.`
               : gap.coverageCategory === "POOR_COVERAGE"
-              ? `Nearest station ${distanceText(gap.minDistanceM)} away — poor coverage (1–3 km).`
-              : gap.coverageCategory === "PARTIAL_COVERAGE"
-              ? `Nearest station ${distanceText(gap.minDistanceM)} away — partial coverage (500 m–1 km).`
-              : `Nearest station ${distanceText(gap.minDistanceM)} away.`}
+                ? `Nearest station ${distanceText(gap.minDistanceM)} away — poor coverage (1–3 km).`
+                : gap.coverageCategory === "PARTIAL_COVERAGE"
+                  ? `Nearest station ${distanceText(gap.minDistanceM)} away — partial coverage (500 m–1 km).`
+                  : `Nearest station ${distanceText(gap.minDistanceM)} away.`}
           </Typography>
         </Box>
       )}
 
       {processed && gap.processedAt && (
-        <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem", display: "block", mb: 0.5 }}>
+        <Typography
+          variant="caption"
+          color="text.disabled"
+          sx={{ fontSize: "0.6rem", display: "block", mb: 0.5 }}
+        >
           Planned on {new Date(gap.processedAt).toLocaleDateString()}
         </Typography>
       )}
@@ -127,23 +162,34 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <Tooltip title="Apartment / flat dwellings">
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-            <ApartmentIcon sx={{ fontSize: "0.7rem", color: "text.disabled" }} />
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+            <ApartmentIcon
+              sx={{ fontSize: "0.7rem", color: "text.disabled" }}
+            />
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: "0.65rem" }}
+            >
               {gap.flatApartmentCount.toLocaleString()} apts
             </Typography>
           </Box>
         </Tooltip>
         <Tooltip title="Total dwellings in area">
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-            <DirectionsBikeIcon sx={{ fontSize: "0.7rem", color: "text.disabled" }} />
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+            <DirectionsBikeIcon
+              sx={{ fontSize: "0.7rem", color: "text.disabled" }}
+            />
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: "0.65rem" }}
+            >
               {gap.totalDwellings.toLocaleString()} total
             </Typography>
           </Box>
         </Tooltip>
 
         <Box sx={{ flex: 1 }} />
-
       </Box>
     </Box>
   );
@@ -152,17 +198,34 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
 // ── Summary row ────────────────────────────────────────────────────────────────
 
 function CoverageSummaryRow({ gaps }: { gaps: CoverageGapDTO[] }) {
-  const noCoverage = gaps.filter((g) => g.coverageCategory === "NO_COVERAGE").length;
-  const poorCoverage = gaps.filter((g) => g.coverageCategory === "POOR_COVERAGE").length;
-  const partialCoverage = gaps.filter((g) => g.coverageCategory === "PARTIAL_COVERAGE").length;
+  const noCoverage = gaps.filter(
+    (g) => g.coverageCategory === "NO_COVERAGE",
+  ).length;
+  const poorCoverage = gaps.filter(
+    (g) => g.coverageCategory === "POOR_COVERAGE",
+  ).length;
+  const partialCoverage = gaps.filter(
+    (g) => g.coverageCategory === "PARTIAL_COVERAGE",
+  ).length;
   const adequate = gaps.filter((g) => g.coverageCategory === "ADEQUATE").length;
   const planned = gaps.filter((g) => g.processedForImplementation).length;
   const affectedDwellings = gaps
-    .filter((g) => g.coverageCategory !== "ADEQUATE" && !g.processedForImplementation)
+    .filter(
+      (g) => g.coverageCategory !== "ADEQUATE" && !g.processedForImplementation,
+    )
     .reduce((sum, g) => sum + g.flatApartmentCount, 0);
 
   return (
-    <Box sx={{ px: 1.5, py: 1, display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "flex-end" }}>
+    <Box
+      sx={{
+        px: 1.5,
+        py: 1,
+        display: "flex",
+        gap: 1.5,
+        flexWrap: "wrap",
+        alignItems: "flex-end",
+      }}
+    >
       {[
         { count: noCoverage, label: "No Coverage", color: "#ef4444" },
         { count: poorCoverage, label: "Poor Coverage", color: "#f97316" },
@@ -171,17 +234,29 @@ function CoverageSummaryRow({ gaps }: { gaps: CoverageGapDTO[] }) {
         { count: planned, label: "Planned", color: "#64748b" },
       ].map(({ count, label, color }) => (
         <Box key={label} sx={{ textAlign: "center" }}>
-          <Typography variant="h6" fontWeight={700} sx={{ color, lineHeight: 1 }}>
+          <Typography
+            variant="h6"
+            fontWeight={700}
+            sx={{ color, lineHeight: 1 }}
+          >
             {count}
           </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "0.6rem" }}
+          >
             {label}
           </Typography>
         </Box>
       ))}
       <Box sx={{ flex: 1 }} />
       <Tooltip title="Apartment dwellings in unaddressed under-served areas">
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: "0.6rem" }}
+        >
           {affectedDwellings.toLocaleString()} affected apts
         </Typography>
       </Tooltip>
@@ -208,7 +283,9 @@ export function CoverageGapPanel({ gaps, isLoading }: Props) {
   if (gaps.length === 0) {
     return (
       <Stack alignItems="center" spacing={1} sx={{ py: 4 }}>
-        <SignalCellularNoSimIcon sx={{ fontSize: 32, color: "text.disabled" }} />
+        <SignalCellularNoSimIcon
+          sx={{ fontSize: 32, color: "text.disabled" }}
+        />
         <Typography variant="body2" color="text.secondary">
           Coverage analysis not available yet. Computed nightly.
         </Typography>
@@ -217,15 +294,13 @@ export function CoverageGapPanel({ gaps, isLoading }: Props) {
   }
 
   // Unprocessed problem areas first (NO_COVERAGE → POOR_COVERAGE → ADEQUATE), then processed
-  const priority = (g: CoverageGapDTO) =>
-    g.coverageCategory === "NO_COVERAGE" ? 0
-    : g.coverageCategory === "POOR_COVERAGE" ? 1
-    : g.coverageCategory === "PARTIAL_COVERAGE" ? 2
-    : 3;
-
   const unprocessed = gaps
     .filter((g) => !g.processedForImplementation)
-    .sort((a, b) => priority(a) - priority(b) || b.flatApartmentCount - a.flatApartmentCount);
+    .toSorted(
+      (a, b) =>
+        gapPriority(a) - gapPriority(b) ||
+        b.flatApartmentCount - a.flatApartmentCount,
+    );
   const processed = gaps.filter((g) => g.processedForImplementation);
   const sorted = [...unprocessed, ...processed];
 
