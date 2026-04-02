@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from inference_engine.db import engine as db_engine
 from inference_engine.indicators.cycle.risk_engine import run as run_cycle_risk
+from inference_engine.ev_router import router as ev_router
 from inference_engine.settings.api_settings import get_api_settings
 
 # app = FastAPI()
@@ -56,6 +57,7 @@ app = FastAPI(
     title="Recommendation Engine API",
     lifespan=lifespan,
 )
+app.include_router(ev_router)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

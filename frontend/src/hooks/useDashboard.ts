@@ -45,6 +45,10 @@ export const DASHBOARD_KEYS = {
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
   busSystemPerformance: ["bus", "system-performance"] as const,
+  busCommonDelays: (filter: string) =>
+    ["bus", "common-delays", filter] as const,
+  busRouteBreakdown: (routeId: string | null, filter: string) =>
+    ["bus", "route-breakdown", routeId, filter] as const,
   carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
   carHighTrafficPoints: ["car", "high-traffic-points"] as const,
   carJunctionEmissions: ["car", "junction-emissions"] as const,
@@ -76,7 +80,9 @@ export const useCycleData = (limit: number = 100) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.cycle(limit),
     queryFn: () => dashboardApi.getCycleData({ limit }),
-    staleTime: 30_000, // 30 seconds
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
+    retry: 1,
   });
 };
 
@@ -198,13 +204,42 @@ export const useBusSystemPerformance = () => {
   });
 };
 /**
+ * Get top 10 most delayed bus routes, filtered by today/week/month
+ */
+export const useCommonDelays = (filter: string) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busCommonDelays(filter),
+    queryFn: () => dashboardApi.getBusCommonDelays(filter),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get per-stop delay breakdown for a specific bus route
+ */
+export const useBusRouteBreakdown = (
+  routeId: string | null,
+  filter: string,
+) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busRouteBreakdown(routeId, filter),
+    queryFn: () => dashboardApi.getBusRouteBreakdown(routeId!, filter),
+    enabled: !!routeId,
+    staleTime: 60_000,
+  });
+};
+
+/**
  * Get car fuel type statistics
  */
 export const useCarFuelTypeStatistics = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carFuelTypeStatistics,
     queryFn: () => dashboardApi.getCarFuelTypeStatistics(),
-    staleTime: 300_000,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
   });
 };
 
@@ -215,19 +250,20 @@ export const useCarHighTrafficPoints = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carHighTrafficPoints,
     queryFn: () => dashboardApi.getCarHighTrafficPoints(),
-    staleTime: 300_000,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
   });
 };
 
 /**
  * Get junction-level CO2 emission estimates
  */
-export const useCarJunctionEmissions = (enabled = true) => {
+export const useCarJunctionEmissions = () => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.carJunctionEmissions,
     queryFn: () => dashboardApi.getCarJunctionEmissions(),
-    staleTime: 300_000,
-    enabled,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
   });
 };
 

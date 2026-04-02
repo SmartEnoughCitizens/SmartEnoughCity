@@ -21,8 +21,8 @@ from data_handler.train.realtime_handler import (
     fetch_train_movements,
     irish_rail_current_trains_to_db,
     irish_rail_station_data_to_db,
-    irish_rail_stations_to_db,
     irish_rail_train_movements_to_db,
+    process_train_station_info,
 )
 from tests.utils import assert_row_count
 
@@ -334,11 +334,11 @@ class TestFetchTrainMovements:
         assert movements[1]["LocationOrder"] == "5"
 
 
-# ── irish_rail_stations_to_db integration tests ──────────────────────
+# ── process_train_station_info integration tests ──────────────────────
 
 
 class TestIrishRailStationsToDb:
-    """Integration tests for irish_rail_stations_to_db."""
+    """Integration tests for process_train_station_info."""
 
     @patch("data_handler.train.realtime_handler.requests.get")
     def test_inserts_stations(self, mock_get: Mock, db_session: Session) -> None:
@@ -349,7 +349,7 @@ class TestIrishRailStationsToDb:
 
         assert_row_count(db_session, "irish_rail_stations", 0)
 
-        irish_rail_stations_to_db()
+        process_train_station_info()
 
         assert_row_count(db_session, "irish_rail_stations", 2)
 
@@ -369,11 +369,11 @@ class TestIrishRailStationsToDb:
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        irish_rail_stations_to_db()
+        process_train_station_info()
         assert_row_count(db_session, "irish_rail_stations", 2)
 
         # Run again — should still be 2 (upsert)
-        irish_rail_stations_to_db()
+        process_train_station_info()
         assert_row_count(db_session, "irish_rail_stations", 2)
 
     @patch("data_handler.train.realtime_handler.requests.get")
@@ -385,7 +385,7 @@ class TestIrishRailStationsToDb:
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        irish_rail_stations_to_db()
+        process_train_station_info()
 
         assert_row_count(db_session, "irish_rail_stations", 0)
 

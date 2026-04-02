@@ -40,7 +40,7 @@ public class SimulationService {
 
     // Fetch the recommendation
     Optional<RecommendationResponse> recommendationOpt =
-        recommendationService.getRecommendationById(recommendationId);
+        recommendationService.getRecommendationById(recommendationId.intValue());
 
     if (recommendationOpt.isEmpty()) {
       log.warn("Recommendation not found with ID: {}", recommendationId);
@@ -59,9 +59,7 @@ public class SimulationService {
     simulation.setRecommendationId(recommendationId);
     simulation.setName("Simulation for: " + recommendation.getId());
     simulation.setDescription(
-        "Impact analysis if recommendation '"
-            + recommendation.getDataIndicator()
-            + "' is implemented");
+        "Impact analysis if recommendation '" + recommendation.getIndicator() + "' is implemented");
     simulation.setScenario("recommendation-impact");
     simulation.setStatus("completed");
     simulation.setCreatedBy("demo-user");

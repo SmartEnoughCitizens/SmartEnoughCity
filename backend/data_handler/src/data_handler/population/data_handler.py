@@ -97,7 +97,7 @@ def process_population_static_data(data_dir: Path) -> None:
         logger.info("Committing changes to database...")
         session.commit()
         logger.info(
-            "Successfully processed population static data (%d records).",
+            "Upserted %d population record(s). Static population data import complete.",
             len(small_areas),
         )
 

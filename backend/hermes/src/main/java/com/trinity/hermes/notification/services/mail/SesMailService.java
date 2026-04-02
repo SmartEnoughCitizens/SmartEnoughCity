@@ -88,7 +88,7 @@ public class SesMailService implements MailService {
   }
 
   private String htmlBodyWithPlaceholder(String html, byte[] qrBytes) {
-    if (Objects.nonNull(qrBytes)) return html;
+    if (Objects.isNull(qrBytes)) return html;
     return html.replace("{{qr}}", "<img src=\"cid:qr\" alt=\"QR Code\"/>");
   }
 

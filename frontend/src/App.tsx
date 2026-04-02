@@ -2,6 +2,7 @@
  * Main App component with all providers
  */
 
+import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
 import { Provider as ReduxProvider } from "react-redux";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import { useAppSelector } from "@/store/hooks";
 import { getTheme } from "@/theme";
 import { router } from "@/router";
 
-// Create QueryClient
+// Create QueryClient — individual hooks override staleTime/gcTime as needed
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -26,6 +27,10 @@ const queryClient = new QueryClient({
 // Theme wrapper to access Redux state
 const ThemedApp = () => {
   const theme = useAppSelector((state) => state.ui.theme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   return (
     <ThemeProvider theme={getTheme(theme)}>

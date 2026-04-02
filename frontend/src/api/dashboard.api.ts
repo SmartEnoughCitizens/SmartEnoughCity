@@ -6,11 +6,13 @@ import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
   CoverageGapDTO,
+  BusCommonDelay,
   DisruptionItem,
   BusDashboardResponse,
   StationProposalSummary,
   BusKpis,
   BusLiveVehicle,
+  BusRouteBreakdown,
   BusRouteUtilization,
   BusSystemPerformance,
   CarFuelTypeStat,
@@ -29,6 +31,7 @@ import type {
   StationRankingDTO,
   StationRiskScoreDTO,
   JunctionEmission,
+  TrafficRecommendation,
   PedestrianLive,
   TrainDashboardResponse,
   TrainDelay,
@@ -173,6 +176,31 @@ export const dashboardApi = {
     );
     return data;
   },
+
+  /**
+   * Get top 10 most delayed bus routes with average delay in minutes
+   */
+  getBusCommonDelays: async (filter: string): Promise<BusCommonDelay[]> => {
+    const { data } = await axiosInstance.get<BusCommonDelay[]>(
+      API_ENDPOINTS.BUS_COMMON_DELAYS,
+      { params: { filter } },
+    );
+    return data;
+  },
+
+  /**
+   * Get per-stop delay breakdown for a specific bus route
+   */
+  getBusRouteBreakdown: async (
+    routeId: string,
+    filter: string,
+  ): Promise<BusRouteBreakdown[]> => {
+    const { data } = await axiosInstance.get<BusRouteBreakdown[]>(
+      `${API_ENDPOINTS.BUS_COMMON_DELAYS}/${routeId}`,
+      { params: { filter } },
+    );
+    return data;
+  },
   getCarFuelTypeStatistics: async (): Promise<CarFuelTypeStat[]> => {
     const { data } = await axiosInstance.get<CarFuelTypeStat[]>(
       API_ENDPOINTS.CAR_FUEL_TYPE_STATISTICS,
@@ -196,6 +224,16 @@ export const dashboardApi = {
   getCarJunctionEmissions: async (): Promise<JunctionEmission[]> => {
     const { data } = await axiosInstance.get<JunctionEmission[]>(
       API_ENDPOINTS.CAR_JUNCTION_EMISSIONS,
+    );
+    return data;
+  },
+
+  /**
+   * Get traffic diversion recommendations for high congestion points
+   */
+  getCarTrafficRecommendations: async (): Promise<TrafficRecommendation[]> => {
+    const { data } = await axiosInstance.get<TrafficRecommendation[]>(
+      API_ENDPOINTS.CAR_TRAFFIC_RECOMMENDATIONS,
     );
     return data;
   },
