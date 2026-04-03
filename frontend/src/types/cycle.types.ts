@@ -191,6 +191,7 @@ export interface StationProposalSummary {
   impactsJson: string;
   reviewedBy: string | null;
   reviewedAt: string | null;
+  implementationStatus: "PLANNED" | "IN_PROGRESS" | "COMPLETED";
 }
 
 /** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
