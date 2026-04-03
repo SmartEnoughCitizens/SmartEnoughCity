@@ -277,6 +277,35 @@ public class CycleMetricsService {
         submitterRole);
   }
 
+  public List<StationProposalSummaryDTO> getAcceptedProposals() {
+    return jdbcTemplate.query(
+        """
+        SELECT id, submitted_at, submitted_by, submitted_by_role,
+               station_count, improved_area_count, status, notes,
+               stations_json, impacts_json, reviewed_by, reviewed_at
+          FROM backend.cycle_station_proposals
+         WHERE status = 'ACCEPTED'
+         ORDER BY reviewed_at DESC
+        """,
+        (rs, rn) -> {
+          StationProposalSummaryDTO dto = new StationProposalSummaryDTO();
+          dto.setId(rs.getLong("id"));
+          dto.setSubmittedAt(rs.getTimestamp("submitted_at").toInstant().toString());
+          dto.setSubmittedBy(rs.getString("submitted_by"));
+          dto.setSubmittedByRole(rs.getString("submitted_by_role"));
+          dto.setStationCount(rs.getInt("station_count"));
+          dto.setImprovedAreaCount(rs.getInt("improved_area_count"));
+          dto.setStatus(rs.getString("status"));
+          dto.setNotes(rs.getString("notes"));
+          dto.setStationsJson(rs.getString("stations_json"));
+          dto.setImpactsJson(rs.getString("impacts_json"));
+          dto.setReviewedBy(rs.getString("reviewed_by"));
+          var reviewedAt = rs.getTimestamp("reviewed_at");
+          if (reviewedAt != null) dto.setReviewedAt(reviewedAt.toInstant().toString());
+          return dto;
+        });
+  }
+
   // -------------------------------------------------------------------------
   // Proposal Review
   // -------------------------------------------------------------------------
