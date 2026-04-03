@@ -488,6 +488,13 @@ export const dashboardApi = {
     return data;
   },
 
+  getAcceptedProposals: async (): Promise<StationProposalSummary[]> => {
+    const { data } = await axiosInstance.get<StationProposalSummary[]>(
+      API_ENDPOINTS.CYCLE_ACCEPTED_PROPOSALS,
+    );
+    return data;
+  },
+
   reviewProposal: async (
     id: number,
     action: string,
