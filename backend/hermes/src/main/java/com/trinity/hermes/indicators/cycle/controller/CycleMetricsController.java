@@ -240,6 +240,17 @@ public class CycleMetricsController {
   // Proposal Review
   // -------------------------------------------------------------------------
 
+  @GetMapping("/coverage-gaps/proposals/accepted")
+  public ResponseEntity<List<StationProposalSummaryDTO>> getAcceptedProposals() {
+    log.info("GET /api/v1/cycle/coverage-gaps/proposals/accepted");
+    try {
+      return ResponseEntity.ok(cycleMetricsService.getAcceptedProposals());
+    } catch (Exception e) {
+      log.error("Error fetching accepted proposals: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
   @GetMapping("/coverage-gaps/proposals")
   public ResponseEntity<List<StationProposalSummaryDTO>> getPendingProposals(
       @AuthenticationPrincipal Jwt jwt) {
@@ -265,8 +276,13 @@ public class CycleMetricsController {
           HttpStatus.BAD_REQUEST, "action must be ACCEPTED or REJECTED");
     }
     try {
-      String reviewerUsername =
-          jwt != null ? jwt.getClaimAsString("preferred_username") : "unknown";
+      String reviewerUsername = "unknown";
+      if (jwt != null) {
+        for (String candidate : new String[]{"preferred_username", "email", "sub"}) {
+          String claim = jwt.getClaimAsString(candidate);
+          if (claim != null && !claim.isBlank()) { reviewerUsername = claim; break; }
+        }
+      }
       cycleMetricsService.reviewProposal(id, review, reviewerUsername);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
