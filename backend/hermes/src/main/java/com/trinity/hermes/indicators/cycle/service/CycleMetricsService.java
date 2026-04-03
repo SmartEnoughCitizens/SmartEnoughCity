@@ -70,6 +70,9 @@ public class CycleMetricsService {
     jdbcTemplate.execute(
         "ALTER TABLE backend.cycle_station_proposals "
             + "ADD COLUMN IF NOT EXISTS review_reason TEXT");
+    jdbcTemplate.execute(
+        "ALTER TABLE backend.cycle_station_proposals "
+            + "ADD COLUMN IF NOT EXISTS implementation_status VARCHAR(30) NOT NULL DEFAULT 'PLANNED'");
   }
 
   // -------------------------------------------------------------------------
@@ -282,7 +285,8 @@ public class CycleMetricsService {
         """
         SELECT id, submitted_at, submitted_by, submitted_by_role,
                station_count, improved_area_count, status, notes,
-               stations_json, impacts_json, reviewed_by, reviewed_at
+               stations_json, impacts_json, reviewed_by, reviewed_at,
+               implementation_status
           FROM backend.cycle_station_proposals
          WHERE status = 'ACCEPTED'
          ORDER BY reviewed_at DESC
@@ -302,8 +306,60 @@ public class CycleMetricsService {
           dto.setReviewedBy(rs.getString("reviewed_by"));
           var reviewedAt = rs.getTimestamp("reviewed_at");
           if (reviewedAt != null) dto.setReviewedAt(reviewedAt.toInstant().toString());
+          dto.setImplementationStatus(rs.getString("implementation_status"));
           return dto;
         });
+  }
+
+  public void updateImplementationStatus(Long id, String newStatus, String updaterUsername) {
+    int updated =
+        jdbcTemplate.update(
+            """
+            UPDATE backend.cycle_station_proposals
+               SET implementation_status = ?
+             WHERE id = ? AND status = 'ACCEPTED'
+            """,
+            newStatus,
+            id);
+
+    if (updated == 0) {
+      log.warn("Implementation status update failed — proposal id={} not found or not accepted", LogSanitizer.sanitizeLog(id));
+      return;
+    }
+
+    log.info("Proposal id={} implementation_status set to {} by {}", LogSanitizer.sanitizeLog(id), LogSanitizer.sanitizeLog(newStatus), LogSanitizer.sanitizeLog(updaterUsername));
+
+    String label =
+        "IN_PROGRESS".equals(newStatus) ? "In Progress"
+        : "COMPLETED".equals(newStatus) ? "Completed"
+        : "Planned";
+
+    String subject = "Station proposal status updated: " + label;
+    String body =
+        updaterUsername
+            + " has updated the implementation status of a station proposal to \""
+            + label
+            + "\".";
+
+    try {
+      var cityManagers = userManagementService.getUsersByRole("City_Manager");
+      cityManagers.forEach(
+          user -> {
+            try {
+              BackendNotificationRequestDTO notification = new BackendNotificationRequestDTO();
+              notification.setUserId(user.getUsername());
+              notification.setSubject(subject);
+              notification.setBody(body);
+              notification.setChannel(Channel.NOTIFICATION);
+              notificationFacade.handleBackendNotification(notification);
+              log.info("Implementation status notification sent to username={}", user.getUsername());
+            } catch (Exception e) {
+              log.error("Failed to notify username={}: {}", user.getUsername(), e.getMessage(), e);
+            }
+          });
+    } catch (Exception e) {
+      log.error("Failed to fetch City_Manager users for notification: {}", e.getMessage(), e);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -311,7 +367,7 @@ public class CycleMetricsService {
   // -------------------------------------------------------------------------
 
   @Transactional
-  public void reviewProposal(Long id, ProposalReviewDTO review, String reviewerUsername) {
+  public void reviewProposal(Long id, ProposalReviewDTO review, String reviewerUsername, String reviewerRole) {
     int updated =
         jdbcTemplate.update(
             """
@@ -345,11 +401,14 @@ public class CycleMetricsService {
         "ACCEPTED".equals(review.getAction())
             ? "Your station proposal was accepted"
             : "Your station proposal was rejected";
+    String roleLabel = "City_Manager".equals(reviewerRole) ? "City Manager"
+        : "Cycle_Admin".equals(reviewerRole) ? "Cycle Admin"
+        : reviewerRole;
     String body =
         "ACCEPTED".equals(review.getAction())
-            ? "Your proposed station(s) have been accepted by " + reviewerUsername + "."
+            ? "Your proposed station(s) have been accepted by " + roleLabel + "."
             : "Your proposed station(s) were rejected by "
-                + reviewerUsername
+                + roleLabel
                 + ". Reason: "
                 + review.getReason();
 
