@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { DisruptionBanner } from "@/components/disruption/DisruptionBanner";
+import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import {
   Box,
   Paper,
@@ -51,7 +51,7 @@ import L from "leaflet";
 const DUBLIN_CENTER: [number, number] = [53.3498, -6.2603];
 
 type TypeKey = "ALL" | "D" | "S" | "M";
-type PanelTab = "stations" | "trains" | "delays";
+type PanelTab = "stations" | "trains" | "delays" | "disruptions";
 
 const TYPE_CONFIG: Record<
   TypeKey,
@@ -375,6 +375,7 @@ export const TrainDashboard = () => {
   const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
     null,
   );
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<number | null>(null);
 
   const theme = useAppSelector((state) => state.ui.theme);
   const { data: trainData, isLoading: dataLoading, error } = useTrainData(500);
@@ -451,14 +452,11 @@ export const TrainDashboard = () => {
     [],
   );
 
-  // When switching to Trains tab, clear station selection (and vice-versa)
   const switchTab = (tab: PanelTab) => {
     setActiveTab(tab);
-    if (tab === "trains") setSelectedStationCode(null);
-    else if (tab === "delays") {
-      setSelectedStationCode(null);
-      setSelectedTrainCode(null);
-    } else setSelectedTrainCode(null);
+    setSelectedStationCode(null);
+    setSelectedTrainCode(null);
+    setSelectedDisruptionId(null);
   };
 
   const PANEL_W = 380;
@@ -483,11 +481,6 @@ export const TrainDashboard = () => {
         bgcolor: "#0d1117",
       }}
     >
-      {/* Disruption alert banner */}
-      <Box sx={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 1100, width: "fit-content", minWidth: 300, maxWidth: 520 }}>
-        <DisruptionBanner mode="TRAIN" />
-      </Box>
-
       {/* ── Full-viewport map ── */}
       <Box sx={{ height: "100%", width: "100%" }}>
         <MapContainer
@@ -854,20 +847,24 @@ export const TrainDashboard = () => {
               gap: 0.5,
             }}
           >
-            {(["stations", "trains", "delays"] as PanelTab[]).map((tab) => {
+            {(["stations", "trains", "delays", "disruptions"] as PanelTab[]).map((tab) => {
               const active = activeTab === tab;
               const label =
                 tab === "stations"
                   ? "Stations"
                   : tab === "trains"
                     ? "Live Trains"
-                    : "Common Delays";
+                    : tab === "delays"
+                      ? "Common Delays"
+                      : "Disruptions";
               const count =
                 tab === "stations"
                   ? filteredStations.length
                   : tab === "trains"
                     ? sortedTrains.filter((t) => t.lat && t.lon).length
-                    : frequentDelays.length;
+                    : tab === "delays"
+                      ? frequentDelays.length
+                      : null;
               return (
                 <Box
                   key={tab}
@@ -900,33 +897,35 @@ export const TrainDashboard = () => {
                   >
                     {label}
                   </Typography>
-                  <Box
-                    sx={{
-                      px: 0.75,
-                      py: 0.15,
-                      borderRadius: 1,
-                      bgcolor: active ? "#1565C0" : "rgba(48,54,61,0.6)",
-                      minWidth: 20,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography
+                  {count !== null && (
+                    <Box
                       sx={{
-                        fontSize: "0.62rem",
-                        fontWeight: 700,
-                        color: "#e6edf3",
+                        px: 0.75,
+                        py: 0.15,
+                        borderRadius: 1,
+                        bgcolor: active ? "#1565C0" : "rgba(48,54,61,0.6)",
+                        minWidth: 20,
+                        textAlign: "center",
                       }}
                     >
-                      {count}
-                    </Typography>
-                  </Box>
+                      <Typography
+                        sx={{
+                          fontSize: "0.62rem",
+                          fontWeight: 700,
+                          color: "#e6edf3",
+                        }}
+                      >
+                        {count}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               );
             })}
           </Box>
 
-          {/* Type filter (applies to both tabs — filters map AND list) */}
-          <Box sx={{ px: 1.75, pb: 1 }}>
+          {/* Type filter — hidden on disruptions tab */}
+          {activeTab !== "disruptions" && <Box sx={{ px: 1.75, pb: 1 }}>
             <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
               {(["ALL", "D", "S", "M"] as TypeKey[]).map((key) => {
                 const active = typeFilter === key;
@@ -952,7 +951,7 @@ export const TrainDashboard = () => {
                 );
               })}
             </Box>
-          </Box>
+          </Box>}
 
           {/* Search — only shown on Stations tab */}
           {activeTab === "stations" && (
@@ -996,7 +995,7 @@ export const TrainDashboard = () => {
           )}
 
           {/* Count caption */}
-          {activeTab !== "delays" && (
+          {activeTab !== "delays" && activeTab !== "disruptions" && (
             <Box sx={{ px: 2, pb: 0.5 }}>
               <Typography
                 variant="caption"
@@ -1016,6 +1015,20 @@ export const TrainDashboard = () => {
             </Box>
           ) : (
             <Box sx={{ flex: 1, overflow: "auto" }}>
+              {/* ── DISRUPTIONS TAB ── */}
+              {activeTab === "disruptions" && (
+                <DisruptionsTabContent
+                  mode="TRAIN"
+                  selectedId={selectedDisruptionId}
+                  onSelect={(d) => {
+                    setSelectedDisruptionId(d.id);
+                    if (d.latitude != null && d.longitude != null) {
+                      setFlyTarget({ center: [d.latitude, d.longitude], id: Date.now() });
+                    }
+                  }}
+                />
+              )}
+
               {/* ── COMMON DELAYS TABLE ── */}
               {activeTab === "delays" && (
                 <Box sx={{ p: 1.5 }}>

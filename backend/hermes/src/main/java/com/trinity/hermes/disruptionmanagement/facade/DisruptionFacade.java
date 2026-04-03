@@ -59,8 +59,8 @@ public class DisruptionFacade {
   // =============================================================================
 
   /**
-   * Main entry point for disruption detection from Python data handler service. This is called when
-   * the Python service detects a disruption in real-time data.
+   * Main entry point for disruption detection. Called by the scheduled {@link
+   * DisruptionDetectionService} or externally via the REST detection endpoint.
    *
    * <p>Workflow: 1. Validate threshold criteria 2. Create disruption record 3. Calculate
    * alternative routes 4. Compile solution 5. Send to notification handler 6. Log incident
@@ -92,8 +92,7 @@ public class DisruptionFacade {
       disruption.setDetectedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
 
       // Save to repository to get actual ID
-      Disruption saved = disruptionRepository.save(disruption);
-      disruption = saved; // Use the saved entity with real ID
+      disruption = disruptionRepository.save(disruption);
 
       incidentLoggingService.logDisruptionDetected(disruption);
 
@@ -112,11 +111,11 @@ public class DisruptionFacade {
       }
       disruption.setNotificationSent(notificationSent);
 
-      // Step 5: Update status
-      if (notificationSent) {
-        disruption.setStatus("ACTIVE");
-        log.info("Disruption processing completed successfully");
-      }
+      // Step 5: Mark ACTIVE regardless of notification outcome — the disruption
+      // is real even if the email/push failed (e.g. no SES config in dev).
+      disruption.setStatus("ACTIVE");
+      disruptionRepository.save(disruption);
+      log.info("Disruption processing completed successfully");
 
       long endTime = System.currentTimeMillis();
       incidentLoggingService.logPerformanceMetrics(
@@ -274,13 +273,6 @@ public class DisruptionFacade {
     disruption.setResolvedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
     disruptionRepository.save(disruption);
 
-    // notificationCoordinationService.sendResolutionNotification(disruptionId); //
-    // Removed as using NotificationFacade now
-    // NotificationFacade might not have resolution method yet, keeping commented
-    // out or use generic notification
-    // For now, logging resolution only
-    // notificationFacade.sendDisruptionNotification(resolvedSolution); // Optional:
-    // if we want to notify resolution
     incidentLoggingService.logDisruptionResolved(disruptionId, "Normal service resumed");
 
     return true;
@@ -297,7 +289,7 @@ public class DisruptionFacade {
             d ->
                 d.getAffectedTransportModes() != null
                     && d.getAffectedTransportModes().contains(normalised))
-        .map(disruptionService::mapToResponse)
+        .map(disruptionService::mapToSummary)
         .collect(Collectors.toList());
   }
 
@@ -334,7 +326,7 @@ public class DisruptionFacade {
     log.debug("Retrieving active disruptions");
 
     return disruptionRepository.findAllActiveOrderByDetectedAtDesc().stream()
-        .map(disruptionService::mapToResponse)
+        .map(disruptionService::mapToSummary)
         .collect(Collectors.toList());
   }
 

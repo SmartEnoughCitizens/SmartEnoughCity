@@ -4,9 +4,9 @@ import com.trinity.hermes.disruptionmanagement.dto.DisruptionDetectionRequest;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
-import com.trinity.hermes.indicators.bus.repository.BusRouteMetricsRepository;
+import com.trinity.hermes.indicators.bus.repository.BusLiveStopTimeUpdateRepository;
+import com.trinity.hermes.indicators.bus.repository.BusStopRepository;
 import com.trinity.hermes.indicators.car.repository.HighTrafficPointsRepository;
-import com.trinity.hermes.indicators.events.repository.EventsRepository;
 import com.trinity.hermes.indicators.train.entity.TrainStationData;
 import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
 import com.trinity.hermes.indicators.train.repository.TrainStationRepository;
@@ -20,6 +20,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,9 +29,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Scheduled service that automatically detects live disruptions every 5 minutes by correlating data
- * from all transport modes, scoring severity, and triggering notifications for high-severity
- * events.
+ * Scheduled service that detects live transport disruptions every 5 minutes.
+ *
+ * <p>A disruption is a real, current event affecting passengers: a vehicle running 30+ minutes late
+ * at a stop, or active road congestion whose location overlaps with bus/tram routes. Events and
+ * planned service-pressure scenarios are handled separately by {@link ServicePressureService}.
+ *
+ * <p>Detection logic per mode:
+ *
+ * <ul>
+ *   <li><b>Bus</b> — worst arrival delay per route ≥ 30 min; anchored to the stop location.
+ *   <li><b>Train</b> — ≥3 trains late > 10 min at the same station.
+ *   <li><b>Tram</b> — soonest due_mins at a stop exceeds expected frequency + 10 min threshold.
+ *   <li><b>Congestion</b> — high-volume traffic site whose radius overlaps bus routes or tram
+ *       stops; buses get a rerouting recommendation, trams get a warning-only notification.
+ * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -39,23 +52,31 @@ public class DisruptionDetectionService {
 
   private static final ZoneId DUBLIN = ZoneId.of("Europe/Dublin");
 
-  // Thresholds for detection
-  private static final double BUS_LATE_ARRIVAL_THRESHOLD_PCT = 40.0; // >40% late → disruption
-  private static final double BUS_AVG_DELAY_THRESHOLD_SECONDS = 600.0; // >10 min avg delay
-  private static final int BUS_MAX_DELAY_THRESHOLD_SECONDS = 1800; // >30 min max delay
-  private static final long HIGH_TRAFFIC_VOLUME_THRESHOLD = 1500L; // vehicles per period
-  private static final int LARGE_EVENT_VENUE_CAPACITY_THRESHOLD = 1000; // venue capacity
-  private static final int DEDUP_WINDOW_MINUTES = 10; // ignore same disruption within 10 min
-  private static final int TRAIN_LATE_THRESHOLD_MINUTES = 10; // lateMinutes > 10
-  private static final int TRAIN_MIN_LATE_TRAINS = 3; // ≥3 late trains at same station
-  private static final int TRAM_PEAK_FREQ_MINS = 5; // Luas peak: every ~5 min
-  private static final int TRAM_OFFPEAK_FREQ_MINS = 10; // off-peak: every ~10 min
-  private static final int TRAM_LATE_FREQ_MINS = 15; // late night: every ~15 min
-  private static final int TRAM_DISRUPTION_THRESHOLD_MINS = 10; // delay above expected freq to fire
+  // Bus: only fire when a stop has ≥ 30 min arrival delay
+  private static final int BUS_STOP_DELAY_THRESHOLD_SECONDS = 1800;
 
-  private final BusRouteMetricsRepository busRouteMetricsRepository;
+  // Congestion: fire when peak avg volume at a site exceeds this threshold
+  private static final long HIGH_TRAFFIC_VOLUME_THRESHOLD = 1500L;
+
+  // Radius to scan for affected bus routes / tram stops around a congestion site
+  private static final int CONGESTION_SCAN_RADIUS_M = 500;
+
+  // Dedup: ignore same type+area within 10 minutes to prevent repeated notifications
+  private static final int DEDUP_WINDOW_MINUTES = 10;
+
+  // Train: ≥ 3 trains delayed > 10 min at the same station
+  private static final int TRAIN_LATE_THRESHOLD_MINUTES = 10;
+  private static final int TRAIN_MIN_LATE_TRAINS = 3;
+
+  // Tram: expected service frequency by time of day (Luas schedule)
+  private static final int TRAM_PEAK_FREQ_MINS = 5;
+  private static final int TRAM_OFFPEAK_FREQ_MINS = 10;
+  private static final int TRAM_LATE_FREQ_MINS = 15;
+  private static final int TRAM_DISRUPTION_THRESHOLD_MINS = 10;
+
+  private final BusLiveStopTimeUpdateRepository busLiveStopTimeUpdateRepository;
+  private final BusStopRepository busStopRepository;
   private final HighTrafficPointsRepository highTrafficPointsRepository;
-  private final EventsRepository eventsRepository;
   private final DisruptionRepository disruptionRepository;
   private final DisruptionFacade disruptionFacade;
   private final TrainStationDataRepository trainStationDataRepository;
@@ -63,18 +84,20 @@ public class DisruptionDetectionService {
   private final TramLuasForecastRepository tramLuasForecastRepository;
   private final TramStopRepository tramStopRepository;
 
-  /**
-   * Main scheduled detection task — runs every 5 minutes. Queries all transport data sources and
-   * creates disruptions for any anomalies detected.
-   */
+  // ---------------------------------------------------------------------------
+  // Main scheduled cycle
+  // ---------------------------------------------------------------------------
+
   @Scheduled(fixedRate = 300_000, initialDelay = 15_000)
   public void detectDisruptions() {
     log.info("=== DISRUPTION AUTO-DETECTION CYCLE STARTED ===");
     int detected = 0;
 
+    int expired = autoResolveExpiredDisruptions();
+    if (expired > 0) log.info("Auto-resolved {} expired disruption(s)", expired);
+
     detected += detectBusDisruptions();
-    detected += detectCarCongestionDisruptions();
-    detected += detectEventDisruptions();
+    detected += detectCongestionDisruptions();
     detected += detectTrainDisruptions();
     detected += detectTramDisruptions();
 
@@ -82,35 +105,49 @@ public class DisruptionDetectionService {
   }
 
   // ---------------------------------------------------------------------------
-  // BUS — detect routes with high delays or low reliability
+  // AUTO-EXPIRY
+  // ---------------------------------------------------------------------------
+
+  @Transactional
+  int autoResolveExpiredDisruptions() {
+    LocalDateTime now = LocalDateTime.now(DUBLIN);
+    List<Disruption> expired = disruptionRepository.findExpiredActiveDisruptions(now);
+    for (Disruption d : expired) {
+      d.setStatus("RESOLVED");
+      d.setResolvedAt(now);
+      disruptionRepository.save(d);
+      log.debug("Auto-resolved expired disruption id={} area={}", d.getId(), d.getAffectedArea());
+    }
+    return expired.size();
+  }
+
+  // ---------------------------------------------------------------------------
+  // BUS — stops with ≥ 30 min arrival delay
   // ---------------------------------------------------------------------------
 
   private int detectBusDisruptions() {
     int count = 0;
     try {
-      List<com.trinity.hermes.indicators.bus.entity.BusRouteMetrics> metrics =
-          busRouteMetricsRepository.findCandidatesForDisruptionDetection();
+      // Returns [route_id, stop_id, stop_name, lat, lon, max_arrival_delay_seconds]
+      List<Object[]> rows =
+          busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(
+              BUS_STOP_DELAY_THRESHOLD_SECONDS);
 
-      for (com.trinity.hermes.indicators.bus.entity.BusRouteMetrics m : metrics) {
-        String area = buildBusArea(m);
+      for (Object[] row : rows) {
+        if (row.length < 6) continue;
+        String routeId = row[0] != null ? row[0].toString() : "unknown";
+        String stopName = row[2] != null ? row[2].toString() : "Bus Stop";
+        Double lat = row[3] != null ? ((Number) row[3]).doubleValue() : null;
+        Double lon = row[4] != null ? ((Number) row[4]).doubleValue() : null;
+        int maxDelaySec = row[5] != null ? ((Number) row[5]).intValue() : 0;
 
-        // Check for high late-arrival percentage
-        if (m.getLateArrivalPct() != null
-            && m.getLateArrivalPct() > BUS_LATE_ARRIVAL_THRESHOLD_PCT) {
-          int delayMinutes = deriveDelayMinutes(m.getAvgDelaySeconds());
-          String severity = scoreBusSeverity(m);
-          if (processIfNew("DELAY", "BUS", area, severity, delayMinutes, m.getRouteId())) {
-            count++;
-          }
-        }
+        int delayMinutes = maxDelaySec / 60;
+        String severity = scoreBusStopSeverity(maxDelaySec);
+        String sourceRef = "bus-stop-" + routeId + "-" + (row[1] != null ? row[1] : "");
 
-        // Check for extreme single-route max delay
-        if (m.getMaxDelaySeconds() != null
-            && m.getMaxDelaySeconds() > BUS_MAX_DELAY_THRESHOLD_SECONDS) {
-          int delayMinutes = m.getMaxDelaySeconds() / 60;
-          if (processIfNew("DELAY", "BUS", area, "HIGH", delayMinutes, m.getRouteId())) {
-            count++;
-          }
+        if (processIfNewWithCoords(
+            "DELAY", "BUS", stopName, severity, delayMinutes, sourceRef, lat, lon)) {
+          count++;
         }
       }
     } catch (Exception e) {
@@ -119,111 +156,79 @@ public class DisruptionDetectionService {
     return count;
   }
 
-  private String buildBusArea(com.trinity.hermes.indicators.bus.entity.BusRouteMetrics m) {
-    if (m.getRouteLongName() != null && !m.getRouteLongName().isBlank()) {
-      return m.getRouteLongName();
-    }
-    if (m.getRouteShortName() != null) {
-      return "Bus Route " + m.getRouteShortName();
-    }
-    return "Dublin Bus Network";
-  }
-
-  private int deriveDelayMinutes(Double avgDelaySeconds) {
-    if (avgDelaySeconds == null) return 0;
-    return (int) (avgDelaySeconds / 60.0);
-  }
-
-  private String scoreBusSeverity(com.trinity.hermes.indicators.bus.entity.BusRouteMetrics m) {
-    double late = m.getLateArrivalPct() != null ? m.getLateArrivalPct() : 0;
-    double avgDelay = m.getAvgDelaySeconds() != null ? m.getAvgDelaySeconds() : 0;
-    if (late > 70 || avgDelay > BUS_AVG_DELAY_THRESHOLD_SECONDS * 2) return "CRITICAL";
-    if (late > 55 || avgDelay > BUS_AVG_DELAY_THRESHOLD_SECONDS * 1.5) return "HIGH";
-    if (late > BUS_LATE_ARRIVAL_THRESHOLD_PCT) return "MEDIUM";
-    return "LOW";
+  private String scoreBusStopSeverity(int delaySec) {
+    if (delaySec > 3600) return "CRITICAL"; // > 60 min
+    if (delaySec > 2700) return "HIGH"; // > 45 min
+    return "MEDIUM"; // > 30 min (threshold)
   }
 
   // ---------------------------------------------------------------------------
-  // CAR — detect high-congestion sites
+  // CONGESTION — live high-traffic sites overlapping bus routes or tram stops
+  //
+  // When congestion is detected:
+  //   Bus routes passing through → rerouting recommendation sent to operators
+  //   Tram stops within radius   → warning-only notification (trams can't reroute)
+  //   Nearby cycle docks         → suggested as passenger alternative (via
+  // AlternativeTransportService)
   // ---------------------------------------------------------------------------
 
-  private int detectCarCongestionDisruptions() {
+  private int detectCongestionDisruptions() {
     int count = 0;
     try {
-      List<Object[]> rows = highTrafficPointsRepository.findAggregatedTrafficWithLocation();
+      // Returns [site_id, lat, lon, max_avg_volume] — one row per site
+      List<Object[]> rows = highTrafficPointsRepository.findPeakTrafficSitesWithLocation();
 
       for (Object[] row : rows) {
-        if (row.length < 3) continue;
-        long volume = ((Number) row[2]).longValue();
+        if (row.length < 4) continue;
+        long volume = row[3] != null ? ((Number) row[3]).longValue() : 0L;
         if (volume < HIGH_TRAFFIC_VOLUME_THRESHOLD) continue;
 
         String siteId = row[0] != null ? row[0].toString() : "unknown";
-        String area = "Traffic Site " + siteId;
-        Double lat = row.length > 3 && row[3] != null ? ((Number) row[3]).doubleValue() : null;
-        Double lon = row.length > 4 && row[4] != null ? ((Number) row[4]).doubleValue() : null;
+        Double lat = row[1] != null ? ((Number) row[1]).doubleValue() : null;
+        Double lon = row[2] != null ? ((Number) row[2]).doubleValue() : null;
+        if (lat == null || lon == null) continue;
+
         String severity = volume > HIGH_TRAFFIC_VOLUME_THRESHOLD * 2 ? "HIGH" : "MEDIUM";
 
-        if (processIfNewWithCoords("CONGESTION", "CAR", area, severity, 0, siteId, lat, lon)) {
-          count++;
+        // Find affected bus routes and tram lines within the scan radius
+        List<String> busRoutes = findBusRoutesNear(lat, lon, CONGESTION_SCAN_RADIUS_M);
+        List<String> tramLines = findTramLinesNear(lat, lon, CONGESTION_SCAN_RADIUS_M);
+
+        if (busRoutes.isEmpty() && tramLines.isEmpty()) {
+          log.debug("Congestion at site {} has no nearby transport — skipping", siteId);
+          continue;
         }
-      }
-    } catch (Exception e) {
-      log.warn("Car congestion disruption detection failed: {}", e.getMessage());
-    }
-    return count;
-  }
 
-  // ---------------------------------------------------------------------------
-  // EVENTS — large events can disrupt nearby transport
-  // ---------------------------------------------------------------------------
+        List<String> modes = new ArrayList<>();
+        if (!busRoutes.isEmpty()) modes.add("BUS");
+        if (!tramLines.isEmpty()) modes.add("TRAM");
 
-  private int detectEventDisruptions() {
-    int count = 0;
-    try {
-      List<com.trinity.hermes.indicators.events.entity.Events> events =
-          eventsRepository.findUpcomingEventsAtLargeVenues(
-              LARGE_EVENT_VENUE_CAPACITY_THRESHOLD,
-              org.springframework.data.domain.PageRequest.of(0, 20));
-
-      for (com.trinity.hermes.indicators.events.entity.Events ev : events) {
-        int capacity = ev.getVenue().getCapacity();
-        String area = ev.getVenueName() != null ? ev.getVenueName() : "Dublin";
-        // Severity by venue capacity:
-        //   CRITICAL ≥ 15000  (stadium-scale: Aviva, 3Arena, Croke Park)
-        //   HIGH     ≥ 5000   (large: RDS, Marlay Park)
-        //   MEDIUM   ≥ 2500   (mid-size: Bord Gáis, Gaiety)
-        //   LOW      ≥ 1000   (small: Vicar Street, Olympia, Ambassador)
-        String severity;
-        if (capacity >= 15000) {
-          severity = "CRITICAL";
-        } else if (capacity >= 5000) {
-          severity = "HIGH";
-        } else if (capacity >= 2500) {
-          severity = "MEDIUM";
-        } else {
-          severity = "LOW";
-        }
+        String area = "Traffic Site " + siteId;
+        String description = buildCongestionDescription(siteId, busRoutes, tramLines);
 
         if (processIfNewWithCoords(
-            "EVENT",
-            "BUS,TRAM,TRAIN",
+            "CONGESTION",
+            String.join(",", modes),
             area,
             severity,
             0,
-            ev.getSourceId() != null ? ev.getSourceId() : String.valueOf(ev.getId()),
-            ev.getLatitude(),
-            ev.getLongitude())) {
+            siteId,
+            lat,
+            lon,
+            busRoutes,
+            tramLines,
+            description)) {
           count++;
         }
       }
     } catch (Exception e) {
-      log.warn("Event disruption detection failed: {}", e.getMessage());
+      log.warn("Congestion disruption detection failed: {}", e.getMessage());
     }
     return count;
   }
 
   // ---------------------------------------------------------------------------
-  // TRAIN — detect stations with ≥3 late trains (lateMinutes > 10)
+  // TRAIN — ≥ 3 trains late > 10 min at the same station
   // ---------------------------------------------------------------------------
 
   private int detectTrainDisruptions() {
@@ -231,7 +236,6 @@ public class DisruptionDetectionService {
     try {
       List<TrainStationData> latest = trainStationDataRepository.findLatestPerStationTrain();
 
-      // Group by station, count how many trains are late there
       Map<String, List<TrainStationData>> byStation =
           latest.stream()
               .filter(
@@ -248,7 +252,6 @@ public class DisruptionDetectionService {
             entry.getValue().stream().mapToInt(TrainStationData::getLateMinutes).max().orElse(0);
         String severity = maxDelay > 30 ? "HIGH" : maxDelay > 20 ? "MEDIUM" : "LOW";
 
-        // Look up lat/lon from stations table
         com.trinity.hermes.indicators.train.entity.TrainStation station =
             trainStationRepository.findByStationCode(stationCode);
         Double lat = station != null ? station.getLat() : null;
@@ -270,27 +273,24 @@ public class DisruptionDetectionService {
   }
 
   // ---------------------------------------------------------------------------
-  // TRAM — detect delays directly from live tram_luas_forecasts
+  // TRAM — soonest tram at stop is overdue relative to expected frequency
   // ---------------------------------------------------------------------------
 
   private int detectTramDisruptions() {
     int count = 0;
     try {
       int hour = LocalTime.now(DUBLIN).getHour();
-      // Luas doesn't run between 01:00 and 05:59 — skip to avoid false positives
+      // Luas doesn't run between 01:00–05:59 — skip to avoid false positives
       if (hour >= 1 && hour < 6) return 0;
 
       List<TramLuasForecast> allForecasts = tramLuasForecastRepository.findAll();
-      // If no forecasts at all, data hasn't been loaded yet — don't fire
       if (allForecasts.isEmpty()) return 0;
 
       int expectedFreq = getTramExpectedFrequency(hour);
 
-      // Group forecasts by stop, then find the minimum due_mins per stop
       Map<String, List<TramLuasForecast>> byStop =
           allForecasts.stream().collect(Collectors.groupingBy(TramLuasForecast::getStopId));
 
-      // Build stop lookup for lat/lon and name
       Map<String, TramStop> stopMap =
           tramStopRepository.findAll().stream()
               .collect(Collectors.toMap(TramStop::getStopId, s -> s, (a, b) -> a));
@@ -298,7 +298,6 @@ public class DisruptionDetectionService {
       for (Map.Entry<String, List<TramLuasForecast>> entry : byStop.entrySet()) {
         String stopId = entry.getKey();
 
-        // Find the soonest tram at this stop
         java.util.OptionalInt minDue =
             entry.getValue().stream()
                 .filter(f -> f.getDueMins() != null)
@@ -334,25 +333,47 @@ public class DisruptionDetectionService {
   }
 
   // ---------------------------------------------------------------------------
-  // Helpers
+  // Spatial helpers — find affected transport near a location
+  // ---------------------------------------------------------------------------
+
+  /** Returns distinct bus route short names with stops within {@code radiusM} metres. */
+  List<String> findBusRoutesNear(double lat, double lon, int radiusM) {
+    try {
+      return busStopRepository.findRouteShortNamesNear(lat, lon, radiusM).stream()
+          .map(r -> r[1] != null ? r[1].toString() : null)
+          .filter(Objects::nonNull)
+          .distinct()
+          .sorted()
+          .collect(Collectors.toList());
+    } catch (Exception e) {
+      log.warn("Bus route lookup failed near ({}, {}): {}", lat, lon, e.getMessage());
+      return List.of();
+    }
+  }
+
+  /** Returns distinct Luas line names with stops within {@code radiusM} metres. */
+  List<String> findTramLinesNear(double lat, double lon, int radiusM) {
+    try {
+      return tramStopRepository.findStopsNear(lat, lon, radiusM).stream()
+          .map(r -> r[1] != null ? r[1].toString() : null)
+          .filter(Objects::nonNull)
+          .distinct()
+          .sorted()
+          .collect(Collectors.toList());
+    } catch (Exception e) {
+      log.warn("Tram stop lookup failed near ({}, {}): {}", lat, lon, e.getMessage());
+      return List.of();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dedup + request dispatch
   // ---------------------------------------------------------------------------
 
   /**
-   * Creates and processes a disruption only if no identical one was detected recently (dedup).
-   *
-   * @return true if a new disruption was created
+   * Full version used for congestion: pre-computed routes, stops, and description are passed
+   * through to the detection request.
    */
-  private boolean processIfNew(
-      String disruptionType,
-      String transportMode,
-      String affectedArea,
-      String severity,
-      int delayMinutes,
-      String sourceRef) {
-    return processIfNewWithCoords(
-        disruptionType, transportMode, affectedArea, severity, delayMinutes, sourceRef, null, null);
-  }
-
   @Transactional
   boolean processIfNewWithCoords(
       String disruptionType,
@@ -362,34 +383,29 @@ public class DisruptionDetectionService {
       int delayMinutes,
       String sourceRef,
       Double lat,
-      Double lon) {
+      Double lon,
+      List<String> affectedRoutes,
+      List<String> affectedStops,
+      String description) {
 
-    // Primary guard: never open a new record while an ACTIVE one already exists for the same
-    // type + area. This prevents repeated notifications for persistent disruptions (e.g. a bus
-    // route that stays delayed across many 5-min scheduler cycles).
     if (disruptionRepository.existsByDisruptionTypeAndAffectedAreaAndStatus(
         disruptionType, affectedArea, "ACTIVE")) {
       log.debug(
-          "Skipping: active disruption already exists: type={}, area={}",
-          disruptionType,
-          affectedArea);
+          "Skipping: active disruption exists: type={}, area={}", disruptionType, affectedArea);
       return false;
     }
 
-    // Secondary guard: dedup window catches the brief gap while a record is transitioning from
-    // DETECTED/ANALYZING to ACTIVE (i.e. not yet visible to the primary guard above).
     LocalDateTime dedupCutoff = LocalDateTime.now(DUBLIN).minusMinutes(DEDUP_WINDOW_MINUTES);
-    List<Disruption> recent =
-        disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
-            disruptionType, affectedArea, dedupCutoff);
-    if (!recent.isEmpty()) {
+    if (!disruptionRepository
+        .findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
+            disruptionType, affectedArea, dedupCutoff)
+        .isEmpty()) {
       log.debug("Skipping duplicate disruption: type={}, area={}", disruptionType, affectedArea);
       return false;
     }
 
-    // Skip LOW severity unless it's an event (events are always worth recording)
-    if ("LOW".equals(severity) && !"EVENT".equals(disruptionType)) {
-      log.debug("Skipping LOW severity non-event disruption: area={}", affectedArea);
+    if ("LOW".equals(severity)) {
+      log.debug("Skipping LOW severity disruption: area={}", affectedArea);
       return false;
     }
 
@@ -402,7 +418,10 @@ public class DisruptionDetectionService {
             delayMinutes,
             sourceRef,
             lat,
-            lon);
+            lon,
+            affectedRoutes,
+            affectedStops,
+            description);
 
     try {
       disruptionFacade.handleDisruptionDetection(request);
@@ -421,7 +440,9 @@ public class DisruptionDetectionService {
     }
   }
 
-  private DisruptionDetectionRequest buildRequest(
+  /** Convenience overload for delay disruptions (no pre-computed routes/stops). */
+  @Transactional
+  boolean processIfNewWithCoords(
       String disruptionType,
       String transportMode,
       String affectedArea,
@@ -430,12 +451,41 @@ public class DisruptionDetectionService {
       String sourceRef,
       Double lat,
       Double lon) {
+    return processIfNewWithCoords(
+        disruptionType,
+        transportMode,
+        affectedArea,
+        severity,
+        delayMinutes,
+        sourceRef,
+        lat,
+        lon,
+        List.of(),
+        List.of(),
+        null);
+  }
+
+  private DisruptionDetectionRequest buildRequest(
+      String disruptionType,
+      String transportMode,
+      String affectedArea,
+      String severity,
+      int delayMinutes,
+      String sourceRef,
+      Double lat,
+      Double lon,
+      List<String> affectedRoutes,
+      List<String> affectedStops,
+      String description) {
 
     DisruptionDetectionRequest req = new DisruptionDetectionRequest();
     req.setDisruptionType(disruptionType);
     req.setSeverity(severity);
     req.setAffectedArea(affectedArea);
-    req.setDescription(buildDescription(disruptionType, severity, affectedArea, delayMinutes));
+    req.setDescription(
+        description != null
+            ? description
+            : buildDescription(disruptionType, severity, affectedArea, delayMinutes));
     req.setDelayMinutes(delayMinutes > 0 ? delayMinutes : null);
     req.setLatitude(lat);
     req.setLongitude(lon);
@@ -444,7 +494,6 @@ public class DisruptionDetectionService {
     req.setEstimatedStartTime(LocalDateTime.now(DUBLIN));
     req.setEstimatedEndTime(LocalDateTime.now(DUBLIN).plusMinutes(estimateEndMinutes(severity)));
 
-    // Parse comma-separated transport modes
     List<String> modes = new ArrayList<>();
     if (transportMode != null) {
       for (String m : transportMode.split(",", -1)) {
@@ -452,25 +501,48 @@ public class DisruptionDetectionService {
       }
     }
     req.setAffectedTransportModes(modes);
-    req.setAffectedRoutes(List.of());
-    req.setAffectedStops(List.of());
+    req.setAffectedRoutes(new ArrayList<>(affectedRoutes));
+    req.setAffectedStops(new ArrayList<>(affectedStops));
 
     return req;
   }
+
+  // ---------------------------------------------------------------------------
+  // Description builders
+  // ---------------------------------------------------------------------------
 
   private String buildDescription(String type, String severity, String area, int delayMinutes) {
     return switch (type) {
       case "DELAY" ->
           String.format(
-              "%s bus delay detected in %s%s.",
+              "%s delay detected at %s%s.",
               severity,
               area,
-              delayMinutes > 0 ? " — estimated " + delayMinutes + " min average delay" : "");
-      case "CONGESTION" -> String.format("%s traffic congestion detected at %s.", severity, area);
-      case "EVENT" ->
-          String.format("Large event at %s may impact nearby transport services.", area);
-      default -> String.format("%s disruption detected in %s.", severity, area);
+              delayMinutes > 0 ? " — approximately " + delayMinutes + " min delay" : "");
+      case "TRAM_DISRUPTION" ->
+          String.format(
+              "Tram service disruption at %s — expected tram overdue by %d min.",
+              area, delayMinutes);
+      default -> String.format("%s disruption detected at %s.", severity, area);
     };
+  }
+
+  private String buildCongestionDescription(
+      String siteId, List<String> busRoutes, List<String> tramLines) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("High traffic congestion at site ").append(siteId).append(".");
+    if (!busRoutes.isEmpty()) {
+      sb.append(" Bus routes ")
+          .append(String.join(", ", busRoutes))
+          .append(" are affected — rerouting recommended.");
+    }
+    if (!tramLines.isEmpty()) {
+      sb.append(" Luas ")
+          .append(String.join("/", tramLines))
+          .append(" service delays likely — warning issued to operator.");
+    }
+    sb.append(" Nearby cycle docks may offer a passenger alternative.");
+    return sb.toString();
   }
 
   private int estimateEndMinutes(String severity) {

@@ -22,21 +22,23 @@ public interface BusLiveStopTimeUpdateRepository
       nativeQuery = true)
   Long countActiveDelays(@Param("thresholdSeconds") Integer thresholdSeconds);
 
+  /**
+   * For each route, find the stop with the worst current arrival delay. Returns [route_id, stop_id,
+   * stop_name, lat, lon, max_arrival_delay_seconds]. Only includes stops where max_arrival_delay
+   * exceeds the given threshold.
+   */
   @Query(
       value =
-          "SELECT stu.* FROM external_data.bus_live_trip_updates_stop_time_updates stu"
-              + " INNER JOIN external_data.bus_live_trip_updates tu"
-              + " ON stu.trip_update_entry_id = tu.entry_id",
-      nativeQuery = true)
-  List<BusLiveStopTimeUpdate> findRecentStopTimeUpdates();
-
-  // Returns [vehicle_id, arrival_delay, departure_delay] — used to index delays by vehicle_id
-  @Query(
-      value =
-          "SELECT tu.vehicle_id, stu.arrival_delay, stu.departure_delay"
+          "SELECT bt.route_id, bs.id AS stop_id, bs.name AS stop_name,"
+              + " bs.lat, bs.lon, MAX(stu.arrival_delay) AS max_delay"
               + " FROM external_data.bus_live_trip_updates_stop_time_updates stu"
-              + " INNER JOIN external_data.bus_live_trip_updates tu"
-              + " ON stu.trip_update_entry_id = tu.entry_id",
+              + " JOIN external_data.bus_live_trip_updates tu"
+              + "   ON stu.trip_update_entry_id = tu.entry_id"
+              + " JOIN external_data.bus_trips bt ON tu.trip_id = bt.id"
+              + " JOIN external_data.bus_stops bs ON stu.stop_id = bs.id"
+              + " WHERE stu.arrival_delay > :thresholdSeconds"
+              + " GROUP BY bt.route_id, bs.id, bs.name, bs.lat, bs.lon"
+              + " ORDER BY max_delay DESC",
       nativeQuery = true)
-  List<Object[]> findDelaysByVehicle();
+  List<Object[]> findWorstDelayedStopPerRoute(@Param("thresholdSeconds") int thresholdSeconds);
 }

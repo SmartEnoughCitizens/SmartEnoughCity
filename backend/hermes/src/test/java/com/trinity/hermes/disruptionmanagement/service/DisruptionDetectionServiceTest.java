@@ -1,6 +1,8 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -9,11 +11,9 @@ import static org.mockito.Mockito.when;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
-import com.trinity.hermes.indicators.bus.repository.BusRouteMetricsRepository;
+import com.trinity.hermes.indicators.bus.repository.BusLiveStopTimeUpdateRepository;
+import com.trinity.hermes.indicators.bus.repository.BusStopRepository;
 import com.trinity.hermes.indicators.car.repository.HighTrafficPointsRepository;
-import com.trinity.hermes.indicators.events.entity.Events;
-import com.trinity.hermes.indicators.events.entity.Venue;
-import com.trinity.hermes.indicators.events.repository.EventsRepository;
 import com.trinity.hermes.indicators.train.entity.TrainStation;
 import com.trinity.hermes.indicators.train.entity.TrainStationData;
 import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
@@ -22,9 +22,11 @@ import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
 import com.trinity.hermes.indicators.tram.entity.TramStop;
 import com.trinity.hermes.indicators.tram.repository.TramLuasForecastRepository;
 import com.trinity.hermes.indicators.tram.repository.TramStopRepository;
-import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,9 +40,9 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DisruptionDetectionServiceTest {
 
-  @Mock private BusRouteMetricsRepository busRouteMetricsRepository;
+  @Mock private BusLiveStopTimeUpdateRepository busLiveStopTimeUpdateRepository;
+  @Mock private BusStopRepository busStopRepository;
   @Mock private HighTrafficPointsRepository highTrafficPointsRepository;
-  @Mock private EventsRepository eventsRepository;
   @Mock private DisruptionRepository disruptionRepository;
   @Mock private DisruptionFacade disruptionFacade;
   @Mock private TrainStationDataRepository trainStationDataRepository;
@@ -52,16 +54,16 @@ class DisruptionDetectionServiceTest {
 
   @BeforeEach
   void stubCommonRepos() {
-    // Prevent NPE in bus/car/event/train/tram detection for tests that only care about one mode
-    when(busRouteMetricsRepository.findCandidatesForDisruptionDetection()).thenReturn(List.of());
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
-    when(eventsRepository.findUpcomingEventsAtLargeVenues(
-            org.mockito.ArgumentMatchers.anyInt(), any()))
+    when(busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(anyInt()))
         .thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation()).thenReturn(List.of());
     when(trainStationDataRepository.findLatestPerStationTrain()).thenReturn(List.of());
     when(tramLuasForecastRepository.findAll()).thenReturn(List.of());
     when(tramStopRepository.findAll()).thenReturn(List.of());
-    // Default: no active disruption and no recent duplicates
+    when(busStopRepository.findRouteShortNamesNear(anyDouble(), anyDouble(), anyInt()))
+        .thenReturn(List.of());
+    when(tramStopRepository.findStopsNear(anyDouble(), anyDouble(), anyInt()))
+        .thenReturn(List.of());
     when(disruptionRepository.existsByDisruptionTypeAndAffectedAreaAndStatus(
             anyString(), anyString(), anyString()))
         .thenReturn(false);
@@ -75,7 +77,7 @@ class DisruptionDetectionServiceTest {
   @Test
   void detectDisruptions_threeLateTrams_createsTrainDisruption() {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
-    TrainStationData late2 = lateTrainAt("CNLY", "E802", 22); // >20 → MEDIUM severity (not skipped)
+    TrainStationData late2 = lateTrainAt("CNLY", "E802", 22);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
     when(trainStationDataRepository.findLatestPerStationTrain())
         .thenReturn(List.of(late1, late2, late3));
@@ -97,7 +99,6 @@ class DisruptionDetectionServiceTest {
   void detectDisruptions_fewerThanThreeLateTrams_noTrainDisruption() {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 18);
-    // Only 2 late — below threshold of 3
     when(trainStationDataRepository.findLatestPerStationTrain()).thenReturn(List.of(late1, late2));
 
     service.detectDisruptions();
@@ -107,7 +108,6 @@ class DisruptionDetectionServiceTest {
 
   @Test
   void detectDisruptions_lateMinutesBelowThreshold_noTrainDisruption() {
-    // lateMinutes = 5 (below the 10-min threshold)
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 5);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 5);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 5);
@@ -121,11 +121,9 @@ class DisruptionDetectionServiceTest {
 
   @Test
   void detectDisruptions_multipleStations_onlyDisruptedStationTriggered() {
-    // CNLY: 3 late trains → disruption
     TrainStationData cnly1 = lateTrainAt("CNLY", "E801", 15);
-    TrainStationData cnly2 = lateTrainAt("CNLY", "E802", 21); // >20 → MEDIUM severity (not skipped)
+    TrainStationData cnly2 = lateTrainAt("CNLY", "E802", 21);
     TrainStationData cnly3 = lateTrainAt("CNLY", "E803", 12);
-    // PEAR: only 1 late train → no disruption
     TrainStationData pear1 = lateTrainAt("PEAR", "E901", 11);
 
     when(trainStationDataRepository.findLatestPerStationTrain())
@@ -135,7 +133,6 @@ class DisruptionDetectionServiceTest {
 
     service.detectDisruptions();
 
-    // Only one disruption (for CNLY) — PEAR doesn't meet the ≥3 threshold
     verify(disruptionFacade).handleDisruptionDetection(any());
   }
 
@@ -143,6 +140,10 @@ class DisruptionDetectionServiceTest {
 
   @Test
   void detectDisruptions_highDueMins_createsTramDisruption() {
+    // Tram detection skips 01:00–05:59 Dublin time (Luas not running). Skip test in that window.
+    int hour = LocalTime.now(ZoneId.of("Europe/Dublin")).getHour();
+    Assumptions.assumeTrue(hour < 1 || hour >= 6, "Skipping: tram early-return window (01–06)");
+
     // Off-peak: expected freq = 10 min. due_mins = 25 → delay = 15 ≥ threshold (10) → MEDIUM
     TramLuasForecast forecast = tramForecastAt("STS", "green", 25);
     when(tramLuasForecastRepository.findAll()).thenReturn(List.of(forecast));
@@ -176,7 +177,6 @@ class DisruptionDetectionServiceTest {
 
   @Test
   void detectDisruptions_noTramForecasts_noTramDisruption() {
-    // Empty forecasts — data not loaded yet, no false positives
     when(tramLuasForecastRepository.findAll()).thenReturn(List.of());
 
     service.detectDisruptions();
@@ -187,13 +187,11 @@ class DisruptionDetectionServiceTest {
   @Test
   void detectDisruptions_deduplication_skipsAlreadyDetectedDisruption() {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
-    TrainStationData late2 =
-        lateTrainAt("CNLY", "E802", 22); // >20 → MEDIUM, so dedup check is reached
+    TrainStationData late2 = lateTrainAt("CNLY", "E802", 22);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
     when(trainStationDataRepository.findLatestPerStationTrain())
         .thenReturn(List.of(late1, late2, late3));
 
-    // Simulate: a disruption for this station was already detected within the dedup window
     Disruption existing = new Disruption();
     existing.setId(99L);
     when(disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
@@ -205,6 +203,80 @@ class DisruptionDetectionServiceTest {
     service.detectDisruptions();
 
     verify(disruptionFacade, never()).handleDisruptionDetection(any());
+  }
+
+  // ── Congestion detection ───────────────────────────────────────────
+
+  @Test
+  void detectDisruptions_highVolumeSiteWithBusRoutes_createsCongestionDisruption() {
+    // [site_id, lat, lon, max_volume]
+    Object[] row = {"SITE_001", 53.3498, -6.2603, 2000L};
+    when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation())
+        .thenReturn(Collections.singletonList(row));
+
+    // Bus route 46A has a stop within radius
+    Object[] routeRow = {"route-46a", "46A"};
+    when(busStopRepository.findRouteShortNamesNear(anyDouble(), anyDouble(), anyInt()))
+        .thenReturn(Collections.singletonList(routeRow));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(
+                r ->
+                    "CONGESTION".equals(r.getDisruptionType())
+                        && r.getAffectedTransportModes().contains("BUS")
+                        && r.getAffectedRoutes().contains("46A")));
+  }
+
+  @Test
+  void detectDisruptions_highVolumeSiteNoNearbyTransport_noCongestionDisruption() {
+    Object[] row = {"SITE_002", 53.3498, -6.2603, 2000L};
+    when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation())
+        .thenReturn(Collections.singletonList(row));
+    // No bus routes or tram stops nearby — congestion has no transport impact
+    when(busStopRepository.findRouteShortNamesNear(anyDouble(), anyDouble(), anyInt()))
+        .thenReturn(List.of());
+    when(tramStopRepository.findStopsNear(anyDouble(), anyDouble(), anyInt()))
+        .thenReturn(List.of());
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade, never()).handleDisruptionDetection(any());
+  }
+
+  @Test
+  void detectDisruptions_volumeBelowThreshold_noCongestionDisruption() {
+    Object[] row = {"SITE_003", 53.3498, -6.2603, 500L}; // below 1500 threshold
+    when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation())
+        .thenReturn(Collections.singletonList(row));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade, never()).handleDisruptionDetection(any());
+  }
+
+  @Test
+  void detectDisruptions_congestionWithTramOnly_warnsTramNoRerouting() {
+    Object[] row = {"SITE_004", 53.3382, -6.2591, 1800L};
+    when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation())
+        .thenReturn(Collections.singletonList(row));
+    when(busStopRepository.findRouteShortNamesNear(anyDouble(), anyDouble(), anyInt()))
+        .thenReturn(List.of()); // no bus routes
+    Object[] tramRow = {"STS", "green", "St. Stephen's Green", 53.3382, -6.2591};
+    when(tramStopRepository.findStopsNear(anyDouble(), anyDouble(), anyInt()))
+        .thenReturn(Collections.singletonList(tramRow));
+
+    service.detectDisruptions();
+
+    verify(disruptionFacade)
+        .handleDisruptionDetection(
+            argThat(
+                r ->
+                    "CONGESTION".equals(r.getDisruptionType())
+                        && r.getAffectedTransportModes().contains("TRAM")
+                        && !r.getAffectedTransportModes().contains("BUS")));
   }
 
   // ── Helpers ────────────────────────────────────────────────────────
@@ -238,96 +310,6 @@ class DisruptionDetectionServiceTest {
     return s;
   }
 
-  // ── Event detection ────────────────────────────────────────────────
-
-  @Test
-  void detectDisruptions_venueCapacity21000_criticalSeverity() {
-    when(eventsRepository.findUpcomingEventsAtLargeVenues(
-            org.mockito.ArgumentMatchers.anyInt(), any()))
-        .thenReturn(List.of(eventAtVenue("Aviva Stadium", 21000)));
-
-    service.detectDisruptions();
-
-    verify(disruptionFacade)
-        .handleDisruptionDetection(
-            argThat(
-                r -> "EVENT".equals(r.getDisruptionType()) && "CRITICAL".equals(r.getSeverity())));
-  }
-
-  @Test
-  void detectDisruptions_venueCapacity6000_highSeverity() {
-    when(eventsRepository.findUpcomingEventsAtLargeVenues(
-            org.mockito.ArgumentMatchers.anyInt(), any()))
-        .thenReturn(List.of(eventAtVenue("RDS Arena", 6000)));
-
-    service.detectDisruptions();
-
-    verify(disruptionFacade)
-        .handleDisruptionDetection(
-            argThat(r -> "EVENT".equals(r.getDisruptionType()) && "HIGH".equals(r.getSeverity())));
-  }
-
-  @Test
-  void detectDisruptions_venueCapacity2600_mediumSeverity() {
-    when(eventsRepository.findUpcomingEventsAtLargeVenues(
-            org.mockito.ArgumentMatchers.anyInt(), any()))
-        .thenReturn(List.of(eventAtVenue("Bord Gáis Energy Theatre", 2600)));
-
-    service.detectDisruptions();
-
-    verify(disruptionFacade)
-        .handleDisruptionDetection(
-            argThat(
-                r -> "EVENT".equals(r.getDisruptionType()) && "MEDIUM".equals(r.getSeverity())));
-  }
-
-  @Test
-  void detectDisruptions_venueCapacity1200_lowSeverity_notSuppressed() {
-    // LOW severity is suppressed for non-EVENT types, but EVENT type is explicitly exempt.
-    when(eventsRepository.findUpcomingEventsAtLargeVenues(
-            org.mockito.ArgumentMatchers.anyInt(), any()))
-        .thenReturn(List.of(eventAtVenue("Vicar Street", 1200)));
-
-    service.detectDisruptions();
-
-    verify(disruptionFacade)
-        .handleDisruptionDetection(
-            argThat(r -> "EVENT".equals(r.getDisruptionType()) && "LOW".equals(r.getSeverity())));
-  }
-
-  @Test
-  void detectDisruptions_venueCapacity800_belowThreshold_noDisruption() {
-    // capacity 800 < LARGE_EVENT_VENUE_CAPACITY_THRESHOLD (1000) — query won't return it
-    when(eventsRepository.findUpcomingEventsAtLargeVenues(
-            org.mockito.ArgumentMatchers.anyInt(), any()))
-        .thenReturn(List.of()); // query filters it out
-
-    service.detectDisruptions();
-
-    verify(disruptionFacade, never()).handleDisruptionDetection(any());
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────
-
-  private Events eventAtVenue(String venueName, int capacity) {
-    Venue venue = new Venue();
-    venue.setId(1);
-    venue.setName(venueName);
-    venue.setCapacity(capacity);
-    venue.setLatitude(53.336);
-    venue.setLongitude(-6.229);
-
-    Events event = new Events();
-    event.setId(1);
-    event.setEventDate(LocalDate.now(ZoneId.of("Europe/Dublin")).plusDays(1));
-    event.setVenueName(venueName);
-    event.setLatitude(venue.getLatitude());
-    event.setLongitude(venue.getLongitude());
-    event.setVenue(venue);
-    return event;
-  }
-
-  /** Mockito argThat shorthand — avoids static import clash with assertThat. */
   private static <T> T argThat(org.mockito.ArgumentMatcher<T> matcher) {
     return org.mockito.ArgumentMatchers.argThat(matcher);
   }

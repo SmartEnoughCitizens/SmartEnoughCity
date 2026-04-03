@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { DisruptionBanner } from "@/components/disruption/DisruptionBanner";
+import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import {
   Box,
   Paper,
@@ -56,7 +56,7 @@ import type { TramLiveForecast } from "@/types";
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 
 type LineFilter = "" | "red" | "green";
-type PanelTab = "live" | "delays" | "hourly";
+type PanelTab = "live" | "delays" | "hourly" | "disruptions";
 
 const LINE_COLORS: Record<string, string> = {
   red: "#DC2626",
@@ -292,6 +292,7 @@ export const TramDashboard = () => {
     center: [number, number];
     id: number;
   } | null>(null);
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<number | null>(null);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
 
   const theme = useAppSelector((state) => state.ui.theme);
@@ -441,11 +442,6 @@ const AlternativesSection = ({ stopId }: { stopId: string }) => {
         bgcolor: "#0d1117",
       }}
     >
-      {/* Disruption alert banner */}
-      <Box sx={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 1100, width: "fit-content", minWidth: 300, maxWidth: 520 }}>
-        <DisruptionBanner mode="TRAM" />
-      </Box>
-
       {/* ── Full-viewport map ── */}
       <Box sx={{ height: "100%", width: "100%" }}>
         <MapContainer
@@ -702,6 +698,7 @@ const AlternativesSection = ({ stopId }: { stopId: string }) => {
                   count: filteredDelays.length,
                 },
                 { key: "hourly", label: "Hourly", count: null },
+                { key: "disruptions", label: "Disruptions", count: null },
               ] as { key: PanelTab; label: string; count: number | null }[]
             ).map(({ key, label, count }) => {
               const active = activeTab === key;
@@ -857,6 +854,20 @@ const AlternativesSection = ({ stopId }: { stopId: string }) => {
             </Box>
           ) : (
             <Box sx={{ flex: 1, overflow: "auto" }}>
+              {/* ── DISRUPTIONS TAB ── */}
+              {activeTab === "disruptions" && (
+                <DisruptionsTabContent
+                  mode="TRAM"
+                  selectedId={selectedDisruptionId}
+                  onSelect={(d) => {
+                    setSelectedDisruptionId(d.id);
+                    if (d.latitude != null && d.longitude != null) {
+                      setFlyTarget({ center: [d.latitude, d.longitude], id: Date.now() });
+                    }
+                  }}
+                />
+              )}
+
               {/* ── LIVE FORECASTS LIST ── */}
               {activeTab === "live" &&
                 filteredForecasts.map((f, idx) => {

@@ -120,9 +120,11 @@ function FlyToSelected({
 interface Props {
   disruptions: ActiveDisruption[];
   selectedId?: number | null;
+  onMarkerClick?: (id: number) => void;
+  darkTiles?: boolean;
 }
 
-export const NetworkImpactMap = ({ disruptions, selectedId = null }: Props) => {
+export const NetworkImpactMap = ({ disruptions, selectedId = null, onMarkerClick, darkTiles = false }: Props) => {
   const mappable = disruptions.filter(
     (d) => d.latitude != null && d.longitude != null,
   );
@@ -145,8 +147,16 @@ export const NetworkImpactMap = ({ disruptions, selectedId = null }: Props) => {
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={
+            darkTiles
+              ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+              : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          }
+          url={
+            darkTiles
+              ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          }
         />
 
         <FlyToSelected disruptions={mappable} selectedId={selectedId} />
@@ -159,6 +169,7 @@ export const NetworkImpactMap = ({ disruptions, selectedId = null }: Props) => {
               key={d.id}
               position={[d.latitude!, d.longitude!]}
               icon={makeDivIcon(d.severity, isSelected)}
+              eventHandlers={onMarkerClick ? { click: () => onMarkerClick(d.id) } : undefined}
             >
               <Popup>
                 <Box sx={{ minWidth: 180 }}>

@@ -28,14 +28,14 @@ public class AlternativeTransportRepository {
               bs.lon,
               NULL::integer   AS available_bikes,
               NULL::integer   AS capacity,
-              EARTH_DISTANCE(
-                  LL_TO_EARTH(:lat, :lon),
-                  LL_TO_EARTH(bs.lat, bs.lon)
+              public.EARTH_DISTANCE(
+                  public.LL_TO_EARTH(:lat, :lon),
+                  public.LL_TO_EARTH(bs.lat, bs.lon)
               )::integer      AS distance_m
           FROM external_data.bus_stops bs
-          WHERE EARTH_DISTANCE(
-              LL_TO_EARTH(:lat, :lon),
-              LL_TO_EARTH(bs.lat, bs.lon)
+          WHERE public.EARTH_DISTANCE(
+              public.LL_TO_EARTH(:lat, :lon),
+              public.LL_TO_EARTH(bs.lat, bs.lon)
           ) <= :radius_m
       ),
       rail AS (
@@ -47,14 +47,14 @@ public class AlternativeTransportRepository {
               rs.lon,
               NULL::integer        AS available_bikes,
               NULL::integer        AS capacity,
-              EARTH_DISTANCE(
-                  LL_TO_EARTH(:lat, :lon),
-                  LL_TO_EARTH(rs.lat, rs.lon)
+              public.EARTH_DISTANCE(
+                  public.LL_TO_EARTH(:lat, :lon),
+                  public.LL_TO_EARTH(rs.lat, rs.lon)
               )::integer           AS distance_m
           FROM external_data.irish_rail_stations rs
-          WHERE EARTH_DISTANCE(
-              LL_TO_EARTH(:lat, :lon),
-              LL_TO_EARTH(rs.lat, rs.lon)
+          WHERE public.EARTH_DISTANCE(
+              public.LL_TO_EARTH(:lat, :lon),
+              public.LL_TO_EARTH(rs.lat, rs.lon)
           ) <= :radius_m
       ),
       bikes AS (
@@ -66,9 +66,9 @@ public class AlternativeTransportRepository {
               dbs.longitude::double precision    AS lon,
               snap.available_bikes,
               dbs.capacity,
-              EARTH_DISTANCE(
-                  LL_TO_EARTH(:lat, :lon),
-                  LL_TO_EARTH(
+              public.EARTH_DISTANCE(
+                  public.LL_TO_EARTH(:lat, :lon),
+                  public.LL_TO_EARTH(
                       dbs.latitude::double precision,
                       dbs.longitude::double precision
                   )
@@ -81,9 +81,9 @@ public class AlternativeTransportRepository {
               WHERE is_renting = true
               ORDER BY station_id, timestamp DESC
           ) snap ON snap.station_id = dbs.station_id
-          WHERE EARTH_DISTANCE(
-              LL_TO_EARTH(:lat, :lon),
-              LL_TO_EARTH(
+          WHERE public.EARTH_DISTANCE(
+              public.LL_TO_EARTH(:lat, :lon),
+              public.LL_TO_EARTH(
                   dbs.latitude::double precision,
                   dbs.longitude::double precision
               )
@@ -126,9 +126,9 @@ public class AlternativeTransportRepository {
                 str(r[2]), // stop_name
                 toDouble(r[3]), // lat
                 toDouble(r[4]), // lon
-                toInt(r[6]), // available_bikes (nullable)
-                toInt(r[7]), // capacity (nullable)
-                toInt(r[8]) // distance_m
+                toInt(r[5]), // available_bikes (nullable)
+                toInt(r[6]), // capacity (nullable)
+                toInt(r[7]) // distance_m
                 ));
       }
       return results;

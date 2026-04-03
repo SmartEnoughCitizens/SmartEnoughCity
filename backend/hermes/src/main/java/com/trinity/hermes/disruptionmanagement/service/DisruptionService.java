@@ -26,7 +26,7 @@ public class DisruptionService {
 
   public List<DisruptionResponse> getAllDisruptions() {
     return disruptionRepository.findAll().stream()
-        .map(this::mapToResponse)
+        .map(this::mapToSummary)
         .collect(Collectors.toList());
   }
 
@@ -61,6 +61,32 @@ public class DisruptionService {
       return true;
     }
     return false;
+  }
+
+  /** Lightweight summary used for list endpoints — no N+1 causes/alternatives queries. */
+  public DisruptionResponse mapToSummary(Disruption disruption) {
+    LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin"));
+    return DisruptionResponse.builder()
+        .id(disruption.getId())
+        .name(disruption.getName())
+        .description(disruption.getDescription())
+        .status(disruption.getStatus())
+        .severity(disruption.getSeverity())
+        .disruptionType(disruption.getDisruptionType())
+        .affectedTransportModes(disruption.getAffectedTransportModes())
+        .affectedRoutes(disruption.getAffectedRoutes())
+        .affectedArea(disruption.getAffectedArea())
+        .latitude(disruption.getLatitude())
+        .longitude(disruption.getLongitude())
+        .detectedAt(disruption.getDetectedAt())
+        .estimatedEndTime(disruption.getEstimatedEndTime())
+        .delayMinutes(disruption.getDelayMinutes())
+        .notificationSent(disruption.getNotificationSent())
+        .createdAt(disruption.getDetectedAt() != null ? disruption.getDetectedAt() : now)
+        .updatedAt(now)
+        .causes(List.of())
+        .alternatives(List.of())
+        .build();
   }
 
   public DisruptionResponse mapToResponse(Disruption disruption) {
