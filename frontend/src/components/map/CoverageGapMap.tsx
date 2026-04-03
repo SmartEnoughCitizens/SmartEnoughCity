@@ -3,7 +3,7 @@
  * with a simulation mode to place proposed stations and see instant impact.
  */
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -96,9 +96,16 @@ function MapClickHandler({
   active: boolean;
   onPlace: (lat: number, lon: number) => void;
 }) {
+  // react-leaflet v5 registers handlers once on mount (empty-deps useEffect),
+  // so we must use refs to always read the latest prop values.
+  const activeRef = useRef(active);
+  const onPlaceRef = useRef(onPlace);
+  activeRef.current = active;
+  onPlaceRef.current = onPlace;
+
   useMapEvents({
     click(e) {
-      if (active) onPlace(e.latlng.lat, e.latlng.lng);
+      if (activeRef.current) onPlaceRef.current(e.latlng.lat, e.latlng.lng);
     },
   });
   return null;
@@ -816,10 +823,11 @@ export const CoverageGapMap = ({
 
           return (
             <Fragment key={g.electoralDivision}>
-              {/* Halo */}
+              {/* Halo — decorative only, must not absorb clicks */}
               <CircleMarker
                 center={[g.centroidLat, g.centroidLon]}
                 radius={improved ? 32 : 26}
+                interactive={false}
                 pathOptions={{
                   fillColor: color,
                   fillOpacity: improved ? 0.3 : 0.2,
@@ -917,6 +925,7 @@ export const CoverageGapMap = ({
             <CircleMarker
               center={[lat, lon]}
               radius={22}
+              interactive={false}
               pathOptions={{
                 fillColor: "#3b82f6",
                 fillOpacity: 0.15,
