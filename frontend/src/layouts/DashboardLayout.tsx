@@ -402,156 +402,165 @@ export const DashboardLayout = () => {
         </Menu>
       </Box>
 
-      {/* Main content — full bleed for map pages */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          height: "100vh",
-          overflow: "hidden",
-          position: "relative",
-        }}
-      >
-        {/* Overview Dashboard — City_Manager only */}
-        {canSeeView.overview && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "overview" ? "visible" : "hidden",
-              opacity: activeView === "overview" ? 1 : 0,
-              pointerEvents: activeView === "overview" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <Dashboard />
-          </Box>
-        )}
-
-        {/* Bus Dashboard */}
-        {canSeeView.bus && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "bus" ? "visible" : "hidden",
-              opacity: activeView === "bus" ? 1 : 0,
-              pointerEvents: activeView === "bus" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <BusDashboard />
-          </Box>
-        )}
-
-        {/* Cycle Dashboard */}
-        {canSeeView.cycle && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "cycle" ? "visible" : "hidden",
-              opacity: activeView === "cycle" ? 1 : 0,
-              pointerEvents: activeView === "cycle" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <CycleDashboard />
-          </Box>
-        )}
-
-        {/* Car Dashboard */}
-        {canSeeView.car && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "car" ? "visible" : "hidden",
-              opacity: activeView === "car" ? 1 : 0,
-              pointerEvents: activeView === "car" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <CarDashboard />
-          </Box>
-        )}
-
-        {/* Train Dashboard */}
-        {canSeeView.train && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "train" ? "visible" : "hidden",
-              opacity: activeView === "train" ? 1 : 0,
-              pointerEvents: activeView === "train" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <TrainDashboard />
-          </Box>
-        )}
-
-        {/* Tram Dashboard */}
-        {canSeeView.tram && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "tram" ? "visible" : "hidden",
-              opacity: activeView === "tram" ? 1 : 0,
-              pointerEvents: activeView === "tram" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <TramDashboard />
-          </Box>
-        )}
-
-        {/* Misc Dashboard (Events & Pedestrians) — all authenticated users */}
+        {/* Main content — full bleed for map pages */}
         <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            visibility: activeView === "misc" ? "visible" : "hidden",
-            opacity: activeView === "misc" ? 1 : 0,
-            pointerEvents: activeView === "misc" ? "auto" : "none",
-            transition: "opacity 0.15s ease-in-out",
-          }}
-        >
-          <MiscDashboard />
-        </Box>
-
-        {/* Notifications Page — all authenticated users */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            visibility: activeView === "notifications" ? "visible" : "hidden",
-            opacity: activeView === "notifications" ? 1 : 0,
-            pointerEvents: activeView === "notifications" ? "auto" : "none",
-            transition: "opacity 0.15s ease-in-out",
-          }}
-        >
-          <NotificationsPage />
-        </Box>
-
-        {/* User Management Page */}
-        {canManageUsers && (
-          <Box
+            component="main"
             sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "users" ? "visible" : "hidden",
-              opacity: activeView === "users" ? 1 : 0,
-              pointerEvents: activeView === "users" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
+                flexGrow: 1,
+                height: "100vh",
+                overflow: "hidden",
+                position: "relative",
             }}
-          >
-            <UserManagementPage />
-          </Box>
-        )}
-      </Box>
+        >
+            {/* Overview Dashboard — City_Manager only */}
+            {canSeeView.overview && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: activeView === "overview" ? 2 : 1,
+                        visibility: activeView === "overview" ? "visible" : "hidden",
+                        opacity: activeView === "overview" ? 1 : 0,
+                        pointerEvents: activeView === "overview" ? "auto" : "none",
+                        transition: "opacity 0.15s ease-in-out",
+                    }}
+                >
+                    <Dashboard />
+                </Box>
+            )}
+
+            {/* Bus Dashboard */}
+            {canSeeView.bus && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: activeView === "bus" ? 2 : 1,
+                        visibility: activeView === "bus" ? "visible" : "hidden",
+                        opacity: activeView === "bus" ? 1 : 0,
+                        pointerEvents: activeView === "bus" ? "auto" : "none",
+                        transition: "opacity 0.15s ease-in-out",
+                    }}
+                >
+                    <BusDashboard />
+                </Box>
+            )}
+
+            {/* Cycle Dashboard */}
+            {canSeeView.cycle && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: activeView === "cycle" ? 2 : 1,
+                        visibility: activeView === "cycle" ? "visible" : "hidden",
+                        opacity: activeView === "cycle" ? 1 : 0,
+                        pointerEvents: activeView === "cycle" ? "auto" : "none",
+                        transition: "opacity 0.15s ease-in-out",
+                    }}
+                >
+                    <CycleDashboard />
+                </Box>
+            )}
+
+            {/* Car Dashboard */}
+            {canSeeView.car && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: activeView === "car" ? 2 : 1,
+                        visibility: activeView === "car" ? "visible" : "hidden",
+                        opacity: activeView === "car" ? 1 : 0,
+                        pointerEvents: activeView === "car" ? "auto" : "none",
+                        transition: "opacity 0.15s ease-in-out",
+                    }}
+                >
+                    <CarDashboard />
+                </Box>
+            )}
+
+            {/* Train Dashboard */}
+            {canSeeView.train && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: activeView === "train" ? 2 : 1,
+                        visibility: activeView === "train" ? "visible" : "hidden",
+                        opacity: activeView === "train" ? 1 : 0,
+                        pointerEvents: activeView === "train" ? "auto" : "none",
+                        transition: "opacity 0.15s ease-in-out",
+                    }}
+                >
+                    <TrainDashboard />
+                </Box>
+            )}
+
+            {/* Tram Dashboard */}
+            {canSeeView.tram && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: activeView === "tram" ? 2 : 1,
+                        visibility: activeView === "tram" ? "visible" : "hidden",
+                        opacity: activeView === "tram" ? 1 : 0,
+                        pointerEvents: activeView === "tram" ? "auto" : "none",
+                        transition: "opacity 0.15s ease-in-out",
+                    }}
+                >
+                    <TramDashboard />
+                </Box>
+            )}
+
+            {/* Misc Dashboard */}
+            <Box
+                sx={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: activeView === "misc" ? 2 : 1,
+                    visibility: activeView === "misc" ? "visible" : "hidden",
+                    opacity: activeView === "misc" ? 1 : 0,
+                    pointerEvents: activeView === "misc" ? "auto" : "none",
+                    transition: "opacity 0.15s ease-in-out",
+                }}
+            >
+                <MiscDashboard />
+            </Box>
+
+            {/* Notifications Page */}
+            <Box
+                sx={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: activeView === "notifications" ? 2 : 1,
+                    visibility: activeView === "notifications" ? "visible" : "hidden",
+                    opacity: activeView === "notifications" ? 1 : 0,
+                    pointerEvents: activeView === "notifications" ? "auto" : "none",
+                    transition: "opacity 0.15s ease-in-out",
+                }}
+            >
+                <NotificationsPage />
+            </Box>
+
+            {/* User Management Page */}
+            {canManageUsers && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: activeView === "users" ? 2 : 1,
+                        visibility: activeView === "users" ? "visible" : "hidden",
+                        opacity: activeView === "users" ? 1 : 0,
+                        pointerEvents: activeView === "users" ? "auto" : "none",
+                        transition: "opacity 0.15s ease-in-out",
+                    }}
+                >
+                    <UserManagementPage />
+                </Box>
+            )}
+        </Box>
 
       <EditProfileDialog
         open={editProfileOpen}
