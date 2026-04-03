@@ -75,9 +75,10 @@ class DataSourcesSettings(BaseSettings):
     )
 
     # Population data URLs
-    population_boundaries_url: str = Field(
-        "https://data-osi.opendata.arcgis.com/api/download/v1/items/9472cff586d74f2ba3c240d4344c5720/geojson?layers=0",
-        alias="POPULATION_BOUNDARIES_URL",
+    # ArcGIS Feature Service query endpoint (synchronous, paginated)
+    population_boundaries_feature_service_url: str = Field(
+        "https://services-eu1.arcgis.com/BuS9rtTsYEV5C0xh/arcgis/rest/services/SMALL_AREA_2022_Genralised_20m_view/FeatureServer/0/query",
+        alias="POPULATION_BOUNDARIES_FEATURE_SERVICE_URL",
     )
     population_census_url: str = Field(
         "https://www.cso.ie/en/media/csoie/census/census2022/SAPS_2022_Small_Area_UR_171024.csv",

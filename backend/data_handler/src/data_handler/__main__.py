@@ -43,6 +43,7 @@ from data_handler.tram.static_data_handler import process_tram_static_data
 from data_handler.urls import (
     delete_static_data,
     download_and_extract_zip,
+    download_arcgis_feature_service_geojson,
     download_file,
     download_google_drive_folder,
 )
@@ -141,9 +142,6 @@ def main_1_month() -> None:
 
 
 def _run_bus_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
-    if not settings.enable_bus_data:
-        logger.info("Skipping bus static data...")
-        return
     bus_dir = str(settings.base_static_data_dir / "bus")
     download_and_extract_zip(settings.bus_gtfs_static_zip_url, bus_dir)
     process_bus_static_data(settings.base_static_data_dir / "bus")
@@ -151,8 +149,8 @@ def _run_bus_static(settings: DataSourcesSettings, logger: logging.Logger) -> No
 
 
 def _run_car_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
-    if not settings.enable_car_data or not settings.car_gdrive_folder_id:
-        logger.info("Skipping car static data...")
+    if not settings.car_gdrive_folder_id:
+        logger.info("Skipping car static data (CAR_GDRIVE_FOLDER_ID not set).")
         return
     car_dir = str(settings.base_static_data_dir / "car")
     download_google_drive_folder(settings.car_gdrive_folder_id, car_dir)
@@ -161,9 +159,6 @@ def _run_car_static(settings: DataSourcesSettings, logger: logging.Logger) -> No
 
 
 def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
-    if not settings.enable_train_data:
-        logger.info("Skipping train static data...")
-        return
     train_dir = str(settings.base_static_data_dir / "train")
     download_and_extract_zip(settings.train_gtfs_zip_url, train_dir)
     process_train_static_data(settings.base_static_data_dir / "train")
@@ -183,9 +178,6 @@ def _run_train_static(settings: DataSourcesSettings, logger: logging.Logger) -> 
 
 
 def _run_tram_static(settings: DataSourcesSettings, logger: logging.Logger) -> None:
-    if not settings.enable_tram_data:
-        logger.info("Skipping tram static data...")
-        return
     tram_dir = settings.base_static_data_dir / "tram"
     tram_dir_str = str(tram_dir)
     download_and_extract_zip(settings.tram_gtfs_zip_url, tram_dir_str)
@@ -215,14 +207,13 @@ def _run_public_spaces(settings: DataSourcesSettings, logger: logging.Logger) ->
 def _run_population_static(
     settings: DataSourcesSettings, logger: logging.Logger
 ) -> None:
-    if not settings.enable_population_data:
-        logger.info("Skipping population static data...")
-        return
     population_dir = settings.base_static_data_dir / "population"
     population_dir.mkdir(parents=True, exist_ok=True)
-    download_file(
-        settings.population_boundaries_url,
+    download_arcgis_feature_service_geojson(
+        settings.population_boundaries_feature_service_url,
         str(population_dir / "small_area_boundaries_2022.geojson"),
+        where="COUNTY_ENGLISH IN ('DUBLIN CITY','SOUTH DUBLIN')",
+        out_fields="SA_PUB2022,COUNTY_ENGLISH",
     )
     download_file(
         settings.population_census_url,
@@ -236,9 +227,12 @@ def main_static() -> None:
     logger = logging.getLogger(__name__)
     logger.info("=== [static interval] ===")
     settings = get_data_sources_settings()
-    _run_car_static(settings, logger)
-    _run_population_static(settings, logger)
-    logger.info("Finished processing static data.")
+    if settings.enable_car_data:
+        _run_handler(logger, "car_static", lambda: _run_car_static(settings, logger))
+    if settings.enable_population_data:
+        _run_handler(
+            logger, "population_static", lambda: _run_population_static(settings, logger)
+        )
 
 
 def main() -> None:

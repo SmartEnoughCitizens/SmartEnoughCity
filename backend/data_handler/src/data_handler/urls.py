@@ -1,3 +1,4 @@
+import json
 import logging
 import shutil
 import tempfile
@@ -79,6 +80,62 @@ def download_google_drive_folder(folder_id: str, download_dir: str) -> str:
     logger.info("Downloading Google Drive folder %s to %s ...", folder_id, download_dir)
     gdown.download_folder(url, output=download_dir, quiet=False, use_cookies=False)
     return download_dir
+
+
+def download_arcgis_feature_service_geojson(
+    query_url: str,
+    dest_path: str,
+    where: str = "1=1",
+    out_fields: str = "*",
+) -> None:
+    """
+    Downloads all features from an ArcGIS Feature Service layer and saves them
+    as a GeoJSON FeatureCollection, handling server-side pagination automatically.
+
+    Args:
+        query_url: ArcGIS Feature Service query endpoint URL
+                   (e.g. ".../FeatureServer/0/query")
+        dest_path: Full local path to save the merged GeoJSON file
+        where: SQL where clause to filter features (default: all)
+        out_fields: Comma-separated list of fields to include (default: all)
+    """
+    logger.info("Fetching ArcGIS feature service: %s (where=%s)", query_url, where)
+
+    all_features: list[dict] = []
+    offset = 0
+    page_size = 1000
+
+    while True:
+        params = {
+            "where": where,
+            "outFields": out_fields,
+            "f": "geojson",
+            "resultOffset": offset,
+            "resultRecordCount": page_size,
+            "returnGeometry": "true",
+        }
+        response = requests.get(query_url, params=params, timeout=_DOWNLOAD_TIMEOUT)
+        response.raise_for_status()
+        page = response.json()
+
+        features = page.get("features", [])
+        all_features.extend(features)
+        logger.info("  fetched %d features (total so far: %d)", len(features), len(all_features))
+
+        if len(features) < page_size:
+            break
+        offset += page_size
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": all_features,
+    }
+
+    dest = Path(dest_path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("w", encoding="utf-8") as f:
+        json.dump(geojson, f)
+    logger.info("  + %s (%d features)", dest.name, len(all_features))
 
 
 def delete_static_data(download_dir: str) -> None:
