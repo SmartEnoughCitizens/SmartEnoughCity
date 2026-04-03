@@ -409,6 +409,7 @@ export const CycleDashboard = () => {
                 gaps={coverageGaps ?? []}
                 acceptedProposals={acceptedProposals ?? []}
                 isLoading={coverageLoading}
+                isCycleAdmin={roles.includes("Cycle_Admin") && !roles.includes("City_Manager")}
               />
             )}
           </Box>
