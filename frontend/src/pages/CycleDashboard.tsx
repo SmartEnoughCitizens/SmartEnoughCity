@@ -235,6 +235,7 @@ export const CycleDashboard = () => {
             transform: "translateX(-50%)",
             zIndex: 1000,
             borderRadius: 2,
+            pointerEvents: "none",
           }}
         >
           Failed to load cycle station data
