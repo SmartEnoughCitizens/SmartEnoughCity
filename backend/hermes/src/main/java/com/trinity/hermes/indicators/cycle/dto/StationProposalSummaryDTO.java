@@ -26,4 +26,7 @@ public class StationProposalSummaryDTO {
 
   private String reviewedBy;
   private String reviewedAt;
+
+  /** Implementation lifecycle: PLANNED | IN_PROGRESS | COMPLETED */
+  private String implementationStatus;
 }
