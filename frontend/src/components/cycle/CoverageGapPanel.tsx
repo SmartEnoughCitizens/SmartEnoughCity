@@ -13,7 +13,8 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
-import type { CoverageCategory, CoverageGapDTO } from "@/types";
+import AddLocationAltIcon from "@mui/icons-material/AddLocationAlt";
+import type { CoverageCategory, CoverageGapDTO, StationProposalSummary } from "@/types";
 
 function gapPriority(g: CoverageGapDTO): number {
   const order: Record<CoverageCategory, number> = {
@@ -195,9 +196,54 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
   );
 }
 
+// ── Planned proposal card ──────────────────────────────────────────────────────
+
+function PlannedProposalCard({ proposal }: { proposal: StationProposalSummary }) {
+  const acceptedDate = proposal.reviewedAt
+    ? new Date(proposal.reviewedAt).toLocaleDateString()
+    : proposal.submittedAt
+      ? new Date(proposal.submittedAt).toLocaleDateString()
+      : null;
+
+  return (
+    <Box
+      sx={{
+        px: 1.5,
+        py: 1.25,
+        borderLeft: "3px solid #22c55e",
+        bgcolor: "background.paper",
+        "&:hover": { bgcolor: "action.hover" },
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 0.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1, mr: 1 }}>
+          <AddLocationAltIcon sx={{ fontSize: "0.85rem", color: "#22c55e", flexShrink: 0 }} />
+          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+            {proposal.stationCount} proposed station{proposal.stationCount !== 1 ? "s" : ""}
+          </Typography>
+        </Box>
+        <Chip
+          size="small"
+          icon={<TaskAltIcon sx={{ fontSize: "0.7rem !important" }} />}
+          label="Planned"
+          sx={{ fontSize: "0.65rem", height: 20, color: "#16a34a", bgcolor: "#dcfce7" }}
+        />
+      </Box>
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+        {proposal.improvedAreaCount} area{proposal.improvedAreaCount !== 1 ? "s" : ""} improved
+        {proposal.reviewedBy ? ` · Accepted by ${proposal.reviewedBy}` : ""}
+        {acceptedDate ? ` on ${acceptedDate}` : ""}
+      </Typography>
+      <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem" }}>
+        Submitted by {proposal.submittedBy} ({proposal.submittedByRole})
+      </Typography>
+    </Box>
+  );
+}
+
 // ── Summary row ────────────────────────────────────────────────────────────────
 
-function CoverageSummaryRow({ gaps }: { gaps: CoverageGapDTO[] }) {
+function CoverageSummaryRow({ gaps, plannedCount }: { gaps: CoverageGapDTO[]; plannedCount: number }) {
   const noCoverage = gaps.filter(
     (g) => g.coverageCategory === "NO_COVERAGE",
   ).length;
@@ -208,7 +254,6 @@ function CoverageSummaryRow({ gaps }: { gaps: CoverageGapDTO[] }) {
     (g) => g.coverageCategory === "PARTIAL_COVERAGE",
   ).length;
   const adequate = gaps.filter((g) => g.coverageCategory === "ADEQUATE").length;
-  const planned = gaps.filter((g) => g.processedForImplementation).length;
   const affectedDwellings = gaps
     .filter(
       (g) => g.coverageCategory !== "ADEQUATE" && !g.processedForImplementation,
@@ -231,7 +276,7 @@ function CoverageSummaryRow({ gaps }: { gaps: CoverageGapDTO[] }) {
         { count: poorCoverage, label: "Poor Coverage", color: "#f97316" },
         { count: partialCoverage, label: "Partial", color: "#eab308" },
         { count: adequate, label: "Adequate", color: "#22c55e" },
-        { count: planned, label: "Planned", color: "#64748b" },
+        { count: plannedCount, label: "Planned", color: "#16a34a" },
       ].map(({ count, label, color }) => (
         <Box key={label} sx={{ textAlign: "center" }}>
           <Typography
@@ -268,10 +313,11 @@ function CoverageSummaryRow({ gaps }: { gaps: CoverageGapDTO[] }) {
 
 interface Props {
   gaps: CoverageGapDTO[];
+  acceptedProposals: StationProposalSummary[];
   isLoading: boolean;
 }
 
-export function CoverageGapPanel({ gaps, isLoading }: Props) {
+export function CoverageGapPanel({ gaps, acceptedProposals, isLoading }: Props) {
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -306,9 +352,29 @@ export function CoverageGapPanel({ gaps, isLoading }: Props) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <CoverageSummaryRow gaps={gaps} />
+      <CoverageSummaryRow gaps={gaps} plannedCount={acceptedProposals.length} />
       <Divider />
       <Box sx={{ flex: 1, overflow: "auto" }}>
+        {acceptedProposals.length > 0 && (
+          <>
+            <Box sx={{ px: 1.5, py: 0.75, bgcolor: "action.hover" }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                sx={{ color: "#16a34a", fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}
+              >
+                Planned ({acceptedProposals.length})
+              </Typography>
+            </Box>
+            {acceptedProposals.map((p, i) => (
+              <Box key={p.id}>
+                {i > 0 && <Divider />}
+                <PlannedProposalCard proposal={p} />
+              </Box>
+            ))}
+            <Divider />
+          </>
+        )}
         {sorted.map((gap, i) => (
           <Box key={gap.electoralDivision}>
             {i > 0 && <Divider />}
