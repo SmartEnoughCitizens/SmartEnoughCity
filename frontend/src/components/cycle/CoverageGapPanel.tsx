@@ -3,6 +3,8 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  MenuItem,
+  Select,
   Stack,
   Tooltip,
   Typography,
@@ -15,6 +17,7 @@ import ApartmentIcon from "@mui/icons-material/Apartment";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import AddLocationAltIcon from "@mui/icons-material/AddLocationAlt";
 import type { CoverageCategory, CoverageGapDTO, StationProposalSummary } from "@/types";
+import { useUpdateImplementationStatus } from "@/hooks";
 
 function gapPriority(g: CoverageGapDTO): number {
   const order: Record<CoverageCategory, number> = {
@@ -196,9 +199,26 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
   );
 }
 
+// ── Implementation status config ──────────────────────────────────────────────
+
+const IMPL_STATUS_META = {
+  PLANNED:     { label: "Planned",     color: "#64748b", bg: "#f1f5f9" },
+  IN_PROGRESS: { label: "In Progress", color: "#3b82f6", bg: "#eff6ff" },
+  COMPLETED:   { label: "Completed",   color: "#16a34a", bg: "#dcfce7" },
+} as const;
+
 // ── Planned proposal card ──────────────────────────────────────────────────────
 
-function PlannedProposalCard({ proposal }: { proposal: StationProposalSummary }) {
+function PlannedProposalCard({
+  proposal,
+  isCycleAdmin,
+}: {
+  proposal: StationProposalSummary;
+  isCycleAdmin: boolean;
+}) {
+  const { mutate: updateStatus, isPending } = useUpdateImplementationStatus();
+  const status = proposal.implementationStatus ?? "PLANNED";
+  const meta = IMPL_STATUS_META[status] ?? IMPL_STATUS_META.PLANNED;
   const acceptedDate = proposal.reviewedAt
     ? new Date(proposal.reviewedAt).toLocaleDateString()
     : proposal.submittedAt
@@ -210,26 +230,53 @@ function PlannedProposalCard({ proposal }: { proposal: StationProposalSummary })
       sx={{
         px: 1.5,
         py: 1.25,
-        borderLeft: "3px solid #22c55e",
+        borderLeft: `3px solid ${meta.color}`,
         bgcolor: "background.paper",
         "&:hover": { bgcolor: "action.hover" },
       }}
     >
+      {/* Header row */}
       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 0.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1, mr: 1 }}>
-          <AddLocationAltIcon sx={{ fontSize: "0.85rem", color: "#22c55e", flexShrink: 0 }} />
+          <AddLocationAltIcon sx={{ fontSize: "0.85rem", color: meta.color, flexShrink: 0 }} />
           <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
             {proposal.stationCount} proposed station{proposal.stationCount !== 1 ? "s" : ""}
           </Typography>
         </Box>
-        <Chip
-          size="small"
-          icon={<TaskAltIcon sx={{ fontSize: "0.7rem !important" }} />}
-          label="Planned"
-          sx={{ fontSize: "0.65rem", height: 20, color: "#16a34a", bgcolor: "#dcfce7" }}
-        />
+
+        {isCycleAdmin ? (
+          <Select
+            size="small"
+            value={status}
+            disabled={isPending}
+            onChange={(e) => updateStatus({ id: proposal.id, status: e.target.value })}
+            sx={{
+              fontSize: "0.65rem",
+              height: 22,
+              color: meta.color,
+              bgcolor: meta.bg,
+              ".MuiOutlinedInput-notchedOutline": { borderColor: `${meta.color}55` },
+              ".MuiSelect-select": { py: 0, px: 1 },
+              ".MuiSvgIcon-root": { fontSize: "0.85rem", color: meta.color },
+            }}
+          >
+            {Object.entries(IMPL_STATUS_META).map(([val, m]) => (
+              <MenuItem key={val} value={val} sx={{ fontSize: "0.7rem" }}>
+                {m.label}
+              </MenuItem>
+            ))}
+          </Select>
+        ) : (
+          <Chip
+            size="small"
+            label={meta.label}
+            sx={{ fontSize: "0.65rem", height: 20, color: meta.color, bgcolor: meta.bg }}
+          />
+        )}
       </Box>
-      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+
+      {/* Details */}
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
         {proposal.improvedAreaCount} area{proposal.improvedAreaCount !== 1 ? "s" : ""} improved
         {proposal.reviewedBy ? ` · Accepted by ${proposal.reviewedBy}` : ""}
         {acceptedDate ? ` on ${acceptedDate}` : ""}
@@ -315,9 +362,10 @@ interface Props {
   gaps: CoverageGapDTO[];
   acceptedProposals: StationProposalSummary[];
   isLoading: boolean;
+  isCycleAdmin: boolean;
 }
 
-export function CoverageGapPanel({ gaps, acceptedProposals, isLoading }: Props) {
+export function CoverageGapPanel({ gaps, acceptedProposals, isLoading, isCycleAdmin }: Props) {
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -369,7 +417,7 @@ export function CoverageGapPanel({ gaps, acceptedProposals, isLoading }: Props) 
             {acceptedProposals.map((p, i) => (
               <Box key={p.id}>
                 {i > 0 && <Divider />}
-                <PlannedProposalCard proposal={p} />
+                <PlannedProposalCard proposal={p} isCycleAdmin={isCycleAdmin} />
               </Box>
             ))}
             <Divider />
