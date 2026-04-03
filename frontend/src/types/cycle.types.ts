@@ -189,6 +189,8 @@ export interface StationProposalSummary {
   stationsJson: string;
   /** JSON string: [{"area":"...","from":"...","to":"...","distM":123.4},...] */
   impactsJson: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
 }
 
 /** Rebalancing suggestion: move bikes FROM full source station TO empty target station */
