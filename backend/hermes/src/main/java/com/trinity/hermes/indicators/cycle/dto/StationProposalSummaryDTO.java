@@ -23,4 +23,7 @@ public class StationProposalSummaryDTO {
    * [{"area":"...","from":"...","to":"...","distM":123.4},...]
    */
   private String impactsJson;
+
+  private String reviewedBy;
+  private String reviewedAt;
 }
