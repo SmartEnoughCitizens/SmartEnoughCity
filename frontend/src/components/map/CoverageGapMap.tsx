@@ -73,6 +73,7 @@ function haversineM(
 
 function categorize(flatCount: number, distM: number | null): string {
   if (distM === null) return "NO_COVERAGE";
+  if (distM > 5000) return "NO_COVERAGE";
   if (flatCount > 50 && distM > 3000) return "NO_COVERAGE";
   if (flatCount > 50 && distM > 1000) return "POOR_COVERAGE";
   if (flatCount > 50 && distM > 500) return "PARTIAL_COVERAGE";
