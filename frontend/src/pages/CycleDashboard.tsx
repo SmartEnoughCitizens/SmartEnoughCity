@@ -31,6 +31,7 @@ import {
   useCycleCoverageGaps,
   useODRoutes,
   usePendingProposals,
+  useAcceptedProposals,
   useReviewProposal,
 } from "@/hooks";
 import type { StationProposalSummary } from "@/types";
@@ -85,6 +86,7 @@ export const CycleDashboard = () => {
     roles.includes("City_Manager") || roles.includes("Cycle_Admin");
 
   const { data: pendingProposals } = usePendingProposals();
+  const { data: acceptedProposals } = useAcceptedProposals();
   const { mutate: reviewProposal, isPending: isReviewing } =
     useReviewProposal();
 
@@ -405,6 +407,7 @@ export const CycleDashboard = () => {
             {tabValue === TAB_COVERAGE && (
               <CoverageGapPanel
                 gaps={coverageGaps ?? []}
+                acceptedProposals={acceptedProposals ?? []}
                 isLoading={coverageLoading}
               />
             )}
