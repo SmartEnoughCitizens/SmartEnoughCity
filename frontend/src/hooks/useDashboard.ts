@@ -41,6 +41,7 @@ export const DASHBOARD_KEYS = {
   cycleRiskScores: ["cycle", "risk-scores"] as const,
   cycleCoverageGaps: ["cycle", "coverage-gaps"] as const,
   cyclePendingProposals: ["cycle", "proposals", "pending"] as const,
+  cycleAcceptedProposals: ["cycle", "proposals", "accepted"] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
@@ -548,6 +549,15 @@ export const usePendingProposals = () => {
   });
 };
 
+export const useAcceptedProposals = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
+    queryFn: () => dashboardApi.getAcceptedProposals(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
 /**
  * Accept or reject a station proposal
  */
@@ -566,6 +576,9 @@ export const useReviewProposal = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: DASHBOARD_KEYS.cyclePendingProposals,
+      });
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
       });
     },
   });
