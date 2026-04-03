@@ -17,9 +17,10 @@ import org.springframework.stereotype.Service;
  * <p>Categories:
  *
  * <ul>
- *   <li>NO_COVERAGE — flat/apartment count > 50 AND nearest station > 1000 m
- *   <li>POOR_COVERAGE — flat/apartment count > 50 AND nearest station 500–1000 m
- *   <li>ADEQUATE — all other areas
+ *   <li>NO_COVERAGE — nearest station > 5000 m (any density), OR flat/apartment count > 50 AND nearest station > 3000 m
+ *   <li>POOR_COVERAGE — flat/apartment count > 50 AND nearest station 1000–3000 m
+ *   <li>PARTIAL_COVERAGE — flat/apartment count > 50 AND nearest station 500–1000 m
+ *   <li>ADEQUATE — all other areas (low density within 5000 m, or high density within 500 m)
  * </ul>
  *
  * <p>Runs on startup and nightly at 03:00. processed_for_implementation / processed_at are never
@@ -109,6 +110,7 @@ public class CoverageGapSchedulerService {
           ST_X(ST_Transform(ST_SetSRID(ST_Centroid(geom), 2157), 4326))::double precision,
           min_distance_m::double precision,
           CASE
+              WHEN min_distance_m > 5000                               THEN 'NO_COVERAGE'
               WHEN flat_apartment_count > 50 AND min_distance_m > 3000 THEN 'NO_COVERAGE'
               WHEN flat_apartment_count > 50 AND min_distance_m > 1000 THEN 'POOR_COVERAGE'
               WHEN flat_apartment_count > 50 AND min_distance_m > 500  THEN 'PARTIAL_COVERAGE'
