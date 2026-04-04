@@ -404,12 +404,12 @@ export const dashboardApi = {
   },
 
   /**
-   * Get per-stop estimated passenger usage for a given hour
+   * Get per-stop estimated passenger usage for a time period
    */
-  getTramStopUsage: async (hour: number): Promise<TramStopUsage[]> => {
+  getTramStopUsage: async (startHour: number, endHour: number): Promise<TramStopUsage[]> => {
     const { data } = await axiosInstance.get<TramStopUsage[]>(
       API_ENDPOINTS.TRAM_STOP_USAGE,
-      { params: { hour } },
+      { params: { startHour, endHour } },
     );
     return data;
   },
