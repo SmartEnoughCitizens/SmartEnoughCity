@@ -204,9 +204,8 @@ export const TramDashboard = () => {
   const filteredDelays = useMemo(() => {
     const base = delays ?? [];
     const byLine = lineFilter ? base.filter((d) => d.line === lineFilter) : base;
-    if (!search.trim()) return byLine;
-    const q = search.toLowerCase();
-    return byLine.filter((d) => d.stopName.toLowerCase().includes(q) || d.destination.toLowerCase().includes(q));
+    const q = search.trim().toLowerCase();
+    return q ? byLine.filter((d) => d.stopName.toLowerCase().includes(q) || d.destination.toLowerCase().includes(q)) : byLine;
   }, [delays, lineFilter, search]);
   const filteredUsage = useMemo(() => {
     const base = stopUsage ?? [];
