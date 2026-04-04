@@ -47,7 +47,7 @@ import { useAppSelector } from "@/store/hooks";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import type { TramLiveForecast, TramStopUsage, TramCommonDelay } from "@/types";
+import type { TramLiveForecast, TramStopUsage } from "@/types";
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -368,7 +368,7 @@ export const TramDashboard = () => {
                     <Typography noWrap variant="caption" sx={{ fontSize: "0.68rem", color: noService ? "error.main" : "text.secondary" }}>{subtitle}</Typography>
                   </Box>
                   <Chip size="small" label={noService ? "No Service" : `${f.dueMins}m`}
-                    sx={{ fontSize: "0.6rem", height: 20, bgcolor: noService ? "error.main" : f.dueMins <= 3 ? "success.main" : "warning.main", color: "#fff", fontWeight: 700 }} />
+                    sx={{ fontSize: "0.6rem", height: 20, bgcolor: noService ? "error.main" : (f.dueMins ?? 999) <= 3 ? "success.main" : "warning.main", color: "#fff", fontWeight: 700 }} />
                 </ListItemButton>
               );
             })}
