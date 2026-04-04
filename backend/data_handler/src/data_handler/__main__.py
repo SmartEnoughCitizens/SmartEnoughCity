@@ -231,7 +231,9 @@ def main_static() -> None:
         _run_handler(logger, "car_static", lambda: _run_car_static(settings, logger))
     if settings.enable_population_data:
         _run_handler(
-            logger, "population_static", lambda: _run_population_static(settings, logger)
+            logger,
+            "population_static",
+            lambda: _run_population_static(settings, logger),
         )
 
 

@@ -120,7 +120,9 @@ def download_arcgis_feature_service_geojson(
 
         features = page.get("features", [])
         all_features.extend(features)
-        logger.info("  fetched %d features (total so far: %d)", len(features), len(all_features))
+        logger.info(
+            "  fetched %d features (total so far: %d)", len(features), len(all_features)
+        )
 
         if len(features) < page_size:
             break
