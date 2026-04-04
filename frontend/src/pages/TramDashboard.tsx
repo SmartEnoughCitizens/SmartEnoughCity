@@ -195,10 +195,29 @@ export const TramDashboard = () => {
     return m;
   }, [delays]);
 
-  const filteredForecasts = useMemo(() => { let l = liveForecasts ?? []; if (lineFilter) l = l.filter((f) => f.line === lineFilter); if (search.trim()) { const q = search.toLowerCase(); l = l.filter((f) => f.stopName.toLowerCase().includes(q) || f.destination.toLowerCase().includes(q)); } return l.toSorted((a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999)); }, [liveForecasts, lineFilter, search]);
-  const filteredDelays = useMemo(() => { let l = delays ?? []; if (lineFilter) l = l.filter((d) => d.line === lineFilter); if (search.trim()) { const q = search.toLowerCase(); l = l.filter((d) => d.stopName.toLowerCase().includes(q) || d.destination.toLowerCase().includes(q)); } return l; }, [delays, lineFilter, search]);
-  const filteredUsage = useMemo(() => { let l = stopUsage ?? []; if (lineFilter) l = l.filter((u) => u.line === lineFilter); if (search.trim()) l = l.filter((u) => u.stopName.toLowerCase().includes(search.toLowerCase())); return l; }, [stopUsage, lineFilter, search]);
-  const filteredCommonDelays = useMemo(() => { let l = commonDelays ?? []; if (lineFilter) l = l.filter((d) => d.line === lineFilter); if (search.trim()) l = l.filter((d) => d.stopName.toLowerCase().includes(search.toLowerCase())); return l; }, [commonDelays, lineFilter, search]);
+  const filteredForecasts = useMemo(() => {
+    const base = liveForecasts ?? [];
+    const byLine = lineFilter ? base.filter((f) => f.line === lineFilter) : base;
+    const bySearch = search.trim() ? byLine.filter((f) => { const q = search.toLowerCase(); return f.stopName.toLowerCase().includes(q) || f.destination.toLowerCase().includes(q); }) : byLine;
+    return bySearch.toSorted((a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999));
+  }, [liveForecasts, lineFilter, search]);
+  const filteredDelays = useMemo(() => {
+    const base = delays ?? [];
+    const byLine = lineFilter ? base.filter((d) => d.line === lineFilter) : base;
+    if (!search.trim()) return byLine;
+    const q = search.toLowerCase();
+    return byLine.filter((d) => d.stopName.toLowerCase().includes(q) || d.destination.toLowerCase().includes(q));
+  }, [delays, lineFilter, search]);
+  const filteredUsage = useMemo(() => {
+    const base = stopUsage ?? [];
+    const byLine = lineFilter ? base.filter((u) => u.line === lineFilter) : base;
+    return search.trim() ? byLine.filter((u) => u.stopName.toLowerCase().includes(search.toLowerCase())) : byLine;
+  }, [stopUsage, lineFilter, search]);
+  const filteredCommonDelays = useMemo(() => {
+    const base = commonDelays ?? [];
+    const byLine = lineFilter ? base.filter((d) => d.line === lineFilter) : base;
+    return search.trim() ? byLine.filter((d) => d.stopName.toLowerCase().includes(search.toLowerCase())) : byLine;
+  }, [commonDelays, lineFilter, search]);
 
   const handleStopClick = useCallback((lat: number, lon: number, stopId: string) => { setSelectedStopId(stopId); setFlyTarget({ center: [lat, lon], id: Date.now() }); }, []);
 
