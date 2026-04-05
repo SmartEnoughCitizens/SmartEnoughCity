@@ -37,8 +37,12 @@ public class TramDashboardService {
     long activeForecastCount = tramLuasForecastRepository.countAllForecasts();
     long linesOperating = tramStopRepository.countDistinctLines();
     Double avgDueMins = tramLuasForecastRepository.findAverageDueMins();
-    return TramKpiDTO.builder().totalStops(totalStops).activeForecastCount(activeForecastCount)
-        .linesOperating(linesOperating).avgDueMins(avgDueMins != null ? avgDueMins : 0.0).build();
+    return TramKpiDTO.builder()
+        .totalStops(totalStops)
+        .activeForecastCount(activeForecastCount)
+        .linesOperating(linesOperating)
+        .avgDueMins(avgDueMins != null ? avgDueMins : 0.0)
+        .build();
   }
 
   @Transactional(readOnly = true)
@@ -46,7 +50,8 @@ public class TramDashboardService {
     List<TramLuasForecast> forecasts = tramLuasForecastRepository.findAllOrderedByLineAndStop();
     if (forecasts.isEmpty()) return List.of();
     Map<String, TramStop> stopsById = buildLuasStopsMap();
-    return forecasts.stream().map(f -> mapToLiveForecastDTO(f, stopsById))
+    return forecasts.stream()
+        .map(f -> mapToLiveForecastDTO(f, stopsById))
         .collect(Collectors.toList());
   }
 
@@ -65,8 +70,16 @@ public class TramDashboardService {
     Map<String, TramLuasForecast> soonest = findSoonestPerStopDirection(forecasts);
     List<TramDelayDTO> delays = new ArrayList<>();
     for (TramLuasForecast forecast : soonest.values()) {
-      TramDelayDTO dto = computeDelay(forecast, nowDublin, luasStopsById, nameToGtfsIds,
-          luasToGtfs, hourlyPct, stopDirTrips, lineTotals);
+      TramDelayDTO dto =
+          computeDelay(
+              forecast,
+              nowDublin,
+              luasStopsById,
+              nameToGtfsIds,
+              luasToGtfs,
+              hourlyPct,
+              stopDirTrips,
+              lineTotals);
       if (dto != null) delays.add(dto);
     }
     delays.sort(Comparator.comparingInt(TramDelayDTO::getDelayMins).reversed());
@@ -87,22 +100,32 @@ public class TramDashboardService {
 
     List<TramStopUsageDTO> usageList = new ArrayList<>();
     for (TramStop luasStop : luasStopsById.values()) {
-      String gtfsName = luasToGtfs.getOrDefault(
-          luasStop.getStopId(), luasStop.getName().toLowerCase(Locale.ROOT));
+      String gtfsName =
+          luasToGtfs.getOrDefault(
+              luasStop.getStopId(), luasStop.getName().toLowerCase(Locale.ROOT));
       int[] dt = stopDirTrips.getOrDefault(gtfsName, new int[] {0, 0});
       int lineTotal = lineTotals.getOrDefault(luasStop.getLine(), 1);
-      String lineKey = "red".equals(luasStop.getLine()) ? "01" : "02";
+      String lineKey = "-";
       double hourlyPct = hourlyPctByLine.getOrDefault(lineKey, 0.0) / 100.0;
       double dailyPax =
           "red".equals(luasStop.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
       long estIn = Math.round((double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax);
       long estOut = Math.round((double) dt[0] / Math.max(1, lineTotal) * hourlyPct * dailyPax);
-      usageList.add(TramStopUsageDTO.builder().stopId(luasStop.getStopId())
-          .stopName(luasStop.getName()).line(luasStop.getLine()).currentHour(startHour)
-          .inboundTrips(dt[1]).outboundTrips(dt[0]).totalTrips(dt[0] + dt[1])
-          .estimatedInboundPassengers(estIn).estimatedOutboundPassengers(estOut)
-          .estimatedTotalPassengers(estIn + estOut)
-          .lat(luasStop.getLat()).lon(luasStop.getLon()).build());
+      usageList.add(
+          TramStopUsageDTO.builder()
+              .stopId(luasStop.getStopId())
+              .stopName(luasStop.getName())
+              .line(luasStop.getLine())
+              .currentHour(startHour)
+              .inboundTrips(dt[1])
+              .outboundTrips(dt[0])
+              .totalTrips(dt[0] + dt[1])
+              .estimatedInboundPassengers(estIn)
+              .estimatedOutboundPassengers(estOut)
+              .estimatedTotalPassengers(estIn + estOut)
+              .lat(luasStop.getLat())
+              .lon(luasStop.getLon())
+              .build());
     }
     usageList.sort(
         Comparator.comparingLong(TramStopUsageDTO::getEstimatedTotalPassengers).reversed());
@@ -117,11 +140,17 @@ public class TramDashboardService {
     for (Object[] row : rows) {
       String stopId = (String) row[0];
       TramStop stop = luasStopsById.get(stopId);
-      result.add(TramCommonDelayDTO.builder().stopId(stopId).stopName((String) row[1])
-          .line((String) row[2]).avgDelayMins(((Number) row[3]).doubleValue())
-          .maxDelayMins(((Number) row[4]).intValue()).delayCount(((Number) row[5]).longValue())
-          .lat(stop != null ? stop.getLat() : null).lon(stop != null ? stop.getLon() : null)
-          .build());
+      result.add(
+          TramCommonDelayDTO.builder()
+              .stopId(stopId)
+              .stopName((String) row[1])
+              .line((String) row[2])
+              .avgDelayMins(((Number) row[3]).doubleValue())
+              .maxDelayMins(((Number) row[4]).intValue())
+              .delayCount(((Number) row[5]).longValue())
+              .lat(stop != null ? stop.getLat() : null)
+              .lon(stop != null ? stop.getLon() : null)
+              .build());
     }
     return result;
   }
@@ -131,12 +160,15 @@ public class TramDashboardService {
     String latestYear = tramHourlyDistributionRepository.findLatestYear();
     if (latestYear == null) return List.of();
     return tramHourlyDistributionRepository.findByYear(latestYear).stream()
-        .map(this::mapToHourlyDTO).collect(Collectors.toList());
+        .map(this::mapToHourlyDTO)
+        .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public List<TramStopDTO> getStops(int limit) {
-    return tramStopRepository.findAll().stream().limit(limit).map(this::mapToStopDTO)
+    return tramStopRepository.findAll().stream()
+        .limit(limit)
+        .map(this::mapToStopDTO)
         .collect(Collectors.toList());
   }
 
@@ -159,7 +191,8 @@ public class TramDashboardService {
   private Map<String, String> buildLuasToGtfsNameMap(
       Map<String, TramStop> luasStopsById, Map<String, List<String>> nameToGtfsIds) {
     Map<String, String> mapping = new HashMap<>();
-    // Also build a normalized lookup: strip " - " to handle "O'Connell - Upper" vs "O'Connell Upper"
+    // Also build a normalized lookup: strip " - " to handle "O'Connell - Upper" vs "O'Connell
+    // Upper"
     Map<String, String> normalizedGtfs = new HashMap<>();
     for (String gtfsName : nameToGtfsIds.keySet()) {
       normalizedGtfs.put(gtfsName.replace(" - ", " ").replace("  ", " "), gtfsName);
@@ -207,8 +240,10 @@ public class TramDashboardService {
     Map<String, Double> result = new HashMap<>();
     tramHourlyDistributionRepository.findByYear(latestYear).stream()
         .filter(h -> hourSet.contains(parseHour(h.getTimeLabel())))
-        .forEach(h -> result.merge(
-            h.getLineCode(), h.getValue() != null ? h.getValue() : 0.0, Double::sum));
+        .forEach(
+            h ->
+                result.merge(
+                    h.getLineCode(), h.getValue() != null ? h.getValue() : 0.0, Double::sum));
     return result;
   }
 
@@ -233,8 +268,10 @@ public class TramDashboardService {
   }
 
   private Map<String, Integer> countLineTotalsForHours(
-      List<Integer> hours, Map<String, TramStop> luasStopsById,
-      Map<String, List<String>> nameToGtfsIds, Map<String, String> luasToGtfs) {
+      List<Integer> hours,
+      Map<String, TramStop> luasStopsById,
+      Map<String, List<String>> nameToGtfsIds,
+      Map<String, String> luasToGtfs) {
     Map<String, String> gtfsStopToLine = new HashMap<>();
     for (TramStop luasStop : luasStopsById.values()) {
       String gtfsName = luasToGtfs.get(luasStop.getStopId());
@@ -271,9 +308,13 @@ public class TramDashboardService {
   }
 
   private TramDelayDTO computeDelay(
-      TramLuasForecast forecast, LocalTime nowDublin, Map<String, TramStop> luasStopsById,
-      Map<String, List<String>> nameToGtfsIds, Map<String, String> luasToGtfs,
-      Map<String, Double> hourlyPct, Map<String, int[]> stopDirTrips,
+      TramLuasForecast forecast,
+      LocalTime nowDublin,
+      Map<String, TramStop> luasStopsById,
+      Map<String, List<String>> nameToGtfsIds,
+      Map<String, String> luasToGtfs,
+      Map<String, Double> hourlyPct,
+      Map<String, int[]> stopDirTrips,
       Map<String, Integer> lineTotals) {
     TramStop luasStop = luasStopsById.get(forecast.getStopId());
     if (luasStop == null) return null;
@@ -296,15 +337,21 @@ public class TramDashboardService {
     int[] dt = stopDirTrips.getOrDefault(lookupName, new int[] {0, 0});
     int lineTotal = lineTotals.getOrDefault(forecast.getLine(), 1);
     double share = (double) (dt[0] + dt[1]) / Math.max(1, lineTotal);
-    String lk = "red".equals(forecast.getLine()) ? "01" : "02";
+    String lk = "-";
     double pct = hourlyPct.getOrDefault(lk, 0.0) / 100.0;
     double daily = "red".equals(forecast.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
     double affected = share * pct * daily * (delayMins / 60.0);
-    return TramDelayDTO.builder().stopId(forecast.getStopId()).stopName(luasStop.getName())
-        .line(forecast.getLine()).direction(forecast.getDirection())
-        .destination(forecast.getDestination()).scheduledTime(nextSched.toString())
-        .dueMins(forecast.getDueMins()).delayMins(delayMins)
-        .estimatedAffectedPassengers(Math.round(affected * 10.0) / 10.0).build();
+    return TramDelayDTO.builder()
+        .stopId(forecast.getStopId())
+        .stopName(luasStop.getName())
+        .line(forecast.getLine())
+        .direction(forecast.getDirection())
+        .destination(forecast.getDestination())
+        .scheduledTime(nextSched.toString())
+        .dueMins(forecast.getDueMins())
+        .delayMins(delayMins)
+        .estimatedAffectedPassengers(Math.round(affected * 10.0) / 10.0)
+        .build();
   }
 
   private LocalTime findNextScheduledArrival(List<String> gtfsStopIds, LocalTime now) {
@@ -337,16 +384,25 @@ public class TramDashboardService {
   private TramLiveForecastDTO mapToLiveForecastDTO(
       TramLuasForecast f, Map<String, TramStop> stopsById) {
     TramStop s = stopsById.get(f.getStopId());
-    return TramLiveForecastDTO.builder().stopId(f.getStopId())
-        .stopName(s != null ? s.getName() : f.getStopId()).line(f.getLine())
-        .direction(f.getDirection()).destination(f.getDestination()).dueMins(f.getDueMins())
-        .message(f.getMessage()).lat(s != null ? s.getLat() : null)
-        .lon(s != null ? s.getLon() : null).build();
+    return TramLiveForecastDTO.builder()
+        .stopId(f.getStopId())
+        .stopName(s != null ? s.getName() : f.getStopId())
+        .line(f.getLine())
+        .direction(f.getDirection())
+        .destination(f.getDestination())
+        .dueMins(f.getDueMins())
+        .message(f.getMessage())
+        .lat(s != null ? s.getLat() : null)
+        .lon(s != null ? s.getLon() : null)
+        .build();
   }
 
   private TramHourlyDistributionDTO mapToHourlyDTO(TramHourlyDistribution e) {
-    return TramHourlyDistributionDTO.builder().timeLabel(e.getTimeLabel()).line(e.getLineLabel())
-        .percentage(e.getValue()).build();
+    return TramHourlyDistributionDTO.builder()
+        .timeLabel(e.getTimeLabel())
+        .line(e.getLineLabel())
+        .percentage(e.getValue())
+        .build();
   }
 
   private TramStopDTO mapToStopDTO(TramStop e) {
@@ -362,7 +418,10 @@ public class TramDashboardService {
   }
 
   private int parseHour(String timeLabel) {
-    try { return Integer.parseInt(timeLabel.substring(0, 2).trim()); }
-    catch (Exception e) { return -1; }
+    try {
+      return Integer.parseInt(timeLabel.substring(0, 2).trim());
+    } catch (Exception e) {
+      return -1;
+    }
   }
 }

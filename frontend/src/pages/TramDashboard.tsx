@@ -195,28 +195,29 @@ export const TramDashboard = () => {
     return m;
   }, [delays]);
 
-  const filteredForecasts = useMemo(() => {
+  const filteredForecasts = (() => {
     const base = liveForecasts ?? [];
     const byLine = lineFilter ? base.filter((f) => f.line === lineFilter) : base;
-    const bySearch = search.trim() ? byLine.filter((f) => { const q = search.toLowerCase(); return f.stopName.toLowerCase().includes(q) || f.destination.toLowerCase().includes(q); }) : byLine;
+    const q = search.trim().toLowerCase();
+    const bySearch = q ? byLine.filter((f) => f.stopName.toLowerCase().includes(q) || f.destination.toLowerCase().includes(q)) : byLine;
     return bySearch.toSorted((a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999));
-  }, [liveForecasts, lineFilter, search]);
-  const filteredDelays = useMemo(() => {
+  })();
+  const filteredDelays = (() => {
     const base = delays ?? [];
     const byLine = lineFilter ? base.filter((d) => d.line === lineFilter) : base;
     const q = search.trim().toLowerCase();
     return q ? byLine.filter((d) => d.stopName.toLowerCase().includes(q) || d.destination.toLowerCase().includes(q)) : byLine;
-  }, [delays, lineFilter, search]);
-  const filteredUsage = useMemo(() => {
+  })();
+  const filteredUsage = (() => {
     const base = stopUsage ?? [];
     const byLine = lineFilter ? base.filter((u) => u.line === lineFilter) : base;
     return search.trim() ? byLine.filter((u) => u.stopName.toLowerCase().includes(search.toLowerCase())) : byLine;
-  }, [stopUsage, lineFilter, search]);
-  const filteredCommonDelays = useMemo(() => {
+  })();
+  const filteredCommonDelays = (() => {
     const base = commonDelays ?? [];
     const byLine = lineFilter ? base.filter((d) => d.line === lineFilter) : base;
     return search.trim() ? byLine.filter((d) => d.stopName.toLowerCase().includes(search.toLowerCase())) : byLine;
-  }, [commonDelays, lineFilter, search]);
+  })();
 
   const handleStopClick = useCallback((lat: number, lon: number, stopId: string) => { setSelectedStopId(stopId); setFlyTarget({ center: [lat, lon], id: Date.now() }); }, []);
 
