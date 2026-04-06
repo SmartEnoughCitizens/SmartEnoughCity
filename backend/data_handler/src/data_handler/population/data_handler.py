@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 from shapely.geometry import MultiPolygon, Polygon, shape
-from sqlalchemy import delete, text
+from sqlalchemy import delete
 
 from data_handler.db import SessionLocal
 from data_handler.population.models import SmallArea
@@ -40,15 +40,6 @@ def process_population_static_data(data_dir: Path) -> None:
     session = SessionLocal()
 
     try:
-        # Ensure ed_name column exists (added after initial table creation)
-        session.execute(
-            text(
-                "ALTER TABLE external_data.small_areas"
-                " ADD COLUMN IF NOT EXISTS ed_name VARCHAR(150) NOT NULL DEFAULT ''"
-            )
-        )
-        session.commit()
-
         logger.info("Deleting existing population data...")
         session.execute(delete(SmallArea))
 
