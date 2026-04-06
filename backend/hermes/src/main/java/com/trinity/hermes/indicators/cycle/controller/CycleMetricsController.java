@@ -279,9 +279,12 @@ public class CycleMetricsController {
     try {
       String reviewerUsername = "unknown";
       if (jwt != null) {
-        for (String candidate : new String[]{"preferred_username", "email"}) {
+        for (String candidate : new String[] {"preferred_username", "email"}) {
           String claim = jwt.getClaimAsString(candidate);
-          if (claim != null && !claim.isBlank()) { reviewerUsername = claim; break; }
+          if (claim != null && !claim.isBlank()) {
+            reviewerUsername = claim;
+            break;
+          }
         }
         if ("unknown".equals(reviewerUsername)) {
           String sub = jwt.getSubject();
@@ -303,10 +306,14 @@ public class CycleMetricsController {
       @PathVariable Long id,
       @RequestBody ProposalImplementationStatusDTO body,
       @AuthenticationPrincipal Jwt jwt) {
-    log.info("PATCH /api/v1/cycle/coverage-gaps/proposals/{}/implementation-status status={}", id, body.getStatus());
+    log.info(
+        "PATCH /api/v1/cycle/coverage-gaps/proposals/{}/implementation-status status={}",
+        id,
+        body.getStatus());
     var allowed = java.util.Set.of("PLANNED", "IN_PROGRESS", "COMPLETED");
     if (!allowed.contains(body.getStatus())) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status must be PLANNED, IN_PROGRESS or COMPLETED");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "status must be PLANNED, IN_PROGRESS or COMPLETED");
     }
     try {
       String updaterUsername = "unknown";
