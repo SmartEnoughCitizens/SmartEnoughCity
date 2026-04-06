@@ -7,7 +7,7 @@ backend.cycle_station_risk_scores every 5 minutes (backend schema, backend_user)
 
 Features used per station:
   bike_ratio            current available_bikes / capacity
-  hour_of_day           0–23 (Europe/Dublin)
+  hour_of_day           0-23 (Europe/Dublin)
   day_of_week           0=Mon … 6=Sun
   empty_risk_this_hour  historical P(empty) for this station at this hour
   departure_rate_30m    avg bikes leaving per interval over last 30 min
@@ -23,7 +23,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -206,15 +206,15 @@ class StationModel:
     has_full_variance: bool
 
     def predict(self, features: dict[str, float]) -> tuple[float, float]:
-        X = np.array([[features.get(f, 0.0) for f in FEATURES]])
-        Xs = self.scaler.transform(X)
+        x_feat = np.array([[features.get(f, 0.0) for f in FEATURES]])
+        x_scaled = self.scaler.transform(x_feat)
         empty_p = (
-            float(self.empty_clf.predict_proba(Xs)[0][1])
+            float(self.empty_clf.predict_proba(x_scaled)[0][1])
             if self.has_empty_variance
             else 0.0
         )
         full_p = (
-            float(self.full_clf.predict_proba(Xs)[0][1])
+            float(self.full_clf.predict_proba(x_scaled)[0][1])
             if self.has_full_variance
             else 0.0
         )
@@ -261,12 +261,12 @@ def train_models(engine: Engine) -> tuple[dict[int, StationModel], datetime]:
             )
             continue
 
-        X = sdf[FEATURES].to_numpy(dtype=float)
+        x_feat = sdf[FEATURES].to_numpy(dtype=float)
         y_empty = sdf["will_be_empty_2h"].to_numpy()
         y_full = sdf["will_be_full_2h"].to_numpy()
 
         scaler = StandardScaler()
-        Xs = scaler.fit_transform(X)
+        x_scaled = scaler.fit_transform(x_feat)
 
         has_empty_var = len(np.unique(y_empty)) > 1
         has_full_var = len(np.unique(y_full)) > 1
@@ -275,13 +275,13 @@ def train_models(engine: Engine) -> tuple[dict[int, StationModel], datetime]:
         full_clf = LogisticRegression(max_iter=300, class_weight="balanced")
 
         if has_empty_var:
-            empty_clf.fit(Xs, y_empty)
+            empty_clf.fit(x_scaled, y_empty)
         if has_full_var:
-            full_clf.fit(Xs, y_full)
+            full_clf.fit(x_scaled, y_full)
 
         models[sid] = StationModel(scaler, empty_clf, full_clf, has_empty_var, has_full_var)
 
-    trained_at = datetime.now(tz=timezone.utc)
+    trained_at = datetime.now(tz=UTC)
     logger.info(
         "Training complete: %d / %d stations have models",
         len(models),
@@ -304,7 +304,7 @@ def score_stations(
         df_flow = pd.read_sql(str(_RECENT_FLOW_SQL), conn)
         df_risk = pd.read_sql(str(_HOURLY_RISK_SQL), conn)
 
-    now_dublin = datetime.now(tz=timezone.utc).astimezone(_DUBLIN)
+    now_dublin = datetime.now(tz=UTC).astimezone(_DUBLIN)
     current_hour = now_dublin.hour
     current_dow = now_dublin.weekday()
 
@@ -317,7 +317,7 @@ def score_stations(
         for r in df_risk.itertuples()
     }
 
-    scored_at = datetime.now(tz=timezone.utc)
+    scored_at = datetime.now(tz=UTC)
     rows = []
 
     for snap in df_snap.itertuples():
@@ -371,11 +371,11 @@ def run(engine: Engine) -> None:
     logger.info("cycle_station_risk_scores table ready")
 
     models: dict[int, StationModel] = {}
-    model_trained_at = datetime.now(tz=timezone.utc)
+    model_trained_at = datetime.now(tz=UTC)
     last_train_day: int | None = None
 
     while True:
-        today = datetime.now(tz=timezone.utc).toordinal()
+        today = datetime.now(tz=UTC).toordinal()
 
         if last_train_day != today:
             try:
