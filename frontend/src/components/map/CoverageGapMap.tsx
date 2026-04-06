@@ -101,8 +101,12 @@ function MapClickHandler({
   // so we must use refs to always read the latest prop values.
   const activeRef = useRef(active);
   const onPlaceRef = useRef(onPlace);
-  useEffect(() => { activeRef.current = active; }, [active]);
-  useEffect(() => { onPlaceRef.current = onPlace; }, [onPlace]);
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+  useEffect(() => {
+    onPlaceRef.current = onPlace;
+  }, [onPlace]);
 
   useMapEvents({
     click(e) {
