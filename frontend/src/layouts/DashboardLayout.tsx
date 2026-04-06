@@ -57,7 +57,7 @@ import { UserManagementPage } from "@/pages/UserManagementPage";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-type DashboardView =
+export type DashboardView =
   | "overview"
   | "bus"
   | "cycle"
@@ -402,32 +402,32 @@ export const DashboardLayout = () => {
         </Menu>
       </Box>
 
-        {/* Main content — full bleed for map pages */}
-        <Box
-            component="main"
+      {/* Main content — full bleed for map pages */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          height: "100vh",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {/* Overview Dashboard — City_Manager only */}
+        {canSeeView.overview && (
+          <Box
             sx={{
-                flexGrow: 1,
-                height: "100vh",
-                overflow: "hidden",
-                position: "relative",
+              position: "absolute",
+              inset: 0,
+              zIndex: activeView === "overview" ? 2 : 1,
+              visibility: activeView === "overview" ? "visible" : "hidden",
+              opacity: activeView === "overview" ? 1 : 0,
+              pointerEvents: activeView === "overview" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
             }}
-        >
-            {/* Overview Dashboard — City_Manager only */}
-            {canSeeView.overview && (
-                <Box
-                    sx={{
-                        position: "absolute",
-                        inset: 0,
-                        zIndex: activeView === "overview" ? 2 : 1,
-                        visibility: activeView === "overview" ? "visible" : "hidden",
-                        opacity: activeView === "overview" ? 1 : 0,
-                        pointerEvents: activeView === "overview" ? "auto" : "none",
-                        transition: "opacity 0.15s ease-in-out",
-                    }}
-                >
-                    <Dashboard />
-                </Box>
-            )}
+          >
+            <Dashboard onNavigate={setActiveView}/>
+          </Box>
+        )}
 
             {/* Bus Dashboard */}
             {canSeeView.bus && (

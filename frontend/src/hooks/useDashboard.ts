@@ -211,8 +211,8 @@ export const useCommonDelays = (filter: string) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.busCommonDelays(filter),
     queryFn: () => dashboardApi.getBusCommonDelays(filter),
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
     refetchIntervalInBackground: true,
   });
 };
