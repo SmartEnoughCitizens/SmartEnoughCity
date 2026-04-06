@@ -17,10 +17,14 @@ class APISettings(BaseSettings):
     )
 
 
+def is_dev() -> bool:
+    return os.getenv("APP_ENV", "dev") == "dev"
+
+
 @lru_cache(maxsize=1)
 def get_api_settings() -> APISettings:
     """Return API settings. Loads `.env.development` in dev mode, otherwise from env."""
-    if os.getenv("APP_ENV", "dev") == "dev":
+    if is_dev():
         return APISettings(_env_file=".env.development", _env_file_encoding="utf-8")
     return APISettings()
 
