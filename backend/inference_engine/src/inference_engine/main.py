@@ -13,8 +13,8 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from inference_engine.db import engine as db_engine
-from inference_engine.indicators.cycle.risk_engine import run as run_cycle_risk
 from inference_engine.ev_router import router as ev_router
+from inference_engine.indicators.cycle.risk_engine import run as run_cycle_risk
 from inference_engine.settings.api_settings import get_api_settings
 
 # app = FastAPI()
