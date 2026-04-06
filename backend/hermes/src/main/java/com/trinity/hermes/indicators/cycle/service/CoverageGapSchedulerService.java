@@ -17,7 +17,8 @@ import org.springframework.stereotype.Service;
  * <p>Categories:
  *
  * <ul>
- *   <li>NO_COVERAGE — nearest station > 5000 m (any density), OR flat/apartment count > 50 AND nearest station > 3000 m
+ *   <li>NO_COVERAGE — nearest station > 5000 m (any density), OR flat/apartment count > 50 AND
+ *       nearest station > 3000 m
  *   <li>POOR_COVERAGE — flat/apartment count > 50 AND nearest station 1000–3000 m
  *   <li>PARTIAL_COVERAGE — flat/apartment count > 50 AND nearest station 500–1000 m
  *   <li>ADEQUATE — all other areas (low density within 5000 m, or high density within 500 m)
