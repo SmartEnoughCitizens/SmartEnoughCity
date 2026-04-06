@@ -39,11 +39,11 @@ _DUBLIN = ZoneInfo("Europe/Dublin")
 # ── constants ─────────────────────────────────────────────────────────────────
 
 TRAINING_DAYS = 30
-EMPTY_THRESHOLD = 2       # available_bikes ≤ this → station considered "empty"
-FULL_RATIO = 0.95         # bikes / capacity ≥ this → station considered "full"
-HORIZON_H = 2             # predict emptiness / fullness within this many hours
-MIN_ROWS = 50             # skip station if not enough training rows
-SCORE_INTERVAL_S = 300    # score every 5 minutes
+EMPTY_THRESHOLD = 2  # available_bikes ≤ this → station considered "empty"
+FULL_RATIO = 0.95  # bikes / capacity ≥ this → station considered "full"
+HORIZON_H = 2  # predict emptiness / fullness within this many hours
+MIN_ROWS = 50  # skip station if not enough training rows
+SCORE_INTERVAL_S = 300  # score every 5 minutes
 
 FEATURES = [
     "bike_ratio",
@@ -153,9 +153,7 @@ def _add_flow_features(df: pd.DataFrame) -> pd.DataFrame:
     df["dep"] = df["delta"].apply(
         lambda d: -d if pd.notna(d) and -5 <= d <= -1 else 0.0
     )
-    df["arr"] = df["delta"].apply(
-        lambda d: d if pd.notna(d) and 1 <= d <= 5 else 0.0
-    )
+    df["arr"] = df["delta"].apply(lambda d: d if pd.notna(d) and 1 <= d <= 5 else 0.0)
     df["departure_rate_30m"] = df["dep"].rolling("30min").mean().fillna(0.0)
     df["arrival_rate_30m"] = df["arr"].rolling("30min").mean().fillna(0.0)
     return df.drop(columns=["dep", "arr", "delta"]).reset_index()
@@ -279,7 +277,9 @@ def train_models(engine: Engine) -> tuple[dict[int, StationModel], datetime]:
         if has_full_var:
             full_clf.fit(x_scaled, y_full)
 
-        models[sid] = StationModel(scaler, empty_clf, full_clf, has_empty_var, has_full_var)
+        models[sid] = StationModel(
+            scaler, empty_clf, full_clf, has_empty_var, has_full_var
+        )
 
     trained_at = datetime.now(tz=UTC)
     logger.info(
