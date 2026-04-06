@@ -16,7 +16,11 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import AddLocationAltIcon from "@mui/icons-material/AddLocationAlt";
-import type { CoverageCategory, CoverageGapDTO, StationProposalSummary } from "@/types";
+import type {
+  CoverageCategory,
+  CoverageGapDTO,
+  StationProposalSummary,
+} from "@/types";
 import { useUpdateImplementationStatus } from "@/hooks";
 
 function gapPriority(g: CoverageGapDTO): number {
@@ -202,9 +206,9 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
 // ── Implementation status config ──────────────────────────────────────────────
 
 const IMPL_STATUS_META = {
-  PLANNED:     { label: "Planned",     color: "#64748b", bg: "#f1f5f9" },
+  PLANNED: { label: "Planned", color: "#64748b", bg: "#f1f5f9" },
   IN_PROGRESS: { label: "In Progress", color: "#3b82f6", bg: "#eff6ff" },
-  COMPLETED:   { label: "Completed",   color: "#16a34a", bg: "#dcfce7" },
+  COMPLETED: { label: "Completed", color: "#16a34a", bg: "#dcfce7" },
 } as const;
 
 // ── Planned proposal card ──────────────────────────────────────────────────────
@@ -236,11 +240,29 @@ function PlannedProposalCard({
       }}
     >
       {/* Header row */}
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 0.5 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1, mr: 1 }}>
-          <AddLocationAltIcon sx={{ fontSize: "0.85rem", color: meta.color, flexShrink: 0 }} />
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          mb: 0.5,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            flex: 1,
+            mr: 1,
+          }}
+        >
+          <AddLocationAltIcon
+            sx={{ fontSize: "0.85rem", color: meta.color, flexShrink: 0 }}
+          />
           <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
-            {proposal.stationCount} proposed station{proposal.stationCount === 1 ? "" : "s"}
+            {proposal.stationCount} proposed station
+            {proposal.stationCount === 1 ? "" : "s"}
           </Typography>
         </Box>
 
@@ -249,13 +271,17 @@ function PlannedProposalCard({
             size="small"
             value={status}
             disabled={isPending}
-            onChange={(e) => updateStatus({ id: proposal.id, status: e.target.value })}
+            onChange={(e) =>
+              updateStatus({ id: proposal.id, status: e.target.value })
+            }
             sx={{
               fontSize: "0.65rem",
               height: 22,
               color: meta.color,
               bgcolor: meta.bg,
-              ".MuiOutlinedInput-notchedOutline": { borderColor: `${meta.color}55` },
+              ".MuiOutlinedInput-notchedOutline": {
+                borderColor: `${meta.color}55`,
+              },
               ".MuiSelect-select": { py: 0, px: 1 },
               ".MuiSvgIcon-root": { fontSize: "0.85rem", color: meta.color },
             }}
@@ -270,18 +296,33 @@ function PlannedProposalCard({
           <Chip
             size="small"
             label={meta.label}
-            sx={{ fontSize: "0.65rem", height: 20, color: meta.color, bgcolor: meta.bg }}
+            sx={{
+              fontSize: "0.65rem",
+              height: 20,
+              color: meta.color,
+              bgcolor: meta.bg,
+            }}
           />
         )}
       </Box>
 
       {/* Details */}
-      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
-        {proposal.improvedAreaCount} area{proposal.improvedAreaCount === 1 ? "" : "s"} improved
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        display="block"
+        sx={{ mb: 0.25 }}
+      >
+        {proposal.improvedAreaCount} area
+        {proposal.improvedAreaCount === 1 ? "" : "s"} improved
         {proposal.reviewedBy ? ` · Accepted by ${proposal.reviewedBy}` : ""}
         {acceptedDate ? ` on ${acceptedDate}` : ""}
       </Typography>
-      <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem" }}>
+      <Typography
+        variant="caption"
+        color="text.disabled"
+        sx={{ fontSize: "0.6rem" }}
+      >
         Submitted by {proposal.submittedBy} ({proposal.submittedByRole})
       </Typography>
     </Box>
@@ -290,7 +331,13 @@ function PlannedProposalCard({
 
 // ── Summary row ────────────────────────────────────────────────────────────────
 
-function CoverageSummaryRow({ gaps, plannedCount }: { gaps: CoverageGapDTO[]; plannedCount: number }) {
+function CoverageSummaryRow({
+  gaps,
+  plannedCount,
+}: {
+  gaps: CoverageGapDTO[];
+  plannedCount: number;
+}) {
   const noCoverage = gaps.filter(
     (g) => g.coverageCategory === "NO_COVERAGE",
   ).length;
@@ -365,7 +412,12 @@ interface Props {
   isCycleAdmin: boolean;
 }
 
-export function CoverageGapPanel({ gaps, acceptedProposals, isLoading, isCycleAdmin }: Props) {
+export function CoverageGapPanel({
+  gaps,
+  acceptedProposals,
+  isLoading,
+  isCycleAdmin,
+}: Props) {
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -409,7 +461,12 @@ export function CoverageGapPanel({ gaps, acceptedProposals, isLoading, isCycleAd
               <Typography
                 variant="caption"
                 fontWeight={700}
-                sx={{ color: "#16a34a", fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}
+                sx={{
+                  color: "#16a34a",
+                  fontSize: "0.65rem",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                }}
               >
                 Planned ({acceptedProposals.length})
               </Typography>
