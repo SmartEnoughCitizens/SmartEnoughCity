@@ -465,7 +465,7 @@ public class CycleMetricsControllerTest {
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].hourOfDay").value(8))
-          .andExpect(jsonPath("$[0].avgUsageRate").value(65.0))
+          .andExpect(jsonPath("$[0].avgTurnover").value(65.0))
           .andExpect(jsonPath("$[0].stationCount").value(100));
 
       verify(cycleMetricsService).getNetworkHourlyProfile(30);
@@ -644,7 +644,7 @@ public class CycleMetricsControllerTest {
           .andExpect(jsonPath("$.length()").value(3))
           .andExpect(jsonPath("$[0].stationId").value(1))
           .andExpect(jsonPath("$[0].hourOfDay").value(8))
-          .andExpect(jsonPath("$[0].avgUsageRate").value(72.5))
+          .andExpect(jsonPath("$[0].avgTurnover").value(72.5))
           .andExpect(jsonPath("$[1].hourOfDay").value(9))
           .andExpect(jsonPath("$[2].stationId").value(2));
 
