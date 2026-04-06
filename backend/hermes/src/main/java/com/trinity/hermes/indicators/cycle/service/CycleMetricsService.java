@@ -324,16 +324,22 @@ public class CycleMetricsService {
             id);
 
     if (updated == 0) {
-      log.warn("Implementation status update failed — proposal id={} not found or not accepted", LogSanitizer.sanitizeLog(id));
+      log.warn(
+          "Implementation status update failed — proposal id={} not found or not accepted",
+          LogSanitizer.sanitizeLog(id));
       return;
     }
 
-    log.info("Proposal id={} implementation_status set to {} by {}", LogSanitizer.sanitizeLog(id), LogSanitizer.sanitizeLog(newStatus), LogSanitizer.sanitizeLog(updaterUsername));
+    log.info(
+        "Proposal id={} implementation_status set to {} by {}",
+        LogSanitizer.sanitizeLog(id),
+        LogSanitizer.sanitizeLog(newStatus),
+        LogSanitizer.sanitizeLog(updaterUsername));
 
     String label =
-        "IN_PROGRESS".equals(newStatus) ? "In Progress"
-        : "COMPLETED".equals(newStatus) ? "Completed"
-        : "Planned";
+        "IN_PROGRESS".equals(newStatus)
+            ? "In Progress"
+            : "COMPLETED".equals(newStatus) ? "Completed" : "Planned";
 
     String subject = "Station proposal status updated: " + label;
     String body =
@@ -353,7 +359,8 @@ public class CycleMetricsService {
               notification.setBody(body);
               notification.setChannel(Channel.NOTIFICATION);
               notificationFacade.handleBackendNotification(notification);
-              log.info("Implementation status notification sent to username={}", user.getUsername());
+              log.info(
+                  "Implementation status notification sent to username={}", user.getUsername());
             } catch (Exception e) {
               log.error("Failed to notify username={}: {}", user.getUsername(), e.getMessage(), e);
             }
@@ -368,7 +375,8 @@ public class CycleMetricsService {
   // -------------------------------------------------------------------------
 
   @Transactional
-  public void reviewProposal(Long id, ProposalReviewDTO review, String reviewerUsername, String reviewerRole) {
+  public void reviewProposal(
+      Long id, ProposalReviewDTO review, String reviewerUsername, String reviewerRole) {
     int updated =
         jdbcTemplate.update(
             """
@@ -402,9 +410,10 @@ public class CycleMetricsService {
         "ACCEPTED".equals(review.getAction())
             ? "Your station proposal was accepted"
             : "Your station proposal was rejected";
-    String roleLabel = "City_Manager".equals(reviewerRole) ? "City Manager"
-        : "Cycle_Admin".equals(reviewerRole) ? "Cycle Admin"
-        : reviewerRole;
+    String roleLabel =
+        "City_Manager".equals(reviewerRole)
+            ? "City Manager"
+            : "Cycle_Admin".equals(reviewerRole) ? "Cycle Admin" : reviewerRole;
     String body =
         "ACCEPTED".equals(review.getAction())
             ? "Your proposed station(s) have been accepted by " + roleLabel + "."
