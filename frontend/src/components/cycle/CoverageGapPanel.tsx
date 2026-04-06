@@ -240,7 +240,7 @@ function PlannedProposalCard({
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1, mr: 1 }}>
           <AddLocationAltIcon sx={{ fontSize: "0.85rem", color: meta.color, flexShrink: 0 }} />
           <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
-            {proposal.stationCount} proposed station{proposal.stationCount !== 1 ? "s" : ""}
+            {proposal.stationCount} proposed station{proposal.stationCount === 1 ? "" : "s"}
           </Typography>
         </Box>
 
@@ -277,7 +277,7 @@ function PlannedProposalCard({
 
       {/* Details */}
       <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
-        {proposal.improvedAreaCount} area{proposal.improvedAreaCount !== 1 ? "s" : ""} improved
+        {proposal.improvedAreaCount} area{proposal.improvedAreaCount === 1 ? "" : "s"} improved
         {proposal.reviewedBy ? ` · Accepted by ${proposal.reviewedBy}` : ""}
         {acceptedDate ? ` on ${acceptedDate}` : ""}
       </Typography>
