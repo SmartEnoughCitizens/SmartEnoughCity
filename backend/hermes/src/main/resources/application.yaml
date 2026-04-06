@@ -44,6 +44,46 @@ notification:
       in-app:
         subject: "Underutilized route {routeId}"
         body: "Route {routeId} underutilized in {timeWindow}. Consider reallocating capacity."
+    approval-request:
+      email:
+        subject: "[{indicator}] Approval requested by {requestedBy}"
+        body: |
+          Hi {reviewerName},
+
+          A new approval request has been submitted on CityControl.
+
+          Indicator : {indicator}
+          Requested by : {requestedBy}
+          Submitted at : {createdAt}
+
+          Summary:
+          {summary}
+
+          Please log in to CityControl to review and approve or deny this request.
+
+      in-app:
+        subject: "[{indicator}] New approval request from {requestedBy}"
+        body: "{summary}"
+
+    approval-decision:
+      email:
+        subject: "[{indicator}] Your request has been {status}"
+        body: |
+          Hi {requestedBy},
+
+          Your approval request has been {status} by {reviewedBy}.
+
+          Summary:
+          {summary}
+
+          {reviewNoteSection}
+
+          Log in to CityControl to view the full details.
+
+      in-app:
+        subject: "[{indicator}] Request {status}"
+        body: "Your request was {status} by {reviewedBy}.{reviewNoteInline}"
+
     default:
       email:
         subject: "Notification from Hermes"

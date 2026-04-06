@@ -13,6 +13,8 @@ from pydantic import BaseModel
 
 from inference_engine.ev_router import router as ev_router
 from inference_engine.settings.api_settings import get_api_settings
+from inference_engine.train_router import router as train_router
+from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
 
 # app = FastAPI()
 
@@ -28,6 +30,8 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
     # Startup
     logger.info("🚀 Application starting up...")
     start_scheduler()
+    warm_demand_cache()
+    warm_utilisation_cache()
     logger.info("✅ Application ready!")
 
     yield
@@ -46,6 +50,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(ev_router)
+app.include_router(train_router)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

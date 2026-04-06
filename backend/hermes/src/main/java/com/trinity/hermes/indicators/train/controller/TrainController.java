@@ -3,9 +3,13 @@ package com.trinity.hermes.indicators.train.controller;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.train.dto.TrainDTO;
 import com.trinity.hermes.indicators.train.dto.TrainDelayDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDemandSimulateRequestDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDemandSimulateResponseDTO;
 import com.trinity.hermes.indicators.train.dto.TrainKpiDTO;
 import com.trinity.hermes.indicators.train.dto.TrainLiveDTO;
+import com.trinity.hermes.indicators.train.dto.TrainRouteDTO;
 import com.trinity.hermes.indicators.train.dto.TrainServiceStatsDTO;
+import com.trinity.hermes.indicators.train.dto.TrainStationDemandDTO;
 import com.trinity.hermes.indicators.train.facade.TrainFacade;
 import java.util.HashMap;
 import java.util.List;
@@ -71,6 +75,41 @@ public class TrainController {
       return ResponseEntity.ok(trainFacade.getFrequentlyDelayedTrains());
     } catch (Exception e) {
       log.error("Error fetching frequently delayed trains: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  @GetMapping("/api/v1/train/routes")
+  public ResponseEntity<List<TrainRouteDTO>> getRoutes() {
+    log.info("GET /api/v1/train/routes");
+    try {
+      return ResponseEntity.ok(trainFacade.getRoutes());
+    } catch (Exception e) {
+      log.error("Error fetching train routes: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  @GetMapping("/api/v1/train/demand")
+  public ResponseEntity<List<TrainStationDemandDTO>> getDemand() {
+    log.info("GET /api/v1/train/demand");
+    try {
+      return ResponseEntity.ok(trainFacade.getDemand());
+    } catch (Exception e) {
+      log.error("Error fetching train demand: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  @PostMapping("/api/v1/train/demand/simulate")
+  public ResponseEntity<TrainDemandSimulateResponseDTO> simulateDemand(
+      @RequestBody TrainDemandSimulateRequestDTO request) {
+    log.info("POST /api/v1/train/demand/simulate corridors={}",
+        request.getCorridors() != null ? request.getCorridors().size() : 0);
+    try {
+      return ResponseEntity.ok(trainFacade.simulateDemand(request));
+    } catch (Exception e) {
+      log.error("Error simulating train demand: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }

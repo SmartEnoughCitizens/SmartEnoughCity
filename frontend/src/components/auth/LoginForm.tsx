@@ -58,6 +58,7 @@ export const LoginForm = () => {
         }),
       );
 
+      localStorage.removeItem("activeDashboardView");
       navigate(getLandingPage(roles));
     } catch {
       // Error is handled by mutation

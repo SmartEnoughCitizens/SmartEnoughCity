@@ -30,6 +30,7 @@ public class DisruptionFacade {
 
   private final ThresholdDetectionService thresholdDetectionService;
 
+  @SuppressWarnings("UnusedVariable")
   private final com.trinity.hermes.notification.services.NotificationFacade notificationFacade;
 
   @SuppressFBWarnings(value = "EI2", justification = "Spring-injected service dependency")
@@ -88,17 +89,18 @@ public class DisruptionFacade {
       disruption.setStatus("ANALYZING");
       DisruptionSolution solution = processDisruption(disruption);
 
-      // Step 4: Send to notification handler
-      disruption.setStatus("NOTIFYING");
-      notificationFacade.sendDisruptionNotification(solution);
-      boolean notificationSent = true;
-      disruption.setNotificationSent(notificationSent);
+      // Step 4: Send to notification handler (disabled)
+      // disruption.setStatus("NOTIFYING");
+      // notificationFacade.sendDisruptionNotification(solution);
+      // boolean notificationSent = true;
+      // disruption.setNotificationSent(notificationSent);
 
       // Step 5: Update status
-      if (notificationSent) {
-        disruption.setStatus("ACTIVE");
-        log.info("Disruption processing completed successfully");
-      }
+      // if (notificationSent) {
+      disruption.setStatus("ACTIVE");
+      disruption.setNotificationSent(false);
+      log.info("Disruption processing completed successfully");
+      // }
 
       long endTime = System.currentTimeMillis();
       incidentLoggingService.logPerformanceMetrics(

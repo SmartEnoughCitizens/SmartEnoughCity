@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 import {
   Alert,
   Avatar,
-  Badge,
   Box,
   Divider,
   IconButton,
@@ -33,12 +32,16 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
   toggleTheme,
   incrementNotificationBadge,
+  setNotificationBadgeCount,
+  clearRequestedNavigation,
 } from "@/store/slices/uiSlice";
+import { useUserNotifications } from "@/hooks";
 import { clearAuthentication } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks";
 import { getCreatableRoles, TRANSPORT_ACCESS } from "@/types";
@@ -73,7 +76,8 @@ export const DashboardLayout = () => {
   const dispatch = useAppDispatch();
   const { username, roles } = useAppSelector((state) => state.auth);
   const canManageUsers = getCreatableRoles(roles).length > 0;
-  const { theme, notificationBadgeCount } = useAppSelector((state) => state.ui);
+  const { theme, notificationBadgeCount, requestedNavigation } = useAppSelector((state) => state.ui);
+  const [newNotifBanner, setNewNotifBanner] = useState(false);
   const logoutMutation = useLogout();
 
   // Role-based view visibility — mirrors the allowedRoles from the original router
@@ -96,10 +100,7 @@ export const DashboardLayout = () => {
 
   // State to track active dashboard view with persistence
   const [activeView, setActiveView] = useState<DashboardView>(() => {
-    const saved = localStorage.getItem(
-      "activeDashboardView",
-    ) as DashboardView | null;
-    // Discard saved view if the user no longer has access (e.g. role change)
+    const saved = localStorage.getItem("activeDashboardView") as DashboardView | null;
     if (saved && canSeeView[saved]) return saved;
     return defaultView;
   });
@@ -109,6 +110,22 @@ export const DashboardLayout = () => {
     localStorage.setItem("activeDashboardView", activeView);
   }, [activeView]);
 
+  // Consume Redux navigation requests (e.g. from notification deep-links)
+  useEffect(() => {
+    if (!requestedNavigation) return;
+    const view = requestedNavigation.view as DashboardView;
+    if (canSeeView[view]) setActiveView(view);
+    dispatch(clearRequestedNavigation());
+  }, [requestedNavigation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Seed badge count from backend on login
+  const { data: notifData } = useUserNotifications(username || "", !!username);
+  useEffect(() => {
+    if (notifData?.totalCount !== undefined) {
+      dispatch(setNotificationBadgeCount(Number(notifData.totalCount)));
+    }
+  }, [notifData?.totalCount, dispatch]);
+
   // Connect SSE as soon as dashboard loads (user is authenticated)
   useEffect(() => {
     if (!username) return;
@@ -117,6 +134,7 @@ export const DashboardLayout = () => {
 
     const unsubscribe = sseService.subscribe(() => {
       dispatch(incrementNotificationBadge());
+      setNewNotifBanner(true);
     });
 
     return () => {
@@ -143,6 +161,7 @@ export const DashboardLayout = () => {
 
   const handleLogout = async () => {
     handleMenuClose();
+    localStorage.removeItem("activeDashboardView");
     await logoutMutation.mutateAsync();
     dispatch(clearAuthentication());
     navigate("/login");
@@ -191,9 +210,22 @@ export const DashboardLayout = () => {
     },
     {
       icon: (
-        <Badge badgeContent={notificationBadgeCount} color="error">
+        <Box sx={{ position: "relative", display: "inline-flex" }}>
           <NotificationsIcon />
-        </Badge>
+          {notificationBadgeCount > 0 && (
+            <Box sx={{
+              position: "absolute", top: -4, right: -6,
+              minWidth: 16, height: 16, borderRadius: "8px",
+              bgcolor: "primary.main", color: "#fff",
+              fontSize: "0.6rem", fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              px: 0.4,
+              border: "1.5px solid", borderColor: "background.paper",
+            }}>
+              {notificationBadgeCount > 9 ? "9+" : notificationBadgeCount}
+            </Box>
+          )}
+        </Box>
       ),
       view: "notifications" as DashboardView,
       label: "Notifications",
@@ -215,6 +247,17 @@ export const DashboardLayout = () => {
   );
 
   const isActive = (view: DashboardView) => activeView === view;
+
+  const panelSx = (view: DashboardView) => ({
+    position: "absolute" as const,
+    inset: 0,
+    opacity: activeView === view ? 1 : 0,
+    visibility: (activeView === view ? "visible" : "hidden") as "visible" | "hidden",
+    pointerEvents: (activeView === view ? "auto" : "none") as "auto" | "none",
+    transition: activeView === view
+      ? "opacity 0.5s ease-in-out"
+      : "opacity 0.5s ease-in-out, visibility 0s linear 0.5s",
+  });
 
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -410,147 +453,76 @@ export const DashboardLayout = () => {
           height: "100vh",
           overflow: "hidden",
           position: "relative",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
+        {/* New notification banner */}
+        {newNotifBanner && (
+          <Box sx={{
+            display: "flex", alignItems: "center", gap: 1.5,
+            px: 2.5, py: 1,
+            bgcolor: "primary.main", color: "#fff",
+            fontSize: "0.8rem", zIndex: 1300, flexShrink: 0,
+          }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#fff", flexShrink: 0 }} />
+            <Typography sx={{ fontSize: "0.8rem", flex: 1 }}>
+              You have new notifications.{" "}
+              <Box
+                component="span"
+                onClick={() => { setNewNotifBanner(false); setActiveView("notifications"); }}
+                sx={{ textDecoration: "underline", cursor: "pointer", fontWeight: 600 }}
+              >
+                View now
+              </Box>
+            </Typography>
+            <IconButton size="small" onClick={() => setNewNotifBanner(false)} sx={{ color: "#fff", p: 0.25 }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        )}
+        <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {/* Overview Dashboard — City_Manager only */}
         {canSeeView.overview && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "overview" ? "visible" : "hidden",
-              opacity: activeView === "overview" ? 1 : 0,
-              pointerEvents: activeView === "overview" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <Dashboard onNavigate={setActiveView} />
-          </Box>
+          <Box sx={panelSx("overview")}><Dashboard onNavigate={setActiveView} /></Box>
         )}
 
         {/* Bus Dashboard */}
         {canSeeView.bus && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "bus" ? "visible" : "hidden",
-              opacity: activeView === "bus" ? 1 : 0,
-              pointerEvents: activeView === "bus" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <BusDashboard />
-          </Box>
+          <Box sx={panelSx("bus")}><BusDashboard /></Box>
         )}
 
         {/* Cycle Dashboard */}
         {canSeeView.cycle && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "cycle" ? "visible" : "hidden",
-              opacity: activeView === "cycle" ? 1 : 0,
-              pointerEvents: activeView === "cycle" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <CycleDashboard />
-          </Box>
+          <Box sx={panelSx("cycle")}><CycleDashboard /></Box>
         )}
 
         {/* Car Dashboard */}
         {canSeeView.car && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "car" ? "visible" : "hidden",
-              opacity: activeView === "car" ? 1 : 0,
-              pointerEvents: activeView === "car" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <CarDashboard />
-          </Box>
+          <Box sx={panelSx("car")}><CarDashboard /></Box>
         )}
 
         {/* Train Dashboard */}
         {canSeeView.train && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "train" ? "visible" : "hidden",
-              opacity: activeView === "train" ? 1 : 0,
-              pointerEvents: activeView === "train" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <TrainDashboard />
-          </Box>
+          <Box sx={panelSx("train")}><TrainDashboard /></Box>
         )}
 
         {/* Tram Dashboard */}
         {canSeeView.tram && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "tram" ? "visible" : "hidden",
-              opacity: activeView === "tram" ? 1 : 0,
-              pointerEvents: activeView === "tram" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <TramDashboard />
-          </Box>
+          <Box sx={panelSx("tram")}><TramDashboard /></Box>
         )}
 
         {/* Misc Dashboard (Events & Pedestrians) — all authenticated users */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            visibility: activeView === "misc" ? "visible" : "hidden",
-            opacity: activeView === "misc" ? 1 : 0,
-            pointerEvents: activeView === "misc" ? "auto" : "none",
-            transition: "opacity 0.15s ease-in-out",
-          }}
-        >
-          <MiscDashboard />
-        </Box>
+        <Box sx={panelSx("misc")}><MiscDashboard /></Box>
 
         {/* Notifications Page — all authenticated users */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            visibility: activeView === "notifications" ? "visible" : "hidden",
-            opacity: activeView === "notifications" ? 1 : 0,
-            pointerEvents: activeView === "notifications" ? "auto" : "none",
-            transition: "opacity 0.15s ease-in-out",
-          }}
-        >
-          <NotificationsPage />
-        </Box>
+        <Box sx={panelSx("notifications")}><NotificationsPage /></Box>
 
         {/* User Management Page */}
         {canManageUsers && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              visibility: activeView === "users" ? "visible" : "hidden",
-              opacity: activeView === "users" ? 1 : 0,
-              pointerEvents: activeView === "users" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <UserManagementPage />
-          </Box>
+          <Box sx={panelSx("users")}><UserManagementPage /></Box>
         )}
+        </Box>
       </Box>
 
       <EditProfileDialog

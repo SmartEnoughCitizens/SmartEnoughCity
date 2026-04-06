@@ -11,6 +11,7 @@ import com.trinity.hermes.notification.model.enums.Channel;
 import com.trinity.hermes.notification.repository.NotificationRepository;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,6 +68,7 @@ public class NotificationFacade {
                 .channel(notification.getChannel())
                 .isRead(false)
                 .qrCodeId(backendNotificationRequestDTO.getQrid())
+                .actionUrl(backendNotificationRequestDTO.getActionUrl())
                 .build());
         log.info("Persisted notification for userId={}", userId);
       }
@@ -181,8 +183,8 @@ public class NotificationFacade {
 
   public NotificationResponseDTO getAll(String userId) {
     List<NotificationEntity> entities =
-        notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
-    long unreadCount = notificationRepository.countByUserIdAndIsReadFalse(userId);
+        notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
+    long unreadCount = notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull(userId);
     return NotificationResponseDTO.builder()
         .userId(userId)
         .notifications(entities.stream().map(this::toItemDTO).toList())
@@ -190,17 +192,64 @@ public class NotificationFacade {
         .build();
   }
 
+  public NotificationResponseDTO getBin(String userId) {
+    List<NotificationEntity> entities =
+        notificationRepository.findByUserIdAndDeletedAtIsNotNullOrderByDeletedAtDesc(userId);
+    return NotificationResponseDTO.builder()
+        .userId(userId)
+        .notifications(entities.stream().map(this::toItemDTO).toList())
+        .totalCount(entities.size())
+        .build();
+  }
+
   public boolean markAsRead(String userId, Long notificationId) {
+    return setReadState(userId, notificationId, true);
+  }
+
+  public boolean markAsUnread(String userId, Long notificationId) {
+    return setReadState(userId, notificationId, false);
+  }
+
+  private boolean setReadState(String userId, Long notificationId, boolean read) {
     return notificationRepository
         .findByIdAndUserId(notificationId, userId)
-        .map(
-            entity -> {
-              entity.setRead(true);
-              notificationRepository.save(entity);
-              log.info("Marked notification {} as read for userId={}", notificationId, userId);
-              return true;
-            })
+        .map(entity -> {
+          entity.setRead(read);
+          notificationRepository.save(entity);
+          return true;
+        })
         .orElse(false);
+  }
+
+  public boolean softDelete(String userId, Long notificationId) {
+    return notificationRepository
+        .findByIdAndUserId(notificationId, userId)
+        .map(entity -> {
+          entity.setDeletedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
+          notificationRepository.save(entity);
+          log.info("Soft-deleted notification {} for userId={}", notificationId, userId);
+          return true;
+        })
+        .orElse(false);
+  }
+
+  public boolean restore(String userId, Long notificationId) {
+    return notificationRepository
+        .findByIdAndUserId(notificationId, userId)
+        .map(entity -> {
+          entity.setDeletedAt(null);
+          notificationRepository.save(entity);
+          return true;
+        })
+        .orElse(false);
+  }
+
+  @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 3 * * *")
+  @jakarta.transaction.Transactional
+  public void purgeExpiredBin() {
+    LocalDateTime cutoff = LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")).minusDays(30);
+    notificationRepository.hardDeleteExpiredBinEntries(cutoff);
+    log.info("Purged bin notifications older than 30 days");
   }
 
   private NotificationItemDTO toItemDTO(NotificationEntity entity) {
@@ -213,6 +262,8 @@ public class NotificationFacade {
         .read(entity.isRead())
         .timestamp(entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null)
         .qrCodeId(entity.getQrCodeId())
+        .actionUrl(entity.getActionUrl())
+        .deletedAt(entity.getDeletedAt() != null ? entity.getDeletedAt().toString() : null)
         .build();
   }
 }

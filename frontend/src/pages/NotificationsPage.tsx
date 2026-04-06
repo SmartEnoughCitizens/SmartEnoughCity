@@ -5,213 +5,215 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   IconButton,
-  Paper,
-  Stack,
+  Tab,
+  Tabs,
   Tooltip,
   Typography,
   CircularProgress,
+  Alert,
 } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import CircleIcon from "@mui/icons-material/Circle";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import { useEffect, useState } from "react";
 import {
   useUserNotifications,
+  useNotificationBin,
   useSetReadState,
   useMarkAllAsRead,
+  useSoftDeleteNotification,
+  useRestoreNotification,
 } from "@/hooks";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { setNotificationBadgeCount } from "@/store/slices/uiSlice";
+import { setNotificationBadgeCount, requestNavigation } from "@/store/slices/uiSlice";
 import { type Notification } from "@/types";
 
 export const NotificationsPage = () => {
   const { username } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
-
+  const [tab, setTab] = useState(0);
   const [selected, setSelected] = useState<Notification | null>(null);
 
-  // Clear badge when user views notifications
   useEffect(() => {
     dispatch(setNotificationBadgeCount(0));
   }, [dispatch]);
 
   const { data, isLoading } = useUserNotifications(username || "", !!username);
+  const { data: binData, isLoading: binLoading } = useNotificationBin(username || "", tab === 1);
   const setReadState = useSetReadState(username || "");
   const markAllAsRead = useMarkAllAsRead(username || "");
+  const softDelete = useSoftDeleteNotification(username || "");
+  const restore = useRestoreNotification(username || "");
 
-  const hasUnread = data?.notifications?.some((n) => !n.read) ?? false;
+  const inbox = data?.notifications ?? [];
+  const bin = binData?.notifications ?? [];
+  const unreadCount = inbox.filter((n) => !n.read).length;
 
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100%",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const handleOpen = (n: Notification) => {
+    setSelected(n);
+    if (!n.read && tab === 0) setReadState(n.id, true);
+  };
 
-  // Don't early-return on error — SSE notifications may still arrive
+  const renderList = (items: Notification[], isBin: boolean) => {
+    if (isLoading || (isBin && binLoading)) {
+      return (
+        <Box sx={{ display: "flex", justifyContent: "center", pt: 6 }}>
+          <CircularProgress size={28} />
+        </Box>
+      );
+    }
+    if (items.length === 0) {
+      return (
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 200, gap: 1.5, color: "text.disabled" }}>
+          {isBin ? <DeleteForeverIcon sx={{ fontSize: 44 }} /> : <NotificationsNoneIcon sx={{ fontSize: 44 }} />}
+          <Typography variant="body2">{isBin ? "Bin is empty" : "No notifications yet"}</Typography>
+        </Box>
+      );
+    }
+    return items.map((n, i) => {
+      const subject = (n.metadata?.subject as string | undefined) || n.message.split(": ")[0];
+      const body = (n.metadata?.body as string | undefined) || n.message.split(": ").slice(1).join(": ");
+      const hasLink = !!(n.metadata?.actionUrl as string | undefined);
+
+      return (
+        <Box key={n.id}>
+          <Box
+            onClick={() => handleOpen(n)}
+            sx={{
+              px: 4, py: 2,
+              display: "flex", alignItems: "flex-start", gap: 2,
+              cursor: "pointer",
+              bgcolor: (!isBin && !n.read) ? (t) => t.palette.mode === "dark" ? "rgba(25,118,210,0.07)" : "#f0f6ff" : "transparent",
+              transition: "background-color 0.15s",
+              "&:hover": { bgcolor: (t) => t.palette.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" },
+            }}
+          >
+            {/* Unread dot */}
+            <Box sx={{ pt: 0.6, width: 8, flexShrink: 0 }}>
+              {!n.read && !isBin && <CircleIcon sx={{ fontSize: 8, color: "primary.main" }} />}
+            </Box>
+
+            {/* Content */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.25 }}>
+                <Typography variant="body2" fontWeight={!isBin && !n.read ? 700 : 400} noWrap sx={{ flex: 1 }}>
+                  {subject}
+                </Typography>
+                {hasLink && <OpenInNewIcon sx={{ fontSize: 14, color: "text.disabled", flexShrink: 0 }} />}
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {body}
+              </Typography>
+              <Typography variant="caption" color="text.disabled" sx={{ mt: 0.4, display: "block" }}>
+                {new Date(n.timestamp).toLocaleString("en-IE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </Typography>
+            </Box>
+
+            {/* Actions */}
+            <Box sx={{ display: "flex", gap: 0.25, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+              {!isBin && (
+                <>
+                  <Tooltip title={n.read ? "Mark as unread" : "Mark as read"} arrow placement="top">
+                    <IconButton size="small" onClick={() => setReadState(n.id, !n.read)} sx={{ color: n.read ? "text.disabled" : "primary.main" }}>
+                      <DoneAllIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Move to bin" arrow placement="top">
+                    <IconButton size="small" onClick={() => softDelete(n.id)} sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}>
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </>
+              )}
+              {isBin && (
+                <Tooltip title="Restore" arrow placement="top">
+                  <IconButton size="small" onClick={() => restore(n.id)} sx={{ color: "text.disabled", "&:hover": { color: "primary.main" } }}>
+                    <RestoreFromTrashIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+          </Box>
+          {i < items.length - 1 && <Divider />}
+        </Box>
+      );
+    });
+  };
 
   return (
-    <Box
-      sx={{
-        height: "100%",
-        overflow: "auto",
-        p: 3,
-        bgcolor: (t) => t.palette.background.default,
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          mb: 2,
-        }}
-      >
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Notifications
-        </Typography>
-        {hasUnread && (
-          <Button size="small" onClick={markAllAsRead}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: (t) => t.palette.background.default }}>
+      {/* Header */}
+      <Box sx={{ px: 4, py: 2.5, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <NotificationsNoneIcon sx={{ color: "primary.main" }} />
+          <Typography variant="h6" fontWeight={700}>Notifications</Typography>
+        </Box>
+        {tab === 0 && unreadCount > 0 && (
+          <Button size="small" startIcon={<DoneAllIcon />} onClick={markAllAsRead} sx={{ fontSize: "0.75rem" }}>
             Mark all as read
           </Button>
         )}
       </Box>
 
-      {!data?.notifications || data.notifications.length === 0 ? (
-        <Paper
-          elevation={1}
-          sx={{ borderRadius: 3, p: 4, maxWidth: 720, textAlign: "center" }}
-        >
-          <Typography variant="body1" color="text.secondary">
-            No notifications available
-          </Typography>
-        </Paper>
-      ) : (
-        <Stack spacing={1.5} sx={{ maxWidth: 720 }}>
-          {data.notifications.map((notification) => {
-            const subject =
-              (notification.metadata?.subject as string | undefined) ||
-              notification.message.split(": ")[0];
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 3, "& .MuiTab-root": { fontSize: "0.8rem", textTransform: "none", minHeight: 40 } }}>
+          <Tab label="Inbox" />
+          <Tab label="Bin" />
+        </Tabs>
+      </Box>
 
-            return (
-              <Paper
-                key={notification.id}
-                elevation={1}
-                onClick={() => setSelected(notification)}
-                sx={{
-                  borderRadius: 2,
-                  px: 2.5,
-                  py: 2,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  opacity: notification.read ? 0.45 : 1,
-                  bgcolor: notification.read
-                    ? "background.paper"
-                    : (t) =>
-                        t.palette.mode === "dark"
-                          ? "rgba(25, 118, 210, 0.12)"
-                          : "#e8f1fd",
-                  transition: "opacity 0.2s, background-color 0.2s",
-                  "&:hover": {
-                    opacity: notification.read ? 0.65 : 0.9,
-                  },
-                }}
-              >
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, mb: 0.25 }}
-                    noWrap
-                  >
-                    {subject}
-                  </Typography>
-                  <Typography variant="caption" color="text.disabled">
-                    {new Date(notification.timestamp).toLocaleString()}
-                  </Typography>
-                </Box>
-
-                <Tooltip
-                  title={notification.read ? "Mark as unread" : "Mark as read"}
-                  placement="left"
-                  arrow
-                >
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setReadState(notification.id, !notification.read);
-                    }}
-                    color={notification.read ? "default" : "primary"}
-                  >
-                    {notification.read ? (
-                      <RadioButtonUncheckedIcon fontSize="small" />
-                    ) : (
-                      <CheckCircleOutlineIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
-              </Paper>
-            );
-          })}
-        </Stack>
+      {/* Bin 30-day banner */}
+      {tab === 1 && bin.length > 0 && (
+        <Alert severity="warning" sx={{ borderRadius: 0, fontSize: "0.78rem", flexShrink: 0 }}>
+          Items in the bin are permanently deleted after <strong>30 days</strong>.
+        </Alert>
       )}
 
-      {/* Notification detail dialog */}
-      {selected &&
-        (() => {
-          const subject =
-            (selected.metadata?.subject as string | undefined) ||
-            selected.message.split(": ")[0];
-          const body =
-            (selected.metadata?.body as string | undefined) ||
-            selected.message.split(": ").slice(1).join(": ");
+      {/* List */}
+      <Box sx={{ flex: 1, overflow: "auto" }}>
+        {tab === 0 ? renderList(inbox, false) : renderList(bin, true)}
+      </Box>
 
-          return (
-            <Dialog
-              open
-              onClose={() => setSelected(null)}
-              maxWidth="sm"
-              fullWidth
-            >
-              <DialogTitle>{subject}</DialogTitle>
-              <DialogContent sx={{ pt: 1 }}>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  {body}
-                </Typography>
-                <Typography variant="caption" color="text.disabled">
-                  {new Date(selected.timestamp).toLocaleString()}
-                </Typography>
-              </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 2 }}>
-                {!selected.read && (
-                  <Button
-                    onClick={() => {
-                      setReadState(selected.id, true);
-                      setSelected((prev) =>
-                        prev ? { ...prev, read: true } : prev,
-                      );
-                    }}
-                  >
-                    Mark as read
-                  </Button>
-                )}
-                <Button variant="contained" onClick={() => setSelected(null)}>
-                  Close
+      {/* Detail dialog */}
+      {selected && (() => {
+        const subject = (selected.metadata?.subject as string | undefined) || selected.message.split(": ")[0];
+        const body = (selected.metadata?.body as string | undefined) || selected.message.split(": ").slice(1).join(": ");
+        return (
+          <Dialog open onClose={() => setSelected(null)} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ fontWeight: 700 }}>{subject}</DialogTitle>
+            <DialogContent sx={{ pt: 1 }}>
+              <Typography variant="body1" sx={{ whiteSpace: "pre-wrap", mb: 2 }}>{body}</Typography>
+              <Typography variant="caption" color="text.disabled">
+                {new Date(selected.timestamp).toLocaleString("en-IE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+              {(selected.metadata?.actionUrl as string | undefined) && (
+                <Button
+                  variant="contained"
+                  startIcon={<OpenInNewIcon />}
+                  onClick={() => {
+                    const actionUrl = selected.metadata!.actionUrl as string;
+                    const params = new URLSearchParams(actionUrl.split("?")[1] ?? "");
+                    dispatch(requestNavigation({ view: params.get("view") ?? "", tab: params.get("tab") ?? undefined }));
+                    setSelected(null);
+                  }}
+                >
+                  View in Dashboard
                 </Button>
-              </DialogActions>
-            </Dialog>
-          );
-        })()}
+              )}
+              <Button variant="outlined" onClick={() => setSelected(null)}>Close</Button>
+            </DialogActions>
+          </Dialog>
+        );
+      })()}
     </Box>
   );
 };
