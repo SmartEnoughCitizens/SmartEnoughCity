@@ -361,13 +361,17 @@ export const dashboardApi = {
    * Get real route corridors (ordered stop coordinates) for the Dublin rail network
    */
   getTrainRoutes: async (): Promise<TrainRoute[]> => {
-    const { data } = await axiosInstance.get<TrainRoute[]>(API_ENDPOINTS.TRAIN_ROUTES);
+    const { data } = await axiosInstance.get<TrainRoute[]>(
+      API_ENDPOINTS.TRAIN_ROUTES,
+    );
     return data;
   },
 
   /** Get trip-frequency demand scores per Dublin station */
   getTrainDemand: async (): Promise<StationDemand[]> => {
-    const { data } = await axiosInstance.get<StationDemand[]>(API_ENDPOINTS.TRAIN_DEMAND);
+    const { data } = await axiosInstance.get<StationDemand[]>(
+      API_ENDPOINTS.TRAIN_DEMAND,
+    );
     return data;
   },
 

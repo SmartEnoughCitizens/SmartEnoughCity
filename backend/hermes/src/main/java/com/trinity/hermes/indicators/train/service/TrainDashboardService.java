@@ -70,8 +70,9 @@ public class TrainDashboardService {
   @Transactional(readOnly = true)
   public List<TrainDTO> getStations(int limit) {
     // Primary: GTFS train_stops filtered to Dublin
-    long gtfsCount = gtfsStopRepository.countDublinStops(
-        DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
+    long gtfsCount =
+        gtfsStopRepository.countDublinStops(
+            DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
 
     if (gtfsCount > 0) {
       log.debug("Using GTFS stops ({} Dublin stations)", gtfsCount);
@@ -97,16 +98,19 @@ public class TrainDashboardService {
 
   @Transactional(readOnly = true)
   public TrainKpiDTO getKpis() {
-    long totalStations = gtfsStopRepository.countDublinStops(
-        DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
+    long totalStations =
+        gtfsStopRepository.countDublinStops(
+            DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
 
     if (totalStations == 0) {
-      totalStations = trainStationRepository.countDublinStations(
-          DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
+      totalStations =
+          trainStationRepository.countDublinStations(
+              DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
     }
 
-    long liveTrainsRunning = trainCurrentTrainRepository.countActiveDublinTrains(
-        DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
+    long liveTrainsRunning =
+        trainCurrentTrainRepository.countActiveDublinTrains(
+            DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
     Double lateArrivalPct = trainStationDataRepository.findLateArrivalPct();
     Double avgDelayMinutes = trainStationDataRepository.findAverageLateMinutes();
 
@@ -152,8 +156,9 @@ public class TrainDashboardService {
 
   @Transactional(readOnly = true)
   public List<TrainRouteDTO> getRoutes() {
-    List<GtfsRouteStopProjection> rows = gtfsStopRepository.findRoutePolylines(
-        DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
+    List<GtfsRouteStopProjection> rows =
+        gtfsStopRepository.findRoutePolylines(
+            DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
     log.info("GTFS route query returned {} Dublin-area stop rows", rows.size());
 
     // Group by routeId preserving insertion order (already sorted by route+sequence)
@@ -167,12 +172,13 @@ public class TrainDashboardService {
             stops -> {
               List<GtfsRouteStopProjection> sorted =
                   stops.stream()
-                      .sorted(Comparator.comparingInt(
-                          p -> p.getLocationOrder() != null ? p.getLocationOrder() : 0))
+                      .sorted(
+                          Comparator.comparingInt(
+                              p -> p.getLocationOrder() != null ? p.getLocationOrder() : 0))
                       .collect(Collectors.toList());
               List<double[]> coords =
                   sorted.stream()
-                      .map(p -> new double[]{p.getLat(), p.getLon()})
+                      .map(p -> new double[] {p.getLat(), p.getLon()})
                       .collect(Collectors.toList());
               List<String> stopIds =
                   sorted.stream()
@@ -190,9 +196,14 @@ public class TrainDashboardService {
   @Transactional(readOnly = true)
   public List<TrainDelayDTO> getFrequentlyDelayedTrains() {
     return trainStationDataRepository.findFrequentlyDelayedTrains().stream()
-        .map(p -> new TrainDelayDTO(
-            p.getTrainCode(), p.getOrigin(), p.getDestination(),
-            p.getDirection(), p.getTotalAvgDelayMinutes()))
+        .map(
+            p ->
+                new TrainDelayDTO(
+                    p.getTrainCode(),
+                    p.getOrigin(),
+                    p.getDestination(),
+                    p.getDirection(),
+                    p.getTotalAvgDelayMinutes()))
         .collect(Collectors.toList());
   }
 
@@ -209,22 +220,27 @@ public class TrainDashboardService {
     String url = inferenceEngineBaseUrl + "/train/demand/simulate";
     log.info("Posting demand simulation to inference engine: {}", url);
     // Inference engine expects snake_case — map corridors manually
-    List<Map<String, Object>> corridors = request.getCorridors() == null
-        ? List.of()
-        : request.getCorridors().stream().map(c -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("origin_stop_id", c.getOriginStopId());
-            m.put("destination_stop_id", c.getDestinationStopId());
-            m.put("train_count", c.getTrainCount());
-            return m;
-          }).collect(Collectors.toList());
+    List<Map<String, Object>> corridors =
+        request.getCorridors() == null
+            ? List.of()
+            : request.getCorridors().stream()
+                .map(
+                    c -> {
+                      Map<String, Object> m = new HashMap<>();
+                      m.put("origin_stop_id", c.getOriginStopId());
+                      m.put("destination_stop_id", c.getDestinationStopId());
+                      m.put("train_count", c.getTrainCount());
+                      return m;
+                    })
+                .collect(Collectors.toList());
     Map<String, Object> body = Map.of("corridors", corridors);
-    return restTemplate.exchange(
-        url,
-        HttpMethod.POST,
-        new HttpEntity<>(body),
-        new ParameterizedTypeReference<TrainDemandSimulateResponseDTO>() {}
-    ).getBody();
+    return restTemplate
+        .exchange(
+            url,
+            HttpMethod.POST,
+            new HttpEntity<>(body),
+            new ParameterizedTypeReference<TrainDemandSimulateResponseDTO>() {})
+        .getBody();
   }
 
   // ── Mapping helpers ───────────────────────────────────────────────

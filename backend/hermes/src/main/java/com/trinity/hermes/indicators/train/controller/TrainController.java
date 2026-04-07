@@ -104,7 +104,8 @@ public class TrainController {
   @PostMapping("/api/v1/train/demand/simulate")
   public ResponseEntity<TrainDemandSimulateResponseDTO> simulateDemand(
       @RequestBody TrainDemandSimulateRequestDTO request) {
-    log.info("POST /api/v1/train/demand/simulate corridors={}",
+    log.info(
+        "POST /api/v1/train/demand/simulate corridors={}",
         request.getCorridors() != null ? request.getCorridors().size() : 0);
     try {
       return ResponseEntity.ok(trainFacade.simulateDemand(request));

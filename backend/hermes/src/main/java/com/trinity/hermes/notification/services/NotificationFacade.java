@@ -213,34 +213,37 @@ public class NotificationFacade {
   private boolean setReadState(String userId, Long notificationId, boolean read) {
     return notificationRepository
         .findByIdAndUserId(notificationId, userId)
-        .map(entity -> {
-          entity.setRead(read);
-          notificationRepository.save(entity);
-          return true;
-        })
+        .map(
+            entity -> {
+              entity.setRead(read);
+              notificationRepository.save(entity);
+              return true;
+            })
         .orElse(false);
   }
 
   public boolean softDelete(String userId, Long notificationId) {
     return notificationRepository
         .findByIdAndUserId(notificationId, userId)
-        .map(entity -> {
-          entity.setDeletedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
-          notificationRepository.save(entity);
-          log.info("Soft-deleted notification {} for userId={}", notificationId, userId);
-          return true;
-        })
+        .map(
+            entity -> {
+              entity.setDeletedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
+              notificationRepository.save(entity);
+              log.info("Soft-deleted notification {} for userId={}", notificationId, userId);
+              return true;
+            })
         .orElse(false);
   }
 
   public boolean restore(String userId, Long notificationId) {
     return notificationRepository
         .findByIdAndUserId(notificationId, userId)
-        .map(entity -> {
-          entity.setDeletedAt(null);
-          notificationRepository.save(entity);
-          return true;
-        })
+        .map(
+            entity -> {
+              entity.setDeletedAt(null);
+              notificationRepository.save(entity);
+              return true;
+            })
         .orElse(false);
   }
 

@@ -63,11 +63,13 @@ public class NotificationController {
 
   @PatchMapping("/{userId}/{notificationId}/read")
   public ResponseEntity<?> toggleRead(
-      @PathVariable String userId, @PathVariable Long notificationId,
+      @PathVariable String userId,
+      @PathVariable Long notificationId,
       @RequestParam(defaultValue = "true") boolean read) {
-    boolean updated = read
-        ? notificationFacade.markAsRead(userId, notificationId)
-        : notificationFacade.markAsUnread(userId, notificationId);
+    boolean updated =
+        read
+            ? notificationFacade.markAsRead(userId, notificationId)
+            : notificationFacade.markAsUnread(userId, notificationId);
     if (!updated) return ResponseEntity.notFound().build();
     return ResponseEntity.ok(Map.of("status", "updated"));
   }
@@ -83,8 +85,7 @@ public class NotificationController {
 
   /** Restore from bin. */
   @PatchMapping("/{userId}/{notificationId}/restore")
-  public ResponseEntity<?> restore(
-      @PathVariable String userId, @PathVariable Long notificationId) {
+  public ResponseEntity<?> restore(@PathVariable String userId, @PathVariable Long notificationId) {
     boolean restored = notificationFacade.restore(userId, notificationId);
     if (!restored) return ResponseEntity.notFound().build();
     return ResponseEntity.ok(Map.of("status", "restored"));

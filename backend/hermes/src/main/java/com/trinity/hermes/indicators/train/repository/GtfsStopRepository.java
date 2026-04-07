@@ -52,9 +52,9 @@ public interface GtfsStopRepository extends JpaRepository<GtfsStop, String> {
       @Param("lonMax") double lonMax);
 
   /**
-   * One canonical ordered route polyline per route_id (direction 0 = outbound). Stops are
-   * filtered to the Dublin bounding box — intercity routes with only one stop in Dublin are
-   * excluded by the service layer.
+   * One canonical ordered route polyline per route_id (direction 0 = outbound). Stops are filtered
+   * to the Dublin bounding box — intercity routes with only one stop in Dublin are excluded by the
+   * service layer.
    */
   @Query(
       value =
@@ -88,9 +88,9 @@ public interface GtfsStopRepository extends JpaRepository<GtfsStop, String> {
       @Param("lonMax") double lonMax);
 
   /**
-   * Average daily trip frequency per Dublin stop across a full 7-day week,
-   * enriched with 2024 ridership and the total population living within
-   * 800 m of each station (PostGIS ST_DWithin on CSO small areas).
+   * Average daily trip frequency per Dublin stop across a full 7-day week, enriched with 2024
+   * ridership and the total population living within 800 m of each station (PostGIS ST_DWithin on
+   * CSO small areas).
    */
   @Query(
       value =

@@ -58,7 +58,9 @@ export const useUserNotifications = (
       const notifications = rawItems.map((item, index) =>
         toFrontendNotification(item, index),
       );
-      const unreadCount = Array.isArray(data) ? notifications.filter(n => !n.read).length : (data.totalCount ?? 0);
+      const unreadCount = Array.isArray(data)
+        ? notifications.filter((n) => !n.read).length
+        : (data.totalCount ?? 0);
       return { userId, notifications, totalCount: unreadCount };
     },
     enabled: !!userId && enabled,
@@ -116,9 +118,9 @@ export const useMarkAllAsRead = (userId: string) => {
     const data = queryClient.getQueryData<NotificationResponse>(
       NOTIFICATION_KEYS.user(userId),
     );
-    data?.notifications
-      .filter((n) => !n.read)
-      .forEach((n) => notificationApi.setReadState(userId, n.id, true).catch(() => {}));
+    for (const n of data?.notifications.filter((n) => !n.read) ?? []) {
+      notificationApi.setReadState(userId, n.id, true).catch(() => {});
+    }
   }, [userId, queryClient]);
 };
 
@@ -130,7 +132,13 @@ export const useNotificationBin = (userId: string, enabled: boolean = true) => {
       const rawItems: RawNotification[] = Array.isArray(data)
         ? (data as RawNotification[])
         : data.notifications || [];
-      return { userId, notifications: rawItems.map((item, i) => toFrontendNotification(item, i)), totalCount: rawItems.length };
+      return {
+        userId,
+        notifications: rawItems.map((item, i) =>
+          toFrontendNotification(item, i),
+        ),
+        totalCount: rawItems.length,
+      };
     },
     enabled: !!userId && enabled,
     staleTime: 60_000,
@@ -139,28 +147,56 @@ export const useNotificationBin = (userId: string, enabled: boolean = true) => {
 
 export const useSoftDeleteNotification = (userId: string) => {
   const queryClient = useQueryClient();
-  return useCallback((notificationId: string) => {
-    // Optimistic: remove from inbox
-    queryClient.setQueryData<NotificationResponse>(NOTIFICATION_KEYS.user(userId), (old) => {
-      if (!old) return old;
-      return { ...old, notifications: old.notifications.filter((n) => n.id !== notificationId) };
-    });
-    notificationApi.softDelete(userId, notificationId).then(() => {
-      queryClient.invalidateQueries({ queryKey: ["notifications-bin", userId] });
-    }).catch(() => {
-      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.user(userId) });
-    });
-  }, [userId, queryClient]);
+  return useCallback(
+    (notificationId: string) => {
+      // Optimistic: remove from inbox
+      queryClient.setQueryData<NotificationResponse>(
+        NOTIFICATION_KEYS.user(userId),
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            notifications: old.notifications.filter(
+              (n) => n.id !== notificationId,
+            ),
+          };
+        },
+      );
+      notificationApi
+        .softDelete(userId, notificationId)
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: ["notifications-bin", userId],
+          });
+        })
+        .catch(() => {
+          queryClient.invalidateQueries({
+            queryKey: NOTIFICATION_KEYS.user(userId),
+          });
+        });
+    },
+    [userId, queryClient],
+  );
 };
 
 export const useRestoreNotification = (userId: string) => {
   const queryClient = useQueryClient();
-  return useCallback((notificationId: string) => {
-    notificationApi.restore(userId, notificationId).then(() => {
-      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.user(userId) });
-      queryClient.invalidateQueries({ queryKey: ["notifications-bin", userId] });
-    }).catch(() => {});
-  }, [userId, queryClient]);
+  return useCallback(
+    (notificationId: string) => {
+      notificationApi
+        .restore(userId, notificationId)
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: NOTIFICATION_KEYS.user(userId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["notifications-bin", userId],
+          });
+        })
+        .catch(() => {});
+    },
+    [userId, queryClient],
+  );
 };
 
 export const useSetReadState = (userId: string) => {
@@ -175,7 +211,7 @@ export const useSetReadState = (userId: string) => {
           if (!old) return old;
           const prev = old.notifications.find((n) => n.id === notificationId);
           const wasUnread = prev && !prev.read;
-          const delta = read ? (wasUnread ? -1 : 0) : (!wasUnread ? 1 : 0);
+          const delta = read ? (wasUnread ? -1 : 0) : wasUnread ? 0 : 1;
           return {
             ...old,
             totalCount: Math.max(0, (old.totalCount ?? 0) + delta),
@@ -185,7 +221,9 @@ export const useSetReadState = (userId: string) => {
           };
         },
       );
-      notificationApi.setReadState(userId, notificationId, read).catch(() => {});
+      notificationApi
+        .setReadState(userId, notificationId, read)
+        .catch(() => {});
     },
     [userId, queryClient],
   );

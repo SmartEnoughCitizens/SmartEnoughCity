@@ -41,9 +41,8 @@ import {
   setNotificationBadgeCount,
   clearRequestedNavigation,
 } from "@/store/slices/uiSlice";
-import { useUserNotifications } from "@/hooks";
+import { useLogout, useUserNotifications } from "@/hooks";
 import { clearAuthentication } from "@/store/slices/authSlice";
-import { useLogout } from "@/hooks";
 import { getCreatableRoles, TRANSPORT_ACCESS } from "@/types";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import { ChangePasswordDialog } from "@/components/profile/ChangePasswordDialog";
@@ -76,7 +75,9 @@ export const DashboardLayout = () => {
   const dispatch = useAppDispatch();
   const { username, roles } = useAppSelector((state) => state.auth);
   const canManageUsers = getCreatableRoles(roles).length > 0;
-  const { theme, notificationBadgeCount, requestedNavigation } = useAppSelector((state) => state.ui);
+  const { theme, notificationBadgeCount, requestedNavigation } = useAppSelector(
+    (state) => state.ui,
+  );
   const [newNotifBanner, setNewNotifBanner] = useState(false);
   const logoutMutation = useLogout();
 
@@ -100,7 +101,9 @@ export const DashboardLayout = () => {
 
   // State to track active dashboard view with persistence
   const [activeView, setActiveView] = useState<DashboardView>(() => {
-    const saved = localStorage.getItem("activeDashboardView") as DashboardView | null;
+    const saved = localStorage.getItem(
+      "activeDashboardView",
+    ) as DashboardView | null;
     if (saved && canSeeView[saved]) return saved;
     return defaultView;
   });
@@ -114,7 +117,7 @@ export const DashboardLayout = () => {
   useEffect(() => {
     if (!requestedNavigation) return;
     const view = requestedNavigation.view as DashboardView;
-    if (canSeeView[view]) setActiveView(view);
+    if (canSeeView[view]) setActiveView(view); // eslint-disable-line react-hooks/set-state-in-effect
     dispatch(clearRequestedNavigation());
   }, [requestedNavigation]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -213,15 +216,26 @@ export const DashboardLayout = () => {
         <Box sx={{ position: "relative", display: "inline-flex" }}>
           <NotificationsIcon />
           {notificationBadgeCount > 0 && (
-            <Box sx={{
-              position: "absolute", top: -4, right: -6,
-              minWidth: 16, height: 16, borderRadius: "8px",
-              bgcolor: "primary.main", color: "#fff",
-              fontSize: "0.6rem", fontWeight: 700,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              px: 0.4,
-              border: "1.5px solid", borderColor: "background.paper",
-            }}>
+            <Box
+              sx={{
+                position: "absolute",
+                top: -4,
+                right: -6,
+                minWidth: 16,
+                height: 16,
+                borderRadius: "8px",
+                bgcolor: "primary.main",
+                color: "#fff",
+                fontSize: "0.6rem",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: 0.4,
+                border: "1.5px solid",
+                borderColor: "background.paper",
+              }}
+            >
               {notificationBadgeCount > 9 ? "9+" : notificationBadgeCount}
             </Box>
           )}
@@ -252,11 +266,13 @@ export const DashboardLayout = () => {
     position: "absolute" as const,
     inset: 0,
     opacity: activeView === view ? 1 : 0,
-    visibility: (activeView === view ? "visible" : "hidden") as "visible" | "hidden",
-    pointerEvents: (activeView === view ? "auto" : "none") as "auto" | "none",
-    transition: activeView === view
-      ? "opacity 0.5s ease-in-out"
-      : "opacity 0.5s ease-in-out, visibility 0s linear 0.5s",
+    visibility:
+      activeView === view ? ("visible" as const) : ("hidden" as const),
+    pointerEvents: activeView === view ? ("auto" as const) : ("none" as const),
+    transition:
+      activeView === view
+        ? "opacity 0.5s ease-in-out"
+        : "opacity 0.5s ease-in-out, visibility 0s linear 0.5s",
   });
 
   return (
@@ -459,69 +475,114 @@ export const DashboardLayout = () => {
       >
         {/* New notification banner */}
         {newNotifBanner && (
-          <Box sx={{
-            display: "flex", alignItems: "center", gap: 1.5,
-            px: 2.5, py: 1,
-            bgcolor: "primary.main", color: "#fff",
-            fontSize: "0.8rem", zIndex: 1300, flexShrink: 0,
-          }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#fff", flexShrink: 0 }} />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              px: 2.5,
+              py: 1,
+              bgcolor: "primary.main",
+              color: "#fff",
+              fontSize: "0.8rem",
+              zIndex: 1300,
+              flexShrink: 0,
+            }}
+          >
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: "#fff",
+                flexShrink: 0,
+              }}
+            />
             <Typography sx={{ fontSize: "0.8rem", flex: 1 }}>
               You have new notifications.{" "}
               <Box
                 component="span"
-                onClick={() => { setNewNotifBanner(false); setActiveView("notifications"); }}
-                sx={{ textDecoration: "underline", cursor: "pointer", fontWeight: 600 }}
+                onClick={() => {
+                  setNewNotifBanner(false);
+                  setActiveView("notifications");
+                }}
+                sx={{
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
               >
                 View now
               </Box>
             </Typography>
-            <IconButton size="small" onClick={() => setNewNotifBanner(false)} sx={{ color: "#fff", p: 0.25 }}>
+            <IconButton
+              size="small"
+              onClick={() => setNewNotifBanner(false)}
+              sx={{ color: "#fff", p: 0.25 }}
+            >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
         )}
         <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        {/* Overview Dashboard — City_Manager only */}
-        {canSeeView.overview && (
-          <Box sx={panelSx("overview")}><Dashboard onNavigate={setActiveView} /></Box>
-        )}
+          {/* Overview Dashboard — City_Manager only */}
+          {canSeeView.overview && (
+            <Box sx={panelSx("overview")}>
+              <Dashboard onNavigate={setActiveView} />
+            </Box>
+          )}
 
-        {/* Bus Dashboard */}
-        {canSeeView.bus && (
-          <Box sx={panelSx("bus")}><BusDashboard /></Box>
-        )}
+          {/* Bus Dashboard */}
+          {canSeeView.bus && (
+            <Box sx={panelSx("bus")}>
+              <BusDashboard />
+            </Box>
+          )}
 
-        {/* Cycle Dashboard */}
-        {canSeeView.cycle && (
-          <Box sx={panelSx("cycle")}><CycleDashboard /></Box>
-        )}
+          {/* Cycle Dashboard */}
+          {canSeeView.cycle && (
+            <Box sx={panelSx("cycle")}>
+              <CycleDashboard />
+            </Box>
+          )}
 
-        {/* Car Dashboard */}
-        {canSeeView.car && (
-          <Box sx={panelSx("car")}><CarDashboard /></Box>
-        )}
+          {/* Car Dashboard */}
+          {canSeeView.car && (
+            <Box sx={panelSx("car")}>
+              <CarDashboard />
+            </Box>
+          )}
 
-        {/* Train Dashboard */}
-        {canSeeView.train && (
-          <Box sx={panelSx("train")}><TrainDashboard /></Box>
-        )}
+          {/* Train Dashboard */}
+          {canSeeView.train && (
+            <Box sx={panelSx("train")}>
+              <TrainDashboard />
+            </Box>
+          )}
 
-        {/* Tram Dashboard */}
-        {canSeeView.tram && (
-          <Box sx={panelSx("tram")}><TramDashboard /></Box>
-        )}
+          {/* Tram Dashboard */}
+          {canSeeView.tram && (
+            <Box sx={panelSx("tram")}>
+              <TramDashboard />
+            </Box>
+          )}
 
-        {/* Misc Dashboard (Events & Pedestrians) — all authenticated users */}
-        <Box sx={panelSx("misc")}><MiscDashboard /></Box>
+          {/* Misc Dashboard (Events & Pedestrians) — all authenticated users */}
+          <Box sx={panelSx("misc")}>
+            <MiscDashboard />
+          </Box>
 
-        {/* Notifications Page — all authenticated users */}
-        <Box sx={panelSx("notifications")}><NotificationsPage /></Box>
+          {/* Notifications Page — all authenticated users */}
+          <Box sx={panelSx("notifications")}>
+            <NotificationsPage />
+          </Box>
 
-        {/* User Management Page */}
-        {canManageUsers && (
-          <Box sx={panelSx("users")}><UserManagementPage /></Box>
-        )}
+          {/* User Management Page */}
+          {canManageUsers && (
+            <Box sx={panelSx("users")}>
+              <UserManagementPage />
+            </Box>
+          )}
         </Box>
       </Box>
 

@@ -46,6 +46,5 @@ public class TrainApprovalRequest {
   @Column(nullable = false, updatable = false)
   private ZonedDateTime createdAt;
 
-  @UpdateTimestamp
-  private ZonedDateTime updatedAt;
+  @UpdateTimestamp private ZonedDateTime updatedAt;
 }

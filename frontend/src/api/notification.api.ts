@@ -16,20 +16,34 @@ export const notificationApi = {
     return data;
   },
 
-  setReadState: async (userId: string, notificationId: string, read: boolean): Promise<void> => {
-    await axiosInstance.patch(`${API_ENDPOINTS.NOTIFICATIONS(userId)}/${notificationId}/read`, null, { params: { read } });
+  setReadState: async (
+    userId: string,
+    notificationId: string,
+    read: boolean,
+  ): Promise<void> => {
+    await axiosInstance.patch(
+      `${API_ENDPOINTS.NOTIFICATIONS(userId)}/${notificationId}/read`,
+      null,
+      { params: { read } },
+    );
   },
 
   softDelete: async (userId: string, notificationId: string): Promise<void> => {
-    await axiosInstance.delete(`${API_ENDPOINTS.NOTIFICATIONS(userId)}/${notificationId}`);
+    await axiosInstance.delete(
+      `${API_ENDPOINTS.NOTIFICATIONS(userId)}/${notificationId}`,
+    );
   },
 
   restore: async (userId: string, notificationId: string): Promise<void> => {
-    await axiosInstance.patch(`${API_ENDPOINTS.NOTIFICATIONS(userId)}/${notificationId}/restore`);
+    await axiosInstance.patch(
+      `${API_ENDPOINTS.NOTIFICATIONS(userId)}/${notificationId}/restore`,
+    );
   },
 
   getBin: async (userId: string): Promise<NotificationResponse> => {
-    const { data } = await axiosInstance.get<NotificationResponse>(API_ENDPOINTS.NOTIFICATIONS_BIN(userId));
+    const { data } = await axiosInstance.get<NotificationResponse>(
+      API_ENDPOINTS.NOTIFICATIONS_BIN(userId),
+    );
     return data;
   },
 };

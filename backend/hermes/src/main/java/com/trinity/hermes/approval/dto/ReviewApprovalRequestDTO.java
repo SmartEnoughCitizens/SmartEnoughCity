@@ -8,5 +8,6 @@ import lombok.NoArgsConstructor;
 public class ReviewApprovalRequestDTO {
   /** "APPROVED" or "DENIED" */
   private String status;
+
   private String reviewNote;
 }

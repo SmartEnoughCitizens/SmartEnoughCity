@@ -1,8 +1,10 @@
 """Train utilisation, demand scoring, and simulation API endpoints."""
 
-import json
+import json  # noqa: I001
 import logging
+import math
 import time
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -43,7 +45,16 @@ logger = logging.getLogger(__name__)
 _UTILISATION_CACHE: dict = {"headsigns": None, "timestamp": 0.0}
 _CACHE_TTL_SECONDS = 6 * 60 * 60  # 6 hours
 
+# ── Simulation sensitivity ────────────────────────────────────────────
+# Controls how aggressively added trains reduce pressure in simulation.
+# relief_ratio = extra / trip_count  (fractional service increase, no cap)
+# pressure_factor = exp(-relief_ratio * SENSITIVITY)
+# At SENSITIVITY=13: adding 20 trains to a 509-trip corridor → ~10% score improvement.
+# Smaller corridors benefit more per added train (appropriate for planning).
+_PRESSURE_SENSITIVITY = 13.0
+
 # ── Simulation request/response models ───────────────────────────────
+
 
 class CorridorInput(BaseModel):
     origin_stop_id: str
@@ -78,6 +89,44 @@ class SimulateResponse(BaseModel):
     base_demand: list[StationDemandOut]
     simulated_demand: list[StationDemandOut]
     affected_stop_ids: list[str]
+
+
+def _simulate_stop(s: dict, extra: int) -> dict:
+    """
+    Recompute demand score for one stop after adding `extra` daily services.
+
+    Pressure decays exponentially with relief_ratio = extra / trip_count.
+    Smaller corridors benefit more per added train; adding 20 trains to a
+    509-trip corridor gives ~10% score improvement (SENSITIVITY = 13).
+    """
+    capacity = TRAIN_TYPE_CAPACITY.get(s.get("station_type") or "", DEFAULT_CAPACITY)
+    new_trips = s["trip_count"] + extra
+    daily_riders = s["ridership_count"] / 365.0
+    # relief_ratio = fractional service increase (no cap — avoids all stations
+    # hitting the same maximum when daily_riders << extra_capacity)
+    relief_ratio = extra / max(s["trip_count"], 1)
+    pressure_factor = math.exp(-relief_ratio * _PRESSURE_SENSITIVITY)
+    new_norm_pres = s["norm_pressure"] * pressure_factor
+
+    if s["ridership_count"] > 0:
+        new_score = (
+            W_RIDERSHIP * s["norm_ridership"]
+            + W_UPTAKE * s["norm_uptake"]
+            + W_PRESSURE * new_norm_pres
+            + W_FOOTFALL * s["norm_footfall"]
+        )
+        new_raw = daily_riders / (new_trips * capacity) if new_trips > 0 else 0.0
+    else:
+        new_score = s["demand_score"] * pressure_factor
+        new_raw = 0.0
+
+    return {
+        **s,
+        "trip_count": new_trips,
+        "norm_pressure": round(new_norm_pres, 6),
+        "raw_pressure": round(new_raw, 6),
+        "demand_score": round(new_score, 6),
+    }
 
 
 def _load_stop_coords() -> dict[str, dict]:
@@ -142,7 +191,7 @@ def _fetch_today_recommendation() -> list | None:
         if isinstance(rec, str):
             return json.loads(rec)
         return list(rec)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.warning("Could not parse cached recommendation JSON.")
         return None
 
@@ -165,12 +214,12 @@ def _fetch_latest_simulation() -> dict | None:
         return None
     try:
         return json.loads(row.simulation)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.warning("Could not parse stored simulation JSON.")
         return None
 
 
-def _build_headsigns_response(utilisation_json: list, result_df) -> list:
+def _build_headsigns_response(utilisation_json: list, result_df: Any) -> list:  # noqa: ANN401
     """Build the headsigns list with per-station coords and utilisation ratios."""
     coords = _load_stop_coords()
     stop_sequence = _load_ordered_stop_sequence()
@@ -290,8 +339,8 @@ def simulate_demand(request: SimulateRequest) -> SimulateResponse:
         max_corridors = min(3, len(request.corridors))
         for corridor in request.corridors[:max_corridors]:
             origin = corridor.origin_stop_id
-            dest   = corridor.destination_stop_id
-            count  = max(1, min(20, corridor.train_count))
+            dest = corridor.destination_stop_id
+            count = max(1, min(20, corridor.train_count))
 
             corridor_stops: set[str] = set()
             for stop_list in route_stops.values():
@@ -299,7 +348,7 @@ def simulate_demand(request: SimulateRequest) -> SimulateResponse:
                     i = stop_list.index(origin)
                     j = stop_list.index(dest)
                     from_idx, to_idx = min(i, j), max(i, j)
-                    corridor_stops.update(stop_list[from_idx:to_idx + 1])
+                    corridor_stops.update(stop_list[from_idx : to_idx + 1])
                 except ValueError:
                     pass
             # fallback: mark at least the two endpoints
@@ -316,30 +365,7 @@ def simulate_demand(request: SimulateRequest) -> SimulateResponse:
         for stop_id, extra in extra_trips.items():
             if stop_id not in stop_map:
                 continue
-            s = dict(stop_map[stop_id])
-            new_trips = s["trip_count"] + extra
-            capacity  = TRAIN_TYPE_CAPACITY.get(s.get("station_type") or "", DEFAULT_CAPACITY)
-            # Proportional scaling: pressure is inversely proportional to capacity
-            # This is unit-independent (no reliance on stored max_pressure or ridership scale)
-            trip_ratio    = s["trip_count"] / new_trips  # < 1.0 (more trips = less pressure)
-            new_norm_pres = s["norm_pressure"] * trip_ratio
-
-            if s["ridership_count"] > 0:
-                new_score = (
-                    W_RIDERSHIP * s["norm_ridership"]
-                    + W_UPTAKE   * s["norm_uptake"]
-                    + W_PRESSURE * new_norm_pres
-                    + W_FOOTFALL * s["norm_footfall"]
-                )
-            else:
-                # GTFS fallback — scale by trip ratio
-                new_score = s["demand_score"] * trip_ratio
-
-            s["trip_count"]    = new_trips
-            s["norm_pressure"] = round(new_norm_pres, 6)
-            s["raw_pressure"]  = round(s["ridership_count"] / 365.0 / (new_trips * capacity) if s["ridership_count"] > 0 else 0.0, 6)
-            s["demand_score"]  = round(new_score, 6)
-            stop_map[stop_id]  = s
+            stop_map[stop_id] = _simulate_stop(stop_map[stop_id], extra)
 
         simulated = list(stop_map.values())
 
@@ -377,7 +403,9 @@ def warm_utilisation_cache() -> None:
         _UTILISATION_CACHE["timestamp"] = time.time()
         logger.info("Train utilisation cache warmed with %d headsigns.", len(headsigns))
     except Exception:
-        logger.exception("Failed to warm train utilisation cache — will compute on first request.")
+        logger.exception(
+            "Failed to warm train utilisation cache -- will compute on first request."
+        )
 
 
 @router.get("/utilisation")
@@ -388,10 +416,16 @@ def get_train_utilisation() -> dict:
     """
     try:
         now = time.time()
-        if _UTILISATION_CACHE["headsigns"] is not None and (now - _UTILISATION_CACHE["timestamp"]) < _CACHE_TTL_SECONDS:
+        if (
+            _UTILISATION_CACHE["headsigns"] is not None
+            and (now - _UTILISATION_CACHE["timestamp"]) < _CACHE_TTL_SECONDS
+        ):
             logger.info("Returning in-process cached utilisation data.")
             simulation = _fetch_latest_simulation()
-            return {"headsigns": _UTILISATION_CACHE["headsigns"], "simulation": simulation}
+            return {
+                "headsigns": _UTILISATION_CACHE["headsigns"],
+                "simulation": simulation,
+            }
 
         logger.info("Cache miss — running utilisation pipeline.")
         stop_times_df = load_stop_times_with_stops()
@@ -410,11 +444,11 @@ def get_train_utilisation() -> dict:
         _UTILISATION_CACHE["timestamp"] = now
 
         simulation = _fetch_latest_simulation()
-        return {"headsigns": headsigns, "simulation": simulation}
-
     except Exception as e:
         logger.exception("Error in get_train_utilisation")
         raise HTTPException(status_code=500, detail=str(e)) from e
+    else:
+        return {"headsigns": headsigns, "simulation": simulation}
 
 
 @router.post("/utilisation/simulate")
@@ -438,11 +472,11 @@ def run_train_simulation() -> dict:
 
         try:
             parsed = json.loads(simulation_output)
-        except Exception:
+        except Exception:  # noqa: BLE001
             parsed = {"raw": simulation_output}
-
-        return {"simulation": parsed, "already_simulated": False}
 
     except Exception as e:
         logger.exception("Error in run_train_simulation")
         raise HTTPException(status_code=500, detail=str(e)) from e
+    else:
+        return {"simulation": parsed, "already_simulated": False}

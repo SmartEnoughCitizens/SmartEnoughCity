@@ -48,7 +48,10 @@ const uiSlice = createSlice({
     incrementNotificationBadge: (state) => {
       state.notificationBadgeCount += 1;
     },
-    requestNavigation: (state, action: PayloadAction<{ view: string; tab?: string }>) => {
+    requestNavigation: (
+      state,
+      action: PayloadAction<{ view: string; tab?: string }>,
+    ) => {
       state.requestedNavigation = action.payload;
     },
     clearRequestedNavigation: (state) => {

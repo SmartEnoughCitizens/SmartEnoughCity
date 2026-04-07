@@ -31,7 +31,14 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import SpeedIcon from "@mui/icons-material/Speed";
 import SearchIcon from "@mui/icons-material/Search";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  useMap,
+} from "react-leaflet";
 import {
   useTrainData,
   useTrainFrequentDelays,
@@ -56,12 +63,15 @@ const GAP = 16;
 
 type TypeKey = "ALL" | "D" | "S" | "M" | "U";
 
-const TYPE_CONFIG: Record<TypeKey, { label: string; color: string; short: string }> = {
-  ALL: { label: "All",       color: "#607D8B", short: "•" },
-  D:   { label: "DART",      color: "#00ACC1", short: "D" },
-  S:   { label: "Suburban",  color: "#1976D2", short: "S" },
-  M:   { label: "Mainline",  color: "#7B1FA2", short: "M" },
-  U:   { label: "Unknown",   color: "#F57C00", short: "?" },
+const TYPE_CONFIG: Record<
+  TypeKey,
+  { label: string; color: string; short: string }
+> = {
+  ALL: { label: "All", color: "#607D8B", short: "•" },
+  D: { label: "DART", color: "#00ACC1", short: "D" },
+  S: { label: "Suburban", color: "#1976D2", short: "S" },
+  M: { label: "Mainline", color: "#7B1FA2", short: "M" },
+  U: { label: "Unknown", color: "#F57C00", short: "?" },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -153,11 +163,13 @@ function makeLiveTrainIcon(
 ): L.DivIcon {
   const typeKey = getTrainTypeKey(trainType);
   const color =
-    typeKey === "ALL" ? (running ? "#2ea043" : "#d29922") : TYPE_CONFIG[typeKey].color;
+    typeKey === "ALL"
+      ? running
+        ? "#2ea043"
+        : "#d29922"
+      : TYPE_CONFIG[typeKey].color;
   const inner = getDirectionArrow(direction) || TYPE_CONFIG[typeKey].short;
-  const pulse = running
-    ? `animation:trainPulse 1.6s ease-out infinite;`
-    : "";
+  const pulse = running ? `animation:trainPulse 1.6s ease-out infinite;` : "";
   return L.divIcon({
     html: `<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.75);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;${pulse}">${inner}</div>`,
     className: "",
@@ -169,10 +181,15 @@ function makeLiveTrainIcon(
 
 // ── Map fly-to controller ────────────────────────────────────────────
 
-function MapController({ target }: { target: { center: [number, number]; id: number } | null }) {
+function MapController({
+  target,
+}: {
+  target: { center: [number, number]; id: number } | null;
+}) {
   const map = useMap();
   useEffect(() => {
-    if (target) map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
+    if (target)
+      map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
   return null;
@@ -180,12 +197,35 @@ function MapController({ target }: { target: { center: [number, number]; id: num
 
 // ── KPI row ──────────────────────────────────────────────────────────
 
-function KpiRow({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color?: string }) {
+function KpiRow({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  color?: string;
+}) {
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 0.5 }}>
-      <Box sx={{ color: color ?? "primary.main", display: "flex", fontSize: 18 }}>{icon}</Box>
+      <Box
+        sx={{ color: color ?? "primary.main", display: "flex", fontSize: 18 }}
+      >
+        {icon}
+      </Box>
       <Box>
-        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            fontSize: "0.65rem",
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+            display: "block",
+          }}
+        >
           {label}
         </Typography>
         <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.1 }}>
@@ -198,10 +238,18 @@ function KpiRow({ icon, label, value, color }: { icon: React.ReactNode; label: s
 
 // ── Main Component ───────────────────────────────────────────────────
 
-type CorridorEntry = { origin: StationDemand | null; dest: StationDemand | null; count: number };
+type CorridorEntry = {
+  origin: StationDemand | null;
+  dest: StationDemand | null;
+  count: number;
+};
 
 const TAB_NAME_MAP: Record<string, number> = {
-  stations: 0, trains: 1, delays: 2, demand: 3, approvals: 4,
+  stations: 0,
+  trains: 1,
+  delays: 2,
+  demand: 3,
+  approvals: 4,
 };
 
 export const TrainDashboard = () => {
@@ -213,24 +261,35 @@ export const TrainDashboard = () => {
   });
 
   // Consume Redux navigation requests targeting this dashboard
-  const requestedNavigation = useAppSelector((state) => state.ui.requestedNavigation);
+  const requestedNavigation = useAppSelector(
+    (state) => state.ui.requestedNavigation,
+  );
   useEffect(() => {
     if (!requestedNavigation || requestedNavigation.view !== "train") return;
     const tab = requestedNavigation.tab;
     if (tab) {
       const idx = TAB_NAME_MAP[tab.toLowerCase()];
-      if (idx !== undefined) setTabValue(idx);
+      if (idx !== undefined) setTabValue(idx); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [requestedNavigation]);
 
   const [typeFilter, setTypeFilter] = useState<TypeKey>("ALL");
   const [search, setSearch] = useState("");
-  const [flyTarget, setFlyTarget] = useState<{ center: [number, number]; id: number } | null>(null);
-  const [selectedStationCode, setSelectedStationCode] = useState<string | null>(null);
-  const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(null);
+  const [flyTarget, setFlyTarget] = useState<{
+    center: [number, number];
+    id: number;
+  } | null>(null);
+  const [selectedStationCode, setSelectedStationCode] = useState<string | null>(
+    null,
+  );
+  const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
+    null,
+  );
 
   // Demand simulation state — up to 3 corridors
-  const [corridors, setCorridors] = useState<CorridorEntry[]>([{ origin: null, dest: null, count: 1 }]);
+  const [corridors, setCorridors] = useState<CorridorEntry[]>([
+    { origin: null, dest: null, count: 1 },
+  ]);
   const [simResult, setSimResult] = useState<{
     simulatedDemand: StationDemand[];
     baseDemand: StationDemand[];
@@ -238,14 +297,18 @@ export const TrainDashboard = () => {
   } | null>(null);
 
   const theme = useAppSelector((state) => state.ui.theme);
-  const roles  = useAppSelector((state) => state.auth.roles);
-  const isTrainAdmin  = roles.includes("Train_Admin") && !roles.includes("City_Manager");
-  const isCityManager = roles.includes("City_Manager") || roles.includes("Government_Admin");
+  const roles = useAppSelector((state) => state.auth.roles);
+  const isTrainAdmin =
+    roles.includes("Train_Admin") && !roles.includes("City_Manager");
+  const isCityManager =
+    roles.includes("City_Manager") || roles.includes("Government_Admin");
 
   // ── Approvals ────────────────────────────────────────────────────────
-  const [reviewNote, setReviewNote]     = useState("");
-  const [reviewingId, setReviewingId]   = useState<number | null>(null);
-  const [pendingStatus, setPendingStatus] = useState<"APPROVED" | "DENIED" | null>(null);
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<
+    "APPROVED" | "DENIED" | null
+  >(null);
   const queryClient = useQueryClient();
 
   const { data: approvals = [], isLoading: approvalsLoading } = useQuery({
@@ -257,11 +320,18 @@ export const TrainDashboard = () => {
 
   const submitApprovalMutation = useMutation({
     mutationFn: (dto: CreateApprovalDTO) => approvalApi.create(dto),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["approvals", "train"] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["approvals", "train"] }),
   });
 
   const reviewMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: "APPROVED" | "DENIED" }) =>
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: number;
+      status: "APPROVED" | "DENIED";
+    }) =>
       approvalApi.review(id, { status, reviewNote: reviewNote || undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["approvals", "train"] });
@@ -273,7 +343,8 @@ export const TrainDashboard = () => {
   const { data: trainData, isLoading: dataLoading, error } = useTrainData(500);
   const { data: kpiData } = useTrainKpis();
   const { data: liveTrains = [] } = useTrainLiveTrains();
-  const { data: frequentDelays = [], isLoading: delaysLoading } = useTrainFrequentDelays();
+  const { data: frequentDelays = [], isLoading: delaysLoading } =
+    useTrainFrequentDelays();
   const { data: trainRoutes = [] } = useTrainRoutes();
   const { data: demandData = [] } = useTrainDemand();
   const simulateMutation = useSimulateTrainDemand();
@@ -289,7 +360,7 @@ export const TrainDashboard = () => {
     [activeDemand],
   );
   const affectedSet = useMemo(
-    () => new Set(simResult?.affectedStopIds ?? []),
+    () => new Set(simResult?.affectedStopIds),
     [simResult],
   );
 
@@ -299,20 +370,37 @@ export const TrainDashboard = () => {
     const baseMap = new Map(simResult.baseDemand.map((d) => [d.stopId, d]));
     const affected = simResult.affectedStopIds;
     let totalRelativeRelief = 0;
+    let totalDemandReduction = 0;
     let peakStop: StationDemand | null = null;
     let peakRelief = 0;
     let validCount = 0;
     for (const id of affected) {
       const base = baseMap.get(id);
-      const sim  = simResult.simulatedDemand.find((d) => d.stopId === id);
-      if (!base || !sim || base.normPressure === 0) continue;
-      const relief = ((base.normPressure - sim.normPressure) / base.normPressure) * 100;
-      totalRelativeRelief += relief;
+      const sim = simResult.simulatedDemand.find((d) => d.stopId === id);
+      if (!base || !sim) continue;
+      if (base.normPressure > 0) {
+        const relief =
+          ((base.normPressure - sim.normPressure) / base.normPressure) * 100;
+        totalRelativeRelief += relief;
+        if (relief > peakRelief) {
+          peakRelief = relief;
+          peakStop = sim;
+        }
+      }
+      totalDemandReduction += (base.demandScore - sim.demandScore) * 100;
       validCount++;
-      if (relief > peakRelief) { peakRelief = relief; peakStop = sim; }
     }
     const avgReliefPct = validCount > 0 ? totalRelativeRelief / validCount : 0;
-    return { count: affected.length, avgReliefPct, peakStop, peakRelief };
+    const avgDemandReduction =
+      validCount > 0 ? totalDemandReduction / validCount : 0;
+
+    return {
+      count: affected.length,
+      avgReliefPct,
+      avgDemandReduction,
+      peakStop,
+      peakRelief,
+    };
   }, [simResult]);
 
   // Inject pulse keyframes + Leaflet popup styles (always light card — matches cycle dashboard)
@@ -341,11 +429,16 @@ export const TrainDashboard = () => {
 
   const filteredStations = useMemo(() => {
     let list = trainData?.data ?? [];
-    if (typeFilter !== "ALL") list = list.filter((s) => getStationTypeKey(s.stationType) === typeFilter);
+    if (typeFilter !== "ALL")
+      list = list.filter(
+        (s) => getStationTypeKey(s.stationType) === typeFilter,
+      );
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
-        (s) => s.stationDesc?.toLowerCase().includes(q) || s.stationCode?.toLowerCase().includes(q),
+        (s) =>
+          s.stationDesc?.toLowerCase().includes(q) ||
+          s.stationCode?.toLowerCase().includes(q),
       );
     }
     return list;
@@ -353,7 +446,9 @@ export const TrainDashboard = () => {
 
   const filteredLiveTrains = useMemo(() => {
     if (typeFilter === "ALL") return liveTrains;
-    return liveTrains.filter((t) => getTrainTypeKey(t.trainType) === typeFilter);
+    return liveTrains.filter(
+      (t) => getTrainTypeKey(t.trainType) === typeFilter,
+    );
   }, [liveTrains, typeFilter]);
 
   const sortedTrains = useMemo(
@@ -366,20 +461,28 @@ export const TrainDashboard = () => {
     [filteredLiveTrains],
   );
 
-  const runningCount = filteredLiveTrains.filter((t) => isRunning(t.status)).length;
+  const runningCount = filteredLiveTrains.filter((t) =>
+    isRunning(t.status),
+  ).length;
   const scheduledCount = filteredLiveTrains.length - runningCount;
 
-  const handleStationClick = useCallback((lat: number, lon: number, code: string) => {
-    setSelectedStationCode(code);
-    setSelectedTrainCode(null);
-    setFlyTarget({ center: [lat, lon], id: Date.now() });
-  }, []);
+  const handleStationClick = useCallback(
+    (lat: number, lon: number, code: string) => {
+      setSelectedStationCode(code);
+      setSelectedTrainCode(null);
+      setFlyTarget({ center: [lat, lon], id: Date.now() });
+    },
+    [],
+  );
 
-  const handleTrainClick = useCallback((lat: number, lon: number, code: string) => {
-    setSelectedTrainCode(code);
-    setSelectedStationCode(null);
-    setFlyTarget({ center: [lat, lon], id: Date.now() });
-  }, []);
+  const handleTrainClick = useCallback(
+    (lat: number, lon: number, code: string) => {
+      setSelectedTrainCode(code);
+      setSelectedStationCode(null);
+      setFlyTarget({ center: [lat, lon], id: Date.now() });
+    },
+    [],
+  );
 
   const handleTabChange = (_: React.SyntheticEvent, v: number) => {
     setTabValue(v);
@@ -394,42 +497,71 @@ export const TrainDashboard = () => {
       const ids = route.stopIds;
       for (let i = 0; i < ids.length; i++) {
         for (let j = i + 1; j < ids.length; j++) {
-          pairs.add([ids[i], ids[j]].sort().join("|"));
+          pairs.add([ids[i], ids[j]].toSorted().join("|"));
         }
       }
     }
     return pairs;
   }, [trainRoutes]);
 
-  const corridorErrors = useMemo(() =>
-    corridors.map((c) => {
-      if (!c.origin || !c.dest) return null;
-      if (c.origin.stopId === c.dest.stopId) return "Origin and destination must be different";
-      const key = [c.origin.stopId, c.dest.stopId].sort().join("|");
-      if (!connectedPairs.has(key)) return "No route connects these two stations";
-      return null;
-    }),
-  [corridors, connectedPairs]);
+  const corridorErrors = useMemo(
+    () =>
+      corridors.map((c) => {
+        if (!c.origin || !c.dest) return null;
+        if (c.origin.stopId === c.dest.stopId)
+          return "Origin and destination must be different";
+        const key = [c.origin.stopId, c.dest.stopId].toSorted().join("|");
+        if (!connectedPairs.has(key))
+          return "No route connects these two stations";
+        return null;
+      }),
+    [corridors, connectedPairs],
+  );
 
   const hasCorridorErrors = corridorErrors.some((e) => e !== null);
 
   const handleSimulate = () => {
-    const ready = corridors.filter((c, i) => c.origin && c.dest && !corridorErrors[i]);
+    const ready = corridors.filter(
+      (c, i) => c.origin && c.dest && !corridorErrors[i],
+    );
     if (ready.length === 0) return;
     submitApprovalMutation.reset();
     simulateMutation.mutate(
-      { corridors: ready.map((c) => ({ originStopId: c.origin!.stopId, destinationStopId: c.dest!.stopId, trainCount: c.count })) },
-      { onSuccess: (res) => setSimResult({ simulatedDemand: res.simulatedDemand, baseDemand: res.baseDemand, affectedStopIds: res.affectedStopIds }) },
+      {
+        corridors: ready.map((c) => ({
+          originStopId: c.origin!.stopId,
+          destinationStopId: c.dest!.stopId,
+          trainCount: c.count,
+        })),
+      },
+      {
+        onSuccess: (res) =>
+          setSimResult({
+            simulatedDemand: res.simulatedDemand,
+            baseDemand: res.baseDemand,
+            affectedStopIds: res.affectedStopIds,
+          }),
+      },
     );
   };
 
-  const updateCorridor = (idx: number, patch: Partial<{ origin: StationDemand | null; dest: StationDemand | null; count: number }>) => {
-    setCorridors((prev) => prev.map((c, i) => i === idx ? { ...c, ...patch } : c));
+  const updateCorridor = (
+    idx: number,
+    patch: Partial<{
+      origin: StationDemand | null;
+      dest: StationDemand | null;
+      count: number;
+    }>,
+  ) => {
+    setCorridors((prev) =>
+      prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)),
+    );
     setSimResult(null);
   };
 
   const addCorridor = () => {
-    if (corridors.length < 3) setCorridors((prev) => [...prev, { origin: null, dest: null, count: 1 }]);
+    if (corridors.length < 3)
+      setCorridors((prev) => [...prev, { origin: null, dest: null, count: 1 }]);
   };
 
   const removeCorridor = (idx: number) => {
@@ -450,32 +582,19 @@ export const TrainDashboard = () => {
         <MapController target={flyTarget} />
 
         {/* Route corridor polylines */}
-        {tabValue !== 3
-          ? /* Normal mode — single colour per route */
-            trainRoutes.map((route, idx) => (
-              <Polyline
-                key={`${route.routeName}-${idx}`}
-                positions={route.stops}
-                pathOptions={{ color: getRouteColor(route.shortName), weight: 4, opacity: 0.6 }}
-              >
-                <Popup>
-                  <Box sx={{ p: 1.25 }}>
-                    <Typography fontWeight={700} sx={{ fontSize: "0.85rem", color: "#111827" }}>{route.routeName}</Typography>
-                    <Typography sx={{ fontSize: "0.72rem", color: "#6b7280" }}>
-                      {route.shortName} · {route.stops.length} stops
-                    </Typography>
-                  </Box>
-                </Popup>
-              </Polyline>
-            ))
-          : /* Demand mode — per-segment colour green→red */
+        {tabValue === 3
+          ? /* Demand mode — per-segment colour green→red */
             trainRoutes.flatMap((route, rIdx) =>
               route.stops.slice(0, -1).map((from, sIdx) => {
                 const to = route.stops[sIdx + 1];
                 const idA = route.stopIds?.[sIdx];
                 const idB = route.stopIds?.[sIdx + 1];
-                const scoreA = idA ? (demandByStop.get(idA)?.demandScore ?? 0) : 0;
-                const scoreB = idB ? (demandByStop.get(idB)?.demandScore ?? 0) : 0;
+                const scoreA = idA
+                  ? (demandByStop.get(idA)?.demandScore ?? 0)
+                  : 0;
+                const scoreB = idB
+                  ? (demandByStop.get(idB)?.demandScore ?? 0)
+                  : 0;
                 const color = demandColor((scoreA + scoreB) / 2);
                 return (
                   <Polyline
@@ -486,14 +605,41 @@ export const TrainDashboard = () => {
                 );
               }),
             )
-        }
+          : /* Normal mode — single colour per route */
+            trainRoutes.map((route, idx) => (
+              <Polyline
+                key={`${route.routeName}-${idx}`}
+                positions={route.stops}
+                pathOptions={{
+                  color: getRouteColor(route.shortName),
+                  weight: 4,
+                  opacity: 0.6,
+                }}
+              >
+                <Popup>
+                  <Box sx={{ p: 1.25 }}>
+                    <Typography
+                      fontWeight={700}
+                      sx={{ fontSize: "0.85rem", color: "#111827" }}
+                    >
+                      {route.routeName}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.72rem", color: "#6b7280" }}>
+                      {route.shortName} · {route.stops.length} stops
+                    </Typography>
+                  </Box>
+                </Popup>
+              </Polyline>
+            ))}
 
         {/* Demand mode — station markers coloured by demand */}
         {tabValue === 3 &&
           activeDemand.map((d) => {
             const isAffected = affectedSet.has(d.stopId);
-            const baseEntry  = simResult?.baseDemand.find((b) => b.stopId === d.stopId);
-            const color      = demandColor(d.demandScore);
+            const baseEntry = simResult?.baseDemand.find(
+              (b) => b.stopId === d.stopId,
+            );
+            const color = demandColor(d.demandScore);
             return (
               <Marker
                 key={d.stopId}
@@ -501,199 +647,254 @@ export const TrainDashboard = () => {
                 icon={makeDemandIcon(d.demandScore, isAffected)}
               >
                 <Popup>
-                  <Box sx={{ minWidth: 200, p: 1.5 }}>
-                    {/* Station name + demand dot */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.25 }}>
-                      <Box sx={{ width: 11, height: 11, borderRadius: "50%", bgcolor: color, flexShrink: 0, border: "2px solid rgba(0,0,0,0.08)" }} />
-                      <Box>
-                        <Typography fontWeight={700} sx={{ fontSize: "0.88rem", lineHeight: 1.2, color: "#111827" }}>{d.name}</Typography>
-                        {d.stationType && (() => {
-                          const tk = getStationTypeKey(d.stationType);
-                          const cfg = tk !== "ALL" ? TYPE_CONFIG[tk] : null;
-                          const capacity = d.stationType === "D" ? 350 : d.stationType === "M" ? 450 : 300;
-                          return cfg ? (
-                            <Typography sx={{ fontSize: "0.62rem", color: cfg.color, fontWeight: 600 }}>
-                              {cfg.label} · {capacity} seats/service
+                  <Box sx={{ minWidth: 160, p: 1.25 }}>
+                    {/* Station name */}
+                    <Typography
+                      fontWeight={700}
+                      sx={{ fontSize: "0.88rem", color: "#111827", mb: 0.75 }}
+                    >
+                      {d.name}
+                    </Typography>
+
+                    {/* Demand score */}
+                    <Typography
+                      sx={{
+                        fontSize: "0.58rem",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        color: "#6b7280",
+                        display: "block",
+                        mb: 0.25,
+                      }}
+                    >
+                      Demand score
+                    </Typography>
+                    <Typography
+                      fontWeight={700}
+                      sx={{ fontSize: "1.25rem", color }}
+                    >
+                      {(d.demandScore * 100).toFixed(0)}%
+                    </Typography>
+
+                    {/* Simulation: demand improvement */}
+                    {isAffected &&
+                      baseEntry &&
+                      (() => {
+                        const before = baseEntry.demandScore * 100;
+                        const after = d.demandScore * 100;
+                        const delta = after - before;
+                        return (
+                          <Box
+                            sx={{
+                              mt: 1,
+                              pt: 0.75,
+                              borderTop: "1px solid #f3f4f6",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.75,
+                            }}
+                          >
+                            <Typography
+                              sx={{ fontSize: "0.72rem", color: "#6b7280" }}
+                            >
+                              {before.toFixed(0)}%
                             </Typography>
-                          ) : null;
-                        })()}
-                      </Box>
-                    </Box>
-
-                    {/* Base stats */}
-                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75, mb: isAffected && baseEntry ? 1.25 : 0 }}>
-                      <Box>
-                        <Typography sx={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: 0.5, color: "#6b7280", display: "block", mb: 0.25 }}>Demand score</Typography>
-                        <Typography fontWeight={700} sx={{ fontSize: "1rem", color }}>{(d.demandScore * 100).toFixed(0)}%</Typography>
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: 0.5, color: "#6b7280", display: "block", mb: 0.25 }}>Services / day</Typography>
-                        <Typography fontWeight={700} sx={{ fontSize: "1rem", color: "#111827" }}>{d.tripCount.toLocaleString()}</Typography>
-                      </Box>
-                      {d.ridershipCount > 0 && (
-                        <Box>
-                          <Typography sx={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: 0.5, color: "#6b7280", display: "block", mb: 0.25 }}>Daily riders</Typography>
-                          <Typography fontWeight={700} sx={{ fontSize: "1rem", color: "#111827" }}>{Math.round(d.ridershipCount / 365).toLocaleString()}</Typography>
-                        </Box>
-                      )}
-                      {d.catchmentPopulation > 0 && (
-                        <Box>
-                          <Typography sx={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: 0.5, color: "#6b7280", display: "block", mb: 0.25 }}>Nearby residents</Typography>
-                          <Typography fontWeight={700} sx={{ fontSize: "1rem", color: "#111827" }}>{d.catchmentPopulation.toLocaleString()}</Typography>
-                        </Box>
-                      )}
-                      {/* Score breakdown */}
-                      {d.ridershipCount > 0 && (
-                        <Box sx={{ gridColumn: "1 / -1", mt: 0.5, pt: 0.75, borderTop: "1px solid #f3f4f6" }}>
-                          <Typography sx={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: 0.5, color: "#6b7280", display: "block", mb: 0.5 }}>Score breakdown</Typography>
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.4 }}>
-                            {[
-                              { label: "Annual passengers (40%)", val: d.normRidership },
-                              { label: "Nearby residents (25%)", val: d.normUptake },
-                              { label: "Overcrowding risk (25%)", val: d.normPressure },
-                              { label: "Recent footfall (10%)", val: d.normFootfall },
-                            ].map(({ label, val }) => (
-                              <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                                <Typography sx={{ fontSize: "0.6rem", color: "#6b7280", width: 140, flexShrink: 0 }}>{label}</Typography>
-                                <Box sx={{ flex: 1, height: 4, bgcolor: "#f3f4f6", borderRadius: 2, overflow: "hidden" }}>
-                                  <Box sx={{ width: `${(val * 100).toFixed(0)}%`, height: "100%", bgcolor: color, borderRadius: 2 }} />
-                                </Box>
-                                <Typography sx={{ fontSize: "0.6rem", color: "#374151", width: 28, textAlign: "right" }}>{(val * 100).toFixed(0)}%</Typography>
-                              </Box>
-                            ))}
-                          </Box>
-                        </Box>
-                      )}
-                    </Box>
-
-                    {/* Simulation before → after */}
-                    {isAffected && baseEntry && (() => {
-                      const pressurePct = baseEntry.normPressure * 100;
-                      const newPressurePct = d.normPressure * 100;
-                      const extraTrips = d.tripCount - baseEntry.tripCount;
-                      // Relative reduction: how much of the original pressure was relieved
-                      const relativeRelief = pressurePct > 0 ? ((pressurePct - newPressurePct) / pressurePct) * 100 : 0;
-                      const capacityIncreasePct = baseEntry.tripCount > 0 ? (extraTrips / baseEntry.tripCount) * 100 : 0;
-                      return (
-                        <Box sx={{ pt: 1, borderTop: "1px solid #e5e7eb" }}>
-                          <Typography sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.5, color: "#6b7280", mb: 0.75 }}>
-                            Capacity relief · +{extraTrips} of {baseEntry.tripCount} services (+{capacityIncreasePct.toFixed(1)}%)
-                          </Typography>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <Box sx={{ textAlign: "center" }}>
-                              <Typography sx={{ fontSize: "0.58rem", color: "#9ca3af", display: "block" }}>Pressure before</Typography>
-                              <Typography fontWeight={600} sx={{ fontSize: "0.85rem", color: "#374151" }}>
-                                {pressurePct.toFixed(1)}%
-                              </Typography>
-                            </Box>
-                            <Typography sx={{ fontSize: "1rem", color: "#9ca3af", mt: "-4px" }}>→</Typography>
-                            <Box sx={{ textAlign: "center" }}>
-                              <Typography sx={{ fontSize: "0.58rem", color: "#16a34a", display: "block" }}>Pressure after</Typography>
-                              <Typography fontWeight={700} sx={{ fontSize: "0.85rem", color: "#16a34a" }}>
-                                {newPressurePct.toFixed(1)}%
-                              </Typography>
-                            </Box>
-                            {relativeRelief > 0 && (
-                              <Box sx={{ ml: "auto", bgcolor: "#dcfce7", borderRadius: 1, px: 0.75, py: 0.25 }}>
-                                <Typography fontWeight={700} sx={{ fontSize: "0.72rem", color: "#16a34a" }}>
-                                  ↓ {relativeRelief.toFixed(1)}%
-                                </Typography>
-                                <Typography sx={{ fontSize: "0.58rem", color: "#16a34a", display: "block", textAlign: "center" }}>
-                                  relative
+                            <Typography
+                              sx={{ fontSize: "0.72rem", color: "#9ca3af" }}
+                            >
+                              →
+                            </Typography>
+                            <Typography
+                              fontWeight={700}
+                              sx={{ fontSize: "0.72rem", color: "#16a34a" }}
+                            >
+                              {after.toFixed(0)}%
+                            </Typography>
+                            {delta > 0 && (
+                              <Box
+                                sx={{
+                                  ml: "auto",
+                                  bgcolor: "#dcfce7",
+                                  borderRadius: 1,
+                                  px: 0.75,
+                                  py: 0.2,
+                                }}
+                              >
+                                <Typography
+                                  fontWeight={700}
+                                  sx={{ fontSize: "0.68rem", color: "#16a34a" }}
+                                >
+                                  +{delta.toFixed(1)}%
                                 </Typography>
                               </Box>
                             )}
                           </Box>
-                        </Box>
-                      );
-                    })()}
+                        );
+                      })()}
                   </Box>
                 </Popup>
               </Marker>
             );
-          })
-        }
+          })}
 
         {/* Station markers — hidden in demand mode (demand markers replace them) */}
-        {tabValue !== 3 && filteredStations.map((station) => (
-          <Marker
-            key={station.id}
-            position={[station.lat, station.lon]}
-            icon={makeStationIcon(getStationTypeKey(station.stationType))}
-            eventHandlers={{ click: () => handleStationClick(station.lat, station.lon, station.stationCode) }}
-          >
-            <Popup>
-              <Box sx={{ minWidth: 180, p: 1.5 }}>
-                <Typography fontWeight={700} sx={{ fontSize: "0.9rem", mb: 0.75, color: "#111827" }}>
-                  {station.stationDesc}
-                </Typography>
-                <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-                  <Chip size="small" label={station.stationCode} sx={{ fontSize: "0.65rem", height: 18, bgcolor: "#f3f4f6", color: "#374151" }} />
-                  {(() => {
-                    const key = getStationTypeKey(station.stationType);
-                    const cfg = key !== "ALL" ? TYPE_CONFIG[key] : null;
-                    return cfg ? (
-                      <Chip size="small" label={cfg.label}
-                        sx={{ fontSize: "0.65rem", height: 18, bgcolor: cfg.color + "22", color: cfg.color }} />
-                    ) : null;
-                  })()}
-                </Box>
-              </Box>
-            </Popup>
-          </Marker>
-        ))}
-
-        {/* Live train markers — hidden in demand mode */}
-        {tabValue !== 3 && filteredLiveTrains.filter((t) => t.lat && t.lon).map((t) => {
-          const running = isRunning(t.status);
-          const typeKey = getTrainTypeKey(t.trainType);
-          const typCfg = TYPE_CONFIG[typeKey];
-          const dirArrow = getDirectionArrow(t.direction);
-          return (
+        {tabValue !== 3 &&
+          filteredStations.map((station) => (
             <Marker
-              key={t.trainCode}
-              position={[t.lat, t.lon]}
-              icon={makeLiveTrainIcon(t.trainType ?? null, t.direction ?? null, running)}
-              eventHandlers={{ click: () => handleTrainClick(t.lat, t.lon, t.trainCode) }}
+              key={station.id}
+              position={[station.lat, station.lon]}
+              icon={makeStationIcon(getStationTypeKey(station.stationType))}
+              eventHandlers={{
+                click: () =>
+                  handleStationClick(
+                    station.lat,
+                    station.lon,
+                    station.stationCode,
+                  ),
+              }}
             >
               <Popup>
-                <Box sx={{ minWidth: 190, p: 1.5 }}>
-                  <Typography fontWeight={700} sx={{ fontSize: "0.9rem", mb: 0.5, color: "#111827" }}>
-                    🚂 {t.trainCode}
+                <Box sx={{ minWidth: 180, p: 1.5 }}>
+                  <Typography
+                    fontWeight={700}
+                    sx={{ fontSize: "0.9rem", mb: 0.75, color: "#111827" }}
+                  >
+                    {station.stationDesc}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, mb: 0.5, flexWrap: "wrap" }}>
+                  <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
                     <Chip
                       size="small"
-                      label={running ? "● Running" : "○ Scheduled"}
-                      sx={{ fontSize: "0.65rem", height: 18, bgcolor: (running ? "#2ea043" : "#d29922") + "22", color: running ? "#2ea043" : "#d29922" }}
+                      label={station.stationCode}
+                      sx={{
+                        fontSize: "0.65rem",
+                        height: 18,
+                        bgcolor: "#f3f4f6",
+                        color: "#374151",
+                      }}
                     />
-                    {t.trainType && (
-                      <Chip
-                        size="small"
-                        label={typCfg.label === "All" ? t.trainType : typCfg.label}
-                        sx={{ fontSize: "0.65rem", height: 18, bgcolor: typCfg.color + "22", color: typCfg.color }}
-                      />
-                    )}
+                    {(() => {
+                      const key = getStationTypeKey(station.stationType);
+                      const cfg = key === "ALL" ? null : TYPE_CONFIG[key];
+                      return cfg ? (
+                        <Chip
+                          size="small"
+                          label={cfg.label}
+                          sx={{
+                            fontSize: "0.65rem",
+                            height: 18,
+                            bgcolor: cfg.color + "22",
+                            color: cfg.color,
+                          }}
+                        />
+                      ) : null;
+                    })()}
                   </Box>
-                  {t.direction && (
-                    <Typography sx={{ fontSize: "0.72rem", color: "#374151" }}>{dirArrow} {t.direction}</Typography>
-                  )}
-                  {t.publicMessage && (
-                    <Typography sx={{ fontSize: "0.72rem", color: "#6b7280", mt: 0.4 }}>
-                      {t.publicMessage}
-                    </Typography>
-                  )}
                 </Box>
               </Popup>
             </Marker>
-          );
-        })}
+          ))}
+
+        {/* Live train markers — hidden in demand mode */}
+        {tabValue !== 3 &&
+          filteredLiveTrains
+            .filter((t) => t.lat && t.lon)
+            .map((t) => {
+              const running = isRunning(t.status);
+              const typeKey = getTrainTypeKey(t.trainType);
+              const typCfg = TYPE_CONFIG[typeKey];
+              const dirArrow = getDirectionArrow(t.direction);
+              return (
+                <Marker
+                  key={t.trainCode}
+                  position={[t.lat, t.lon]}
+                  icon={makeLiveTrainIcon(
+                    t.trainType ?? null,
+                    t.direction ?? null,
+                    running,
+                  )}
+                  eventHandlers={{
+                    click: () => handleTrainClick(t.lat, t.lon, t.trainCode),
+                  }}
+                >
+                  <Popup>
+                    <Box sx={{ minWidth: 190, p: 1.5 }}>
+                      <Typography
+                        fontWeight={700}
+                        sx={{ fontSize: "0.9rem", mb: 0.5, color: "#111827" }}
+                      >
+                        🚂 {t.trainCode}
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 0.5,
+                          mb: 0.5,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Chip
+                          size="small"
+                          label={running ? "● Running" : "○ Scheduled"}
+                          sx={{
+                            fontSize: "0.65rem",
+                            height: 18,
+                            bgcolor: (running ? "#2ea043" : "#d29922") + "22",
+                            color: running ? "#2ea043" : "#d29922",
+                          }}
+                        />
+                        {t.trainType && (
+                          <Chip
+                            size="small"
+                            label={
+                              typCfg.label === "All"
+                                ? t.trainType
+                                : typCfg.label
+                            }
+                            sx={{
+                              fontSize: "0.65rem",
+                              height: 18,
+                              bgcolor: typCfg.color + "22",
+                              color: typCfg.color,
+                            }}
+                          />
+                        )}
+                      </Box>
+                      {t.direction && (
+                        <Typography
+                          sx={{ fontSize: "0.72rem", color: "#374151" }}
+                        >
+                          {dirArrow} {t.direction}
+                        </Typography>
+                      )}
+                      {t.publicMessage && (
+                        <Typography
+                          sx={{
+                            fontSize: "0.72rem",
+                            color: "#6b7280",
+                            mt: 0.4,
+                          }}
+                        >
+                          {t.publicMessage}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Popup>
+                </Marker>
+              );
+            })}
       </MapContainer>
 
       {error && (
         <Alert
           severity="error"
-          sx={{ position: "absolute", top: GAP, left: "50%", transform: "translateX(-50%)", zIndex: 1001, borderRadius: 2 }}
+          sx={{
+            position: "absolute",
+            top: GAP,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1001,
+            borderRadius: 2,
+          }}
         >
           Failed to load train data
         </Alert>
@@ -704,7 +905,10 @@ export const TrainDashboard = () => {
         <IconButton
           onClick={() => setPanelOpen(true)}
           sx={{
-            position: "absolute", top: GAP, right: GAP, zIndex: 1000,
+            position: "absolute",
+            top: GAP,
+            right: GAP,
+            zIndex: 1000,
             bgcolor: (t) => t.palette.background.paper,
             backdropFilter: "blur(12px)",
             "&:hover": { bgcolor: (t) => t.palette.background.paper },
@@ -720,7 +924,9 @@ export const TrainDashboard = () => {
           elevation={0}
           sx={{
             position: "absolute",
-            top: GAP, right: GAP, bottom: GAP,
+            top: GAP,
+            right: GAP,
+            bottom: GAP,
             width: PANEL_W,
             zIndex: 1000,
             borderRadius: 3,
@@ -730,7 +936,15 @@ export const TrainDashboard = () => {
           }}
         >
           {/* Header */}
-          <Box sx={{ p: 2, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box
+            sx={{
+              p: 2,
+              pb: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <TrainIcon color="primary" />
               <Typography variant="h5">Dublin Rail Network</Typography>
@@ -742,9 +956,27 @@ export const TrainDashboard = () => {
 
           {/* KPIs */}
           {kpiData && (
-            <Box sx={{ px: 2, pb: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.5 }}>
-              <KpiRow icon={<LocationOnIcon fontSize="inherit" />} label="Stations" value={kpiData.totalStations} color="#00ACC1" />
-              <KpiRow icon={<TrainIcon fontSize="inherit" />} label="Live Trains" value={kpiData.liveTrainsRunning} color="#2ea043" />
+            <Box
+              sx={{
+                px: 2,
+                pb: 1,
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 0.5,
+              }}
+            >
+              <KpiRow
+                icon={<LocationOnIcon fontSize="inherit" />}
+                label="Stations"
+                value={kpiData.totalStations}
+                color="#00ACC1"
+              />
+              <KpiRow
+                icon={<TrainIcon fontSize="inherit" />}
+                label="Live Trains"
+                value={kpiData.liveTrainsRunning}
+                color="#2ea043"
+              />
               <KpiRow
                 icon={<AccessTimeIcon fontSize="inherit" />}
                 label="On Time"
@@ -763,13 +995,31 @@ export const TrainDashboard = () => {
           {/* Running / Scheduled chips */}
           {liveTrains.length > 0 && (
             <Box sx={{ px: 2, pb: 1, display: "flex", gap: 0.75 }}>
-              <Chip size="small" label={`${runningCount} Running`} color="success" variant="outlined" sx={{ fontSize: "0.68rem" }} />
-              <Chip size="small" label={`${scheduledCount} Scheduled`} sx={{ fontSize: "0.68rem", borderColor: "#d29922", color: "#d29922", border: "1px solid" }} variant="outlined" />
+              <Chip
+                size="small"
+                label={`${runningCount} Running`}
+                color="success"
+                variant="outlined"
+                sx={{ fontSize: "0.68rem" }}
+              />
+              <Chip
+                size="small"
+                label={`${scheduledCount} Scheduled`}
+                sx={{
+                  fontSize: "0.68rem",
+                  borderColor: "#d29922",
+                  color: "#d29922",
+                  border: "1px solid",
+                }}
+                variant="outlined"
+              />
             </Box>
           )}
 
           {/* Type filter chips */}
-          <Box sx={{ px: 2, pb: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+          <Box
+            sx={{ px: 2, pb: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}
+          >
             {(["ALL", "D", "S", "M"] as TypeKey[]).map((key) => {
               const active = typeFilter === key;
               return (
@@ -803,20 +1053,29 @@ export const TrainDashboard = () => {
             scrollButtons="auto"
             sx={{
               minHeight: 36,
-              "& .MuiTab-root": { minHeight: 36, fontSize: "0.7rem", textTransform: "none", minWidth: 0, px: 1.5 },
+              "& .MuiTab-root": {
+                minHeight: 36,
+                fontSize: "0.7rem",
+                textTransform: "none",
+                minWidth: 0,
+                px: 1.5,
+              },
               "& .MuiTabScrollButton-root": { width: 24 },
             }}
           >
             <Tab label={`Stations (${filteredStations.length})`} />
-            <Tab label={`Trains (${sortedTrains.filter((t) => t.lat && t.lon).length})`} />
+            <Tab
+              label={`Trains (${sortedTrains.filter((t) => t.lat && t.lon).length})`}
+            />
             <Tab label={`Delays (${frequentDelays.length})`} />
             <Tab label="Demand" />
-            <Tab label={`Approvals${approvals.filter(a => a.status === "PENDING").length > 0 ? ` (${approvals.filter(a => a.status === "PENDING").length})` : ""}`} />
+            <Tab
+              label={`Approvals${approvals.some((a) => a.status === "PENDING") ? ` (${approvals.filter((a) => a.status === "PENDING").length})` : ""}`}
+            />
           </Tabs>
 
           {/* Tab content */}
           <Box sx={{ flex: 1, overflow: "auto", px: 1, pt: 0.5 }}>
-
             {/* ── Stations ── */}
             {tabValue === 0 && (
               <>
@@ -839,32 +1098,55 @@ export const TrainDashboard = () => {
                   />
                 </Box>
                 {dataLoading ? (
-                  <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", py: 4 }}
+                  >
                     <CircularProgress size={24} />
                   </Box>
                 ) : (
                   filteredStations.map((station) => {
-                    const typCfg = TYPE_CONFIG[getStationTypeKey(station.stationType)];
-                    const selected = selectedStationCode === station.stationCode;
+                    const typCfg =
+                      TYPE_CONFIG[getStationTypeKey(station.stationType)];
+                    const selected =
+                      selectedStationCode === station.stationCode;
                     return (
                       <ListItemButton
                         key={station.id}
-                        onClick={() => handleStationClick(station.lat, station.lon, station.stationCode)}
+                        onClick={() =>
+                          handleStationClick(
+                            station.lat,
+                            station.lon,
+                            station.stationCode,
+                          )
+                        }
                         selected={selected}
                         sx={{ py: 0.875, px: 1, borderRadius: 1 }}
                       >
                         <Box
                           sx={{
-                            width: 22, height: 22, borderRadius: "50%",
+                            width: 22,
+                            height: 22,
+                            borderRadius: "50%",
                             bgcolor: typCfg.color,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            flexShrink: 0, mr: 1.5,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            mr: 1.5,
                           }}
                         >
-                          <Typography sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}>{typCfg.short}</Typography>
+                          <Typography
+                            sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}
+                          >
+                            {typCfg.short}
+                          </Typography>
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography noWrap variant="body2" fontWeight={selected ? 600 : 400}>
+                          <Typography
+                            noWrap
+                            variant="body2"
+                            fontWeight={selected ? 600 : 400}
+                          >
                             {station.stationDesc}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
@@ -879,85 +1161,129 @@ export const TrainDashboard = () => {
             )}
 
             {/* ── Live Trains ── */}
-            {tabValue === 1 && (
-              sortedTrains.length === 0 ? (
+            {tabValue === 1 &&
+              (sortedTrains.length === 0 ? (
                 <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <TrainIcon sx={{ fontSize: 32, color: "action.disabled", mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">No live trains at the moment</Typography>
+                  <TrainIcon
+                    sx={{ fontSize: 32, color: "action.disabled", mb: 1 }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    No live trains at the moment
+                  </Typography>
                 </Box>
-              ) : sortedTrains.map((t) => {
-                const running = isRunning(t.status);
-                const typeKey = getTrainTypeKey(t.trainType);
-                const typCfg = TYPE_CONFIG[typeKey];
-                const dirArrow = getDirectionArrow(t.direction);
-                const hasCoors = t.lat && t.lon;
-                const selected = selectedTrainCode === t.trainCode;
-                return (
-                  <ListItemButton
-                    key={t.trainCode}
-                    onClick={() => hasCoors && handleTrainClick(t.lat, t.lon, t.trainCode)}
-                    disabled={!hasCoors}
-                    selected={selected}
-                    sx={{ py: 0.875, px: 1, borderRadius: 1, opacity: hasCoors ? 1 : 0.45 }}
-                  >
-                    <Box
+              ) : (
+                sortedTrains.map((t) => {
+                  const running = isRunning(t.status);
+                  const typeKey = getTrainTypeKey(t.trainType);
+                  const typCfg = TYPE_CONFIG[typeKey];
+                  const dirArrow = getDirectionArrow(t.direction);
+                  const hasCoors = t.lat && t.lon;
+                  const selected = selectedTrainCode === t.trainCode;
+                  return (
+                    <ListItemButton
+                      key={t.trainCode}
+                      onClick={() =>
+                        hasCoors && handleTrainClick(t.lat, t.lon, t.trainCode)
+                      }
+                      disabled={!hasCoors}
+                      selected={selected}
                       sx={{
-                        width: 22, height: 22, borderRadius: "50%",
-                        bgcolor: typCfg.color,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0, mr: 1.5,
-                        boxShadow: running ? `0 0 0 3px ${typCfg.color}44` : "none",
+                        py: 0.875,
+                        px: 1,
+                        borderRadius: 1,
+                        opacity: hasCoors ? 1 : 0.45,
                       }}
                     >
-                      <Typography sx={{ fontSize: 10, fontWeight: 900, color: "#fff" }}>
-                        {dirArrow || typCfg.short}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight={600}>{t.trainCode}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {typCfg.label === "All" ? (t.trainType ?? "Unknown") : typCfg.label}
-                        {t.direction ? ` · ${dirArrow} ${t.direction}` : ""}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      size="small"
-                      label={running ? "Running" : "Sched."}
-                      sx={{
-                        fontSize: "0.62rem", height: 18, ml: 0.5, flexShrink: 0,
-                        bgcolor: (running ? "#2ea043" : "#d29922") + "20",
-                        color: running ? "#2ea043" : "#d29922",
-                        border: `1px solid ${running ? "#2ea043" : "#d29922"}40`,
-                      }}
-                    />
-                  </ListItemButton>
-                );
-              })
-            )}
+                      <Box
+                        sx={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          bgcolor: typCfg.color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          mr: 1.5,
+                          boxShadow: running
+                            ? `0 0 0 3px ${typCfg.color}44`
+                            : "none",
+                        }}
+                      >
+                        <Typography
+                          sx={{ fontSize: 10, fontWeight: 900, color: "#fff" }}
+                        >
+                          {dirArrow || typCfg.short}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {t.trainCode}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {typCfg.label === "All"
+                            ? (t.trainType ?? "Unknown")
+                            : typCfg.label}
+                          {t.direction ? ` · ${dirArrow} ${t.direction}` : ""}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        size="small"
+                        label={running ? "Running" : "Sched."}
+                        sx={{
+                          fontSize: "0.62rem",
+                          height: 18,
+                          ml: 0.5,
+                          flexShrink: 0,
+                          bgcolor: (running ? "#2ea043" : "#d29922") + "20",
+                          color: running ? "#2ea043" : "#d29922",
+                          border: `1px solid ${running ? "#2ea043" : "#d29922"}40`,
+                        }}
+                      />
+                    </ListItemButton>
+                  );
+                })
+              ))}
 
             {/* ── Delays ── */}
-            {tabValue === 2 && (
-              delaysLoading ? (
+            {tabValue === 2 &&
+              (delaysLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress size={24} />
                 </Box>
               ) : frequentDelays.length === 0 ? (
                 <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <Typography variant="body2" color="text.secondary">No delay data available</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    No delay data available
+                  </Typography>
                 </Box>
               ) : (
-                <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem" }}>
+                <Box
+                  component="table"
+                  sx={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: "0.75rem",
+                  }}
+                >
                   <Box component="thead">
                     <Box component="tr">
                       {["Train", "Route", "Direction", "Avg Delay"].map((h) => (
                         <Box
-                          component="th" key={h}
+                          component="th"
+                          key={h}
                           sx={{
-                            textAlign: "left", py: 0.75, px: 1,
-                            color: "text.secondary", fontSize: "0.62rem",
-                            textTransform: "uppercase", letterSpacing: 0.6,
-                            borderBottom: 1, borderColor: "divider",
-                            position: "sticky", top: 0,
+                            textAlign: "left",
+                            py: 0.75,
+                            px: 1,
+                            color: "text.secondary",
+                            fontSize: "0.62rem",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.6,
+                            borderBottom: 1,
+                            borderColor: "divider",
+                            position: "sticky",
+                            top: 0,
                             bgcolor: "background.paper",
                           }}
                         >
@@ -969,24 +1295,75 @@ export const TrainDashboard = () => {
                   <Box component="tbody">
                     {frequentDelays.map((row, idx) => (
                       <Box component="tr" key={`${row.trainCode}-${idx}`}>
-                        <Box component="td" sx={{ py: 0.75, px: 1, fontWeight: 600, borderBottom: 1, borderColor: "divider" }}>
+                        <Box
+                          component="td"
+                          sx={{
+                            py: 0.75,
+                            px: 1,
+                            fontWeight: 600,
+                            borderBottom: 1,
+                            borderColor: "divider",
+                          }}
+                        >
                           {row.trainCode}
                         </Box>
-                        <Box component="td" sx={{ py: 0.75, px: 1, borderBottom: 1, borderColor: "divider", maxWidth: 120 }}>
-                          <Typography variant="caption" display="block">{row.origin}</Typography>
-                          <Typography variant="caption" color="text.secondary">→ {row.destination}</Typography>
+                        <Box
+                          component="td"
+                          sx={{
+                            py: 0.75,
+                            px: 1,
+                            borderBottom: 1,
+                            borderColor: "divider",
+                            maxWidth: 120,
+                          }}
+                        >
+                          <Typography variant="caption" display="block">
+                            {row.origin}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            → {row.destination}
+                          </Typography>
                         </Box>
-                        <Box component="td" sx={{ py: 0.75, px: 1, borderBottom: 1, borderColor: "divider" }}>
-                          <Typography variant="caption" color="text.secondary">{row.direction}</Typography>
+                        <Box
+                          component="td"
+                          sx={{
+                            py: 0.75,
+                            px: 1,
+                            borderBottom: 1,
+                            borderColor: "divider",
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            {row.direction}
+                          </Typography>
                         </Box>
-                        <Box component="td" sx={{ py: 0.75, px: 1, borderBottom: 1, borderColor: "divider" }}>
+                        <Box
+                          component="td"
+                          sx={{
+                            py: 0.75,
+                            px: 1,
+                            borderBottom: 1,
+                            borderColor: "divider",
+                          }}
+                        >
                           <Chip
                             size="small"
                             label={`${row.totalAvgDelayMinutes} min`}
                             sx={{
-                              fontSize: "0.65rem", height: 18,
-                              bgcolor: row.totalAvgDelayMinutes > 10 ? "#da362320" : row.totalAvgDelayMinutes > 5 ? "#d2992220" : "#2ea04320",
-                              color: row.totalAvgDelayMinutes > 10 ? "#da3623" : row.totalAvgDelayMinutes > 5 ? "#d29922" : "#2ea043",
+                              fontSize: "0.65rem",
+                              height: 18,
+                              bgcolor:
+                                row.totalAvgDelayMinutes > 10
+                                  ? "#da362320"
+                                  : row.totalAvgDelayMinutes > 5
+                                    ? "#d2992220"
+                                    : "#2ea04320",
+                              color:
+                                row.totalAvgDelayMinutes > 10
+                                  ? "#da3623"
+                                  : row.totalAvgDelayMinutes > 5
+                                    ? "#d29922"
+                                    : "#2ea043",
                             }}
                           />
                         </Box>
@@ -994,25 +1371,74 @@ export const TrainDashboard = () => {
                     ))}
                   </Box>
                 </Box>
-              )
-            )}
+              ))}
 
             {/* ── Demand ── */}
             {tabValue === 3 && (
-              <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
-
+              <Box
+                sx={{
+                  p: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                }}
+              >
                 {/* Legend */}
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.4 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                    <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "hsl(120,70%,38%)", whiteSpace: "nowrap" }}>Low</Typography>
-                    <Box sx={{ flex: 1, height: 7, borderRadius: 4, background: "linear-gradient(to right, hsl(120,80%,42%), hsl(60,80%,42%), hsl(0,80%,42%))" }} />
-                    <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "hsl(0,70%,38%)", whiteSpace: "nowrap" }}>High</Typography>
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.4 }}
+                >
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: "0.6rem",
+                        color: "hsl(120,70%,38%)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Low
+                    </Typography>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        height: 7,
+                        borderRadius: 4,
+                        background:
+                          "linear-gradient(to right, hsl(120,80%,42%), hsl(60,80%,42%), hsl(0,80%,42%))",
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: "0.6rem",
+                        color: "hsl(0,70%,38%)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      High
+                    </Typography>
                   </Box>
                 </Box>
 
                 {/* Corridors */}
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5, color: "text.secondary" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    fontWeight={700}
+                    sx={{
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                      color: "text.secondary",
+                    }}
+                  >
                     Simulate new services
                   </Typography>
                 </Box>
@@ -1021,17 +1447,38 @@ export const TrainDashboard = () => {
                   <Box
                     key={idx}
                     sx={{
-                      border: 1, borderColor: "divider", borderRadius: 2,
-                      p: 1.25, display: "flex", flexDirection: "column", gap: 1,
+                      border: 1,
+                      borderColor: "divider",
+                      borderRadius: 2,
+                      p: 1.25,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
                       position: "relative",
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.25 }}>
-                      <Typography variant="caption" fontWeight={700} color="primary" sx={{ fontSize: "0.68rem" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 0.25,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        fontWeight={700}
+                        color="primary"
+                        sx={{ fontSize: "0.68rem" }}
+                      >
                         Corridor {idx + 1}
                       </Typography>
                       {corridors.length > 1 && (
-                        <IconButton size="small" onClick={() => removeCorridor(idx)} sx={{ p: 0.25 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => removeCorridor(idx)}
+                          sx={{ p: 0.25 }}
+                        >
                           <DeleteIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       )}
@@ -1043,7 +1490,9 @@ export const TrainDashboard = () => {
                       getOptionLabel={(o) => o.name}
                       value={corridor.origin}
                       onChange={(_, v) => updateCorridor(idx, { origin: v })}
-                      renderInput={(params) => <TextField {...params} label="Origin" />}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Origin" />
+                      )}
                       isOptionEqualToValue={(a, b) => a.stopId === b.stopId}
                     />
                     <Autocomplete
@@ -1064,11 +1513,25 @@ export const TrainDashboard = () => {
                     />
 
                     <Box sx={{ px: 0.5 }}>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          mb: 0.25,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.65rem" }}
+                        >
                           Trains to add
                         </Typography>
-                        <Typography variant="caption" fontWeight={700} sx={{ fontSize: "0.68rem" }}>
+                        <Typography
+                          variant="caption"
+                          fontWeight={700}
+                          sx={{ fontSize: "0.68rem" }}
+                        >
                           {corridor.count}
                         </Typography>
                       </Box>
@@ -1077,9 +1540,17 @@ export const TrainDashboard = () => {
                         min={1}
                         max={20}
                         value={corridor.count}
-                        onChange={(_, v) => updateCorridor(idx, { count: v as number })}
-                        marks={[{ value: 1, label: "1" }, { value: 10, label: "10" }, { value: 20, label: "20" }]}
-                        sx={{ "& .MuiSlider-markLabel": { fontSize: "0.58rem" } }}
+                        onChange={(_, v) =>
+                          updateCorridor(idx, { count: Number(v) })
+                        }
+                        marks={[
+                          { value: 1, label: "1" },
+                          { value: 10, label: "10" },
+                          { value: 20, label: "20" },
+                        ]}
+                        sx={{
+                          "& .MuiSlider-markLabel": { fontSize: "0.58rem" },
+                        }}
                       />
                     </Box>
                   </Box>
@@ -1100,7 +1571,11 @@ export const TrainDashboard = () => {
                   <Button
                     size="small"
                     variant="contained"
-                    disabled={corridors.every((c) => !c.origin || !c.dest) || hasCorridorErrors || simulateMutation.isPending}
+                    disabled={
+                      corridors.every((c) => !c.origin || !c.dest) ||
+                      hasCorridorErrors ||
+                      simulateMutation.isPending
+                    }
                     onClick={handleSimulate}
                     sx={{ ml: "auto", fontSize: "0.72rem" }}
                   >
@@ -1109,59 +1584,140 @@ export const TrainDashboard = () => {
                 </Box>
 
                 {simMetrics && (
-                  <Box sx={{ borderRadius: 2, border: 1, borderColor: "#2ea04340", bgcolor: "#2ea04308", overflow: "hidden" }}>
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: 1,
+                      borderColor: "#2ea04340",
+                      bgcolor: "#2ea04308",
+                      overflow: "hidden",
+                    }}
+                  >
                     <Box sx={{ px: 1.5, py: 1, bgcolor: "#2ea04318" }}>
-                      <Typography variant="caption" fontWeight={700} sx={{ color: "#2ea043", textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.65rem" }}>
+                      <Typography
+                        variant="caption"
+                        fontWeight={700}
+                        sx={{
+                          color: "#2ea043",
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                          fontSize: "0.65rem",
+                        }}
+                      >
                         Simulation active
                       </Typography>
                     </Box>
-                    <Box sx={{ p: 1.25, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
-                      <Box>
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.4, display: "block" }}>
-                          Stations boosted
-                        </Typography>
-                        <Typography fontWeight={700} sx={{ fontSize: "1rem", color: "#2ea043" }}>
-                          {simMetrics.count}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.4, display: "block" }}>
-                          Avg pressure relief
-                        </Typography>
-                        <Typography fontWeight={700} sx={{ fontSize: "1rem", color: "#2ea043" }}>
-                          ↓ {simMetrics.avgReliefPct.toFixed(1)}%
-                        </Typography>
-                      </Box>
+                    <Box
+                      sx={{
+                        p: 1.25,
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 1,
+                      }}
+                    >
+                      {(
+                        [
+                          {
+                            label: "Stations improved",
+                            value: String(simMetrics.count),
+                          },
+                          {
+                            label: "Overall score improved by",
+                            value: `${simMetrics.avgDemandReduction.toFixed(1)}%`,
+                          },
+                          {
+                            label: "Train crowding reduced by",
+                            value: `${simMetrics.avgReliefPct.toFixed(1)}%`,
+                          },
+                        ] as { label: string; value: string }[]
+                      ).map(({ label, value }) => (
+                        <Box key={label}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "0.6rem",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.4,
+                              display: "block",
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                          <Typography
+                            fontWeight={700}
+                            sx={{ fontSize: "1rem", color: "#2ea043" }}
+                          >
+                            {value}
+                          </Typography>
+                        </Box>
+                      ))}
                       {simMetrics.peakStop && (
                         <Box sx={{ gridColumn: "1 / -1" }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.4, display: "block" }}>
-                            Most relieved
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "0.6rem",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.4,
+                              display: "block",
+                            }}
+                          >
+                            Biggest improvement
                           </Typography>
-                          <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: "0.78rem" }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight={600}
+                            noWrap
+                            sx={{ fontSize: "0.78rem" }}
+                          >
                             {simMetrics.peakStop.name}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "#2ea043", fontSize: "0.7rem" }}>
-                            ↓ {simMetrics.peakRelief.toFixed(1)}% pressure
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#2ea043", fontSize: "0.7rem" }}
+                          >
+                            crowding reduced by{" "}
+                            {simMetrics.peakRelief.toFixed(1)}%
                           </Typography>
                         </Box>
                       )}
                     </Box>
                     <Box sx={{ px: 1.25, pb: 1 }}>
-                      <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem" }}>
-                        White-ringed markers = boosted stations · hover for before/after
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "text.secondary", fontSize: "0.62rem" }}
+                      >
+                        White-ringed markers = boosted stations · hover for
+                        before/after
                       </Typography>
                     </Box>
                   </Box>
                 )}
 
                 {simResult && (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                      mt: 0.5,
+                    }}
+                  >
                     <Button
                       fullWidth
                       variant="outlined"
                       size="small"
-                      sx={{ fontSize: "0.72rem", borderColor: "#d1d5db", color: "text.secondary" }}
-                      onClick={() => { setSimResult(null); setCorridors([{ origin: null, dest: null, count: 1 }]); }}
+                      sx={{
+                        fontSize: "0.72rem",
+                        borderColor: "#d1d5db",
+                        color: "text.secondary",
+                      }}
+                      onClick={() => {
+                        setSimResult(null);
+                        setCorridors([{ origin: null, dest: null, count: 1 }]);
+                      }}
                     >
                       Reset simulation
                     </Button>
@@ -1172,37 +1728,69 @@ export const TrainDashboard = () => {
                         size="small"
                         color="primary"
                         sx={{ fontSize: "0.72rem" }}
-                        disabled={submitApprovalMutation.isPending || submitApprovalMutation.isSuccess}
+                        disabled={
+                          submitApprovalMutation.isPending ||
+                          submitApprovalMutation.isSuccess
+                        }
                         onClick={() => {
                           if (!simResult || !simMetrics) return;
                           const corridorSummary = corridors
-                            .filter(c => c.origin && c.dest)
-                            .map(c => `${c.origin?.name} → ${c.dest?.name} (+${c.count})`)
+                            .filter((c) => c.origin && c.dest)
+                            .map(
+                              (c) =>
+                                `${c.origin?.name} → ${c.dest?.name} (+${c.count})`,
+                            )
                             .join("; ");
+                          const affectedStations = simResult.affectedStopIds
+                            .map((id) => {
+                              const sim = simResult.simulatedDemand.find(
+                                (s) => s.stopId === id,
+                              );
+                              const base = simResult.baseDemand.find(
+                                (s) => s.stopId === id,
+                              );
+                              if (!sim || !base) return null;
+                              const scoreDelta =
+                                (base.demandScore - sim.demandScore) * 100;
+                              return {
+                                station: sim.name,
+                                demandBefore: `${(base.demandScore * 100).toFixed(0)}%`,
+                                demandAfter: `${(sim.demandScore * 100).toFixed(0)}%`,
+                                demandReduction: `${scoreDelta.toFixed(1)}%`,
+                                overcrowdingRisk: `${(base.normPressure * 100).toFixed(0)}% → ${(sim.normPressure * 100).toFixed(0)}%`,
+                                annualPassengers: `${(base.normRidership * 100).toFixed(0)}%`,
+                                nearbyResidents: `${(base.normUptake * 100).toFixed(0)}%`,
+                              };
+                            })
+                            .filter(Boolean);
+                          const avgScoreDelta = simMetrics.avgDemandReduction;
                           submitApprovalMutation.mutate({
                             indicator: "train",
                             actionUrl: "/dashboard?view=train&tab=approvals",
                             payloadJson: JSON.stringify({
-                              corridors: corridors.filter(c => c.origin && c.dest).map(c => ({
-                                originStopId: c.origin?.stopId,
-                                destinationStopId: c.dest?.stopId,
-                                trainCount: c.count,
-                              })),
-                              metrics: {
-                                stationsBoosted: simMetrics.count,
-                                avgPressureRelief: simMetrics.avgReliefPct.toFixed(1),
-                                mostRelievedStation: simMetrics.peakStop?.name,
+                              corridors: corridors
+                                .filter((c) => c.origin && c.dest)
+                                .map((c) => ({
+                                  origin: c.origin?.name,
+                                  destination: c.dest?.name,
+                                  trainsAdded: c.count,
+                                })),
+                              impact: {
+                                stationsAffected: simMetrics.count,
+                                avgDemandReduction: `${avgScoreDelta.toFixed(1)}%`,
+                                mostImprovedStation: simMetrics.peakStop?.name,
                               },
+                              stationBreakdown: affectedStations,
                             }),
-                            summary: `Add trains on: ${corridorSummary}. Avg pressure relief: ${simMetrics.avgReliefPct.toFixed(1)}% across ${simMetrics.count} station(s).`,
+                            summary: `Add trains on: ${corridorSummary}. Demand improvement across ${simMetrics.count} station(s). Most improved: ${simMetrics.peakStop?.name ?? "N/A"}.`,
                           });
                         }}
                       >
                         {submitApprovalMutation.isSuccess
                           ? "Sent for approval ✓"
                           : submitApprovalMutation.isPending
-                          ? "Sending…"
-                          : "Send for approval"}
+                            ? "Sending…"
+                            : "Send for approval"}
                       </Button>
                     )}
                   </Box>
@@ -1218,82 +1806,203 @@ export const TrainDashboard = () => {
 
             {/* ── Tab 4: Approvals ─────────────────────────────────── */}
             {tabValue === 4 && (
-              <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
-                <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5, color: "text.secondary" }}>
-                  {isCityManager ? "All approval requests" : "My approval requests"}
+              <Box
+                sx={{
+                  p: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={700}
+                  sx={{
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    color: "text.secondary",
+                  }}
+                >
+                  {isCityManager
+                    ? "All approval requests"
+                    : "My approval requests"}
                 </Typography>
 
                 {/* Filters — City Manager sees status chips */}
                 {isCityManager && (
                   <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                    {(["ALL", "PENDING", "APPROVED", "DENIED"] as const).map((s) => {
-                      const count = s === "ALL" ? approvals.length : approvals.filter(a => a.status === s).length;
-                      return (
-                        <Chip key={s} size="small"
-                          label={`${s} (${count})`}
-                          sx={{ fontSize: "0.62rem", height: 20,
-                            bgcolor: s === "PENDING" ? "#fef3c7" : s === "APPROVED" ? "#dcfce7" : s === "DENIED" ? "#fee2e2" : undefined,
-                            color:   s === "PENDING" ? "#92400e" : s === "APPROVED" ? "#166534" : s === "DENIED" ? "#991b1b" : undefined,
-                          }} />
-                      );
-                    })}
+                    {(["ALL", "PENDING", "APPROVED", "DENIED"] as const).map(
+                      (s) => {
+                        const count =
+                          s === "ALL"
+                            ? approvals.length
+                            : approvals.filter((a) => a.status === s).length;
+                        return (
+                          <Chip
+                            key={s}
+                            size="small"
+                            label={`${s} (${count})`}
+                            sx={{
+                              fontSize: "0.62rem",
+                              height: 20,
+                              bgcolor:
+                                s === "PENDING"
+                                  ? "#fef3c7"
+                                  : s === "APPROVED"
+                                    ? "#dcfce7"
+                                    : s === "DENIED"
+                                      ? "#fee2e2"
+                                      : undefined,
+                              color:
+                                s === "PENDING"
+                                  ? "#92400e"
+                                  : s === "APPROVED"
+                                    ? "#166534"
+                                    : s === "DENIED"
+                                      ? "#991b1b"
+                                      : undefined,
+                            }}
+                          />
+                        );
+                      },
+                    )}
                   </Box>
                 )}
 
-                {approvalsLoading && <CircularProgress size={20} sx={{ alignSelf: "center" }} />}
+                {approvalsLoading && (
+                  <CircularProgress size={20} sx={{ alignSelf: "center" }} />
+                )}
 
                 {!approvalsLoading && approvals.length === 0 && (
-                  <Typography variant="caption" sx={{ color: "text.secondary", textAlign: "center", py: 2, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      textAlign: "center",
+                      py: 2,
+                      display: "block",
+                    }}
+                  >
                     No approval requests yet.
                   </Typography>
                 )}
 
                 {/* Approval rows — sorted: PENDING first, then by date */}
-                {[...approvals]
-                  .sort((a, b) => {
-                    if (a.status === "PENDING" && b.status !== "PENDING") return -1;
-                    if (b.status === "PENDING" && a.status !== "PENDING") return 1;
-                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                {approvals
+                  .toSorted((a, b) => {
+                    if (a.status === "PENDING" && b.status !== "PENDING")
+                      return -1;
+                    if (b.status === "PENDING" && a.status !== "PENDING")
+                      return 1;
+                    return (
+                      new Date(b.createdAt).getTime() -
+                      new Date(a.createdAt).getTime()
+                    );
                   })
                   .map((req) => (
-                    <Box key={req.id} sx={{ border: "1px solid #e5e7eb", borderRadius: 2, p: 1.25, display: "flex", flexDirection: "column", gap: 0.75 }}>
+                    <Box
+                      key={req.id}
+                      sx={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 2,
+                        p: 1.25,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.75,
+                      }}
+                    >
                       {/* Header row */}
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                        <Chip size="small" label={req.status}
-                          sx={{ fontSize: "0.6rem", height: 18, fontWeight: 700,
-                            bgcolor: req.status === "PENDING" ? "#fef3c7" : req.status === "APPROVED" ? "#dcfce7" : "#fee2e2",
-                            color:   req.status === "PENDING" ? "#92400e" : req.status === "APPROVED" ? "#166534" : "#991b1b",
-                          }} />
-                        <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", fontFamily: "monospace" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.75,
+                        }}
+                      >
+                        <Chip
+                          size="small"
+                          label={req.status}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            fontWeight: 700,
+                            bgcolor:
+                              req.status === "PENDING"
+                                ? "#fef3c7"
+                                : req.status === "APPROVED"
+                                  ? "#dcfce7"
+                                  : "#fee2e2",
+                            color:
+                              req.status === "PENDING"
+                                ? "#92400e"
+                                : req.status === "APPROVED"
+                                  ? "#166534"
+                                  : "#991b1b",
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: "0.6rem",
+                            color: "text.secondary",
+                            fontFamily: "monospace",
+                          }}
+                        >
                           APR-{String(req.id).padStart(6, "0")}
                         </Typography>
-                        <Typography sx={{ fontSize: "0.62rem", color: "text.secondary", ml: "auto" }}>
-                          {new Date(req.createdAt).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })}
+                        <Typography
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: "text.secondary",
+                            ml: "auto",
+                          }}
+                        >
+                          {new Date(req.createdAt).toLocaleDateString("en-IE", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
                         </Typography>
                       </Box>
 
                       {/* Summary */}
-                      <Typography sx={{ fontSize: "0.72rem", color: "#374151" }}>
+                      <Typography
+                        sx={{ fontSize: "0.72rem", color: "#374151" }}
+                      >
                         {req.summary ?? "No summary provided."}
                       </Typography>
 
                       {/* Requested by (City Manager view) */}
                       {isCityManager && (
-                        <Typography sx={{ fontSize: "0.62rem", color: "text.secondary" }}>
+                        <Typography
+                          sx={{ fontSize: "0.62rem", color: "text.secondary" }}
+                        >
                           Requested by: <strong>{req.requestedBy}</strong>
                         </Typography>
                       )}
 
                       {/* Review note (if any) */}
                       {req.reviewNote && (
-                        <Typography sx={{ fontSize: "0.62rem", color: "text.secondary", fontStyle: "italic" }}>
+                        <Typography
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: "text.secondary",
+                            fontStyle: "italic",
+                          }}
+                        >
                           Note: {req.reviewNote}
                         </Typography>
                       )}
 
                       {/* Approve / Deny actions — City Manager, PENDING only */}
                       {isCityManager && req.status === "PENDING" && (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, mt: 0.5 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.75,
+                            mt: 0.5,
+                          }}
+                        >
                           {reviewingId === req.id ? (
                             /* ── Step 2: note field + confirm ── */
                             <>
@@ -1304,20 +2013,48 @@ export const TrainDashboard = () => {
                                 onChange={(e) => setReviewNote(e.target.value)}
                                 multiline
                                 rows={2}
-                                sx={{ "& .MuiInputBase-input": { fontSize: "0.72rem" } }}
+                                sx={{
+                                  "& .MuiInputBase-input": {
+                                    fontSize: "0.72rem",
+                                  },
+                                }}
                               />
                               <Box sx={{ display: "flex", gap: 0.75 }}>
-                                <Button size="small" variant="contained"
-                                  color={pendingStatus === "APPROVED" ? "primary" : "error"}
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color={
+                                    pendingStatus === "APPROVED"
+                                      ? "primary"
+                                      : "error"
+                                  }
                                   sx={{ flex: 1, fontSize: "0.68rem" }}
                                   disabled={reviewMutation.isPending}
-                                  onClick={() => reviewMutation.mutate({ id: req.id, status: pendingStatus! })}>
-                                  {reviewMutation.isPending ? "Saving…" : `Confirm ${pendingStatus === "APPROVED" ? "Approve" : "Deny"}`}
+                                  onClick={() =>
+                                    reviewMutation.mutate({
+                                      id: req.id,
+                                      status: pendingStatus!,
+                                    })
+                                  }
+                                >
+                                  {reviewMutation.isPending
+                                    ? "Saving…"
+                                    : `Confirm ${pendingStatus === "APPROVED" ? "Approve" : "Deny"}`}
                                 </Button>
-                                <Button size="small" variant="text"
-                                  sx={{ fontSize: "0.68rem", color: "text.secondary" }}
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  sx={{
+                                    fontSize: "0.68rem",
+                                    color: "text.secondary",
+                                  }}
                                   disabled={reviewMutation.isPending}
-                                  onClick={() => { setReviewingId(null); setReviewNote(""); setPendingStatus(null); }}>
+                                  onClick={() => {
+                                    setReviewingId(null);
+                                    setReviewNote("");
+                                    setPendingStatus(null);
+                                  }}
+                                >
                                   Cancel
                                 </Button>
                               </Box>
@@ -1325,14 +2062,28 @@ export const TrainDashboard = () => {
                           ) : (
                             /* ── Step 1: choose action ── */
                             <Box sx={{ display: "flex", gap: 0.75 }}>
-                              <Button size="small" variant="contained" color="primary"
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
                                 sx={{ flex: 1, fontSize: "0.68rem" }}
-                                onClick={() => { setReviewingId(req.id); setPendingStatus("APPROVED"); }}>
+                                onClick={() => {
+                                  setReviewingId(req.id);
+                                  setPendingStatus("APPROVED");
+                                }}
+                              >
                                 Approve
                               </Button>
-                              <Button size="small" variant="outlined" color="error"
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
                                 sx={{ flex: 1, fontSize: "0.68rem" }}
-                                onClick={() => { setReviewingId(req.id); setPendingStatus("DENIED"); }}>
+                                onClick={() => {
+                                  setReviewingId(req.id);
+                                  setPendingStatus("DENIED");
+                                }}
+                              >
                                 Deny
                               </Button>
                             </Box>
@@ -1340,13 +2091,10 @@ export const TrainDashboard = () => {
                         </Box>
                       )}
                     </Box>
-                  ))
-                }
+                  ))}
               </Box>
             )}
-
           </Box>
-
         </Paper>
       )}
     </Box>

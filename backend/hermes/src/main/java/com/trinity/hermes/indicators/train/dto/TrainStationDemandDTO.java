@@ -6,9 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Demand score for a single Dublin train station.
- * Deserialized from snake_case (inference engine) via @JsonAlias;
- * serialized to camelCase (frontend) using default Jackson behaviour.
+ * Demand score for a single Dublin train station. Deserialized from snake_case (inference engine)
+ * via @JsonAlias; serialized to camelCase (frontend) using default Jackson behaviour.
  */
 @Data
 @NoArgsConstructor
@@ -16,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class TrainStationDemandDTO {
   @JsonAlias("stop_id")
   private String stopId;
+
   private String name;
   private double lat;
   private double lon;
@@ -37,10 +37,13 @@ public class TrainStationDemandDTO {
 
   @JsonAlias("norm_ridership")
   private double normRidership;
+
   @JsonAlias("norm_uptake")
   private double normUptake;
+
   @JsonAlias("norm_pressure")
   private double normPressure;
+
   @JsonAlias("norm_footfall")
   private double normFootfall;
 

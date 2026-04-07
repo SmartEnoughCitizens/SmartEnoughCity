@@ -4,11 +4,11 @@ Train station demand scoring pipeline.
 Demand score = weighted sum of four independently-normalised signals:
   40% ridership volume   — annual boardings / max across Dublin stops
   25% local uptake       — daily riders / catchment population (CSO 800 m radius)
-  25% capacity pressure  — daily riders / (trips/day × train-type seat capacity)
-  10% recent footfall    — pedestrian count near stop (last 24 h) / max footfall
+  25% capacity pressure  -- daily riders / (trips/day x train-type seat capacity)
+  10% recent footfall    -- pedestrian count near stop (last 24 h) / max footfall
 
 Fallback for stops with no ridership data:
-  GTFS trip-frequency score × 0.5  (supply-only; always ranks below ridership-backed stops)
+  GTFS trip-frequency score x 0.5  (supply-only; always ranks below ridership-backed stops)
 
 Simulation contract:
   Adding trains to a corridor changes the capacity-pressure signal only.
@@ -39,17 +39,21 @@ DUBLIN_LON_MAX = -5.90
 # S = Suburban / Commuter (IÉ 29000 / 22000 DMU)
 # M = Mainline / Intercity (CAF ICR)
 TRAIN_TYPE_CAPACITY: dict[str, int] = {
-    "D": 350, "S": 300, "M": 450,               # single-char codes (legacy)
-    "DART": 350, "SUBURBAN": 300, "MAINLINE": 450,  # full enum names from DB
+    "D": 350,
+    "S": 300,
+    "M": 450,  # single-char codes (legacy)
+    "DART": 350,
+    "SUBURBAN": 300,
+    "MAINLINE": 450,  # full enum names from DB
     "COMMUTER": 300,
 }
 DEFAULT_CAPACITY = 350
 
 # ── Demand-score weights (must sum to 1.0) ───────────────────────────
 W_RIDERSHIP = 0.40
-W_UPTAKE    = 0.25
-W_PRESSURE  = 0.25
-W_FOOTFALL  = 0.10
+W_UPTAKE = 0.25
+W_PRESSURE = 0.25
+W_FOOTFALL = 0.10
 
 _DUBLIN_PARAMS = {
     "lat_min": DUBLIN_LAT_MIN,
@@ -61,10 +65,12 @@ _DUBLIN_PARAMS = {
 
 # ── Table bootstrap ──────────────────────────────────────────────────
 
+
 def ensure_demand_scores_table() -> None:
     """Create backend.station_demand_scores if it doesn't exist yet."""
     with engine.begin() as conn:
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE IF NOT EXISTS backend.station_demand_scores (
                 stop_id              TEXT PRIMARY KEY,
                 name                 TEXT    NOT NULL,
@@ -84,11 +90,13 @@ def ensure_demand_scores_table() -> None:
                 demand_score         DOUBLE PRECISION NOT NULL DEFAULT 0,
                 computed_at          TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
-        """))
+        """)
+        )
     logger.info("backend.station_demand_scores table ensured.")
 
 
 # ── Data loaders ─────────────────────────────────────────────────────
+
 
 def _load_stops_with_signals() -> pd.DataFrame:
     """
@@ -215,6 +223,7 @@ def _load_live_footfall() -> pd.DataFrame:
 
 # ── Core pipeline ─────────────────────────────────────────────────────
 
+
 def compute_and_save_demand_scores() -> list[dict]:
     """
     Run the full demand-scoring pipeline and persist results to
@@ -236,56 +245,55 @@ def compute_and_save_demand_scores() -> list[dict]:
     """
     ensure_demand_scores_table()
 
-    stops_df    = _load_stops_with_signals()
-    trips_df    = _load_trip_counts()
+    stops_df = _load_stops_with_signals()
+    trips_df = _load_trip_counts()
     footfall_df = _load_live_footfall()
 
-    df = stops_df.merge(trips_df,    on="stop_id", how="left")
+    df = stops_df.merge(trips_df, on="stop_id", how="left")
     df = df.merge(footfall_df, on="stop_id", how="left")
-    df["trip_count"]     = df["trip_count"].fillna(0).astype(int)
+    df["trip_count"] = df["trip_count"].fillna(0).astype(int)
     df["footfall_count"] = df["footfall_count"].fillna(0).astype(int)
 
     df["capacity"] = (
-        df["station_type"]
-        .map(TRAIN_TYPE_CAPACITY)
-        .fillna(DEFAULT_CAPACITY)
-        .astype(int)
+        df["station_type"].map(TRAIN_TYPE_CAPACITY).fillna(DEFAULT_CAPACITY).astype(int)
     )
 
     # ── Raw signals ──────────────────────────────────────────────────
-    df["daily_riders"]   = df["ridership_count"] / 365.0
-    df["raw_ridership"]  = df["ridership_count"].astype(float)
-    df["raw_uptake"]     = df.apply(
+    df["daily_riders"] = df["ridership_count"] / 365.0
+    df["raw_ridership"] = df["ridership_count"].astype(float)
+    df["raw_uptake"] = df.apply(
         lambda r: r["daily_riders"] / r["catchment_population"]
-        if r["catchment_population"] > 0 and r["daily_riders"] > 0 else 0.0,
+        if r["catchment_population"] > 0 and r["daily_riders"] > 0
+        else 0.0,
         axis=1,
     )
-    df["raw_pressure"]   = df.apply(
+    df["raw_pressure"] = df.apply(
         lambda r: r["daily_riders"] / (r["trip_count"] * r["capacity"])
-        if r["daily_riders"] > 0 and r["trip_count"] > 0 else 0.0,
+        if r["daily_riders"] > 0 and r["trip_count"] > 0
+        else 0.0,
         axis=1,
     )
-    df["raw_footfall"]   = df["footfall_count"].astype(float)
+    df["raw_footfall"] = df["footfall_count"].astype(float)
 
     # ── Global maxima (never 0) ──────────────────────────────────────
     max_ridership = float(df["raw_ridership"].max() or 1.0)
-    max_uptake    = float(df["raw_uptake"].max()    or 1.0)
-    max_pressure  = float(df["raw_pressure"].max()  or 1.0)
-    max_footfall  = float(df["raw_footfall"].max()  or 1.0)
-    max_trips     = float(df["trip_count"].max()    or 1.0)
+    max_uptake = float(df["raw_uptake"].max() or 1.0)
+    max_pressure = float(df["raw_pressure"].max() or 1.0)
+    max_footfall = float(df["raw_footfall"].max() or 1.0)
+    max_trips = float(df["trip_count"].max() or 1.0)
 
     # ── Normalised signals (0-1) ─────────────────────────────────────
     df["norm_ridership"] = df["raw_ridership"] / max_ridership
-    df["norm_uptake"]    = df["raw_uptake"]    / max_uptake
-    df["norm_pressure"]  = df["raw_pressure"]  / max_pressure
-    df["norm_footfall"]  = df["raw_footfall"]  / max_footfall
+    df["norm_uptake"] = df["raw_uptake"] / max_uptake
+    df["norm_pressure"] = df["raw_pressure"] / max_pressure
+    df["norm_footfall"] = df["raw_footfall"] / max_footfall
 
     # ── Weighted demand score ────────────────────────────────────────
-    def _score(row: "pd.Series[float]") -> float:
+    def _score(row: pd.Series) -> float:  # type: ignore[type-arg]
         if row["ridership_count"] > 0:
             return (
                 W_RIDERSHIP * row["norm_ridership"]
-                + W_UPTAKE   * row["norm_uptake"]
+                + W_UPTAKE * row["norm_uptake"]
                 + W_PRESSURE * row["norm_pressure"]
                 + W_FOOTFALL * row["norm_footfall"]
             )
@@ -330,22 +338,24 @@ def compute_and_save_demand_scores() -> list[dict]:
     with engine.begin() as conn:
         for _, row in df.iterrows():
             record = {
-                "stop_id":               str(row["stop_id"]),
-                "name":                  str(row["name"]),
-                "lat":                   float(row["lat"]),
-                "lon":                   float(row["lon"]),
-                "trip_count":            int(row["trip_count"]),
-                "ridership_count":       int(row["ridership_count"]),
-                "catchment_population":  int(row["catchment_population"]),
-                "station_type":          str(row["station_type"]) if row["station_type"] else None,
-                "footfall_count":        int(row["footfall_count"]),
-                "norm_ridership":        float(row["norm_ridership"]),
-                "norm_uptake":           float(row["norm_uptake"]),
-                "norm_pressure":         float(row["norm_pressure"]),
-                "norm_footfall":         float(row["norm_footfall"]),
-                "raw_pressure":          float(row["raw_pressure"]),
-                "max_pressure":          max_pressure,
-                "demand_score":          float(row["demand_score"]),
+                "stop_id": str(row["stop_id"]),
+                "name": str(row["name"]),
+                "lat": float(row["lat"]),
+                "lon": float(row["lon"]),
+                "trip_count": int(row["trip_count"]),
+                "ridership_count": int(row["ridership_count"]),
+                "catchment_population": int(row["catchment_population"]),
+                "station_type": str(row["station_type"])
+                if row["station_type"]
+                else None,
+                "footfall_count": int(row["footfall_count"]),
+                "norm_ridership": float(row["norm_ridership"]),
+                "norm_uptake": float(row["norm_uptake"]),
+                "norm_pressure": float(row["norm_pressure"]),
+                "norm_footfall": float(row["norm_footfall"]),
+                "raw_pressure": float(row["raw_pressure"]),
+                "max_pressure": max_pressure,
+                "demand_score": float(row["demand_score"]),
             }
             conn.execute(upsert_sql, record)
             rows.append(record)
@@ -359,10 +369,14 @@ def load_demand_scores_from_db() -> list[dict]:
     try:
         with engine.connect() as conn:
             df = pd.read_sql(
-                text("SELECT * FROM backend.station_demand_scores ORDER BY demand_score DESC"),
+                text(
+                    "SELECT * FROM backend.station_demand_scores ORDER BY demand_score DESC"
+                ),
                 conn,
             )
         return df.to_dict(orient="records")
-    except Exception:
-        logger.warning("Could not read demand scores from DB — table may not exist yet.")
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "Could not read demand scores from DB -- table may not exist yet."
+        )
         return []

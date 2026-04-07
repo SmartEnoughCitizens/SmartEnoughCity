@@ -24,20 +24,18 @@ public class ApprovalController {
   /** Submit a new approval request. Any indicator admin can call this. */
   @PostMapping
   public ResponseEntity<ApprovalRequestDTO> create(
-      @AuthenticationPrincipal Jwt jwt,
-      @RequestBody CreateApprovalRequestDTO dto) {
+      @AuthenticationPrincipal Jwt jwt, @RequestBody CreateApprovalRequestDTO dto) {
     String userId = jwt.getClaimAsString("preferred_username");
     return ResponseEntity.ok(approvalService.create(userId, dto));
   }
 
   /**
-   * List approval requests — filtered by the caller's role automatically.
-   * Optional ?indicator=train query param further narrows results.
+   * List approval requests — filtered by the caller's role automatically. Optional ?indicator=train
+   * query param further narrows results.
    */
   @GetMapping
   public ResponseEntity<List<ApprovalRequestDTO>> list(
-      @AuthenticationPrincipal Jwt jwt,
-      @RequestParam(required = false) String indicator) {
+      @AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) String indicator) {
     String userId = jwt.getClaimAsString("preferred_username");
     List<String> roles = extractRoles(jwt);
     return ResponseEntity.ok(approvalService.list(userId, roles, indicator));
@@ -57,9 +55,9 @@ public class ApprovalController {
   @SuppressWarnings("unchecked")
   private List<String> extractRoles(Jwt jwt) {
     try {
-      java.util.Map<String, Object> realmAccess = (java.util.Map<String, Object>) jwt.getClaims().get("realm_access");
-      if (realmAccess == null)
-        return List.of();
+      java.util.Map<String, Object> realmAccess =
+          (java.util.Map<String, Object>) jwt.getClaims().get("realm_access");
+      if (realmAccess == null) return List.of();
       Object rolesObj = realmAccess.get("roles");
       if (rolesObj instanceof List<?> list) {
         return list.stream().map(Object::toString).toList();

@@ -28,21 +28,30 @@ export interface ReviewApprovalDTO {
 
 export const approvalApi = {
   create: async (dto: CreateApprovalDTO): Promise<ApprovalRequestDTO> => {
-    const { data } = await axiosInstance.post<ApprovalRequestDTO>(API_ENDPOINTS.APPROVALS, dto);
+    const { data } = await axiosInstance.post<ApprovalRequestDTO>(
+      API_ENDPOINTS.APPROVALS,
+      dto,
+    );
     return data;
   },
 
   list: async (indicator?: string): Promise<ApprovalRequestDTO[]> => {
-    const { data } = await axiosInstance.get<ApprovalRequestDTO[]>(API_ENDPOINTS.APPROVALS, {
-      params: indicator ? { indicator } : undefined,
-    });
+    const { data } = await axiosInstance.get<ApprovalRequestDTO[]>(
+      API_ENDPOINTS.APPROVALS,
+      {
+        params: indicator ? { indicator } : undefined,
+      },
+    );
     return data;
   },
 
-  review: async (id: number, dto: ReviewApprovalDTO): Promise<ApprovalRequestDTO> => {
+  review: async (
+    id: number,
+    dto: ReviewApprovalDTO,
+  ): Promise<ApprovalRequestDTO> => {
     const { data } = await axiosInstance.patch<ApprovalRequestDTO>(
       API_ENDPOINTS.APPROVAL_REVIEW(id),
-      dto
+      dto,
     );
     return data;
   },
