@@ -18,5 +18,7 @@ public class NotificationItemDTO {
   private String recipient;
   private boolean read;
   private String timestamp; // ISO-8601 from LocalDateTime.toString()
-  private String qrCodeId; // the text that was QR-encoded (not the binary bytes)
+  private String qrCodeId;
+  private String actionUrl;
+  private String deletedAt; // non-null = in bin
 }

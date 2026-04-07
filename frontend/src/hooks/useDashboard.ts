@@ -2,7 +2,7 @@
  * React Query hooks for dashboard data
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
 export const MISC_KEYS = {
@@ -56,6 +56,8 @@ export const DASHBOARD_KEYS = {
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
   trainFrequentDelays: ["train", "frequent-delays"] as const,
+  trainRoutes: ["train", "routes"] as const,
+  trainDemand: ["train", "demand"] as const,
   tramKpis: ["tram", "kpis"] as const,
   tramLiveForecasts: ["tram", "live-forecasts"] as const,
   tramDelays: ["tram", "delays"] as const,
@@ -413,6 +415,35 @@ export const useCycleStationHourlyUsage = (days = 30, limit = 30) => {
     queryFn: () => dashboardApi.getCycleStationHourlyUsage({ days, limit }),
     staleTime: 300_000,
     refetchInterval: 300_000,
+  });
+};
+
+/**
+ * Get real route corridors for the Dublin rail network
+ */
+export const useTrainRoutes = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainRoutes,
+    queryFn: () => dashboardApi.getTrainRoutes(),
+    staleTime: 24 * 60 * 60 * 1000, // routes are static — cache for 24 h
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+};
+
+/** Trip-frequency demand scores for all Dublin stations (cached 24 h — GTFS is static). */
+export const useTrainDemand = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainDemand,
+    queryFn: () => dashboardApi.getTrainDemand(),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+};
+
+/** Simulate adding a new train service and get updated demand scores. */
+export const useSimulateTrainDemand = () => {
+  return useMutation({
+    mutationFn: dashboardApi.simulateTrainDemand,
   });
 };
 
