@@ -369,9 +369,7 @@ export const BusDashboard = () => {
             <Autocomplete
               size="small"
               options={routes}
-              getOptionLabel={(r) =>
-                `${r.routeShortName} — ${r.routeLongName}`
-              }
+              getOptionLabel={(r) => `${r.routeShortName} — ${r.routeLongName}`}
               filterOptions={(options, { inputValue }) =>
                 options.filter((r) =>
                   r.routeShortName
@@ -422,7 +420,6 @@ export const BusDashboard = () => {
 
           {/* Tab content */}
           <Box sx={{ flex: 1, overflow: "auto", px: 2, pt: 1 }}>
-
             {/* Tab 0: Overview — KPI cards + Service Reliability */}
             {tabValue === 0 && kpis && (
               <>
@@ -586,8 +583,8 @@ export const BusDashboard = () => {
                   display="block"
                   sx={{ mb: 1 }}
                 >
-                  Click a row to show route shape, stops, and suggested
-                  location on the map.
+                  Click a row to show route shape, stops, and suggested location
+                  on the map.
                 </Typography>
                 {selectedRecommendation && (
                   <Box sx={{ mb: 1 }}>
@@ -612,7 +609,6 @@ export const BusDashboard = () => {
                 />
               </>
             )}
-
           </Box>
         </Paper>
       )}
