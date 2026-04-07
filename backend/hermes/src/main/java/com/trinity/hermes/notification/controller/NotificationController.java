@@ -1,6 +1,7 @@
 package com.trinity.hermes.notification.controller;
 
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
+import com.trinity.hermes.notification.dto.BroadcastNotificationRequestDTO;
 import com.trinity.hermes.notification.dto.NotificationResponseDTO;
 import com.trinity.hermes.notification.services.NotificationFacade;
 import com.trinity.hermes.notification.util.SseManager;
@@ -35,6 +36,15 @@ public class NotificationController {
     return ResponseEntity.ok(Map.of("status", "accepted"));
   }
 
+  /** Internal endpoint for broadcasting a notification to all providers of a given indicator. */
+  @PostMapping("/broadcast")
+  public ResponseEntity<?> broadcastByIndicator(
+      @RequestBody BroadcastNotificationRequestDTO request) {
+    log.info("Received broadcast request for indicator={}", request.getDataIndicator());
+    notificationFacade.broadcastByIndicator(request);
+    return ResponseEntity.ok(Map.of("status", "broadcast accepted"));
+  }
+
   /** Endpoint to establish an SSE connection for streaming notifications. */
   @GetMapping("/notifications/stream")
   public SseEmitter stream(@RequestParam String userId) {
@@ -46,16 +56,50 @@ public class NotificationController {
     return ResponseEntity.ok(notificationFacade.getAll(userId));
   }
 
-  /**
-   * Mark a single notification as read. Returns 404 if the notification doesn't belong to the user.
-   */
+  @org.springframework.web.bind.annotation.ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
+    return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+  }
+
+  @PatchMapping("/{userId}/read-all")
+  public ResponseEntity<?> markAllAsRead(@PathVariable String userId) {
+    int updated = notificationFacade.markAllAsRead(userId);
+    return ResponseEntity.ok(Map.of("status", "updated", "count", updated));
+  }
+
   @PatchMapping("/{userId}/{notificationId}/read")
-  public ResponseEntity<?> markNotificationAsRead(
-      @PathVariable String userId, @PathVariable Long notificationId) {
-    boolean updated = notificationFacade.markAsRead(userId, notificationId);
-    if (!updated) {
-      return ResponseEntity.notFound().build();
-    }
+  public ResponseEntity<?> toggleRead(
+      @PathVariable String userId,
+      @PathVariable Long notificationId,
+      @RequestParam(defaultValue = "true") boolean read) {
+    boolean updated =
+        read
+            ? notificationFacade.markAsRead(userId, notificationId)
+            : notificationFacade.markAsUnread(userId, notificationId);
+    if (!updated) return ResponseEntity.notFound().build();
     return ResponseEntity.ok(Map.of("status", "updated"));
+  }
+
+  /** Soft-delete (move to bin). */
+  @DeleteMapping("/{userId}/{notificationId}")
+  public ResponseEntity<?> softDelete(
+      @PathVariable String userId, @PathVariable Long notificationId) {
+    boolean deleted = notificationFacade.softDelete(userId, notificationId);
+    if (!deleted) return ResponseEntity.notFound().build();
+    return ResponseEntity.ok(Map.of("status", "deleted"));
+  }
+
+  /** Restore from bin. */
+  @PatchMapping("/{userId}/{notificationId}/restore")
+  public ResponseEntity<?> restore(@PathVariable String userId, @PathVariable Long notificationId) {
+    boolean restored = notificationFacade.restore(userId, notificationId);
+    if (!restored) return ResponseEntity.notFound().build();
+    return ResponseEntity.ok(Map.of("status", "restored"));
+  }
+
+  /** Get bin (soft-deleted) notifications. */
+  @GetMapping("/{userId}/bin")
+  public ResponseEntity<NotificationResponseDTO> getBin(@PathVariable String userId) {
+    return ResponseEntity.ok(notificationFacade.getBin(userId));
   }
 }

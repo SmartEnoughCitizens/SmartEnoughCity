@@ -93,4 +93,30 @@ public interface TrainStationDataRepository extends JpaRepository<TrainStationDa
           """,
       nativeQuery = true)
   List<TrainDelayProjection> findFrequentlyDelayedTrains();
+
+  /**
+   * One lat/lon per (origin, destination, station_code) — one stop per route. Uses GROUP BY so
+   * there are no DISTINCT ON ordering quirks. Ordered by earliest scheduled time so the polyline
+   * follows the actual travel sequence.
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              sd.origin      AS trainOrigin,
+              sd.destination AS trainDestination,
+              CAST(MIN(COALESCE(sd.sch_depart, sd.sch_arrival)) AS TEXT) AS schDepart,
+              s.lat          AS lat,
+              s.lon          AS lon
+          FROM external_data.irish_rail_station_data sd
+          JOIN external_data.irish_rail_stations s ON s.station_code = sd.station_code
+          WHERE s.lat  IS NOT NULL
+            AND s.lon  IS NOT NULL
+            AND sd.origin      IS NOT NULL
+            AND sd.destination IS NOT NULL
+          GROUP BY sd.origin, sd.destination, sd.station_code, s.lat, s.lon
+          ORDER BY sd.origin, sd.destination, MIN(COALESCE(sd.sch_depart, sd.sch_arrival))
+          """,
+      nativeQuery = true)
+  List<TrainRouteStopProjection> findRouteStopsViaStationData();
 }

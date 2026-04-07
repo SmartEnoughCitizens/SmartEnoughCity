@@ -66,18 +66,18 @@ const LINE_COLORS: Record<string, string> = {
 // ── CSS ──────────────────────────────────────────────────────────────
 
 const INJECTED_CSS = `
-  .leaflet-popup-content-wrapper {
+  .tram-map .leaflet-popup-content-wrapper {
     background: rgba(13,17,23,0.96) !important;
     color: #e6edf3 !important;
     border: 1px solid rgba(255,255,255,0.10) !important;
     border-radius: 12px !important;
     box-shadow: 0 8px 32px rgba(0,0,0,0.55) !important;
   }
-  .leaflet-popup-tip { background: rgba(13,17,23,0.96) !important; }
-  .leaflet-popup-close-button {
+  .tram-map .leaflet-popup-tip { background: rgba(13,17,23,0.96) !important; }
+  .tram-map .leaflet-popup-close-button {
     color: #8b949e !important; top: 8px !important; right: 8px !important;
   }
-  .leaflet-popup-content { margin: 14px 16px !important; }
+  .tram-map .leaflet-popup-content { margin: 14px 16px !important; }
   .tram-pin {
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -449,6 +449,7 @@ const AlternativesSection = ({ stopId }: { stopId: string }) => {
           zoom={12}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
+          className="tram-map"
         >
           <TileLayer attribution={tileAttr} url={tileUrl} />
           <MapController target={flyTarget} />

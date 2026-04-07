@@ -2,9 +2,13 @@ package com.trinity.hermes.indicators.train.facade;
 
 import com.trinity.hermes.indicators.train.dto.TrainDTO;
 import com.trinity.hermes.indicators.train.dto.TrainDelayDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDemandSimulateRequestDTO;
+import com.trinity.hermes.indicators.train.dto.TrainDemandSimulateResponseDTO;
 import com.trinity.hermes.indicators.train.dto.TrainKpiDTO;
 import com.trinity.hermes.indicators.train.dto.TrainLiveDTO;
+import com.trinity.hermes.indicators.train.dto.TrainRouteDTO;
 import com.trinity.hermes.indicators.train.dto.TrainServiceStatsDTO;
+import com.trinity.hermes.indicators.train.dto.TrainStationDemandDTO;
 import com.trinity.hermes.indicators.train.service.TrainDashboardService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -36,5 +40,17 @@ public class TrainFacade {
 
   public List<TrainDelayDTO> getFrequentlyDelayedTrains() {
     return trainDashboardService.getFrequentlyDelayedTrains();
+  }
+
+  public List<TrainRouteDTO> getRoutes() {
+    return trainDashboardService.getRoutes();
+  }
+
+  public List<TrainStationDemandDTO> getDemand() {
+    return trainDashboardService.getDemand();
+  }
+
+  public TrainDemandSimulateResponseDTO simulateDemand(TrainDemandSimulateRequestDTO request) {
+    return trainDashboardService.simulateDemand(request);
   }
 }

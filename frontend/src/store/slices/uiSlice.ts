@@ -10,6 +10,7 @@ interface UIState {
   theme: "light" | "dark";
   selectedRouteId: string | null;
   notificationBadgeCount: number;
+  requestedNavigation: { view: string; tab?: string } | null;
 }
 
 const initialState: UIState = {
@@ -17,6 +18,7 @@ const initialState: UIState = {
   theme: (localStorage.getItem("theme") as "light" | "dark") || "light",
   selectedRouteId: null,
   notificationBadgeCount: 0,
+  requestedNavigation: null,
 };
 
 const uiSlice = createSlice({
@@ -46,6 +48,15 @@ const uiSlice = createSlice({
     incrementNotificationBadge: (state) => {
       state.notificationBadgeCount += 1;
     },
+    requestNavigation: (
+      state,
+      action: PayloadAction<{ view: string; tab?: string }>,
+    ) => {
+      state.requestedNavigation = action.payload;
+    },
+    clearRequestedNavigation: (state) => {
+      state.requestedNavigation = null;
+    },
   },
 });
 
@@ -57,6 +68,8 @@ export const {
   setSelectedRouteId,
   setNotificationBadgeCount,
   incrementNotificationBadge,
+  requestNavigation,
+  clearRequestedNavigation,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

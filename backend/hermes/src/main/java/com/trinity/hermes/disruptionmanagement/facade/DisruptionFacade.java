@@ -36,6 +36,7 @@ public class DisruptionFacade {
 
   private final ThresholdDetectionService thresholdDetectionService;
 
+  @SuppressWarnings("UnusedVariable")
   private final com.trinity.hermes.notification.services.NotificationFacade notificationFacade;
 
   @SuppressFBWarnings(value = "EI2", justification = "Spring-injected service dependency")

@@ -9,7 +9,8 @@ from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
 from data_handler.congestion_and_construction.data_handler import (
-    process_traffic_live_data,
+    fetch_and_store_traffic_data,
+    push_traffic_events_to_hermes,
 )
 from data_handler.cycle.realtime_handler import process_cycle_live_data
 from data_handler.cycle.static_data_handler import process_cycle_station_info
@@ -96,7 +97,13 @@ def main_1_hour() -> None:
     if settings.enable_pedestrian_data:
         _run_handler(logger, "pedestrian_live", process_pedestrian_live_data)
     if settings.enable_construction_data:
-        _run_handler(logger, "traffic_live", process_traffic_live_data)
+
+        def _run_traffic_live() -> None:
+            count, fetched_at = fetch_and_store_traffic_data()
+            if count > 0:
+                push_traffic_events_to_hermes(fetched_at)
+
+        _run_handler(logger, "traffic_live", _run_traffic_live)
 
 
 def main_1_day() -> None:

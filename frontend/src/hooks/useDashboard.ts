@@ -2,7 +2,7 @@
  * React Query hooks for dashboard data
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
 export const MISC_KEYS = {
@@ -38,12 +38,19 @@ export const DASHBOARD_KEYS = {
     ["cycle", "demand", "od-pairs", { days, limit }] as const,
   cycleStationHourlyUsage: (days?: number, limit?: number) =>
     ["cycle", "demand", "station-hourly", { days, limit }] as const,
+  cycleRiskScores: ["cycle", "risk-scores"] as const,
+  cycleCoverageGaps: ["cycle", "coverage-gaps"] as const,
+  cyclePendingProposals: ["cycle", "proposals", "pending"] as const,
+  cycleAcceptedProposals: ["cycle", "proposals", "accepted"] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
   busSystemPerformance: ["bus", "system-performance"] as const,
   busCommonDelays: (filter: string) =>
     ["bus", "common-delays", filter] as const,
+  busNewStopRecommendations: ["bus", "new-stops-recommendations"] as const,
+  busRouteDetail: (routeId: string | null) =>
+    ["bus", "route-detail", routeId] as const,
   busRouteBreakdown: (routeId: string | null, filter: string) =>
     ["bus", "route-breakdown", routeId, filter] as const,
   carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
@@ -53,6 +60,8 @@ export const DASHBOARD_KEYS = {
   trainLiveTrains: ["train", "live-trains"] as const,
   trainServiceStats: ["train", "service-stats"] as const,
   trainFrequentDelays: ["train", "frequent-delays"] as const,
+  trainRoutes: ["train", "routes"] as const,
+  trainDemand: ["train", "demand"] as const,
   tramKpis: ["tram", "kpis"] as const,
   tramLiveForecasts: ["tram", "live-forecasts"] as const,
   tramDelays: ["tram", "delays"] as const,
@@ -207,9 +216,36 @@ export const useCommonDelays = (filter: string) => {
   return useQuery({
     queryKey: DASHBOARD_KEYS.busCommonDelays(filter),
     queryFn: () => dashboardApi.getBusCommonDelays(filter),
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
     refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Top new bus stop recommendations (from MV)
+ */
+export const useBusNewStopRecommendations = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busNewStopRecommendations,
+    queryFn: () => dashboardApi.getBusNewStopRecommendations(),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+    refetchIntervalInBackground: true,
+    retry: 1,
+  });
+};
+
+/**
+ * Bus route shape + stops for a route id (used with new-stop recommendation selection).
+ */
+export const useBusRouteDetail = (routeId: string | null) => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busRouteDetail(routeId),
+    queryFn: () => dashboardApi.getBusRouteDetail(routeId!),
+    enabled: !!routeId,
+    staleTime: 300_000,
+    retry: 1,
   });
 };
 
@@ -386,6 +422,44 @@ export const useCycleStationHourlyUsage = (days = 30, limit = 30) => {
   });
 };
 
+export const useCycleRiskScores = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleRiskScores,
+    queryFn: () => dashboardApi.getCycleRiskScores(),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
+/**
+ * Get real route corridors for the Dublin rail network
+ */
+export const useTrainRoutes = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainRoutes,
+    queryFn: () => dashboardApi.getTrainRoutes(),
+    staleTime: 24 * 60 * 60 * 1000, // routes are static — cache for 24 h
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+};
+
+/** Trip-frequency demand scores for all Dublin stations (cached 24 h — GTFS is static). */
+export const useTrainDemand = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.trainDemand,
+    queryFn: () => dashboardApi.getTrainDemand(),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+};
+
+/** Simulate adding a new train service and get updated demand scores. */
+export const useSimulateTrainDemand = () => {
+  return useMutation({
+    mutationFn: dashboardApi.simulateTrainDemand,
+  });
+};
+
 /**
  * Get frequently delayed trains
  */
@@ -485,5 +559,101 @@ export const useActiveDisruptions = () => {
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get cycle coverage gaps (electoral divisions with low station density)
+ */
+export const useCycleCoverageGaps = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleCoverageGaps,
+    queryFn: () => dashboardApi.getCycleCoverageGaps(),
+    staleTime: 3_600_000, // 1 hour — recomputed nightly
+  });
+};
+
+/**
+ * Mark a coverage gap electoral division as planned for implementation
+ */
+export const useMarkCoverageGapProcessed = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (electoralDivision: string) =>
+      dashboardApi.markCoverageGapProcessed(electoralDivision),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleCoverageGaps,
+      });
+    },
+  });
+};
+
+/**
+ * Submit a proposed station placement for review by city manager / cycle admin
+ */
+export const useSubmitStationProposal = () => {
+  return useMutation({
+    mutationFn: dashboardApi.submitStationProposal,
+  });
+};
+
+/**
+ * Fetch proposals pending review for the current user's role
+ */
+export const usePendingProposals = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cyclePendingProposals,
+    queryFn: () => dashboardApi.getPendingProposals(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useAcceptedProposals = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
+    queryFn: () => dashboardApi.getAcceptedProposals(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useUpdateImplementationStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      dashboardApi.updateImplementationStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
+      });
+    },
+  });
+};
+
+/**
+ * Accept or reject a station proposal
+ */
+export const useReviewProposal = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      action,
+      reason,
+    }: {
+      id: number;
+      action: string;
+      reason: string;
+    }) => dashboardApi.reviewProposal(id, action, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cyclePendingProposals,
+      });
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
+      });
+    },
   });
 };

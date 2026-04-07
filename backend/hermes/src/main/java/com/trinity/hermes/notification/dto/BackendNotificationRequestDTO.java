@@ -20,6 +20,7 @@ public class BackendNotificationRequestDTO {
   private Map<String, Object> metadata;
   private String priority;
   private Channel channel;
+  private String actionUrl;
 
   public Map<String, Object> getMetadata() {
     return metadata == null ? null : Map.copyOf(metadata);

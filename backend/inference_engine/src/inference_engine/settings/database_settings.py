@@ -23,9 +23,9 @@ class DatabaseSettings(BaseSettings):
     host: str = Field(..., alias="DB_HOST")
     port: int = Field(..., alias="DB_PORT")
     name: str = Field(..., alias="DB_NAME")
-    user: str = Field(..., alias="DB_INFERENCE_ENGINE_USER")
-    password: str = Field(..., alias="DB_INFERENCE_ENGINE_PASSWORD")
-    postgres_schema: str = Field(..., alias="DB_INFERENCE_ENGINE_SCHEMA")
+    user: str = Field(..., alias="DB_USER")
+    password: str = Field(..., alias="DB_PASSWORD")
+    postgres_schema: str = Field("backend", alias="DB_INFERENCE_ENGINE_SCHEMA")
 
     @computed_field
     @property
