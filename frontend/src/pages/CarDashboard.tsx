@@ -136,14 +136,20 @@ function PedestrianTab({ theme }: { theme: string }) {
 
       {/* Hamburger when panel closed */}
       {!panelOpen && (
-        <Box sx={{ position: "absolute", top: GAP, right: GAP, zIndex: 1000 }}>
-          <IconButton
-            onClick={() => setPanelOpen(true)}
-            sx={{ bgcolor: (t) => t.palette.background.paper, backdropFilter: "blur(12px)", "&:hover": { bgcolor: (t) => t.palette.background.paper } }}
-          >
-            <MenuOpenIcon />
-          </IconButton>
-        </Box>
+        <IconButton
+          onClick={() => setPanelOpen(true)}
+          sx={{
+            position: "absolute",
+            top: GAP,
+            right: GAP,
+            zIndex: 1000,
+            bgcolor: (t) => t.palette.background.paper,
+            backdropFilter: "blur(12px)",
+            "&:hover": { bgcolor: (t) => t.palette.background.paper },
+          }}
+        >
+          <MenuOpenIcon />
+        </IconButton>
       )}
 
       {/* Analysis panel — matches Car tab style */}

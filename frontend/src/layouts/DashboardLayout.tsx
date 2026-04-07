@@ -20,6 +20,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import ElectricCarIcon from "@mui/icons-material/ElectricCar";
+import EvStationIcon from "@mui/icons-material/EvStation";
 import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
 import TrainIcon from "@mui/icons-material/Train";
 import TramIcon from "@mui/icons-material/Tram";
@@ -197,10 +198,37 @@ export const DashboardLayout = () => {
       label: "Bus Data",
     },
     {
+      /* ── LOGO OPTIONS — pick one ──────────────────────────────────────
+       *
+       * A: Electric car + walk badge (bottom-right)
+       *    <Box sx={{ position:"relative", display:"inline-flex", width:24, height:24 }}>
+       *      <ElectricCarIcon sx={{ fontSize: 20 }} />
+       *      <DirectionsWalkIcon sx={{ position:"absolute", bottom:-3, right:-5, fontSize:12, opacity:0.85 }} />
+       *    </Box>
+       *
+       * B: Three equal icons in a 2-row grid (car+ev top, walk bottom-center)
+       *    <Box sx={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"1px" }}>
+       *      <Box sx={{ display:"flex", gap:"2px" }}>
+       *        <DirectionsCarIcon sx={{ fontSize: 11 }} />
+       *        <EvStationIcon sx={{ fontSize: 11 }} />
+       *      </Box>
+       *      <DirectionsWalkIcon sx={{ fontSize: 11 }} />
+       *    </Box>
+       *
+       * C (active): Layered overlap — car behind, EV bolt top-right, walk bottom-left
+       */
       icon: (
-        <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24 }}>
-          <ElectricCarIcon sx={{ fontSize: 20 }} />
-          <DirectionsWalkIcon sx={{ position: "absolute", bottom: -3, right: -5, fontSize: 12, color: "inherit", opacity: 0.85 }} />
+        <Box sx={{ position: "relative", display: "inline-flex", width: 24, height: 24, alignItems: "center", justifyContent: "center" }}>
+          {/* Car base */}
+          <DirectionsCarIcon sx={{ fontSize: 18, opacity: 0.9 }} />
+          {/* EV bolt — top-right */}
+          <Box sx={{ position: "absolute", top: -2, right: -4, width: 10, height: 10, borderRadius: "50%", bgcolor: "#7C3AED", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <EvStationIcon sx={{ fontSize: 7, color: "#fff" }} />
+          </Box>
+          {/* Walk — bottom-left */}
+          <Box sx={{ position: "absolute", bottom: -2, left: -4, width: 10, height: 10, borderRadius: "50%", bgcolor: "primary.main", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <DirectionsWalkIcon sx={{ fontSize: 7, color: "#fff" }} />
+          </Box>
         </Box>
       ),
       view: "car" as DashboardView,
