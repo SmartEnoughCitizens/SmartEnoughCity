@@ -17,6 +17,7 @@ dependencies = [
     "psycopg2-binary>=2.9.0",
     "psycopg>=3.3.3",
     "sqlalchemy>=2.0.0",
+    "google-generativeai>=0.8.0",
 ]
 
 [build-system]
