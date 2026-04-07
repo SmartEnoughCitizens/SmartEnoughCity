@@ -75,6 +75,18 @@ spec:
               value: {{ .Values.frontendUrl | quote }}
             - name: INFERENCE_ENGINE_BASE_URL
               value: {{ .Values.inferenceEngineUrl | quote }}
+            - name: AWS_REGION
+              value: {{ .Values.aws.region | quote }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.aws.ses.secret.name }}
+                  key: {{ .Values.aws.ses.secret.accessKeyIdKey }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.aws.ses.secret.name }}
+                  key: {{ .Values.aws.ses.secret.secretAccessKeyKey }}
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.livenessProbe }}
