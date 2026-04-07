@@ -482,10 +482,10 @@ public class CycleMetricsServiceTest {
 
       assertEquals(2, result.size());
       assertEquals(8, result.get(0).getHourOfDay());
-      assertEquals(65.0, result.get(0).getAvgUsageRate());
+      assertEquals(65.0, result.get(0).getAvgTurnover());
       assertEquals(100L, result.get(0).getStationCount());
       assertEquals(17, result.get(1).getHourOfDay());
-      assertEquals(82.0, result.get(1).getAvgUsageRate());
+      assertEquals(82.0, result.get(1).getAvgTurnover());
     }
 
     @Test
@@ -634,9 +634,9 @@ public class CycleMetricsServiceTest {
       assertEquals(1, result.get(0).getStationId());
       assertEquals("Station 1", result.get(0).getName());
       assertEquals(8, result.get(0).getHourOfDay());
-      assertEquals(72.5, result.get(0).getAvgUsageRate());
+      assertEquals(72.5, result.get(0).getAvgTurnover());
       assertEquals(9, result.get(1).getHourOfDay());
-      assertEquals(88.0, result.get(1).getAvgUsageRate());
+      assertEquals(88.0, result.get(1).getAvgTurnover());
       assertEquals(2, result.get(2).getStationId());
       assertEquals(17, result.get(2).getHourOfDay());
     }

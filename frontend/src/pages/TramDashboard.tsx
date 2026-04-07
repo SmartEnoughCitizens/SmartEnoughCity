@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import {
   Box,
   Paper,
@@ -22,6 +23,7 @@ import {
   ListItemButton,
   Select,
   MenuItem,
+  Button,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -49,16 +51,14 @@ import { useAppSelector } from "@/store/hooks";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import type {
-  TramLiveForecast,
-  TramStopUsage,
-  TramRecommendationItem,
-} from "@/types";
+import { dashboardApi } from "@/api";
+import type { TramAlternativeRoute, TramLiveForecast, TramStopUsage } from "@/types";
 
 // ── Constants ────────────────────────────────────────────────────
 
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 type LineFilter = "" | "red" | "green";
+type PanelTab = "live" | "delays" | "hourly" | "disruptions";
 
 const LINE_COLORS: Record<string, string> = {
   red: "#DC2626",
@@ -107,19 +107,34 @@ const TIME_PERIODS = [
 // ── CSS ──────────────────────────────────────────────────────────
 
 const INJECTED_CSS = `
-  .leaflet-popup-content-wrapper { background:rgba(13,17,23,0.96)!important;color:#e6edf3!important;border:1px solid rgba(255,255,255,0.10)!important;border-radius:12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.55)!important; }
-  .leaflet-popup-tip { background:rgba(13,17,23,0.96)!important; }
-  .leaflet-popup-close-button { color:#8b949e!important;top:8px!important;right:8px!important; }
-  .leaflet-popup-content { margin:14px 16px!important; }
-  .tram-pin { border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.50),0 0 0 2px rgba(255,255,255,0.20);transition:transform 0.15s ease;cursor:pointer; }
-  .tram-pin:hover { transform:scale(1.25); }
+  .tram-map .leaflet-popup-content-wrapper {
+    background: rgba(13,17,23,0.96) !important;
+    color: #e6edf3 !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55) !important;
+  }
+  .tram-map .leaflet-popup-tip { background: rgba(13,17,23,0.96) !important; }
+  .tram-map .leaflet-popup-close-button {
+    color: #8b949e !important; top: 8px !important; right: 8px !important;
+  }
+  .tram-map .leaflet-popup-content { margin: 14px 16px !important; }
+  .tram-pin {
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 800; color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.50), 0 0 0 2px rgba(255,255,255,0.20);
+    transition: transform 0.15s ease; cursor: pointer;
+  }
+  .tram-pin:hover { transform: scale(1.25); }
 `;
 
 // ── Icons ────────────────────────────────────────────────────────
 
-function makeStopIcon(line: string): L.DivIcon {
-  const c = LINE_COLORS[line] ?? "#607D8B";
-  const l = line === "red" ? "R" : line === "green" ? "G" : "T";
+function makeStopIcon(line: string, disrupted = false): L.DivIcon {
+  const color = disrupted ? "#f97316" : (LINE_COLORS[line] ?? "#607D8B");
+  const letter = line === "red" ? "R" : line === "green" ? "G" : "T";
   return L.divIcon({
     html: `<div class="tram-pin" style="width:22px;height:22px;background:${c};font-size:9px;">${l}</div>`,
     className: "",
@@ -283,6 +298,82 @@ function KpiStrip({
 }
 
 // ── Main Component ───────────────────────────────────────────────
+const DISRUPTION_KEYWORDS = [
+  "not in service",
+  "disruption",
+  "suspended",
+  "suspension",
+  "delay",
+  "fault",
+  "no service",
+  "terminated",
+  "partial",
+];
+
+const isDisrupted = (forecasts: TramLiveForecast[]) =>
+  forecasts.some((f) =>
+    DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw)),
+  );
+
+const iconFor = (type: string) =>
+  type === "bus" ? "🚌" : type === "rail" ? "🚂" : "🚲";
+
+const AlternativesSection = ({ stopId }: { stopId: string }) => {
+  const [alternatives, setAlternatives] = useState<
+    TramAlternativeRoute[] | null
+  >(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const data = await dashboardApi.getTramAlternativeRoutes(stopId);
+    setAlternatives(data);
+    setLoading(false);
+  };
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      {!alternatives && (
+        <Button
+          size="small"
+          variant="outlined"
+          color="warning"
+          onClick={load}
+          disabled={loading}
+          sx={{ fontSize: "0.65rem", py: 0.25 }}
+        >
+          {loading ? <CircularProgress size={10} /> : "⚠ Show alternatives"}
+        </Button>
+      )}
+      {alternatives?.length === 0 && (
+        <Typography sx={{ fontSize: "0.68rem", color: "#8b949e" }}>
+          No alternatives nearby
+        </Typography>
+      )}
+      {alternatives && alternatives.length > 0 && (
+        <>
+          <Typography
+            sx={{
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              color: "#e6edf3",
+              mb: 0.5,
+            }}
+          >
+            Nearby alternatives:
+          </Typography>
+          {alternatives.slice(0, 5).map((a, i) => (
+            <Typography key={i} sx={{ fontSize: "0.68rem", color: "#c9d1d9" }}>
+              {iconFor(a.transportType)} {a.stopName}
+              <span style={{ color: "#8b949e" }}> — {a.distanceM}m</span>
+            </Typography>
+          ))}
+        </>
+      )}
+    </Box>
+  );
+};
+// ── Main Component ───────────────────────────────────────────────────
 
 export const TramDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -293,6 +384,9 @@ export const TramDashboard = () => {
     center: [number, number];
     id: number;
   } | null>(null);
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState("morning");
 
@@ -467,16 +561,25 @@ export const TramDashboard = () => {
   }
 
   return (
-    <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
-      {/* Full-viewport map */}
-      <MapContainer
-        center={DUBLIN_CENTER}
-        zoom={12}
-        style={{ height: "100%", width: "100%" }}
-        zoomControl={false}
-      >
-        <TileLayer attribution={tileAttr} url={tileUrl} />
-        <MapController target={flyTarget} />
+    <Box
+      sx={{
+        position: "relative",
+        height: "100%",
+        width: "100%",
+        bgcolor: "#0d1117",
+      }}
+    >
+      {/* ── Full-viewport map ── */}
+      <Box sx={{ height: "100%", width: "100%" }}>
+        <MapContainer
+          center={DUBLIN_CENTER}
+          zoom={12}
+          style={{ height: "100%", width: "100%" }}
+          zoomControl={false}
+          className="tram-map"
+        >
+          <TileLayer attribution={tileAttr} url={tileUrl} />
+          <MapController target={flyTarget} />
 
         {/* Live → standard markers */}
         {activeTab === "live" &&
@@ -484,7 +587,7 @@ export const TramDashboard = () => {
             <Marker
               key={stop.name}
               position={[stop.lat, stop.lon]}
-              icon={makeStopIcon(stop.line)}
+              icon={makeStopIcon(stop.line, isDisrupted(stop.forecasts))}
               eventHandlers={{
                 click: () =>
                   handleStopClick(
@@ -524,6 +627,18 @@ export const TramDashboard = () => {
                       <span style={{ color: "#8b949e" }}>({f.direction})</span>
                     </Typography>
                   ))}
+                  {stop.forecasts[0]?.message && (
+                    <Typography
+                      sx={{ fontSize: "0.68rem", color: "#8b949e", mt: 0.4 }}
+                    >
+                      {stop.forecasts[0].message}
+                    </Typography>
+                  )}
+                  {isDisrupted(stop.forecasts) && (
+                    <AlternativesSection
+                      stopId={stop.forecasts[0]?.stopId ?? ""}
+                    />
+                  )}
                 </Box>
               </Popup>
             </Marker>
@@ -845,10 +960,19 @@ export const TramDashboard = () => {
               alignItems: "center",
             }}
           >
-            {(["", "red", "green"] as LineFilter[]).map((key) => {
-              const active = lineFilter === key;
-              const label =
-                key === "" ? "All" : key === "red" ? "Red" : "Green";
+            {(
+              [
+                { key: "live", label: "Live", count: filteredForecasts.length },
+                {
+                  key: "delays",
+                  label: "Delays",
+                  count: filteredDelays.length,
+                },
+                { key: "hourly", label: "Hourly", count: null },
+                { key: "disruptions", label: "Disruptions", count: null },
+              ] as { key: PanelTab; label: string; count: number | null }[]
+            ).map(({ key, label, count }) => {
+              const active = activeTab === key;
               return (
                 <Chip
                   key={key || "all"}

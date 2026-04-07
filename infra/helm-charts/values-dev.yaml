@@ -125,13 +125,22 @@ postgres:
   primary:
     podAnnotations:
       sidecar.istio.io/inject: "false"
+  podAnnotations:
+    sidecar.istio.io/inject: "false"
   resources:
     requests:
       cpu: "250m"
       memory: "512Mi"
     limits:
-      cpu: "1000m"
-      memory: "4Gi"
+      cpu: "4"
+      memory: "16Gi"
+  settings:
+    config:
+      shared_buffers: "1GB"
+      work_mem: "16MB"
+      maintenance_work_mem: "256MB"
+      effective_cache_size: "3GB"
+      max_parallel_workers_per_gather: "4"
 
 # Exclude PostgreSQL init job from Istio - Jobs can't complete with sidecars
 postgresqlInit:

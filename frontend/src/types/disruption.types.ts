@@ -4,7 +4,26 @@ export type DisruptionType =
   | "CONGESTION"
   | "CONSTRUCTION"
   | "EVENT"
-  | "ACCIDENT";
+  | "ACCIDENT"
+  | "TRAM_DISRUPTION";
+
+export interface DisruptionCause {
+  id: number;
+  causeType: "EVENT" | "CONGESTION" | "CROSS_MODE";
+  causeDescription: string;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+}
+
+export interface DisruptionAlternative {
+  id: number;
+  mode: string;
+  description: string;
+  etaMinutes: number | null;
+  stopName: string | null;
+  availabilityCount: number | null;
+  lat: number | null;
+  lon: number | null;
+}
 
 export type DisruptionSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -39,6 +58,8 @@ export interface DisruptionItem {
   notificationSent: boolean | null;
   createdAt: string | null;
   updatedAt: string | null;
+  causes?: DisruptionCause[];
+  alternatives?: DisruptionAlternative[];
 }
 
 /** Alias kept for compatibility with main-branch imports */

@@ -1,7 +1,7 @@
 package com.trinity.hermes.notification.util;
 
 public class Constants {
-  public static final String DUMMY_ENDPOINT = "https://example.com";
+  public static final String DUMMY_ENDPOINT = "https://example.com/public/disruption";
   public static final String QR_ID = "qrid";
   public static final String EMPTY_STRING = "";
   public static final Integer BASE_HEIGHT = 250;

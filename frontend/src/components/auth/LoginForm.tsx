@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import { isAxiosError } from "axios";
 import { motion, useReducedMotion } from "framer-motion";
 import { useLogin } from "@/hooks";
 import { useAppDispatch } from "@/store/hooks";
@@ -57,6 +58,7 @@ export const LoginForm = () => {
         }),
       );
 
+      localStorage.removeItem("activeDashboardView");
       navigate(getLandingPage(roles));
     } catch {
       // Error is handled by mutation
@@ -93,8 +95,9 @@ export const LoginForm = () => {
 
         {loginMutation.isError && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {loginMutation.error instanceof Error
-              ? loginMutation.error.message
+            {isAxiosError<{ error?: string }>(loginMutation.error)
+              ? (loginMutation.error.response?.data?.error ??
+                "Invalid username or password")
               : "Invalid username or password"}
           </Alert>
         )}

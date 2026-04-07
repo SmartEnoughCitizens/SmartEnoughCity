@@ -1,9 +1,12 @@
 package com.trinity.hermes.indicators.bus.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusNewStopRecommendationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteDetailDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.facade.BusFacade;
@@ -49,14 +52,34 @@ public class BusController {
   @GetMapping("/common-delays")
   public ResponseEntity<List<BusCommonDelayDTO>> getCommonDelays(
       @RequestParam(defaultValue = "today") String filter) {
-    log.info("GET /api/v1/bus/common-delays?filter={}", filter);
+    log.info("GET /api/v1/bus/common-delays?filter={}", LogSanitizer.sanitizeLog(filter));
     return ResponseEntity.ok(busFacade.getCommonDelays(filter));
   }
 
   @GetMapping("/common-delays/{routeId}")
   public ResponseEntity<List<BusRouteBreakdownDTO>> getRouteBreakdown(
       @PathVariable String routeId, @RequestParam(defaultValue = "today") String filter) {
-    log.info("GET /api/v1/bus/common-delays/{}?filter={}", routeId, filter);
+    log.info(
+        "GET /api/v1/bus/common-delays/{}?filter={}",
+        LogSanitizer.sanitizeLog(routeId),
+        LogSanitizer.sanitizeLog(filter));
     return ResponseEntity.ok(busFacade.getRouteBreakdown(routeId, filter));
+  }
+
+  @GetMapping("/new-stops-recommendations")
+  public ResponseEntity<List<BusNewStopRecommendationDTO>> getNewStopRecommendations() {
+    log.info("GET /api/v1/bus/new-stops-recommendations");
+    return ResponseEntity.ok(busFacade.getNewStopRecommendations());
+  }
+
+  /**
+   * Route metadata, shape polyline, and scheduled stops from the first trip on this route (smallest
+   * trip id): {@code shape_id} / {@code bus_trip_shapes} and {@code bus_stop_times} + {@code
+   * bus_stops}.
+   */
+  @GetMapping("/routes/{routeId}")
+  public ResponseEntity<BusRouteDetailDTO> getRouteDetail(@PathVariable String routeId) {
+    log.info("GET /api/v1/bus/routes/{}", routeId);
+    return ResponseEntity.ok(busFacade.getRouteDetail(routeId));
   }
 }

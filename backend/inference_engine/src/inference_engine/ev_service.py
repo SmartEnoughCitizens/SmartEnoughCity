@@ -4,16 +4,16 @@ import unicodedata
 from collections.abc import Generator
 from contextlib import contextmanager
 
-import psycopg2
+import psycopg
 
 from inference_engine.settings.api_settings import get_db_settings
 
 
 @contextmanager
-def _get_db() -> Generator[psycopg2.extensions.connection, None, None]:
+def _get_db() -> Generator[psycopg.Connection, None, None]:
     """Yield a database connection and ensure it is closed on exit."""
     s = get_db_settings()
-    conn = psycopg2.connect(
+    conn = psycopg.connect(
         host=s.db_host,
         port=s.db_port,
         dbname=s.db_name,

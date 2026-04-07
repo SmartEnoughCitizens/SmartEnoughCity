@@ -83,13 +83,7 @@ export interface NetworkSummaryDTO {
 export interface StationRankingDTO {
   stationId: number;
   name: string;
-  regionId: string;
-  capacity: number;
   avgUsageRate: number;
-  avgAvailableBikes: number;
-  avgAvailableDocks: number;
-  emptyEventCount: number;
-  fullEventCount: number;
 }
 
 export interface StationEventDTO {
@@ -105,7 +99,7 @@ export interface StationEventDTO {
 
 export interface HourlyNetworkProfileDTO {
   hourOfDay: number; // 0–23 in Europe/Dublin local time
-  avgUsageRate: number; // network avg of (capacity - available_docks)/capacity * 100
+  avgTurnover: number; // total natural bike movements (ABS delta 1–5) across all stations
   stationCount: number;
 }
 
@@ -119,7 +113,7 @@ export interface StationClassificationDTO {
   stationId: number;
   name: string;
   peakHour: number; // 0–23
-  peakUsage: number; // 0–100 percentage
+  peakUsage: number; // total bike movements at peak hour
   classification: StationClassification;
 }
 
@@ -137,12 +131,67 @@ export interface StationODPairDTO {
   distanceKm: number;
 }
 
-/** Per-station, per-hour average usage rate — one row per (station, hour) pair. */
+/** Per-station, per-hour natural bike turnover — one row per (station, hour) pair. */
 export interface StationHourlyUsageDTO {
   stationId: number;
   name: string;
   hourOfDay: number; // 0–23 Europe/Dublin local time
-  avgUsageRate: number; // 0–100 percentage
+  avgTurnover: number; // total natural bike movements (ABS delta 1–5) for that hour
+}
+
+/** ML availability risk score for a station — computed every 5 min by inference engine. */
+export interface StationRiskScoreDTO {
+  stationId: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+  /** Probability 0–1 the station will be empty within 2 hours. */
+  emptyRisk2h: number;
+  /** Probability 0–1 the station will be full within 2 hours. */
+  fullRisk2h: number;
+  scoredAt: string;
+  modelTrainedAt: string;
+}
+
+export type CoverageCategory =
+  | "NO_COVERAGE"
+  | "POOR_COVERAGE"
+  | "PARTIAL_COVERAGE"
+  | "ADEQUATE";
+
+export interface CoverageGapDTO {
+  electoralDivision: string;
+  flatApartmentCount: number;
+  houseBungalowCount: number;
+  totalDwellings: number;
+  centroidLat: number;
+  centroidLon: number;
+  minDistanceM: number | null;
+  coverageCategory: CoverageCategory;
+  priorityScore: number;
+  computedAt: string;
+  processedForImplementation: boolean;
+  processedAt: string | null;
+  geomGeoJson: string | null;
+}
+
+/** A submitted station proposal awaiting review. */
+export interface StationProposalSummary {
+  id: number;
+  submittedAt: string;
+  submittedBy: string;
+  submittedByRole: string;
+  stationCount: number;
+  improvedAreaCount: number;
+  status: string;
+  notes: string | null;
+  /** JSON string: [{"lat":53.1,"lon":-6.2},...] */
+  stationsJson: string;
+  /** JSON string: [{"area":"...","from":"...","to":"...","distM":123.4},...] */
+  impactsJson: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  implementationStatus: "PLANNED" | "IN_PROGRESS" | "COMPLETED";
 }
 
 /** Rebalancing suggestion: move bikes FROM full source station TO empty target station */

@@ -10,6 +10,7 @@ import com.trinity.hermes.indicators.train.dto.TrainLiveDTO;
 import com.trinity.hermes.indicators.train.dto.TrainServiceStatsDTO;
 import com.trinity.hermes.indicators.train.entity.TrainCurrentTrain;
 import com.trinity.hermes.indicators.train.entity.TrainStation;
+import com.trinity.hermes.indicators.train.repository.GtfsStopRepository;
 import com.trinity.hermes.indicators.train.repository.TrainCurrentTrainRepository;
 import com.trinity.hermes.indicators.train.repository.TrainDelayProjection;
 import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.client.RestTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class TrainDashboardServiceTest {
@@ -30,6 +32,14 @@ class TrainDashboardServiceTest {
   @Mock private TrainStationRepository trainStationRepository;
   @Mock private TrainCurrentTrainRepository trainCurrentTrainRepository;
   @Mock private TrainStationDataRepository trainStationDataRepository;
+
+  @Mock
+  @SuppressWarnings("unused")
+  private GtfsStopRepository gtfsStopRepository;
+
+  @Mock
+  @SuppressWarnings("unused")
+  private RestTemplate restTemplate;
 
   @InjectMocks private TrainDashboardService trainDashboardService;
 
