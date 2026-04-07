@@ -349,5 +349,3 @@ class TramLuasForecast(Base):
 
     # Relationships
     stop: Mapped["TramLuasStop"] = relationship(back_populates="forecasts")
-
-
