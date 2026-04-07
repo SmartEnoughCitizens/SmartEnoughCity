@@ -1,14 +1,16 @@
 package com.trinity.hermes.config;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import java.sql.Connection;
+import java.sql.Statement;
+import javax.sql.DataSource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class TrafficAggregatedViewInitializer {
 
@@ -45,14 +47,15 @@ public class TrafficAggregatedViewInitializer {
           END
       """;
 
-  @PersistenceContext private EntityManager entityManager;
+  private final DataSource dataSource;
 
   @EventListener(ApplicationReadyEvent.class)
-  @Transactional
   public void createTrafficAggregatedView() {
     log.info("Creating backend.traffic_aggregated view...");
-    try {
-      entityManager.createNativeQuery(CREATE_VIEW_SQL).executeUpdate();
+    try (Connection conn = dataSource.getConnection();
+        Statement stmt = conn.createStatement()) {
+      conn.setAutoCommit(true);
+      stmt.execute(CREATE_VIEW_SQL);
       log.info("backend.traffic_aggregated view ready.");
     } catch (Exception e) {
       log.warn(
