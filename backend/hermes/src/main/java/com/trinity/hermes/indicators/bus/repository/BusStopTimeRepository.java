@@ -12,6 +12,8 @@ public interface BusStopTimeRepository extends JpaRepository<BusStopTime, Intege
 
   List<BusStopTime> findByTripId(String tripId);
 
+  List<BusStopTime> findByTripIdOrderBySequenceAsc(String tripId);
+
   List<BusStopTime> findByStopId(String stopId);
 
   @Query(

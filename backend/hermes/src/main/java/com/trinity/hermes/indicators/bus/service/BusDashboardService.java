@@ -5,6 +5,9 @@ import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
 import com.trinity.hermes.indicators.bus.dto.BusNewStopRecommendationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteDetailDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteShapePointDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteStopDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusStopSummaryDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
@@ -12,7 +15,10 @@ import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
 import com.trinity.hermes.indicators.bus.entity.BusRoute;
 import com.trinity.hermes.indicators.bus.entity.BusRouteMetrics;
+import com.trinity.hermes.indicators.bus.entity.BusStop;
+import com.trinity.hermes.indicators.bus.entity.BusStopTime;
 import com.trinity.hermes.indicators.bus.entity.BusTrip;
+import com.trinity.hermes.indicators.bus.entity.BusTripShape;
 import com.trinity.hermes.indicators.bus.repository.*;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +27,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +44,9 @@ public class BusDashboardService {
   private final BusRouteMetricsRepository busRouteMetricsRepository;
   private final BusRidershipRepository busRidershipRepository;
   private final BusTripRepository busTripRepository;
+  private final BusTripShapeRepository busTripShapeRepository;
+  private final BusStopTimeRepository busStopTimeRepository;
+  private final BusStopRepository busStopRepository;
   private final BusRouteRepository busRouteRepository;
   private final BusCommonDelayMvRepository busCommonDelayMvRepository;
   private final BusNewStopRecommendationsRepository busNewStopRecommendationsRepository;
@@ -129,6 +140,74 @@ public class BusDashboardService {
                     .avgDelayMinutes(mv.getAvgDelayMinutes())
                     .build())
         .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public BusRouteDetailDTO getRouteDetail(String routeId) {
+    log.info("Fetching bus route detail with shape, routeId={}", routeId);
+    BusRoute route =
+        busRouteRepository
+            .findById(routeId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Route not found: " + routeId));
+    BusTrip trip =
+        busTripRepository
+            .findFirstByRouteIdOrderByIdAsc(routeId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "No trips found for route: " + routeId));
+
+    List<BusRouteShapePointDTO> shapePoints =
+        busTripShapeRepository.findByShapeIdOrderByPtSequenceAsc(trip.getShapeId()).stream()
+            .map(this::mapShapePoint)
+            .collect(Collectors.toList());
+
+    List<BusStopTime> stopTimes =
+        busStopTimeRepository.findByTripIdOrderBySequenceAsc(trip.getId());
+    Set<String> stopIds =
+        stopTimes.stream().map(BusStopTime::getStopId).collect(Collectors.toSet());
+    Map<String, BusStop> stopsById =
+        busStopRepository.findAllById(stopIds).stream()
+            .collect(Collectors.toMap(BusStop::getId, Function.identity()));
+    List<BusRouteStopDTO> stops =
+        stopTimes.stream()
+            .map(st -> mapRouteStop(st, stopsById.get(st.getStopId())))
+            .collect(Collectors.toList());
+
+    return BusRouteDetailDTO.builder()
+        .routeId(route.getId())
+        .agencyId(route.getAgencyId())
+        .shortName(route.getShortName())
+        .longName(route.getLongName())
+        .representativeTripId(trip.getId())
+        .shapeId(trip.getShapeId())
+        .shape(shapePoints)
+        .stops(stops)
+        .build();
+  }
+
+  private static BusRouteStopDTO mapRouteStop(BusStopTime st, BusStop stop) {
+    BusRouteStopDTO.BusRouteStopDTOBuilder b =
+        BusRouteStopDTO.builder()
+            .sequence(st.getSequence())
+            .stopId(st.getStopId())
+            .headsign(st.getHeadsign());
+    if (stop != null) {
+      b.code(stop.getCode()).name(stop.getName()).lat(stop.getLat()).lon(stop.getLon());
+    }
+    return b.build();
+  }
+
+  private BusRouteShapePointDTO mapShapePoint(BusTripShape s) {
+    return BusRouteShapePointDTO.builder()
+        .sequence(s.getPtSequence())
+        .lat(s.getPtLat())
+        .lon(s.getPtLon())
+        .distTraveled(s.getDistTraveled())
+        .build();
   }
 
   @Transactional(readOnly = true)
