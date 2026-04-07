@@ -48,31 +48,35 @@ public class CycleMetricsService {
 
   @PostConstruct
   public void initProposalsTable() {
-    jdbcTemplate.execute(
-        "CREATE TABLE IF NOT EXISTS backend.cycle_station_proposals ("
-            + "id                  BIGSERIAL PRIMARY KEY, "
-            + "submitted_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(), "
-            + "submitted_by        VARCHAR(100), "
-            + "submitted_by_role   VARCHAR(50), "
-            + "station_count       INTEGER NOT NULL, "
-            + "improved_area_count INTEGER NOT NULL, "
-            + "stations_json       TEXT NOT NULL, "
-            + "impacts_json        TEXT NOT NULL, "
-            + "notes               TEXT, "
-            + "status              VARCHAR(30) NOT NULL DEFAULT 'PENDING'"
-            + ")");
-    jdbcTemplate.execute(
-        "ALTER TABLE backend.cycle_station_proposals "
-            + "ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ");
-    jdbcTemplate.execute(
-        "ALTER TABLE backend.cycle_station_proposals "
-            + "ADD COLUMN IF NOT EXISTS reviewed_by VARCHAR(100)");
-    jdbcTemplate.execute(
-        "ALTER TABLE backend.cycle_station_proposals "
-            + "ADD COLUMN IF NOT EXISTS review_reason TEXT");
-    jdbcTemplate.execute(
-        "ALTER TABLE backend.cycle_station_proposals "
-            + "ADD COLUMN IF NOT EXISTS implementation_status VARCHAR(30) NOT NULL DEFAULT 'PLANNED'");
+    try {
+      jdbcTemplate.execute(
+          "CREATE TABLE IF NOT EXISTS backend.cycle_station_proposals ("
+              + "id                  BIGSERIAL PRIMARY KEY, "
+              + "submitted_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(), "
+              + "submitted_by        VARCHAR(100), "
+              + "submitted_by_role   VARCHAR(50), "
+              + "station_count       INTEGER NOT NULL, "
+              + "improved_area_count INTEGER NOT NULL, "
+              + "stations_json       TEXT NOT NULL, "
+              + "impacts_json        TEXT NOT NULL, "
+              + "notes               TEXT, "
+              + "status              VARCHAR(30) NOT NULL DEFAULT 'PENDING'"
+              + ")");
+      jdbcTemplate.execute(
+          "ALTER TABLE backend.cycle_station_proposals "
+              + "ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ");
+      jdbcTemplate.execute(
+          "ALTER TABLE backend.cycle_station_proposals "
+              + "ADD COLUMN IF NOT EXISTS reviewed_by VARCHAR(100)");
+      jdbcTemplate.execute(
+          "ALTER TABLE backend.cycle_station_proposals "
+              + "ADD COLUMN IF NOT EXISTS review_reason TEXT");
+      jdbcTemplate.execute(
+          "ALTER TABLE backend.cycle_station_proposals "
+              + "ADD COLUMN IF NOT EXISTS implementation_status VARCHAR(30) NOT NULL DEFAULT 'PLANNED'");
+    } catch (Exception e) {
+      log.warn("initProposalsTable skipped — insufficient privileges or table already managed externally: {}", e.getMessage());
+    }
   }
 
   // -------------------------------------------------------------------------
