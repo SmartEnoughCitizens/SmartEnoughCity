@@ -101,7 +101,7 @@ public class SecurityConfig {
                     .hasAnyRole("City_Manager", "Tram_Admin", "Tram_Provider")
                     .requestMatchers("/api/v1/ev/**")
                     .authenticated()
-                    .requestMatchers("/api/v1/events/**", "/api/v1/pedestrians/**")
+                    .requestMatchers("/api/v1/pedestrians/**")
                     .authenticated()
                     .requestMatchers("/error")
                     .permitAll()

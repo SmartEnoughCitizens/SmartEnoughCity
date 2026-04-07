@@ -19,7 +19,8 @@ import {
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
-import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import ElectricCarIcon from "@mui/icons-material/ElectricCar";
+import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
 import TrainIcon from "@mui/icons-material/Train";
 import TramIcon from "@mui/icons-material/Tram";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -30,7 +31,6 @@ import LockIcon from "@mui/icons-material/Lock";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
-import EventNoteIcon from "@mui/icons-material/EventNote";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
@@ -53,7 +53,6 @@ import { CycleDashboard } from "@/pages/CycleDashboard";
 import { CarDashboard } from "@/pages/CarDashboard";
 import { TrainDashboard } from "@/pages/TrainDashboard";
 import { TramDashboard } from "@/pages/TramDashboard";
-import { MiscDashboard } from "@/pages/MiscDashboard";
 import { NotificationsPage } from "@/pages/NotificationsPage";
 import { UserManagementPage } from "@/pages/UserManagementPage";
 import { DisruptionDashboard } from "@/pages/DisruptionDashboard";
@@ -67,7 +66,6 @@ export type DashboardView =
   | "car"
   | "train"
   | "tram"
-  | "misc"
   | "disruptions"
   | "notifications"
   | "users";
@@ -91,7 +89,6 @@ export const DashboardLayout = () => {
     car: TRANSPORT_ACCESS.car.some((r) => roles.includes(r)),
     train: TRANSPORT_ACCESS.train.some((r) => roles.includes(r)),
     tram: TRANSPORT_ACCESS.tram.some((r) => roles.includes(r)),
-    misc: true,
     disruptions: true,
     notifications: true,
     users: canManageUsers,
@@ -180,19 +177,9 @@ export const DashboardLayout = () => {
       label: "Overview",
     },
     {
-      icon: <DirectionsBusIcon />,
-      view: "bus" as DashboardView,
-      label: "Bus Data",
-    },
-    {
       icon: <DirectionsBikeIcon />,
       view: "cycle" as DashboardView,
       label: "Cycles",
-    },
-    {
-      icon: <DirectionsCarIcon />,
-      view: "car" as DashboardView,
-      label: "Car",
     },
     {
       icon: <TrainIcon />,
@@ -205,9 +192,19 @@ export const DashboardLayout = () => {
       label: "Trams",
     },
     {
-      icon: <EventNoteIcon />,
-      view: "misc" as DashboardView,
-      label: "Events & Pedestrians",
+      icon: <DirectionsBusIcon />,
+      view: "bus" as DashboardView,
+      label: "Bus Data",
+    },
+    {
+      icon: (
+        <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24 }}>
+          <ElectricCarIcon sx={{ fontSize: 20 }} />
+          <DirectionsWalkIcon sx={{ position: "absolute", bottom: -3, right: -5, fontSize: 12, color: "inherit", opacity: 0.85 }} />
+        </Box>
+      ),
+      view: "car" as DashboardView,
+      label: "Car · EV · Pedestrian",
     },
     {
       icon: <ReportProblemIcon />,
@@ -552,21 +549,6 @@ export const DashboardLayout = () => {
           )}
 
           {/* Bus Dashboard */}
-          {canSeeView.bus && (
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                zIndex: activeView === "bus" ? 2 : 1,
-                visibility: activeView === "bus" ? "visible" : "hidden",
-                opacity: activeView === "bus" ? 1 : 0,
-                pointerEvents: activeView === "bus" ? "auto" : "none",
-                transition: "opacity 0.15s ease-in-out",
-              }}
-            >
-              <BusDashboard />
-            </Box>
-          )}
           {/* Bus Dashboard */}
           {canSeeView.bus && (
             <Box sx={panelSx("bus")}>
@@ -601,11 +583,6 @@ export const DashboardLayout = () => {
               <TramDashboard />
             </Box>
           )}
-
-          {/* Misc Dashboard (Events & Pedestrians) — all authenticated users */}
-          <Box sx={panelSx("misc")}>
-            <MiscDashboard />
-          </Box>
 
           {/* Notifications Page — all authenticated users */}
           <Box sx={panelSx("notifications")}>

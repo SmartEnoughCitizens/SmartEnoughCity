@@ -19,6 +19,7 @@ import {
 import EvStationIcon from "@mui/icons-material/EvStation";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CloseIcon from "@mui/icons-material/Close";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import {
   MapContainer,
@@ -270,6 +271,8 @@ const SearchBar = ({
   isLoading,
   demandFilter,
   onDemandFilterChange,
+  isOpen,
+  onToggle,
 }: {
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -280,6 +283,8 @@ const SearchBar = ({
   isLoading: boolean;
   demandFilter: string[];
   onDemandFilterChange: (filters: string[]) => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showResults =
@@ -292,6 +297,19 @@ const SearchBar = ({
       onDemandFilterChange([...demandFilter, filter]);
     }
   };
+
+  if (!isOpen) {
+    return (
+      <Box sx={{ position: "absolute", top: 16, right: 16, zIndex: 1000 }}>
+        <IconButton
+          onClick={onToggle}
+          sx={{ bgcolor: (t) => t.palette.background.paper, backdropFilter: "blur(12px)", "&:hover": { bgcolor: (t) => t.palette.background.paper } }}
+        >
+          <MenuOpenIcon />
+        </IconButton>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -321,30 +339,35 @@ const SearchBar = ({
           transition: "all 0.2s ease",
         }}
       >
-        {/* Search Input */}
-        <Box
-          component="input"
-          placeholder="Search stations or areas..."
-          value={searchQuery}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            onSearchChange(e.target.value)
-          }
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-          sx={{
-            width: "100%",
-            border: "none",
-            outline: "none",
-            bgcolor: "transparent",
-            fontSize: "0.95rem",
-            fontFamily: "inherit",
-            color: "text.primary",
-            "&::placeholder": {
-              color: "text.secondary",
-              opacity: 0.6,
-            },
-          }}
-        />
+        {/* Search Input row */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box
+            component="input"
+            placeholder="Search stations or areas..."
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onSearchChange(e.target.value)
+            }
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+            sx={{
+              flex: 1,
+              border: "none",
+              outline: "none",
+              bgcolor: "transparent",
+              fontSize: "0.95rem",
+              fontFamily: "inherit",
+              color: "text.primary",
+              "&::placeholder": {
+                color: "text.secondary",
+                opacity: 0.6,
+              },
+            }}
+          />
+          <IconButton size="small" onClick={onToggle} sx={{ ml: -0.5 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
 
         {/* Stats & Filters */}
         {!isLoading && (
@@ -383,9 +406,7 @@ const SearchBar = ({
                   color: demandFilter.includes("high")
                     ? "#000"
                     : "text.secondary",
-                  "&:hover": {
-                    bgcolor: "#fca5a5",
-                  },
+                  "&:hover": { bgcolor: "#fca5a5" },
                 }}
               />
               <Chip
@@ -403,9 +424,7 @@ const SearchBar = ({
                   color: demandFilter.includes("medium")
                     ? "#000"
                     : "text.secondary",
-                  "&:hover": {
-                    bgcolor: "#fdba74",
-                  },
+                  "&:hover": { bgcolor: "#fdba74" },
                 }}
               />
               <Chip
@@ -423,9 +442,7 @@ const SearchBar = ({
                   color: demandFilter.includes("low")
                     ? "#000"
                     : "text.secondary",
-                  "&:hover": {
-                    bgcolor: "#86efac",
-                  },
+                  "&:hover": { bgcolor: "#86efac" },
                 }}
               />
             </Box>
@@ -464,9 +481,7 @@ const SearchBar = ({
                       ? "rgba(255,255,255,0.05)"
                       : "rgba(0,0,0,0.03)",
                 },
-                "&:last-child": {
-                  borderBottom: "none",
-                },
+                "&:last-child": { borderBottom: "none" },
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -474,20 +489,9 @@ const SearchBar = ({
                   label={result.type}
                   size="small"
                   color={result.type === "station" ? "primary" : "secondary"}
-                  sx={{
-                    fontSize: "0.7rem",
-                    height: 20,
-                    textTransform: "capitalize",
-                  }}
+                  sx={{ fontSize: "0.7rem", height: 20, textTransform: "capitalize" }}
                 />
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                    color: "text.primary",
-                  }}
-                >
+                <Box component="span" sx={{ fontSize: "0.875rem", fontWeight: 500, color: "text.primary" }}>
                   {result.name}
                 </Box>
               </Box>
@@ -679,6 +683,7 @@ const Legend = () => (
 
 export const EVDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchPanelOpen, setSearchPanelOpen] = useState(true);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedStations, setSelectedStations] = useState<EvStation[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -905,6 +910,8 @@ export const EVDashboard = () => {
         isLoading={isLoading}
         demandFilter={demandFilter}
         onDemandFilterChange={setDemandFilter}
+        isOpen={searchPanelOpen}
+        onToggle={() => setSearchPanelOpen((o) => !o)}
       />
 
       {/* Side panel for selected stations */}
