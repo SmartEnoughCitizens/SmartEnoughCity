@@ -262,15 +262,19 @@ def compute_and_save_demand_scores() -> list[dict]:
     df["daily_riders"] = df["ridership_count"] / 365.0
     df["raw_ridership"] = df["ridership_count"].astype(float)
     df["raw_uptake"] = df.apply(
-        lambda r: r["daily_riders"] / r["catchment_population"]
-        if r["catchment_population"] > 0 and r["daily_riders"] > 0
-        else 0.0,
+        lambda r: (
+            r["daily_riders"] / r["catchment_population"]
+            if r["catchment_population"] > 0 and r["daily_riders"] > 0
+            else 0.0
+        ),
         axis=1,
     )
     df["raw_pressure"] = df.apply(
-        lambda r: r["daily_riders"] / (r["trip_count"] * r["capacity"])
-        if r["daily_riders"] > 0 and r["trip_count"] > 0
-        else 0.0,
+        lambda r: (
+            r["daily_riders"] / (r["trip_count"] * r["capacity"])
+            if r["daily_riders"] > 0 and r["trip_count"] > 0
+            else 0.0
+        ),
         axis=1,
     )
     df["raw_footfall"] = df["footfall_count"].astype(float)
