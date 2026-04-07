@@ -1,6 +1,6 @@
 /**
- * Bus data dashboard — full-viewport map with floating KPI panel,
- * route utilization, system performance, and live vehicle markers
+ * Bus data dashboard — full-viewport map with unified right-side panel,
+ * matching the Train and Cycle dashboard layout pattern.
  */
 
 import { useState, useEffect } from "react";
@@ -12,12 +12,18 @@ import {
   Autocomplete,
   TextField,
   Alert,
+  IconButton,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import CommuteIcon from "@mui/icons-material/Commute";
 import WarningIcon from "@mui/icons-material/Warning";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import EcoIcon from "@mui/icons-material/EnergySavingsLeaf";
+import CloseIcon from "@mui/icons-material/Close";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
+import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import {
   MapContainer,
   TileLayer,
@@ -58,6 +64,9 @@ import {
 } from "@/components/bus/NewStopRecommendationsList";
 import type { BusNewStopRecommendation } from "@/types";
 import "leaflet/dist/leaflet.css";
+
+const PANEL_W = 420;
+const GAP = 16;
 
 const KpiCard = ({
   label,
@@ -185,6 +194,8 @@ const PerformanceGauge = ({
 };
 
 export const BusDashboard = () => {
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
   const [selectedRoute, setSelectedRoute] = useState<string>("");
   const [selectedDisruptionId, setSelectedDisruptionId] = useState<
     number | null
@@ -299,262 +310,312 @@ export const BusDashboard = () => {
         </MapContainer>
       </Box>
 
-      {/* KPI cards — top left */}
-      {kpis && (
-        <Box
+      {/* ── Toggle button when panel closed ── */}
+      {!panelOpen && (
+        <IconButton
+          onClick={() => setPanelOpen(true)}
           sx={{
             position: "absolute",
-            top: 16,
-            left: 16,
+            top: GAP,
+            right: GAP,
             zIndex: 1000,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 1,
-            width: 340,
+            bgcolor: (t) => t.palette.background.paper,
+            backdropFilter: "blur(12px)",
+            "&:hover": { bgcolor: (t) => t.palette.background.paper },
           }}
         >
-          <KpiCard
-            label="Total Buses Running"
-            value={kpis.totalBusesRunning.toLocaleString()}
-            icon={<CommuteIcon color="primary" fontSize="small" />}
-          />
-          <KpiCard
-            label="Active Delays"
-            value={kpis.activeDelays.toLocaleString()}
-            icon={<WarningIcon color="error" fontSize="small" />}
-          />
-          <KpiCard
-            label="Fleet Utilization"
-            value={`${kpis.fleetUtilizationPct.toFixed(1)}%`}
-            icon={<EqualizerIcon color="warning" fontSize="small" />}
-          />
-          <KpiCard
-            label="Sustainability"
-            value={kpis.sustainabilityScore.toFixed(0)}
-            icon={<EcoIcon color="success" fontSize="small" />}
-            subtitle={getGrade(kpis.sustainabilityScore)}
-          />
-        </Box>
+          <MenuOpenIcon />
+        </IconButton>
       )}
 
-      {/* Route Utilization + System Performance — bottom left */}
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 16,
-          left: 16,
-          zIndex: 1000,
-          display: "flex",
-          gap: 1.5,
-          maxWidth: "calc(100% - 450px)",
-        }}
-      >
-        {/* Route Utilization */}
-        {sortedUtilization.length > 0 && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              width: 340,
-              maxHeight: 260,
-              overflow: "auto",
-            }}
-          >
-            <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5 }}>
-              Route Utilization
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              {sortedUtilization.map((route) => (
-                <Box key={route.routeId}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      mb: 0.25,
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      fontWeight={500}
-                      noWrap
-                      sx={{ maxWidth: 220 }}
-                    >
-                      Route {route.routeShortName} ({route.routeLongName})
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      fontWeight="bold"
-                      color={`${getUtilizationColor(route.utilizationPct)}.main`}
-                    >
-                      {route.utilizationPct.toFixed(1)}%
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(route.utilizationPct, 100)}
-                    color={getUtilizationColor(route.utilizationPct)}
-                    sx={{ height: 6, borderRadius: 3 }}
-                  />
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        )}
-
-        {/* Service Reliability */}
-        {systemPerformance && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5 }}>
-              Service Reliability
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <PerformanceGauge
-                label="Reliability"
-                value={systemPerformance.reliabilityPct}
-                color="#2563eb"
-              />
-              <PerformanceGauge
-                label="Late Arrival"
-                value={systemPerformance.lateArrivalPct}
-                color="#ef4444"
-              />
-            </Box>
-          </Paper>
-        )}
-      </Box>
-
-      {/* Right panel — route filter + common delays */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 16,
-          right: 16,
-          zIndex: 1000,
-          display: "flex",
-          flexDirection: "column",
-          gap: 1.5,
-          width: 340,
-        }}
-      >
-        {/* Compact route filter */}
-        <Paper elevation={0} sx={{ borderRadius: 2, p: 1.5 }}>
-          <Autocomplete
-            size="small"
-            options={routes}
-            getOptionLabel={(r) => `${r.routeShortName} — ${r.routeLongName}`}
-            filterOptions={(options, { inputValue }) =>
-              options.filter((r) =>
-                r.routeShortName
-                  .toLowerCase()
-                  .includes(inputValue.toLowerCase()),
-              )
-            }
-            value={
-              routes.find((r) => r.routeShortName === selectedRoute) ?? null
-            }
-            onChange={(_, value) =>
-              setSelectedRoute(value?.routeShortName ?? "")
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Filter Route"
-                placeholder="e.g. H2"
-              />
-            )}
-          />
-        </Paper>
-
-        {/* Common Delays leaderboard */}
+      {/* ── Single unified right panel ── */}
+      {panelOpen && (
         <Paper
           elevation={0}
-          sx={{ borderRadius: 2, p: 2, maxHeight: 340, overflow: "auto" }}
+          sx={{
+            position: "absolute",
+            top: GAP,
+            right: GAP,
+            bottom: GAP,
+            width: PANEL_W,
+            zIndex: 1000,
+            borderRadius: 3,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
         >
-          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-            Common Bus Delays
-          </Typography>
-          <DelayLeaderboard />
-        </Paper>
-
-        {/* Active Disruptions */}
-        <Paper
-          elevation={0}
-          sx={{ borderRadius: 2, overflow: "hidden", maxHeight: 280 }}
-        >
+          {/* Header */}
           <Box
-            sx={{ px: 2, py: 1.25, borderBottom: "1px solid rgba(0,0,0,0.08)" }}
+            sx={{
+              p: 2,
+              pb: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
           >
-            <Typography variant="subtitle2" fontWeight="bold">
-              Active Disruptions
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <DirectionsBusIcon color="primary" />
+              <Typography variant="h5">Dublin Bus Network</Typography>
+            </Box>
+            <IconButton size="small" onClick={() => setPanelOpen(false)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
           </Box>
-          <Box sx={{ overflow: "auto", maxHeight: 220 }}>
-            <DisruptionsTabContent
-              mode="BUS"
-              selectedId={selectedDisruptionId}
-              onSelect={(d) => {
-                setSelectedDisruptionId(d.id);
-                if (d.latitude != null && d.longitude != null) {
-                  setFlyTarget({
-                    center: [d.latitude, d.longitude],
-                    id: Date.now(),
-                  });
-                }
-              }}
+
+          {/* Persistent route filter — above tabs, filters map */}
+          <Box sx={{ px: 2, pb: 1 }}>
+            <Autocomplete
+              size="small"
+              options={routes}
+              getOptionLabel={(r) =>
+                `${r.routeShortName} — ${r.routeLongName}`
+              }
+              filterOptions={(options, { inputValue }) =>
+                options.filter((r) =>
+                  r.routeShortName
+                    .toLowerCase()
+                    .includes(inputValue.toLowerCase()),
+                )
+              }
+              value={
+                routes.find((r) => r.routeShortName === selectedRoute) ?? null
+              }
+              onChange={(_, value) =>
+                setSelectedRoute(value?.routeShortName ?? "")
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Filter Route"
+                  placeholder="e.g. H2"
+                />
+              )}
             />
           </Box>
-        </Paper>
 
-        {/* New stop recommendations (MV-backed) */}
-        <Paper
-          elevation={0}
-          sx={{ borderRadius: 2, p: 2, maxHeight: 360, overflow: "auto" }}
-        >
-          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-            New stop recommendations
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            display="block"
-            sx={{ mb: 1 }}
+          {/* Tab bar */}
+          <Tabs
+            value={tabValue}
+            onChange={(_, v) => setTabValue(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 36,
+              "& .MuiTab-root": {
+                minHeight: 36,
+                fontSize: "0.7rem",
+                textTransform: "none",
+                minWidth: 0,
+                px: 1.5,
+              },
+              "& .MuiTabScrollButton-root": { width: 24 },
+            }}
           >
-            Click a row to show route shape, stops, and suggested location on
-            the map.
-          </Typography>
-          {selectedRecommendation && (
-            <Box sx={{ mb: 1 }}>
-              <SelectedRecommendationChip
-                recommendation={selectedRecommendation}
-                onClear={() => setSelectedRecommendation(null)}
+            <Tab label="Overview" />
+            <Tab label="Utilization" />
+            <Tab label="Delays" />
+            <Tab label="Disruptions" />
+            <Tab label="Recommendations" />
+          </Tabs>
+
+          {/* Tab content */}
+          <Box sx={{ flex: 1, overflow: "auto", px: 2, pt: 1 }}>
+
+            {/* Tab 0: Overview — KPI cards + Service Reliability */}
+            {tabValue === 0 && kpis && (
+              <>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 1,
+                    mb: 2,
+                  }}
+                >
+                  <KpiCard
+                    label="Total Buses Running"
+                    value={kpis.totalBusesRunning.toLocaleString()}
+                    icon={<CommuteIcon color="primary" fontSize="small" />}
+                  />
+                  <KpiCard
+                    label="Active Delays"
+                    value={kpis.activeDelays.toLocaleString()}
+                    icon={<WarningIcon color="error" fontSize="small" />}
+                  />
+                  <KpiCard
+                    label="Fleet Utilization"
+                    value={`${kpis.fleetUtilizationPct.toFixed(1)}%`}
+                    icon={<EqualizerIcon color="warning" fontSize="small" />}
+                  />
+                  <KpiCard
+                    label="Sustainability"
+                    value={kpis.sustainabilityScore.toFixed(0)}
+                    icon={<EcoIcon color="success" fontSize="small" />}
+                    subtitle={getGrade(kpis.sustainabilityScore)}
+                  />
+                </Box>
+                {systemPerformance && (
+                  <>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight="bold"
+                      sx={{ mb: 1.5 }}
+                    >
+                      Service Reliability
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: 4,
+                        pb: 1,
+                      }}
+                    >
+                      <PerformanceGauge
+                        label="Reliability"
+                        value={systemPerformance.reliabilityPct}
+                        color="#2563eb"
+                      />
+                      <PerformanceGauge
+                        label="Late Arrival"
+                        value={systemPerformance.lateArrivalPct}
+                        color="#ef4444"
+                      />
+                    </Box>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Tab 1: Utilization — Route list with LinearProgress */}
+            {tabValue === 1 && (
+              <>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  sx={{ mb: 1.5 }}
+                >
+                  Route Utilization
+                </Typography>
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                >
+                  {sortedUtilization.map((route) => (
+                    <Box key={route.routeId}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          mb: 0.25,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          fontWeight={500}
+                          noWrap
+                          sx={{ maxWidth: 280 }}
+                        >
+                          Route {route.routeShortName} ({route.routeLongName})
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          fontWeight="bold"
+                          color={`${getUtilizationColor(route.utilizationPct)}.main`}
+                        >
+                          {route.utilizationPct.toFixed(1)}%
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(route.utilizationPct, 100)}
+                        color={getUtilizationColor(route.utilizationPct)}
+                        sx={{ height: 6, borderRadius: 3 }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              </>
+            )}
+
+            {/* Tab 2: Delays */}
+            {tabValue === 2 && (
+              <>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  sx={{ mb: 1 }}
+                >
+                  Common Bus Delays
+                </Typography>
+                <DelayLeaderboard />
+              </>
+            )}
+
+            {/* Tab 3: Disruptions */}
+            {tabValue === 3 && (
+              <DisruptionsTabContent
+                mode="BUS"
+                selectedId={selectedDisruptionId}
+                onSelect={(d) => {
+                  setSelectedDisruptionId(d.id);
+                  if (d.latitude != null && d.longitude != null) {
+                    setFlyTarget({
+                      center: [d.latitude, d.longitude],
+                      id: Date.now(),
+                    });
+                  }
+                }}
               />
-            </Box>
-          )}
-          {selectedRecommendation && routeDetailError && (
-            <Alert
-              severity="warning"
-              sx={{ mb: 1, py: 0, fontSize: "0.75rem" }}
-            >
-              Could not load route geometry; only the suggested stop is shown on
-              the map.
-            </Alert>
-          )}
-          <NewStopRecommendationsList
-            selectedRecommendation={selectedRecommendation}
-            onSelectRecommendation={setSelectedRecommendation}
-          />
+            )}
+
+            {/* Tab 4: Recommendations */}
+            {tabValue === 4 && (
+              <>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  sx={{ mb: 1 }}
+                >
+                  New Stop Recommendations
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  sx={{ mb: 1 }}
+                >
+                  Click a row to show route shape, stops, and suggested
+                  location on the map.
+                </Typography>
+                {selectedRecommendation && (
+                  <Box sx={{ mb: 1 }}>
+                    <SelectedRecommendationChip
+                      recommendation={selectedRecommendation}
+                      onClear={() => setSelectedRecommendation(null)}
+                    />
+                  </Box>
+                )}
+                {selectedRecommendation && routeDetailError && (
+                  <Alert
+                    severity="warning"
+                    sx={{ mb: 1, py: 0, fontSize: "0.75rem" }}
+                  >
+                    Could not load route geometry; only the suggested stop is
+                    shown on the map.
+                  </Alert>
+                )}
+                <NewStopRecommendationsList
+                  selectedRecommendation={selectedRecommendation}
+                  onSelectRecommendation={setSelectedRecommendation}
+                />
+              </>
+            )}
+
+          </Box>
         </Paper>
-      </Box>
+      )}
     </Box>
   );
 };
