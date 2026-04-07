@@ -54,11 +54,20 @@ import L from "leaflet";
 import { dashboardApi } from "@/api";
 import type { TramAlternativeRoute, TramLiveForecast, TramStopUsage } from "@/types";
 
+interface TramRecommendationItem {
+  Attributes: {
+    severity: string;
+    type: string;
+    line: string;
+    time_label: string;
+    description: string;
+  };
+}
+
 // ── Constants ────────────────────────────────────────────────────
 
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 type LineFilter = "" | "red" | "green";
-type PanelTab = "live" | "delays" | "hourly" | "disruptions";
 
 const LINE_COLORS: Record<string, string> = {
   red: "#DC2626",
@@ -136,7 +145,7 @@ function makeStopIcon(line: string, disrupted = false): L.DivIcon {
   const color = disrupted ? "#f97316" : (LINE_COLORS[line] ?? "#607D8B");
   const letter = line === "red" ? "R" : line === "green" ? "G" : "T";
   return L.divIcon({
-    html: `<div class="tram-pin" style="width:22px;height:22px;background:${c};font-size:9px;">${l}</div>`,
+    html: `<div class="tram-pin" style="width:22px;height:22px;background:${color};font-size:9px;">${letter}</div>`,
     className: "",
     iconSize: [22, 22],
     iconAnchor: [11, 11],
@@ -857,7 +866,7 @@ export const TramDashboard = () => {
               </Marker>
             ))}
       </MapContainer>
-
+      </Box>
       {error && (
         <Alert
           severity="error"
@@ -962,17 +971,12 @@ export const TramDashboard = () => {
           >
             {(
               [
-                { key: "live", label: "Live", count: filteredForecasts.length },
-                {
-                  key: "delays",
-                  label: "Delays",
-                  count: filteredDelays.length,
-                },
-                { key: "hourly", label: "Hourly", count: null },
-                { key: "disruptions", label: "Disruptions", count: null },
-              ] as { key: PanelTab; label: string; count: number | null }[]
-            ).map(({ key, label, count }) => {
-              const active = activeTab === key;
+                { key: "", label: "All Lines" },
+                { key: "red", label: "Red" },
+                { key: "green", label: "Green" },
+              ] as { key: LineFilter; label: string }[]
+            ).map(({ key, label }) => {
+              const active = lineFilter === key;
               return (
                 <Chip
                   key={key || "all"}
