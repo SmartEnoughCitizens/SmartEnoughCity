@@ -11,6 +11,7 @@ import {
   LinearProgress,
   Autocomplete,
   TextField,
+  Alert,
 } from "@mui/material";
 import CommuteIcon from "@mui/icons-material/Commute";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -20,12 +21,22 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import {
   useBusKpis,
   useBusLiveVehicles,
+  useBusRouteDetail,
   useBusRouteUtilization,
   useBusSystemPerformance,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import {
+  BusRecommendationCandidate,
+  BusRecommendationFitBounds,
+  BusRecommendationPolylineAndStops,
+} from "@/components/bus/BusRecommendationMapLayers";
 import { DelayLeaderboard } from "@/components/bus/DelayLeaderboard";
-import { NewStopRecommendationsList } from "@/components/bus/NewStopRecommendationsList";
+import {
+  NewStopRecommendationsList,
+  SelectedRecommendationChip,
+} from "@/components/bus/NewStopRecommendationsList";
+import type { BusNewStopRecommendation } from "@/types";
 import "leaflet/dist/leaflet.css";
 
 const KpiCard = ({
@@ -155,12 +166,17 @@ const PerformanceGauge = ({
 
 export const BusDashboard = () => {
   const [selectedRoute, setSelectedRoute] = useState<string>("");
+  const [selectedRecommendation, setSelectedRecommendation] =
+    useState<BusNewStopRecommendation | null>(null);
   const theme = useAppSelector((state) => state.ui.theme);
 
   const { data: kpis } = useBusKpis();
   const { data: liveVehicles } = useBusLiveVehicles();
   const { data: routeUtilization } = useBusRouteUtilization();
   const { data: systemPerformance } = useBusSystemPerformance();
+
+  const { data: routeDetailForMap, isError: routeDetailError } =
+    useBusRouteDetail(selectedRecommendation?.routeId ?? null);
 
   // Build unique route list sorted by short name for the dropdown
   const routes = routeUtilization
@@ -207,6 +223,15 @@ export const BusDashboard = () => {
           zoomControl={false}
         >
           <TileLayer attribution={tileAttribution} url={tileUrl} />
+          {selectedRecommendation && (
+            <>
+              <BusRecommendationFitBounds
+                recommendation={selectedRecommendation}
+                routeDetail={routeDetailForMap}
+              />
+              <BusRecommendationPolylineAndStops routeDetail={routeDetailForMap} />
+            </>
+          )}
           {filteredVehicles?.map((vehicle) => (
             <CircleMarker
               key={vehicle.vehicleId}
@@ -236,6 +261,9 @@ export const BusDashboard = () => {
               </Popup>
             </CircleMarker>
           ))}
+          {selectedRecommendation && (
+            <BusRecommendationCandidate recommendation={selectedRecommendation} />
+          )}
         </MapContainer>
       </Box>
 
@@ -435,9 +463,25 @@ export const BusDashboard = () => {
             New stop recommendations
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-            Top gaps between consecutive stops (by combined score)
+            Click a row to show route shape, stops, and suggested location on the map.
           </Typography>
-          <NewStopRecommendationsList />
+          {selectedRecommendation && (
+            <Box sx={{ mb: 1 }}>
+              <SelectedRecommendationChip
+                recommendation={selectedRecommendation}
+                onClear={() => setSelectedRecommendation(null)}
+              />
+            </Box>
+          )}
+          {selectedRecommendation && routeDetailError && (
+            <Alert severity="warning" sx={{ mb: 1, py: 0, fontSize: "0.75rem" }}>
+              Could not load route geometry; only the suggested stop is shown on the map.
+            </Alert>
+          )}
+          <NewStopRecommendationsList
+            selectedRecommendation={selectedRecommendation}
+            onSelectRecommendation={setSelectedRecommendation}
+          />
         </Paper>
       </Box>
     </Box>

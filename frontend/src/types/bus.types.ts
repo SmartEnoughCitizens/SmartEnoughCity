@@ -102,3 +102,31 @@ export interface BusNewStopRecommendation {
   publicSpaceScore: number;
   combinedScore: number;
 }
+
+export interface BusRouteShapePoint {
+  sequence: number;
+  lat: number;
+  lon: number;
+  distTraveled: number;
+}
+
+export interface BusRouteStop {
+  sequence: number;
+  stopId: string;
+  code: number | null;
+  name: string | null;
+  lat: number | null;
+  lon: number | null;
+  headsign: string | null;
+}
+
+export interface BusRouteDetail {
+  routeId: string;
+  agencyId: number;
+  shortName: string;
+  longName: string;
+  representativeTripId: string;
+  shapeId: string;
+  shape: BusRouteShapePoint[];
+  stops: BusRouteStop[];
+}

@@ -1,8 +1,24 @@
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, Chip, CircularProgress, Typography } from "@mui/material";
 import { useBusNewStopRecommendations } from "@/hooks";
+import type { BusNewStopRecommendation } from "@/types";
 
-export const NewStopRecommendationsList = () => {
+const recommendationKey = (row: BusNewStopRecommendation) =>
+  `${row.routeId}-${row.stopA.id}-${row.stopB.id}`;
+
+type Props = {
+  selectedRecommendation: BusNewStopRecommendation | null;
+  onSelectRecommendation: (row: BusNewStopRecommendation | null) => void;
+};
+
+export const NewStopRecommendationsList = ({
+  selectedRecommendation,
+  onSelectRecommendation,
+}: Props) => {
   const { data = [], isLoading, isError } = useBusNewStopRecommendations();
+
+  const selectedKey = selectedRecommendation
+    ? recommendationKey(selectedRecommendation)
+    : null;
 
   if (isLoading) {
     return (
@@ -63,57 +79,95 @@ export const NewStopRecommendationsList = () => {
         </Box>
       </Box>
       <Box component="tbody">
-        {data.map((row, idx) => (
-          <Box component="tr" key={`${row.routeId}-${row.stopA.id}-${row.stopB.id}`}>
-            <Box component="td" sx={{ p: "6px 6px", opacity: 0.6, verticalAlign: "top" }}>
-              {idx + 1}
-            </Box>
-            <Box component="td" sx={{ p: "6px 6px", verticalAlign: "top" }}>
-              <strong>{row.routeShortName}</strong>
-              <Typography
-                component="span"
-                variant="caption"
-                display="block"
-                sx={{ opacity: 0.65, lineHeight: 1.25 }}
-              >
-                {row.routeLongName}
-              </Typography>
-            </Box>
-            <Box component="td" sx={{ p: "6px 6px", verticalAlign: "top" }}>
-              <Typography variant="inherit" sx={{ lineHeight: 1.35 }}>
-                {row.stopA.name}{" "}
-                <Box component="span" sx={{ opacity: 0.65 }}>
-                  ({row.stopA.code})
-                </Box>
-              </Typography>
-              <Typography
-                variant="inherit"
-                sx={{ opacity: 0.5, fontSize: "0.65rem", my: 0.15 }}
-              >
-                →
-              </Typography>
-              <Typography variant="inherit" sx={{ lineHeight: 1.35 }}>
-                {row.stopB.name}{" "}
-                <Box component="span" sx={{ opacity: 0.65 }}>
-                  ({row.stopB.code})
-                </Box>
-              </Typography>
-            </Box>
+        {data.map((row, idx) => {
+          const key = recommendationKey(row);
+          const isSelected = key === selectedKey;
+          return (
             <Box
-              component="td"
+              component="tr"
+              key={key}
+              onClick={() =>
+                onSelectRecommendation(isSelected ? null : row)
+              }
               sx={{
-                p: "6px 6px",
-                textAlign: "right",
-                verticalAlign: "top",
-                fontWeight: 600,
-                whiteSpace: "nowrap",
+                cursor: "pointer",
+                bgcolor: isSelected ? "action.selected" : "transparent",
+                transition: "background-color 0.15s ease",
+                "&:hover": {
+                  bgcolor: isSelected ? "action.selected" : "action.hover",
+                },
               }}
             >
-              {row.combinedScore.toFixed(2)}
+              <Box
+                component="td"
+                sx={{ p: "6px 6px", opacity: 0.6, verticalAlign: "top" }}
+              >
+                {idx + 1}
+              </Box>
+              <Box component="td" sx={{ p: "6px 6px", verticalAlign: "top" }}>
+                <strong>{row.routeShortName}</strong>
+                <Typography
+                  component="span"
+                  variant="caption"
+                  display="block"
+                  sx={{ opacity: 0.65, lineHeight: 1.25 }}
+                >
+                  {row.routeLongName}
+                </Typography>
+              </Box>
+              <Box component="td" sx={{ p: "6px 6px", verticalAlign: "top" }}>
+                <Typography variant="inherit" sx={{ lineHeight: 1.35 }}>
+                  {row.stopA.name}{" "}
+                  <Box component="span" sx={{ opacity: 0.65 }}>
+                    ({row.stopA.code})
+                  </Box>
+                </Typography>
+                <Typography
+                  variant="inherit"
+                  sx={{ opacity: 0.5, fontSize: "0.65rem", my: 0.15 }}
+                >
+                  →
+                </Typography>
+                <Typography variant="inherit" sx={{ lineHeight: 1.35 }}>
+                  {row.stopB.name}{" "}
+                  <Box component="span" sx={{ opacity: 0.65 }}>
+                    ({row.stopB.code})
+                  </Box>
+                </Typography>
+              </Box>
+              <Box
+                component="td"
+                sx={{
+                  p: "6px 6px",
+                  textAlign: "right",
+                  verticalAlign: "top",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {row.combinedScore.toFixed(2)}
+              </Box>
             </Box>
-          </Box>
-        ))}
+          );
+        })}
       </Box>
     </Box>
   );
 };
+
+export const SelectedRecommendationChip = ({
+  recommendation,
+  onClear,
+}: {
+  recommendation: BusNewStopRecommendation;
+  onClear: () => void;
+}) => (
+  <Chip
+    size="small"
+    color="primary"
+    variant="outlined"
+    label={`Route: ${recommendation.routeShortName} · score ${recommendation.combinedScore.toFixed(2)}`}
+    onDelete={onClear}
+    sx={{ maxWidth: "100%", "& .MuiChip-label": { overflow: "hidden" } }}
+  />
+);
