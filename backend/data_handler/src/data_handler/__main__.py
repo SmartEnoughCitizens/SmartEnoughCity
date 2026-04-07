@@ -5,8 +5,6 @@ import os
 import sys
 from typing import TYPE_CHECKING
 
-from sqlalchemy import text
-
 from data_handler.bus.live_data_handler import process_bus_live_data
 from data_handler.bus.static_data_handler import process_bus_static_data
 from data_handler.car.process_car_data import process_car_static_data
