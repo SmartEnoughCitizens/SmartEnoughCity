@@ -53,12 +53,18 @@ export const API_ENDPOINTS = {
   BUS_SYSTEM_PERFORMANCE: "/api/v1/bus/system-performance",
   BUS_METRICS_REFRESH: "/api/v1/bus/metrics/refresh",
   BUS_COMMON_DELAYS: "/api/v1/bus/common-delays",
+  BUS_NEW_STOPS_RECOMMENDATIONS: "/api/v1/bus/new-stops-recommendations",
+  /** GET `${BUS_ROUTES}/${routeId}` — route detail, shape, stops */
+  BUS_ROUTES: "/api/v1/bus/routes",
 
   // Train Indicators
   TRAIN_KPIS: "/api/v1/train/kpis",
   TRAIN_LIVE_TRAINS: "/api/v1/train/live-trains",
   TRAIN_SERVICE_STATS: "/api/v1/train/service-stats",
   TRAIN_FREQUENT_DELAYS: "/api/v1/train/frequent-delays",
+  TRAIN_ROUTES: "/api/v1/train/routes",
+  TRAIN_DEMAND: "/api/v1/train/demand",
+  TRAIN_DEMAND_SIMULATE: "/api/v1/train/demand/simulate",
 
   // Tram Indicators
   TRAM_KPIS: "/api/v1/tram/kpis",
@@ -98,8 +104,13 @@ export const API_ENDPOINTS = {
   RECOMMENDATION_GET: (type: string) =>
     `/api/v1/recommendation-engine/indicators/${type}`,
 
+  // Approvals (generic — used by any indicator)
+  APPROVALS: "/api/v1/approvals",
+  APPROVAL_REVIEW: (id: number) => `/api/v1/approvals/${id}/review`,
+
   // Notifications
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
+  NOTIFICATIONS_BIN: (userId: string) => `/api/notification/v1/${userId}/bin`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
 
   // Misc (Events + Pedestrians)

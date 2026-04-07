@@ -301,9 +301,10 @@ public class NotificationFacadeTest {
               .createdAt(now)
               .build();
 
-      when(notificationRepository.findByUserIdOrderByCreatedAtDesc("user-1"))
+      when(notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc("user-1"))
           .thenReturn(List.of(entity));
-      when(notificationRepository.countByUserIdAndIsReadFalse("user-1")).thenReturn(1L);
+      when(notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull("user-1"))
+          .thenReturn(1L);
 
       NotificationResponseDTO response = facade.getAll("user-1");
 
@@ -326,9 +327,10 @@ public class NotificationFacadeTest {
     @DisplayName(
         "returns empty notifications list and zero unread count when user has no notifications")
     void noNotifications_returnsEmptyListAndZeroCount() {
-      when(notificationRepository.findByUserIdOrderByCreatedAtDesc("user-99"))
+      when(notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc("user-99"))
           .thenReturn(List.of());
-      when(notificationRepository.countByUserIdAndIsReadFalse("user-99")).thenReturn(0L);
+      when(notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull("user-99"))
+          .thenReturn(0L);
 
       NotificationResponseDTO response = facade.getAll("user-99");
 
@@ -349,9 +351,10 @@ public class NotificationFacadeTest {
               .createdAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")))
               .build();
 
-      when(notificationRepository.findByUserIdOrderByCreatedAtDesc("user-1"))
+      when(notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc("user-1"))
           .thenReturn(List.of(entity));
-      when(notificationRepository.countByUserIdAndIsReadFalse("user-1")).thenReturn(0L);
+      when(notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull("user-1"))
+          .thenReturn(0L);
 
       NotificationItemDTO item = facade.getAll("user-1").getNotifications().get(0);
 

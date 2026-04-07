@@ -1,20 +1,23 @@
 /**
- * Car dashboard — displays fuel type statistics as tiles and high traffic points on a map
- * Now includes an EV Charging tab AND pollution mode
+ * Car dashboard — full-viewport map with collapsible floating side panel.
+ * Panel contains map controls (mode, day type, time slot, legend) and fuel stats.
+ * EV Charging tab shows EVDashboard as a full overlay.
  */
 
 import { useState } from "react";
 import {
   Box,
+  Chip,
+  Divider,
+  IconButton,
   Paper,
-  Typography,
-  CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
-  Chip,
-  Tabs,
-  Tab,
+  Typography,
+  CircularProgress,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import EvStationIcon from "@mui/icons-material/EvStation";
 import {
@@ -51,61 +54,15 @@ const LEGEND_ITEMS: { band: ColorBand; color: string; label: string }[] = [
   { band: "high", color: "#dc2626", label: "High" },
 ];
 
-const FuelTypeTile = ({
-  fuelType,
-  count,
-}: {
-  fuelType: string;
-  count: number;
-}) => (
-  <Paper
-    elevation={0}
-    sx={{
-      p: 2.5,
-      borderRadius: 2,
-      display: "flex",
-      flexDirection: "column",
-      gap: 0.5,
-      minWidth: 160,
-    }}
-  >
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
-    >
-      <Typography variant="caption" color="text.secondary">
-        {fuelType}
-      </Typography>
-      <DirectionsCarIcon fontSize="small" color="primary" />
-    </Box>
-    <Typography variant="h5" fontWeight="bold">
-      {count.toLocaleString()}
-    </Typography>
-    <Typography variant="caption" color="text.secondary">
-      vehicles registered
-    </Typography>
-  </Paper>
-);
+const SIDE_PANEL_WIDTH = 420;
+const GAP = 16;
 
 export const CarDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem("carDashboardActiveTab");
     return saved ? Number.parseInt(saved, 10) : 0;
   });
-
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-    localStorage.setItem("carDashboardActiveTab", newValue.toString());
-  };
-
-  const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
-  const { data: trafficPoints, isLoading: trafficLoading } =
-    useCarHighTrafficPoints();
-  const theme = useAppSelector((state) => state.ui.theme);
-
+  const [panelOpen, setPanelOpen] = useState(true);
   const [dayTypeFilter, setDayTypeFilter] = useState<DayTypeFilter>("weekday");
   const [timeSlotFilter, setTimeSlotFilter] =
     useState<TimeSlotFilter>("morning_peak");
@@ -114,12 +71,24 @@ export const CarDashboard = () => {
     () => new Set(["low", "medium", "high"]),
   );
 
+  const theme = useAppSelector((state) => state.ui.theme);
+
+  const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
+  const { data: trafficPoints, isLoading: trafficLoading } =
+    useCarHighTrafficPoints();
+  const { data: emissionPoints, isLoading: emissionsLoading } =
+    useCarJunctionEmissions();
+
+  // Prefetch EV data so the EV tab opens instantly
+  useEvChargingStations();
+  useEvChargingDemand();
+  useEvAreasGeoJson();
+
   const toggleColor = (band: ColorBand) => {
     setActiveColors((prev) => {
       const next = new Set(prev);
       if (next.has(band)) {
         next.delete(band);
-        // if all deselected, reset to all
         if (next.size === 0) return new Set(["low", "medium", "high"]);
       } else {
         next.add(band);
@@ -128,16 +97,12 @@ export const CarDashboard = () => {
     });
   };
 
-  // Prefetch on mount; only used visually when mapMode === "pollution"
-  const { data: emissionPoints, isLoading: emissionsLoading } =
-    useCarJunctionEmissions();
+  const handleTabChange = (_: React.SyntheticEvent, v: number) => {
+    setActiveTab(v);
+    localStorage.setItem("carDashboardActiveTab", v.toString());
+  };
 
-  // Prefetch EV data on mount so the EV tab opens instantly
-  useEvChargingStations();
-  useEvChargingDemand();
-  useEvAreasGeoJson();
-
-  // --- Traffic mode ---
+  // Traffic mode
   const filteredPoints = trafficPoints?.filter(
     (p) =>
       p.lat != null &&
@@ -145,19 +110,23 @@ export const CarDashboard = () => {
       p.dayType === dayTypeFilter &&
       p.timeSlot === timeSlotFilter,
   );
-
   const maxVolume = filteredPoints?.length
     ? Math.max(...filteredPoints.map((p) => p.avgVolume))
     : 1;
-
-  const getMarkerColor = (volume: number): string => {
-    const ratio = volume / maxVolume;
-    if (ratio > 0.66) return "#dc2626";
-    if (ratio > 0.33) return "#f97316";
+  const getMarkerColor = (volume: number) => {
+    const r = volume / maxVolume;
+    if (r > 0.66) return "#dc2626";
+    if (r > 0.33) return "#f97316";
     return "#16a34a";
   };
+  const getVolumeBand = (volume: number): ColorBand => {
+    const r = volume / maxVolume;
+    if (r > 0.66) return "high";
+    if (r > 0.33) return "medium";
+    return "low";
+  };
 
-  // --- Pollution mode ---
+  // Pollution mode
   const filteredEmissions = emissionPoints?.filter(
     (p) =>
       p.lat != null &&
@@ -165,58 +134,47 @@ export const CarDashboard = () => {
       p.dayType === dayTypeFilter &&
       p.timeSlot === timeSlotFilter,
   );
-
   const maxEmission = filteredEmissions?.length
     ? Math.max(...filteredEmissions.map((p) => p.totalEmissionG))
     : 1;
   const minEmission = filteredEmissions?.length
     ? Math.min(...filteredEmissions.map((p) => p.totalEmissionG))
     : 0;
-
-  const getEmissionColor = (emission: number): string => {
-    const ratio =
+  const getEmissionColor = (emission: number) => {
+    const r =
       maxEmission > minEmission
         ? (emission - minEmission) / (maxEmission - minEmission)
         : 0;
-    if (ratio > 0.66) return "#dc2626";
-    if (ratio > 0.33) return "#f97316";
+    if (r > 0.66) return "#dc2626";
+    if (r > 0.33) return "#f97316";
     return "#16a34a";
   };
-
-  const getVolumeBand = (volume: number): ColorBand => {
-    const ratio = volume / maxVolume;
-    if (ratio > 0.66) return "high";
-    if (ratio > 0.33) return "medium";
-    return "low";
-  };
-
   const getEmissionBand = (emission: number): ColorBand => {
-    const ratio =
+    const r =
       maxEmission > minEmission
         ? (emission - minEmission) / (maxEmission - minEmission)
         : 0;
-    if (ratio > 0.66) return "high";
-    if (ratio > 0.33) return "medium";
+    if (r > 0.66) return "high";
+    if (r > 0.33) return "medium";
     return "low";
   };
 
   const dublinCenter: [number, number] = [53.3498, -6.2603];
-
   const tileUrl =
     theme === "dark"
       ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
       : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-
   const tileAttribution =
     theme === "dark"
       ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
       : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-  if (
+  const isLoading =
     statsLoading ||
     trafficLoading ||
-    (mapMode === "pollution" && emissionsLoading)
-  ) {
+    (mapMode === "pollution" && emissionsLoading);
+
+  if (isLoading) {
     return (
       <Box
         sx={{
@@ -232,142 +190,289 @@ export const CarDashboard = () => {
   }
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-      }}
-    >
-      {/* Main Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider", px: 3, pt: 2 }}>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          sx={{
-            minHeight: 40,
-            "& .MuiTab-root": {
-              minHeight: 40,
-              py: 1,
-              fontSize: "0.875rem",
-              textTransform: "none",
-              minWidth: "auto",
-              px: 2,
-            },
+    <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
+      {/* ── Full-viewport map (Traffic & Fuel tab only) ────────────── */}
+      {activeTab === 0 && (
+        <MapContainer
+          center={dublinCenter}
+          zoom={12}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
           }}
+          zoomControl={false}
         >
-          <Tab
-            icon={<DirectionsCarIcon fontSize="small" />}
-            iconPosition="start"
-            label="Traffic & Fuel"
-          />
-          <Tab
-            icon={<EvStationIcon fontSize="small" />}
-            iconPosition="start"
-            label="EV Charging"
-          />
-        </Tabs>
+          <TileLayer attribution={tileAttribution} url={tileUrl} />
+
+          {mapMode === "traffic" &&
+            filteredPoints
+              ?.filter((p) => activeColors.has(getVolumeBand(p.avgVolume)))
+              .map((point, idx) => (
+                <CircleMarker
+                  key={`traffic-${point.siteId}-${idx}`}
+                  center={[point.lat, point.lon]}
+                  radius={6}
+                  pathOptions={{
+                    color: "#fff",
+                    weight: 1.5,
+                    fillColor: getMarkerColor(point.avgVolume),
+                    fillOpacity: 0.8,
+                  }}
+                >
+                  <Popup>
+                    <strong>Site {point.siteId}</strong>
+                    <br />
+                    Avg Volume: {point.avgVolume.toFixed(2)}
+                    <br />
+                    Day Type: {point.dayType}
+                    <br />
+                    Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                  </Popup>
+                </CircleMarker>
+              ))}
+
+          {mapMode === "pollution" &&
+            filteredEmissions
+              ?.filter((p) =>
+                activeColors.has(getEmissionBand(p.totalEmissionG)),
+              )
+              .map((point, idx) => (
+                <Circle
+                  key={`pollution-${point.siteId}-${idx}`}
+                  center={[point.lat, point.lon]}
+                  radius={250}
+                  pathOptions={{
+                    color: getEmissionColor(point.totalEmissionG),
+                    weight: 1,
+                    fillColor: getEmissionColor(point.totalEmissionG),
+                    fillOpacity: 0.45,
+                  }}
+                >
+                  <Popup>
+                    <strong>Site {point.siteId}</strong>
+                    <br />
+                    Total Emission: {(point.totalEmissionG / 1000).toFixed(
+                      2,
+                    )}{" "}
+                    kg CO₂
+                    <br />
+                    Car Volume: {point.carVolume.toFixed(0)}
+                    <br />
+                    Day Type: {point.dayType}
+                    <br />
+                    Time Slot: {point.timeSlot.replaceAll("_", " ")}
+                  </Popup>
+                </Circle>
+              ))}
+        </MapContainer>
+      )}
+
+      {/* ── EV Dashboard overlay ───────────────────────────────────── */}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          visibility: activeTab === 1 ? "visible" : "hidden",
+          opacity: activeTab === 1 ? 1 : 0,
+          pointerEvents: activeTab === 1 ? "auto" : "none",
+          transition: "opacity 0.15s ease-in-out",
+        }}
+      >
+        <EVDashboard />
       </Box>
 
-      {/* Tab Content - Both tabs always mounted for seamless switching */}
-      <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
+      {/* ── Persistent top-left tab toggle ────────────────────────────── */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: GAP,
+          left: GAP,
+          zIndex: 1100,
+        }}
+      >
+        <IconButton
+          onClick={() =>
+            handleTabChange({} as React.SyntheticEvent, activeTab === 0 ? 1 : 0)
+          }
+          title={activeTab === 0 ? "EV Charging" : "Back to Traffic"}
+          sx={{
+            bgcolor: (t) => t.palette.background.paper,
+            backdropFilter: "blur(12px)",
+            "&:hover": { bgcolor: (t) => t.palette.background.paper },
+          }}
+        >
+          {activeTab === 0 ? <EvStationIcon /> : <DirectionsCarIcon />}
+        </IconButton>
+      </Box>
+
+      {/* ── Hamburger (top-right, only when traffic panel is closed) ─── */}
+      {activeTab === 0 && !panelOpen && (
         <Box
           sx={{
             position: "absolute",
-            inset: 0,
-            p: 3,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-            visibility: activeTab === 0 ? "visible" : "hidden",
-            opacity: activeTab === 0 ? 1 : 0,
-            pointerEvents: activeTab === 0 ? "auto" : "none",
-            transition: "opacity 0.15s ease-in-out",
+            top: GAP,
+            right: GAP,
+            zIndex: 1000,
           }}
         >
-          {/* Fuel Type Tiles */}
-          <Box sx={{ flexShrink: 0 }}>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2.5 }}>
-              Vehicle Statistics by Fuel Type
-            </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-              {stats?.map((stat) => (
-                <FuelTypeTile
-                  key={stat.fuelType}
-                  fuelType={stat.fuelType}
-                  count={stat.count}
-                />
-              ))}
-            </Box>
-          </Box>
-
-          {/* Map Section */}
-          <Box
+          <IconButton
+            onClick={() => setPanelOpen(true)}
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minHeight: 0,
+              bgcolor: (t) => t.palette.background.paper,
+              backdropFilter: "blur(12px)",
+              "&:hover": { bgcolor: (t) => t.palette.background.paper },
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                mb: 2.5,
-                flexWrap: "wrap",
-                gap: 1,
-              }}
+            <MenuOpenIcon />
+          </IconButton>
+        </Box>
+      )}
+
+      {/* ── Floating side panel ────────────────────────────────────── */}
+      {activeTab === 0 && panelOpen && (
+        <Paper
+          elevation={0}
+          sx={{
+            position: "absolute",
+            top: GAP,
+            right: GAP,
+            bottom: GAP,
+            width: SIDE_PANEL_WIDTH,
+            zIndex: 1000,
+            borderRadius: 3,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {/* Header */}
+          <Box
+            sx={{
+              p: 2,
+              pb: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <DirectionsCarIcon fontSize="small" color="primary" />
+              <Typography variant="h5">Traffic & Fuel</Typography>
+            </Box>
+            <IconButton size="small" onClick={() => setPanelOpen(false)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+
+          <Divider />
+
+          {/* Scrollable content */}
+          <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
+            {/* Map mode */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
             >
-              <Typography variant="h6" fontWeight="bold">
-                {mapMode === "traffic"
-                  ? "High Traffic Points — Dublin"
-                  : "Pollution Estimation — Dublin"}
-              </Typography>
-              <ToggleButtonGroup
-                value={mapMode}
-                exclusive
-                onChange={(_, value) => value && setMapMode(value)}
-                size="small"
-              >
-                <ToggleButton value="traffic">Traffic</ToggleButton>
-                <ToggleButton value="pollution">Pollution</ToggleButton>
-              </ToggleButtonGroup>
+              Map mode
+            </Typography>
+            <ToggleButtonGroup
+              value={mapMode}
+              exclusive
+              onChange={(_, v) => v && setMapMode(v)}
+              size="small"
+              fullWidth
+              sx={{ mb: 2 }}
+            >
+              <ToggleButton value="traffic">Traffic</ToggleButton>
+              <ToggleButton value="pollution">Pollution</ToggleButton>
+            </ToggleButtonGroup>
+
+            {/* Day type */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
+            >
+              Day type
+            </Typography>
+            <ToggleButtonGroup
+              value={dayTypeFilter}
+              exclusive
+              onChange={(_, v) => v && setDayTypeFilter(v)}
+              size="small"
+              fullWidth
+              sx={{ mb: 2 }}
+            >
+              <ToggleButton value="weekday">Weekday</ToggleButton>
+              <ToggleButton value="weekend">Weekend</ToggleButton>
+            </ToggleButtonGroup>
+
+            {/* Time slot */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
+            >
+              Time slot
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+              {(
+                [
+                  ["morning_peak", "Morning peak"],
+                  ["inter_peak", "Inter peak"],
+                  ["evening_peak", "Evening peak"],
+                  ["off_peak", "Off peak"],
+                ] as const
+              ).map(([value, label]) => (
+                <Box
+                  key={value}
+                  onClick={() => setTimeSlotFilter(value)}
+                  sx={{
+                    flex: "1 1 45%",
+                    py: 0.75,
+                    px: 1,
+                    borderRadius: 1,
+                    border: "1px solid",
+                    borderColor:
+                      timeSlotFilter === value ? "primary.main" : "divider",
+                    bgcolor:
+                      timeSlotFilter === value ? "primary.main" : "transparent",
+                    color:
+                      timeSlotFilter === value
+                        ? "primary.contrastText"
+                        : "text.secondary",
+                    fontSize: "0.8125rem",
+                    fontWeight: timeSlotFilter === value ? 600 : 400,
+                    textAlign: "center",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    transition: "all 0.15s",
+                    "&:hover": {
+                      borderColor: "primary.main",
+                      color:
+                        timeSlotFilter === value
+                          ? "primary.contrastText"
+                          : "primary.main",
+                    },
+                  }}
+                >
+                  {label}
+                </Box>
+              ))}
             </Box>
 
-            {/* Filters */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
-              <ToggleButtonGroup
-                value={dayTypeFilter}
-                exclusive
-                onChange={(_, value) => value && setDayTypeFilter(value)}
-                size="small"
-              >
-                <ToggleButton value="weekday">Weekday</ToggleButton>
-                <ToggleButton value="weekend">Weekend</ToggleButton>
-              </ToggleButtonGroup>
-
-              <ToggleButtonGroup
-                value={timeSlotFilter}
-                exclusive
-                onChange={(_, value) => value && setTimeSlotFilter(value)}
-                size="small"
-              >
-                <ToggleButton value="morning_peak">Morning Peak</ToggleButton>
-                <ToggleButton value="inter_peak">Inter Peak</ToggleButton>
-                <ToggleButton value="evening_peak">Evening Peak</ToggleButton>
-                <ToggleButton value="off_peak">Off Peak</ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-
-            {/* Legend */}
-            <Box
-              sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
+            {/* Intensity filter */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
             >
-              <Typography variant="caption" color="text.secondary">
-                Filter by intensity:
-              </Typography>
+              Filter by intensity
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, mb: 2.5 }}>
               {LEGEND_ITEMS.map(({ band, color, label }) => (
                 <Chip
                   key={band}
@@ -386,102 +491,42 @@ export const CarDashboard = () => {
               ))}
             </Box>
 
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: 2,
-                overflow: "hidden",
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-              }}
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Fuel type stats */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 1, fontWeight: 600 }}
             >
-              <MapContainer
-                center={dublinCenter}
-                zoom={12}
-                style={{ flex: 1, width: "100%", minHeight: 0 }}
-                zoomControl={true}
-              >
-                <TileLayer attribution={tileAttribution} url={tileUrl} />
-
-                {mapMode === "traffic" &&
-                  filteredPoints
-                    ?.filter((p) =>
-                      activeColors.has(getVolumeBand(p.avgVolume)),
-                    )
-                    .map((point, idx) => (
-                      <CircleMarker
-                        key={`traffic-${point.siteId}-${idx}`}
-                        center={[point.lat, point.lon]}
-                        radius={6}
-                        pathOptions={{
-                          color: "#fff",
-                          weight: 1.5,
-                          fillColor: getMarkerColor(point.avgVolume),
-                          fillOpacity: 0.8,
-                        }}
-                      >
-                        <Popup>
-                          <strong>Site {point.siteId}</strong>
-                          <br />
-                          Avg Volume: {point.avgVolume.toFixed(2)}
-                          <br />
-                          Day Type: {point.dayType}
-                          <br />
-                          Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                        </Popup>
-                      </CircleMarker>
-                    ))}
-
-                {mapMode === "pollution" &&
-                  filteredEmissions
-                    ?.filter((p) =>
-                      activeColors.has(getEmissionBand(p.totalEmissionG)),
-                    )
-                    .map((point, idx) => (
-                      <Circle
-                        key={`pollution-${point.siteId}-${idx}`}
-                        center={[point.lat, point.lon]}
-                        radius={250}
-                        pathOptions={{
-                          color: getEmissionColor(point.totalEmissionG),
-                          weight: 1,
-                          fillColor: getEmissionColor(point.totalEmissionG),
-                          fillOpacity: 0.45,
-                        }}
-                      >
-                        <Popup>
-                          <strong>Site {point.siteId}</strong>
-                          <br />
-                          Total Emission:{" "}
-                          {(point.totalEmissionG / 1000).toFixed(2)} kg CO₂
-                          <br />
-                          Car Volume: {point.carVolume.toFixed(0)}
-                          <br />
-                          Day Type: {point.dayType}
-                          <br />
-                          Time Slot: {point.timeSlot.replaceAll("_", " ")}
-                        </Popup>
-                      </Circle>
-                    ))}
-              </MapContainer>
-            </Paper>
+              Vehicles by fuel type
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+              {stats?.map((stat) => (
+                <Box
+                  key={stat.fuelType}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    px: 1.25,
+                    py: 0.75,
+                    borderRadius: 1.5,
+                    bgcolor: (t) => t.palette.action.hover,
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    {stat.fuelType}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700}>
+                    {stat.count.toLocaleString()}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
-        </Box>
-
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            visibility: activeTab === 1 ? "visible" : "hidden",
-            opacity: activeTab === 1 ? 1 : 0,
-            pointerEvents: activeTab === 1 ? "auto" : "none",
-            transition: "opacity 0.15s ease-in-out",
-          }}
-        >
-          <EVDashboard />
-        </Box>
-      </Box>
+        </Paper>
+      )}
     </Box>
   );
 };
