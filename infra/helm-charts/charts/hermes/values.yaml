@@ -36,6 +36,14 @@ db:
     usernameKey: DB_BACKEND_USER
     passwordKey: DB_BACKEND_USER_PASSWORD
 
+aws:
+  region: eu-west-1
+  ses:
+    secret:
+      name: sec-aws-ses
+      accessKeyIdKey: AWS_ACCESS_KEY_ID
+      secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+
 keycloak:
   # Set from parent values
   serverUrl: ""
