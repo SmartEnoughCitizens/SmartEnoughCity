@@ -86,5 +86,4 @@ public interface GtfsStopRepository extends JpaRepository<GtfsStop, String> {
       @Param("latMax") double latMax,
       @Param("lonMin") double lonMin,
       @Param("lonMax") double lonMax);
-
 }
