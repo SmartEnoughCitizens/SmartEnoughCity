@@ -6,6 +6,7 @@ import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
   BusCommonDelay,
+  BusNewStopRecommendation,
   DisruptionItem,
   BusDashboardResponse,
   BusKpis,
@@ -181,6 +182,16 @@ export const dashboardApi = {
     const { data } = await axiosInstance.get<BusCommonDelay[]>(
       API_ENDPOINTS.BUS_COMMON_DELAYS,
       { params: { filter } },
+    );
+    return data;
+  },
+
+  /**
+   * Top new bus stop recommendations (materialized view + route/stop joins)
+   */
+  getBusNewStopRecommendations: async (): Promise<BusNewStopRecommendation[]> => {
+    const { data } = await axiosInstance.get<BusNewStopRecommendation[]>(
+      API_ENDPOINTS.BUS_NEW_STOPS_RECOMMENDATIONS,
     );
     return data;
   },

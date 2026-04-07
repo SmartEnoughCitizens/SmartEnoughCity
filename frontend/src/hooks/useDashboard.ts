@@ -44,6 +44,7 @@ export const DASHBOARD_KEYS = {
   busSystemPerformance: ["bus", "system-performance"] as const,
   busCommonDelays: (filter: string) =>
     ["bus", "common-delays", filter] as const,
+  busNewStopRecommendations: ["bus", "new-stops-recommendations"] as const,
   busRouteBreakdown: (routeId: string | null, filter: string) =>
     ["bus", "route-breakdown", routeId, filter] as const,
   carFuelTypeStatistics: ["car", "fuel-type-statistics"] as const,
@@ -210,6 +211,20 @@ export const useCommonDelays = (filter: string) => {
     staleTime: 120_000,
     refetchInterval: 120_000,
     refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Top new bus stop recommendations (from MV)
+ */
+export const useBusNewStopRecommendations = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.busNewStopRecommendations,
+    queryFn: () => dashboardApi.getBusNewStopRecommendations(),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+    refetchIntervalInBackground: true,
+    retry: 1,
   });
 };
 

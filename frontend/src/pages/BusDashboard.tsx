@@ -25,6 +25,7 @@ import {
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import { DelayLeaderboard } from "@/components/bus/DelayLeaderboard";
+import { NewStopRecommendationsList } from "@/components/bus/NewStopRecommendationsList";
 import "leaflet/dist/leaflet.css";
 
 const KpiCard = ({
@@ -417,12 +418,26 @@ export const BusDashboard = () => {
         {/* Common Delays leaderboard */}
         <Paper
           elevation={0}
-          sx={{ borderRadius: 2, p: 2, maxHeight: 420, overflow: "auto" }}
+          sx={{ borderRadius: 2, p: 2, maxHeight: 340, overflow: "auto" }}
         >
           <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
             Common Bus Delays
           </Typography>
           <DelayLeaderboard />
+        </Paper>
+
+        {/* New stop recommendations (MV-backed) */}
+        <Paper
+          elevation={0}
+          sx={{ borderRadius: 2, p: 2, maxHeight: 360, overflow: "auto" }}
+        >
+          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+            New stop recommendations
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+            Top gaps between consecutive stops (by combined score)
+          </Typography>
+          <NewStopRecommendationsList />
         </Paper>
       </Box>
     </Box>

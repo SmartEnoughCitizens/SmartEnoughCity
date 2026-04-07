@@ -81,3 +81,24 @@ export interface BusRouteBreakdown {
   maxDelayMinutes: number;
   tripCount: number;
 }
+
+export interface BusStopSummary {
+  id: string;
+  code: number;
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+export interface BusNewStopRecommendation {
+  routeId: string;
+  routeShortName: string;
+  routeLongName: string;
+  stopA: BusStopSummary;
+  stopB: BusStopSummary;
+  candidateLat: number;
+  candidateLon: number;
+  populationScore: number;
+  publicSpaceScore: number;
+  combinedScore: number;
+}
