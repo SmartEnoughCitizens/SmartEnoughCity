@@ -94,3 +94,14 @@ export interface TrainDemandSimulateResponse {
   simulatedDemand: StationDemand[];
   affectedStopIds: string[];
 }
+
+export interface TrainRecommendation {
+  id: number;
+  indicator: string;
+  recommendation: string;
+  simulation: string;
+  usecase: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}

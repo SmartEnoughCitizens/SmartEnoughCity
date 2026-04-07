@@ -92,7 +92,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/v1/dashboard/**")
                     .authenticated()
                     .requestMatchers("/api/v1/recommendation-engine/**")
-                    .hasRole("City_Manager")
+                    .authenticated()
                     .requestMatchers("/api/v1/bus/**")
                     .hasAnyRole("City_Manager", "Bus_Admin", "Bus_Provider")
                     .requestMatchers("/api/v1/train/**")

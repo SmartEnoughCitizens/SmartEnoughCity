@@ -104,6 +104,8 @@ export const API_ENDPOINTS = {
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
     `/api/v1/recommendation-engine/indicators/${type}`,
+  RECOMMENDATION_BY_INDICATOR: (indicator: string) =>
+    `/api/v1/recommendation-engine/by-indicator/${indicator}`,
 
   // Approvals (generic — used by any indicator)
   APPROVALS: "/api/v1/approvals",
