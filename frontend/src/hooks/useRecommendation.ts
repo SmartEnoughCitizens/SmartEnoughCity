@@ -9,6 +9,8 @@ import type { RecommendationEngineRequest } from "@/types";
 export const RECOMMENDATION_KEYS = {
   indicator: (type: string, limit?: number) =>
     ["recommendation", "indicator", type, { limit }] as const,
+  byIndicator: (indicator: string) =>
+    ["recommendation", "by-indicator", indicator] as const,
 };
 
 /**
@@ -18,6 +20,18 @@ export const useQueryIndicators = () => {
   return useMutation({
     mutationFn: (request: RecommendationEngineRequest) =>
       recommendationApi.queryIndicators(request),
+  });
+};
+
+/**
+ * Get active recommendations by indicator
+ */
+export const useTrainRecommendations = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: RECOMMENDATION_KEYS.byIndicator("train"),
+    queryFn: () => recommendationApi.getRecommendationsByIndicator("train"),
+    enabled,
+    staleTime: 60_000,
   });
 };
 

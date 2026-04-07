@@ -15,6 +15,7 @@ public class BackendNotificationRequestDTO {
   private String dataIndicator;
 
   private Map<String, Object> recommendation;
+  private Map<String, Object> simulation;
   private String subject;
   private String body;
   private Map<String, Object> metadata;
@@ -36,5 +37,13 @@ public class BackendNotificationRequestDTO {
 
   public void setRecommendation(Map<String, Object> recommendation) {
     this.recommendation = recommendation == null ? null : Map.copyOf(recommendation);
+  }
+
+  public Map<String, Object> getSimulation() {
+    return simulation == null ? null : Map.copyOf(simulation);
+  }
+
+  public void setSimulation(Map<String, Object> simulation) {
+    this.simulation = simulation == null ? null : Map.copyOf(simulation);
   }
 }
