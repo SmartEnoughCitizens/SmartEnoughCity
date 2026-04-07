@@ -143,8 +143,13 @@ public class CoverageGapSchedulerService {
 
   @PostConstruct
   public void init() {
-    jdbcTemplate.execute(CREATE_TABLE_SQL);
-    log.info("cycle_coverage_gaps table ready");
+    try {
+      jdbcTemplate.execute(CREATE_TABLE_SQL);
+      log.info("cycle_coverage_gaps table ready");
+    } catch (Exception e) {
+      log.warn(
+          "cycle_coverage_gaps table init skipped — schema may not exist yet: {}", e.getMessage());
+    }
     computeAndStore();
   }
 

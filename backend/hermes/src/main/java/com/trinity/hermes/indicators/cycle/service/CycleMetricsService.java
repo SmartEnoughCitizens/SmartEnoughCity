@@ -75,7 +75,9 @@ public class CycleMetricsService {
           "ALTER TABLE backend.cycle_station_proposals "
               + "ADD COLUMN IF NOT EXISTS implementation_status VARCHAR(30) NOT NULL DEFAULT 'PLANNED'");
     } catch (Exception e) {
-      log.warn("initProposalsTable skipped — insufficient privileges or table already managed externally: {}", e.getMessage());
+      log.warn(
+          "initProposalsTable skipped — insufficient privileges or table already managed externally: {}",
+          e.getMessage());
     }
   }
 
