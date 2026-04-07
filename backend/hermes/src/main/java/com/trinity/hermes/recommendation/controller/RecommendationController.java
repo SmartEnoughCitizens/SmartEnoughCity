@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/recommendation-engine")
+@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @Slf4j
 public class RecommendationController {
@@ -56,6 +57,12 @@ public class RecommendationController {
   //        return updated.map(ResponseEntity::ok)
   //                .orElseGet(() -> ResponseEntity.notFound().build());
   //    }
+
+  @GetMapping("/by-indicator/{indicator}")
+  public ResponseEntity<List<RecommendationResponse>> getActiveByIndicator(
+      @PathVariable String indicator) {
+    return ResponseEntity.ok(recommendationFacade.getActiveByIndicator(indicator));
+  }
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteRecommendation(@PathVariable Integer id) {

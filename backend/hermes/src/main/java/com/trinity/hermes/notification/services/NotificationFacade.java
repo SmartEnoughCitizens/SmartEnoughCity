@@ -109,6 +109,7 @@ public class NotificationFacade {
       dto.setQrid(request.getQrid());
       dto.setDataIndicator(indicator);
       dto.setRecommendation(request.getRecommendation());
+      dto.setSimulation(request.getSimulation());
       dto.setSubject(request.getSubject());
       dto.setBody(request.getBody());
       dto.setMetadata(request.getMetadata());

@@ -71,6 +71,7 @@ export const API_ENDPOINTS = {
   // Tram Indicators
   TRAM_KPIS: "/api/v1/tram/kpis",
   TRAM_LIVE_FORECASTS: "/api/v1/tram/live-forecasts",
+  TRAM_ALTERNATIVE_ROUTES: "/api/v1/tram/alternative-routes",
   TRAM_DELAYS: "/api/v1/tram/delays",
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
 
@@ -105,6 +106,8 @@ export const API_ENDPOINTS = {
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
     `/api/v1/recommendation-engine/indicators/${type}`,
+  RECOMMENDATION_BY_INDICATOR: (indicator: string) =>
+    `/api/v1/recommendation-engine/by-indicator/${indicator}`,
 
   // Approvals (generic — used by any indicator)
   APPROVALS: "/api/v1/approvals",
@@ -123,6 +126,10 @@ export const API_ENDPOINTS = {
   DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
   DISRUPTIONS_ALL: "/api/v1/disruptions",
   DISRUPTION_RESOLVE: (id: number) => `/api/v1/disruptions/${id}/resolve`,
+  DISRUPTION_DETAIL: (id: number) => `/api/v1/disruptions/${id}`,
+  DISRUPTIONS_BY_MODE: (mode: string) =>
+    `/api/v1/disruptions/transport/${mode}`,
+  PUBLIC_DISRUPTION: (id: number) => `/api/public/disruptions/${id}`,
 
   // EV Charging Indicators
   EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",
