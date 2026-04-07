@@ -61,16 +61,39 @@ public class NotificationController {
     return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
   }
 
-  /**
-   * Mark a single notification as read. Returns 404 if the notification doesn't belong to the user.
-   */
   @PatchMapping("/{userId}/{notificationId}/read")
-  public ResponseEntity<?> markNotificationAsRead(
-      @PathVariable String userId, @PathVariable Long notificationId) {
-    boolean updated = notificationFacade.markAsRead(userId, notificationId);
-    if (!updated) {
-      return ResponseEntity.notFound().build();
-    }
+  public ResponseEntity<?> toggleRead(
+      @PathVariable String userId,
+      @PathVariable Long notificationId,
+      @RequestParam(defaultValue = "true") boolean read) {
+    boolean updated =
+        read
+            ? notificationFacade.markAsRead(userId, notificationId)
+            : notificationFacade.markAsUnread(userId, notificationId);
+    if (!updated) return ResponseEntity.notFound().build();
     return ResponseEntity.ok(Map.of("status", "updated"));
+  }
+
+  /** Soft-delete (move to bin). */
+  @DeleteMapping("/{userId}/{notificationId}")
+  public ResponseEntity<?> softDelete(
+      @PathVariable String userId, @PathVariable Long notificationId) {
+    boolean deleted = notificationFacade.softDelete(userId, notificationId);
+    if (!deleted) return ResponseEntity.notFound().build();
+    return ResponseEntity.ok(Map.of("status", "deleted"));
+  }
+
+  /** Restore from bin. */
+  @PatchMapping("/{userId}/{notificationId}/restore")
+  public ResponseEntity<?> restore(@PathVariable String userId, @PathVariable Long notificationId) {
+    boolean restored = notificationFacade.restore(userId, notificationId);
+    if (!restored) return ResponseEntity.notFound().build();
+    return ResponseEntity.ok(Map.of("status", "restored"));
+  }
+
+  /** Get bin (soft-deleted) notifications. */
+  @GetMapping("/{userId}/bin")
+  public ResponseEntity<NotificationResponseDTO> getBin(@PathVariable String userId) {
+    return ResponseEntity.ok(notificationFacade.getBin(userId));
   }
 }

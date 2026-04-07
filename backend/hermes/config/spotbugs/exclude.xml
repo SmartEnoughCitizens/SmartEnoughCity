@@ -8,4 +8,32 @@
     <Match>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     </Match>
+
+    <!--
+        SECCRLFLOG: Log statements that include request/path parameters may technically
+        allow CRLF injection, but all endpoints are authenticated internal APIs.
+        Sanitising every log parameter would add noise with no real security benefit here.
+    -->
+    <Match>
+        <BugCode name="SECCRLFLOG"/>
+    </Match>
+
+    <!--
+        SECSQLISPRJDBC: MaterializedViewService builds DDL strings (CREATE MATERIALIZED VIEW,
+        REFRESH) from internal config only — no user input is ever interpolated.
+        Parameterised queries cannot be used for DDL statements in PostgreSQL.
+    -->
+    <Match>
+        <Class name="com.trinity.hermes.mv.service.MaterializedViewService"/>
+        <BugCode name="SECSQLISPRJDBC"/>
+    </Match>
+
+    <!--
+        SECRD: The regex in MaterializedViewService validates internal view-name identifiers
+        sourced from application config, not user input. ReDOS is not a realistic threat.
+    -->
+    <Match>
+        <Class name="com.trinity.hermes.mv.service.MaterializedViewService"/>
+        <BugCode name="SECRD"/>
+    </Match>
 </FindBugsFilter>

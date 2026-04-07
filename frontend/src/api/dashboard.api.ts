@@ -30,10 +30,14 @@ import type {
   JunctionEmission,
   TrafficRecommendation,
   PedestrianLive,
+  StationDemand,
   TrainDashboardResponse,
   TrainDelay,
+  TrainDemandSimulateRequest,
+  TrainDemandSimulateResponse,
   TrainKpis,
   TrainLiveTrain,
+  TrainRoute,
   TrainServiceStats,
   TramDashboardResponse,
   TramKpis,
@@ -349,6 +353,35 @@ export const dashboardApi = {
     const { data } = await axiosInstance.get<StationHourlyUsageDTO[]>(
       API_ENDPOINTS.CYCLE_DEMAND_STATION_HOURLY,
       { params },
+    );
+    return data;
+  },
+
+  /**
+   * Get real route corridors (ordered stop coordinates) for the Dublin rail network
+   */
+  getTrainRoutes: async (): Promise<TrainRoute[]> => {
+    const { data } = await axiosInstance.get<TrainRoute[]>(
+      API_ENDPOINTS.TRAIN_ROUTES,
+    );
+    return data;
+  },
+
+  /** Get trip-frequency demand scores per Dublin station */
+  getTrainDemand: async (): Promise<StationDemand[]> => {
+    const { data } = await axiosInstance.get<StationDemand[]>(
+      API_ENDPOINTS.TRAIN_DEMAND,
+    );
+    return data;
+  },
+
+  /** Simulate adding a new train and return updated demand */
+  simulateTrainDemand: async (
+    request: TrainDemandSimulateRequest,
+  ): Promise<TrainDemandSimulateResponse> => {
+    const { data } = await axiosInstance.post<TrainDemandSimulateResponse>(
+      API_ENDPOINTS.TRAIN_DEMAND_SIMULATE,
+      request,
     );
     return data;
   },

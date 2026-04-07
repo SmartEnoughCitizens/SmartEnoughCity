@@ -43,8 +43,16 @@ public class NotificationEntity {
   @Column(name = "qr_code_id")
   private String qrCodeId;
 
+  /** Optional deep-link shown as a CTA in the notification detail view. */
+  @Column(name = "action_url")
+  private String actionUrl;
+
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
+
+  /** Soft-delete timestamp. Non-null = in bin. Hard-deleted after 30 days. */
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
   @PrePersist
   protected void prePersist() {

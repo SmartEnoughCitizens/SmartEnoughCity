@@ -295,7 +295,13 @@ const SearchBar = ({
 
   return (
     <Box
-      sx={{ position: "absolute", top: 16, left: 16, zIndex: 1000, width: 400 }}
+      sx={{
+        position: "absolute",
+        top: 16,
+        right: 16,
+        zIndex: 1000,
+        width: 380,
+      }}
     >
       <Paper
         elevation={0}
@@ -508,7 +514,7 @@ const SidePanel = ({
     elevation={0}
     sx={{
       position: "absolute",
-      top: 16,
+      top: 148,
       right: 16,
       bottom: 16,
       width: 350,
