@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -22,11 +23,31 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+  @Value("${app.frontend-url:http://localhost:3000}")
+  private String frontendUrl;
+
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
+    config.setAllowedOrigins(List.of(frontendUrl));
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+    config.setAllowedHeaders(List.of("*"));
+    config.setAllowCredentials(true);
+    config.setMaxAge(3600L);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
+  }
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,6 +61,7 @@ public class SecurityConfig {
                     "/api/**",
                     "/notification/**",
                     "/v3/api-docs/**",
+                    "/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger/**"))
         .exceptionHandling(
@@ -54,11 +76,14 @@ public class SecurityConfig {
                     }))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/v3/api-docs/**", "/swagger/**", "/swagger-ui/**")
+                auth.requestMatchers(
+                        "/v3/api-docs/**", "/swagger/**", "/swagger-ui/**", "/api-docs/**")
                     .permitAll()
                     .requestMatchers("/api/public/**")
                     .permitAll()
                     .requestMatchers("/api/auth/**")
+                    .permitAll()
+                    .requestMatchers("/api/v1/disruptions", "/api/v1/disruptions/**")
                     .permitAll()
                     .requestMatchers("/api/v1/dashboard/train", "/api/v1/dashboard/train/**")
                     .hasAnyRole("City_Manager", "Train_Admin", "Train_Provider")
