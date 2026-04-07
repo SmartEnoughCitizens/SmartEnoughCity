@@ -473,6 +473,22 @@ export const DashboardLayout = () => {
           flexDirection: "column",
         }}
       >
+        {/* Overview Dashboard — City_Manager only */}
+        {canSeeView.overview && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              zIndex: activeView === "overview" ? 2 : 1,
+              visibility: activeView === "overview" ? "visible" : "hidden",
+              opacity: activeView === "overview" ? 1 : 0,
+              pointerEvents: activeView === "overview" ? "auto" : "none",
+              transition: "opacity 0.15s ease-in-out",
+            }}
+          >
+            <Dashboard onNavigate={setActiveView} />
+          </Box>
+        )}
         {/* New notification banner */}
         {newNotifBanner && (
           <Box
@@ -532,6 +548,22 @@ export const DashboardLayout = () => {
             </Box>
           )}
 
+          {/* Bus Dashboard */}
+          {canSeeView.bus && (
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                zIndex: activeView === "bus" ? 2 : 1,
+                visibility: activeView === "bus" ? "visible" : "hidden",
+                opacity: activeView === "bus" ? 1 : 0,
+                pointerEvents: activeView === "bus" ? "auto" : "none",
+                transition: "opacity 0.15s ease-in-out",
+              }}
+            >
+              <BusDashboard />
+            </Box>
+          )}
           {/* Bus Dashboard */}
           {canSeeView.bus && (
             <Box sx={panelSx("bus")}>

@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.bus.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
@@ -51,14 +52,17 @@ public class BusController {
   @GetMapping("/common-delays")
   public ResponseEntity<List<BusCommonDelayDTO>> getCommonDelays(
       @RequestParam(defaultValue = "today") String filter) {
-    log.info("GET /api/v1/bus/common-delays?filter={}", filter);
+    log.info("GET /api/v1/bus/common-delays?filter={}", LogSanitizer.sanitizeLog(filter));
     return ResponseEntity.ok(busFacade.getCommonDelays(filter));
   }
 
   @GetMapping("/common-delays/{routeId}")
   public ResponseEntity<List<BusRouteBreakdownDTO>> getRouteBreakdown(
       @PathVariable String routeId, @RequestParam(defaultValue = "today") String filter) {
-    log.info("GET /api/v1/bus/common-delays/{}?filter={}", routeId, filter);
+    log.info(
+        "GET /api/v1/bus/common-delays/{}?filter={}",
+        LogSanitizer.sanitizeLog(routeId),
+        LogSanitizer.sanitizeLog(filter));
     return ResponseEntity.ok(busFacade.getRouteBreakdown(routeId, filter));
   }
 

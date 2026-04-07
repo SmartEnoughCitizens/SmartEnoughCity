@@ -6,7 +6,27 @@
         context of Spring Data JPA entities and DTOs where Lombok is used for boilerplate generation.
     -->
     <Match>
-        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+            <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+        SECSQLISPRJDBC: MaterializedViewService constructs DDL statements (CREATE, DROP,
+        REFRESH MATERIALIZED VIEW) from internally-sourced MV names that are validated
+        against a registry. These are not user-input SQL injections.
+    -->
+    <Match>
+        <Class name="com.trinity.hermes.mv.service.MaterializedViewService"/>
+        <Bug pattern="SECSQLISPRJDBC"/>
+    </Match>
+
+    <!--
+        SECRD (ReDOS): The regex in MaterializedViewService validates MV names against a
+        known safe character set. Input is always an internally-registered name, not
+        arbitrary user input, so a ReDoS attack is not a realistic threat.
+    -->
+    <Match>
+        <Class name="com.trinity.hermes.mv.service.MaterializedViewService"/>
+        <Bug pattern="SECRD"/>
     </Match>
 
     <!--

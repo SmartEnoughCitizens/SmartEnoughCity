@@ -2,7 +2,7 @@
  * React Query hooks for dashboard data
  */
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
 export const MISC_KEYS = {
@@ -38,6 +38,10 @@ export const DASHBOARD_KEYS = {
     ["cycle", "demand", "od-pairs", { days, limit }] as const,
   cycleStationHourlyUsage: (days?: number, limit?: number) =>
     ["cycle", "demand", "station-hourly", { days, limit }] as const,
+  cycleRiskScores: ["cycle", "risk-scores"] as const,
+  cycleCoverageGaps: ["cycle", "coverage-gaps"] as const,
+  cyclePendingProposals: ["cycle", "proposals", "pending"] as const,
+  cycleAcceptedProposals: ["cycle", "proposals", "accepted"] as const,
   busKpis: ["bus", "kpis"] as const,
   busLiveVehicles: ["bus", "live-vehicles"] as const,
   busRouteUtilization: ["bus", "route-utilization"] as const,
@@ -418,6 +422,15 @@ export const useCycleStationHourlyUsage = (days = 30, limit = 30) => {
   });
 };
 
+export const useCycleRiskScores = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleRiskScores,
+    queryFn: () => dashboardApi.getCycleRiskScores(),
+    staleTime: 300_000,
+    refetchInterval: 300_000,
+  });
+};
+
 /**
  * Get real route corridors for the Dublin rail network
  */
@@ -546,5 +559,101 @@ export const useActiveDisruptions = () => {
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get cycle coverage gaps (electoral divisions with low station density)
+ */
+export const useCycleCoverageGaps = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleCoverageGaps,
+    queryFn: () => dashboardApi.getCycleCoverageGaps(),
+    staleTime: 3_600_000, // 1 hour — recomputed nightly
+  });
+};
+
+/**
+ * Mark a coverage gap electoral division as planned for implementation
+ */
+export const useMarkCoverageGapProcessed = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (electoralDivision: string) =>
+      dashboardApi.markCoverageGapProcessed(electoralDivision),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleCoverageGaps,
+      });
+    },
+  });
+};
+
+/**
+ * Submit a proposed station placement for review by city manager / cycle admin
+ */
+export const useSubmitStationProposal = () => {
+  return useMutation({
+    mutationFn: dashboardApi.submitStationProposal,
+  });
+};
+
+/**
+ * Fetch proposals pending review for the current user's role
+ */
+export const usePendingProposals = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cyclePendingProposals,
+    queryFn: () => dashboardApi.getPendingProposals(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useAcceptedProposals = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
+    queryFn: () => dashboardApi.getAcceptedProposals(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+};
+
+export const useUpdateImplementationStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      dashboardApi.updateImplementationStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
+      });
+    },
+  });
+};
+
+/**
+ * Accept or reject a station proposal
+ */
+export const useReviewProposal = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      action,
+      reason,
+    }: {
+      id: number;
+      action: string;
+      reason: string;
+    }) => dashboardApi.reviewProposal(id, action, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cyclePendingProposals,
+      });
+      queryClient.invalidateQueries({
+        queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
+      });
+    },
   });
 };

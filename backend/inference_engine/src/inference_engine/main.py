@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import threading
 from collections.abc import Generator
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -11,7 +12,9 @@ from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
 
+from inference_engine.db import engine as db_engine
 from inference_engine.ev_router import router as ev_router
+from inference_engine.indicators.cycle.risk_engine import run as run_cycle_risk
 from inference_engine.settings.api_settings import get_api_settings
 from inference_engine.train_router import router as train_router
 from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
@@ -30,6 +33,15 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
     # Startup
     logger.info("🚀 Application starting up...")
     start_scheduler()
+
+    cycle_risk_thread = threading.Thread(
+        target=run_cycle_risk,
+        args=(db_engine,),
+        name="cycle-risk-engine",
+        daemon=True,
+    )
+    cycle_risk_thread.start()
+    logger.info("✅ Cycle risk engine started in background thread")
     warm_demand_cache()
     warm_utilisation_cache()
     logger.info("✅ Application ready!")

@@ -5,11 +5,13 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  CoverageGapDTO,
   BusCommonDelay,
   BusNewStopRecommendation,
   BusRouteDetail,
   DisruptionItem,
   BusDashboardResponse,
+  StationProposalSummary,
   BusKpis,
   BusLiveVehicle,
   BusRouteBreakdown,
@@ -29,6 +31,7 @@ import type {
   RebalanceSuggestionDTO,
   StationODPairDTO,
   StationRankingDTO,
+  StationRiskScoreDTO,
   JunctionEmission,
   TrafficRecommendation,
   PedestrianLive,
@@ -470,6 +473,13 @@ export const dashboardApi = {
     return data;
   },
 
+  getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
+    const { data } = await axiosInstance.get<StationRiskScoreDTO[]>(
+      API_ENDPOINTS.CYCLE_RISK_SCORES,
+    );
+    return data;
+  },
+
   /**
    * Get live pedestrian counts per site
    */
@@ -496,5 +506,69 @@ export const dashboardApi = {
    */
   resolveDisruption: async (id: number): Promise<void> => {
     await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
+  },
+
+  getCycleCoverageGaps: async (): Promise<CoverageGapDTO[]> => {
+    const { data } = await axiosInstance.get<CoverageGapDTO[]>(
+      API_ENDPOINTS.CYCLE_COVERAGE_GAPS,
+    );
+    return data;
+  },
+
+  markCoverageGapProcessed: async (
+    electoralDivision: string,
+  ): Promise<void> => {
+    await axiosInstance.patch(
+      API_ENDPOINTS.CYCLE_COVERAGE_GAP_PROCESS(electoralDivision),
+    );
+  },
+
+  submitStationProposal: async (proposal: {
+    proposedStations: { latitude: number; longitude: number }[];
+    impactedAreas: {
+      electoralDivision: string;
+      fromCategory: string;
+      toCategory: string;
+      simulatedDistanceM: number;
+    }[];
+    totalImprovedAreas: number;
+    submittedBy?: string;
+    notes?: string;
+  }): Promise<void> => {
+    await axiosInstance.post(API_ENDPOINTS.CYCLE_STATION_PROPOSALS, proposal);
+  },
+
+  getPendingProposals: async (): Promise<StationProposalSummary[]> => {
+    const { data } = await axiosInstance.get<StationProposalSummary[]>(
+      API_ENDPOINTS.CYCLE_STATION_PROPOSALS,
+    );
+    return data;
+  },
+
+  getAcceptedProposals: async (): Promise<StationProposalSummary[]> => {
+    const { data } = await axiosInstance.get<StationProposalSummary[]>(
+      API_ENDPOINTS.CYCLE_ACCEPTED_PROPOSALS,
+    );
+    return data;
+  },
+
+  updateImplementationStatus: async (
+    id: number,
+    status: string,
+  ): Promise<void> => {
+    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_IMPL_STATUS(id), {
+      status,
+    });
+  },
+
+  reviewProposal: async (
+    id: number,
+    action: string,
+    reason: string,
+  ): Promise<void> => {
+    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_REVIEW(id), {
+      action,
+      reason,
+    });
   },
 };

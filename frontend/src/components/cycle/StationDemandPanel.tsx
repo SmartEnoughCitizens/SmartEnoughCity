@@ -67,10 +67,9 @@ function lerpColor(hex1: string, hex2: string, t: number): string {
 }
 
 function heatColor(value: number, max: number): string {
-  if (max === 0) return "#1e3a5f";
+  if (max === 0) return "#22c55e";
   const t = Math.min(value / max, 1);
-  if (t < 0.5) return lerpColor("#1e3a5f", "#f59e0b", t * 2);
-  return lerpColor("#f59e0b", "#ef4444", (t - 0.5) * 2);
+  return lerpColor("#22c55e", "#ef4444", t);
 }
 
 // ── Heatmap grid component ────────────────────────────────────────────────────
@@ -84,13 +83,13 @@ const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
     for (const r of rows) {
       if (!map.has(r.stationId))
         map.set(r.stationId, { name: r.name, byHour: {} });
-      map.get(r.stationId)!.byHour[r.hourOfDay] = r.avgUsageRate;
+      map.get(r.stationId)!.byHour[r.hourOfDay] = r.avgTurnover;
     }
     return [...map.entries()].map(([id, v]) => ({ id, ...v }));
   }, [rows]);
 
   const globalMax = useMemo(
-    () => Math.max(...rows.map((r) => r.avgUsageRate), 1),
+    () => Math.max(...rows.map((r) => r.avgTurnover), 1),
     [rows],
   );
 
@@ -173,12 +172,11 @@ const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
             return (
               <Box
                 key={h}
-                title={`${st.name} ${h}:00 — ${val.toFixed(1)}%`}
+                title={`${st.name} ${h}:00 — ${Math.round(val)} moves`}
                 sx={{
                   height: 14,
                   borderRadius: "2px",
                   bgcolor: heatColor(val, globalMax),
-                  opacity: val === 0 ? 0.15 : 1,
                 }}
               />
             );
@@ -201,7 +199,7 @@ const StationHeatmap = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
             flex: 1,
             height: 6,
             borderRadius: 1,
-            background: "linear-gradient(to right, #1e3a5f, #f59e0b, #ef4444)",
+            background: "linear-gradient(to right, #22c55e, #ef4444)",
           }}
         />
         <Typography
@@ -233,11 +231,11 @@ const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
     >();
     for (const r of rows) {
       const existing = map.get(r.stationId);
-      if (!existing || r.avgUsageRate > existing.peakUsage) {
+      if (!existing || r.avgTurnover > existing.peakUsage) {
         map.set(r.stationId, {
           name: r.name,
           peakHour: r.hourOfDay,
-          peakUsage: r.avgUsageRate,
+          peakUsage: r.avgTurnover,
         });
       }
     }
@@ -277,7 +275,7 @@ const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
           borderColor: "divider",
         }}
       >
-        {["Station", "Peak Hr", "Usage", "Type"].map((h) => (
+        {["Station", "Peak Hr", "Moves", "Type"].map((h) => (
           <Typography
             key={h}
             variant="caption"
@@ -324,7 +322,7 @@ const PeakHoursTable = ({ rows }: { rows: StationHourlyUsageDTO[] }) => {
               {st.peakHour}:00
             </Typography>
             <Typography variant="caption" sx={{ fontSize: "0.62rem" }}>
-              {st.peakUsage.toFixed(1)}%
+              {Math.round(st.peakUsage)}
             </Typography>
             <Box
               sx={{
@@ -377,23 +375,27 @@ export const StationDemandPanel = () => {
         const found = hourlyProfile?.find((p) => p.hourOfDay === h);
         return {
           hourOfDay: h,
-          avgUsageRate: found ? Math.round(found.avgUsageRate * 10) / 10 : 0,
+          avgTurnover: found ? Math.round(found.avgTurnover) : 0,
         };
       }),
     [hourlyProfile],
   );
 
-  const classCounts = useMemo(() => {
-    const counts: Record<StationClassification, number> = {
-      MORNING_PEAK: 0,
-      AFTERNOON_PEAK: 0,
-      EVENING_PEAK: 0,
-      OFF_PEAK: 0,
+  const classStats = useMemo(() => {
+    const acc: Record<
+      StationClassification,
+      { count: number; totalUsage: number }
+    > = {
+      MORNING_PEAK: { count: 0, totalUsage: 0 },
+      AFTERNOON_PEAK: { count: 0, totalUsage: 0 },
+      EVENING_PEAK: { count: 0, totalUsage: 0 },
+      OFF_PEAK: { count: 0, totalUsage: 0 },
     };
     for (const s of classification ?? []) {
-      counts[s.classification]++;
+      acc[s.classification].count++;
+      acc[s.classification].totalUsage += s.peakUsage;
     }
-    return counts;
+    return acc;
   }, [classification]);
 
   const totalClassified = classification?.length ?? 0;
@@ -441,7 +443,6 @@ export const StationDemandPanel = () => {
         >
           <ToggleButton value={7}>7d</ToggleButton>
           <ToggleButton value={30}>30d</ToggleButton>
-          <ToggleButton value={90}>90d</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -478,7 +479,7 @@ export const StationDemandPanel = () => {
                   fontWeight={600}
                   sx={{ mb: 0.5 }}
                 >
-                  NETWORK USAGE BY HOUR
+                  NETWORK DEMAND BY HOUR
                 </Typography>
                 <Box sx={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -501,22 +502,20 @@ export const StationDemandPanel = () => {
                         tickLine={false}
                       />
                       <YAxis
-                        domain={[0, 100]}
                         tick={{ fontSize: 8 }}
-                        tickFormatter={(v) => `${v}%`}
+                        tickFormatter={String}
                         axisLine={false}
                         tickLine={false}
-                        ticks={[0, 25, 50, 75, 100]}
                       />
                       <Tooltip
                         formatter={(value: number | undefined) => [
-                          `${(value ?? 0).toFixed(1)}%`,
-                          "Avg Usage",
+                          `${(value ?? 0).toFixed(1)}`,
+                          "Bike movements",
                         ]}
                         labelFormatter={(h) => `${h}:00–${h}:59`}
                         contentStyle={{ fontSize: "0.72rem" }}
                       />
-                      <Bar dataKey="avgUsageRate" radius={[3, 3, 0, 0]}>
+                      <Bar dataKey="avgTurnover" radius={[3, 3, 0, 0]}>
                         {chartData.map((entry) => (
                           <Cell
                             key={entry.hourOfDay}
@@ -556,7 +555,11 @@ export const StationDemandPanel = () => {
                 >
                   {CLASS_ORDER.map((cls) => {
                     const meta = CLASS_META[cls];
-                    const count = classCounts[cls];
+                    const { count, totalUsage } = classStats[cls];
+                    const avgUsage =
+                      count > 0
+                        ? Math.round((totalUsage / count) * 10) / 10
+                        : 0;
                     const pct =
                       totalClassified > 0
                         ? Math.round((count / totalClassified) * 100)
@@ -580,14 +583,14 @@ export const StationDemandPanel = () => {
                           color="text.secondary"
                           sx={{ fontSize: "0.6rem" }}
                         >
-                          {meta.hours}
+                          {meta.hours} · {count} stations ({pct}%)
                         </Typography>
                         <Typography
                           variant="body2"
                           fontWeight={700}
                           sx={{ color: meta.color, lineHeight: 1.2 }}
                         >
-                          {count}
+                          {avgUsage}
                           <Typography
                             component="span"
                             sx={{
@@ -596,7 +599,7 @@ export const StationDemandPanel = () => {
                               ml: 0.5,
                             }}
                           >
-                            ({pct}%)
+                            avg bike movements
                           </Typography>
                         </Typography>
                         <Typography

@@ -20,18 +20,21 @@ def test_process_population_static_data(
         [
             {
                 "sa_code": "268098009",
+                "ed_name": "MERCHANTS QUAY A",
                 "county_name": "DUBLIN CITY",
                 "population": 254,
                 "geom": ANY,
             },
             {
                 "sa_code": "268083012",
+                "ed_name": "KILMAINHAM A",
                 "county_name": "DUBLIN CITY",
                 "population": 247,
                 "geom": ANY,
             },
             {
                 "sa_code": "268144014",
+                "ed_name": "TERENURE A",
                 "county_name": "DUBLIN CITY",
                 "population": 171,
                 "geom": ANY,

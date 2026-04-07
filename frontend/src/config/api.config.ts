@@ -85,6 +85,20 @@ export const API_ENDPOINTS = {
   CYCLE_DEMAND_OD_PAIRS: "/api/v1/cycle/demand/od-pairs",
   CYCLE_DEMAND_STATION_HOURLY: "/api/v1/cycle/demand/station-hourly",
 
+  // Cycle ML Risk Scores
+  CYCLE_RISK_SCORES: "/api/v1/cycle/risk-scores",
+
+  // Cycle Coverage Gap Analysis
+  CYCLE_COVERAGE_GAPS: "/api/v1/cycle/coverage-gaps",
+  CYCLE_COVERAGE_GAP_PROCESS: (ed: string) =>
+    `/api/v1/cycle/coverage-gaps/${encodeURIComponent(ed)}/process`,
+  CYCLE_STATION_PROPOSALS: "/api/v1/cycle/coverage-gaps/proposals",
+  CYCLE_ACCEPTED_PROPOSALS: "/api/v1/cycle/coverage-gaps/proposals/accepted",
+  CYCLE_PROPOSAL_IMPL_STATUS: (id: number) =>
+    `/api/v1/cycle/coverage-gaps/proposals/${id}/implementation-status`,
+  CYCLE_PROPOSAL_REVIEW: (id: number) =>
+    `/api/v1/cycle/coverage-gaps/proposals/${id}/review`,
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>

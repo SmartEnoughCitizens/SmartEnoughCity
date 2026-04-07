@@ -246,23 +246,36 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   // -------------------------------------------------------------------------
 
   /**
-   * Network-wide average usage rate grouped by hour-of-day (Europe/Dublin timezone). Covers the
-   * last {@code days} days. Returns Object[] rows: hour_of_day (int), avg_usage_rate (double),
-   * station_count (long)
+   * Network-wide total natural bike turnover grouped by hour-of-day (Europe/Dublin timezone).
+   * Covers the last {@code days} days. Uses LAG to compute consecutive bike-count deltas; only
+   * deltas with ABS between 1 and 5 are counted to exclude rebalancing van movements. Returns
+   * Object[] rows: hour_of_day (int), avg_turnover (double), station_count (long)
    */
   @Query(
       value =
           """
+          WITH deltas AS (
+              SELECT
+                  station_id,
+                  EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Dublin')::int AS hour_of_day,
+                  ABS(
+                      available_bikes
+                      - LAG(available_bikes) OVER (PARTITION BY station_id ORDER BY timestamp)
+                  ) AS change
+              FROM external_data.dublin_bikes_station_snapshots
+              WHERE timestamp >= NOW() - make_interval(days => :days)
+                AND is_installed = true
+          ),
+          natural_changes AS (
+              SELECT station_id, hour_of_day, change
+              FROM deltas
+              WHERE change BETWEEN 1 AND 5
+          )
           SELECT
-              EXTRACT(HOUR FROM s.timestamp AT TIME ZONE 'Europe/Dublin')::int   AS hour_of_day,
-              AVG((st.capacity - s.available_docks)::float
-                  / NULLIF(st.capacity, 0) * 100)                                AS avg_usage_rate,
-              COUNT(DISTINCT s.station_id)                                       AS station_count
-          FROM external_data.dublin_bikes_station_snapshots s
-          JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
-          WHERE s.timestamp >= NOW() - make_interval(days => :days)
-            AND st.capacity > 0
-            AND s.is_installed = true
+              hour_of_day,
+              SUM(change)                 AS avg_turnover,
+              COUNT(DISTINCT station_id)  AS station_count
+          FROM natural_changes
           GROUP BY hour_of_day
           ORDER BY hour_of_day ASC
           """,
@@ -270,35 +283,50 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   List<Object[]> findNetworkHourlyProfile(@Param("days") int days);
 
   /**
-   * Per-station peak-hour classification based on the last {@code days} days of snapshots. Returns
-   * Object[] rows: station_id (int), name (String), peak_hour (int), peak_usage (double),
-   * classification (String)
+   * Per-station peak-hour classification based on the last {@code days} days of snapshots. Uses
+   * delta-based natural bike turnover (ABS(delta) BETWEEN 1 AND 5) to find each station's busiest
+   * hour — the hour with the highest total bike movements. Classification is based on that peak
+   * turnover hour. Returns Object[] rows: station_id (int), name (String), peak_hour (int),
+   * peak_usage (double — total bike movements at peak hour), classification (String)
    */
   @Query(
       value =
           """
-          WITH hourly AS (
+          WITH deltas AS (
               SELECT
-                  s.station_id,
+                  station_id,
+                  EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Dublin')::int AS hour_of_day,
+                  ABS(
+                      available_bikes
+                      - LAG(available_bikes) OVER (PARTITION BY station_id ORDER BY timestamp)
+                  ) AS change
+              FROM external_data.dublin_bikes_station_snapshots
+              WHERE timestamp >= NOW() - make_interval(days => :days)
+                AND is_installed = true
+          ),
+          natural_changes AS (
+              SELECT station_id, hour_of_day, change
+              FROM deltas
+              WHERE change BETWEEN 1 AND 5
+          ),
+          hourly AS (
+              SELECT
+                  nc.station_id,
                   st.name,
-                  EXTRACT(HOUR FROM s.timestamp AT TIME ZONE 'Europe/Dublin')::int  AS hour_of_day,
-                  AVG((st.capacity - s.available_docks)::float
-                      / NULLIF(st.capacity, 0) * 100)                               AS avg_usage
-              FROM external_data.dublin_bikes_station_snapshots s
-              JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
-              WHERE s.timestamp >= NOW() - make_interval(days => :days)
-                AND st.capacity > 0
-                AND s.is_installed = true
-              GROUP BY s.station_id, st.name, hour_of_day
+                  nc.hour_of_day,
+                  SUM(nc.change) AS total_turnover
+              FROM natural_changes nc
+              JOIN external_data.dublin_bikes_stations st ON nc.station_id = st.station_id
+              GROUP BY nc.station_id, st.name, nc.hour_of_day
           ),
           peak AS (
               SELECT DISTINCT ON (station_id)
                   station_id,
                   name,
-                  hour_of_day  AS peak_hour,
-                  avg_usage    AS peak_usage
+                  hour_of_day     AS peak_hour,
+                  total_turnover  AS peak_usage
               FROM hourly
-              ORDER BY station_id, avg_usage DESC
+              ORDER BY station_id, total_turnover DESC
           )
           SELECT
               p.station_id,
@@ -318,37 +346,48 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
   List<Object[]> findStationClassification(@Param("days") int days);
 
   /**
-   * Per-station, per-hour average usage rate for the top {@code stationLimit} busiest stations.
-   * Returns Object[] rows: station_id (int), name (String), hour_of_day (int), avg_usage_rate
-   * (double)
+   * Per-station, per-hour total natural bike turnover for the top {@code stationLimit} stations by
+   * turnover. Uses LAG to compute consecutive bike-count deltas; only deltas with ABS between 1 and
+   * 5 are counted (excludes rebalancing vans which move 10+ bikes at once). Returns Object[] rows:
+   * station_id (int), name (String), hour_of_day (int), avg_turnover (double)
    */
   @Query(
       value =
           """
-          WITH top_stations AS (
-              SELECT s.station_id
-              FROM external_data.dublin_bikes_station_snapshots s
-              JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
-              WHERE s.timestamp >= NOW() - make_interval(days => :days)
-                AND st.capacity > 0
-                AND s.is_installed = true
-              GROUP BY s.station_id
-              ORDER BY AVG((st.capacity - s.available_docks)::float / NULLIF(st.capacity, 0) * 100) DESC
+          WITH deltas AS (
+              SELECT
+                  station_id,
+                  EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Dublin')::int AS hour_of_day,
+                  ABS(
+                      available_bikes
+                      - LAG(available_bikes) OVER (PARTITION BY station_id ORDER BY timestamp)
+                  ) AS change
+              FROM external_data.dublin_bikes_station_snapshots
+              WHERE timestamp >= NOW() - make_interval(days => :days)
+                AND is_installed = true
+          ),
+          natural_changes AS (
+              SELECT station_id, hour_of_day, change
+              FROM deltas
+              WHERE change BETWEEN 1 AND 5
+          ),
+          top_stations AS (
+              SELECT station_id
+              FROM natural_changes
+              GROUP BY station_id
+              ORDER BY SUM(change) DESC
               LIMIT :stationLimit
           )
           SELECT
-              s.station_id,
+              nc.station_id,
               st.name,
-              EXTRACT(HOUR FROM s.timestamp AT TIME ZONE 'Europe/Dublin')::int  AS hour_of_day,
-              AVG((st.capacity - s.available_docks)::float / NULLIF(st.capacity, 0) * 100) AS avg_usage_rate
-          FROM external_data.dublin_bikes_station_snapshots s
-          JOIN external_data.dublin_bikes_stations st ON s.station_id = st.station_id
-          JOIN top_stations ts ON s.station_id = ts.station_id
-          WHERE s.timestamp >= NOW() - make_interval(days => :days)
-            AND st.capacity > 0
-            AND s.is_installed = true
-          GROUP BY s.station_id, st.name, hour_of_day
-          ORDER BY s.station_id, hour_of_day
+              nc.hour_of_day,
+              SUM(nc.change) AS avg_turnover
+          FROM natural_changes nc
+          JOIN external_data.dublin_bikes_stations st ON nc.station_id = st.station_id
+          JOIN top_stations ts ON nc.station_id = ts.station_id
+          GROUP BY nc.station_id, st.name, nc.hour_of_day
+          ORDER BY nc.station_id, nc.hour_of_day
           """,
       nativeQuery = true)
   List<Object[]> findStationHourlyUsage(
@@ -415,4 +454,60 @@ public interface DublinBikesSnapshotRepository extends JpaRepository<DublinBikes
           """,
       nativeQuery = true)
   List<Object[]> findODPairs(@Param("days") int days, @Param("limitVal") int limit);
+
+  /**
+   * Reads pre-computed coverage gaps from backend.cycle_coverage_gaps. Unprocessed high-priority
+   * gaps appear first.
+   *
+   * <p>Returns Object[] rows: electoral_division (0), flat_apartment_count (1),
+   * house_bungalow_count (2), total_dwellings (3), centroid_lat (4), centroid_lon (5),
+   * min_distance_m (6), coverage_category (7), priority_score (8), computed_at (9),
+   * processed_for_implementation (10), processed_at (11), geom_geojson (12)
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              electoral_division,
+              flat_apartment_count,
+              house_bungalow_count,
+              total_dwellings,
+              centroid_lat,
+              centroid_lon,
+              min_distance_m,
+              coverage_category,
+              priority_score,
+              computed_at,
+              processed_for_implementation,
+              processed_at,
+              geom_geojson
+          FROM backend.cycle_coverage_gaps
+          ORDER BY processed_for_implementation ASC, priority_score DESC
+          """,
+      nativeQuery = true)
+  List<Object[]> findCoverageGaps();
+
+  /**
+   * Latest ML risk scores for all stations joined with station metadata. Returns Object[] rows with
+   * columns: station_id, name, latitude, longitude, empty_risk_2h, full_risk_2h, scored_at,
+   * model_trained_at
+   */
+  @Query(
+      value =
+          """
+          SELECT
+              r.station_id,
+              st.name,
+              st.latitude,
+              st.longitude,
+              r.empty_risk_2h,
+              r.full_risk_2h,
+              r.scored_at,
+              r.model_trained_at
+          FROM backend.cycle_station_risk_scores r
+          JOIN external_data.dublin_bikes_stations st ON r.station_id = st.station_id
+          ORDER BY r.empty_risk_2h DESC
+          """,
+      nativeQuery = true)
+  List<Object[]> findStationRiskScores();
 }

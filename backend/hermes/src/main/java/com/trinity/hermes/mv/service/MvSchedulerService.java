@@ -1,5 +1,6 @@
 package com.trinity.hermes.mv.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.mv.entity.MvRegistry;
 import com.trinity.hermes.mv.repository.MvRegistryRepository;
 import java.util.Map;
@@ -75,7 +76,7 @@ public class MvSchedulerService implements SchedulingConfigurer {
     ScheduledFuture<?> existing = scheduledTasks.remove(name);
     if (existing != null) {
       existing.cancel(false);
-      log.info("Cancelled scheduled refresh for MV '{}'", name);
+      log.info("Cancelled scheduled refresh for MV '{}'", LogSanitizer.sanitizeLog(name));
     }
   }
 
