@@ -59,8 +59,7 @@ public class TrainRecommendationScheduler {
         notificationFacade.broadcastByIndicator(request);
         log.info("Broadcast sent for recommendation id={}", rec.getId());
       } catch (Exception e) {
-        log.error(
-            "Failed to broadcast recommendation id={}: {}", rec.getId(), e.getMessage(), e);
+        log.error("Failed to broadcast recommendation id={}: {}", rec.getId(), e.getMessage(), e);
       }
     }
   }
