@@ -548,22 +548,22 @@ export const DashboardLayout = () => {
             </Box>
           )}
 
-        {/* Bus Dashboard */}
-        {canSeeView.bus && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              zIndex: activeView === "bus" ? 2 : 1,
-              visibility: activeView === "bus" ? "visible" : "hidden",
-              opacity: activeView === "bus" ? 1 : 0,
-              pointerEvents: activeView === "bus" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <BusDashboard />
-          </Box>
-        )}
+          {/* Bus Dashboard */}
+          {canSeeView.bus && (
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                zIndex: activeView === "bus" ? 2 : 1,
+                visibility: activeView === "bus" ? "visible" : "hidden",
+                opacity: activeView === "bus" ? 1 : 0,
+                pointerEvents: activeView === "bus" ? "auto" : "none",
+                transition: "opacity 0.15s ease-in-out",
+              }}
+            >
+              <BusDashboard />
+            </Box>
+          )}
           {/* Bus Dashboard */}
           {canSeeView.bus && (
             <Box sx={panelSx("bus")}>
