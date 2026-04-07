@@ -26,6 +26,7 @@ import {
   CircleMarker,
   Circle,
   Popup,
+  Polyline,
 } from "react-leaflet";
 import {
   useCarFuelTypeStatistics,
@@ -34,7 +35,9 @@ import {
   useEvChargingStations,
   useEvChargingDemand,
   useEvAreasGeoJson,
+  useTrafficRecommendations,
 } from "@/hooks";
+import type { TrafficRecommendation } from "@/types";
 import { useAppSelector } from "@/store/hooks";
 import { EVDashboard } from "./EVDashboard";
 import "leaflet/dist/leaflet.css";
@@ -71,9 +74,13 @@ export const CarDashboard = () => {
     () => new Set(["low", "medium", "high"]),
   );
 
+  const [selectedRecommendation, setSelectedRecommendation] =
+    useState<TrafficRecommendation | null>(null);
+
   const theme = useAppSelector((state) => state.ui.theme);
 
   const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
+  const { data: recommendations } = useTrafficRecommendations();
   const { data: trafficPoints, isLoading: trafficLoading } =
     useCarHighTrafficPoints();
   const { data: emissionPoints, isLoading: emissionsLoading } =
@@ -266,6 +273,22 @@ export const CarDashboard = () => {
                   </Popup>
                 </Circle>
               ))}
+          {/* Alternative route overlays for selected recommendation */}
+          {selectedRecommendation?.alternativeRoutes.map((route) => (
+            <Polyline
+              key={route.routeId}
+              positions={route.path.map((wp) => [wp.lat, wp.lon])}
+              pathOptions={{ color: route.color, weight: 4, opacity: 0.85 }}
+            >
+              <Popup>
+                <strong>{route.label}</strong>
+                <br />
+                {route.summary}
+                <br />
+                Saves ~{route.estimatedTimeSavingsMinutes} min · {route.distanceKm.toFixed(1)} km
+              </Popup>
+            </Polyline>
+          ))}
         </MapContainer>
       )}
 
@@ -523,6 +546,123 @@ export const CarDashboard = () => {
                   </Typography>
                 </Box>
               ))}
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Traffic diversion recommendations */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 1, fontWeight: 600 }}
+            >
+              Traffic diversion recommendations
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {recommendations?.map((rec) => {
+                const isSelected =
+                  selectedRecommendation?.recommendationId ===
+                  rec.recommendationId;
+                const levelColor =
+                  rec.congestionLevel === "critical"
+                    ? "#dc2626"
+                    : rec.congestionLevel === "high"
+                      ? "#f97316"
+                      : "#ca8a04";
+                return (
+                  <Box
+                    key={rec.recommendationId}
+                    onClick={() =>
+                      setSelectedRecommendation(isSelected ? null : rec)
+                    }
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: 1.5,
+                      border: "1px solid",
+                      borderColor: isSelected ? "primary.main" : "divider",
+                      bgcolor: isSelected
+                        ? "primary.main"
+                        : (t) => t.palette.action.hover,
+                      color: isSelected ? "primary.contrastText" : "inherit",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                      "&:hover": { borderColor: "primary.main" },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{ lineHeight: 1.3, flex: 1, pr: 1 }}
+                      >
+                        {rec.title}
+                      </Typography>
+                      <Chip
+                        label={rec.congestionLevel}
+                        size="small"
+                        sx={{
+                          bgcolor: levelColor,
+                          color: "#fff",
+                          fontWeight: 700,
+                          fontSize: "0.7rem",
+                          height: 20,
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "block",
+                        mb: 0.75,
+                        color: isSelected
+                          ? "primary.contrastText"
+                          : "text.secondary",
+                      }}
+                    >
+                      {rec.summary}
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                      <Typography
+                        variant="caption"
+                        fontWeight={600}
+                        sx={{
+                          color: isSelected
+                            ? "primary.contrastText"
+                            : "text.secondary",
+                        }}
+                      >
+                        Confidence: {Math.round(rec.confidenceScore * 100)}%
+                      </Typography>
+                      {rec.alternativeRoutes.map((r) => (
+                        <Typography
+                          key={r.routeId}
+                          variant="caption"
+                          sx={{
+                            color: isSelected ? "primary.contrastText" : r.color,
+                            fontWeight: 600,
+                          }}
+                        >
+                          -{r.estimatedTimeSavingsMinutes} min
+                        </Typography>
+                      ))}
+                    </Box>
+                  </Box>
+                );
+              })}
+              {!recommendations?.length && (
+                <Typography variant="caption" color="text.secondary">
+                  No recommendations available.
+                </Typography>
+              )}
             </Box>
           </Box>
         </Paper>
