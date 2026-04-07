@@ -15,6 +15,7 @@ import io.micrometer.common.util.StringUtils;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -35,6 +36,9 @@ public class NotificationService {
 
   private final QrCodeUtil qrCodeUtil;
 
+  @Value("${app.frontend-url:https://example.com}")
+  private String frontendUrl;
+
   /**
    * Create a notification for a user
    *
@@ -52,8 +56,9 @@ public class NotificationService {
         log.info("Generating QR Code for ID: {}", data.get(QR_ID));
         qrCode =
             qrCodeUtil.generateQrCode(
-                UriComponentsBuilder.fromUriString(DUMMY_ENDPOINT)
-                    .pathSegment(Objects.toString(data.get(QR_ID)))
+                UriComponentsBuilder.fromUriString(frontendUrl)
+                    .path("/public/disruption/")
+                    .path(Objects.toString(data.get(QR_ID)))
                     .build()
                     .toUriString(),
                 BASE_WIDTH,

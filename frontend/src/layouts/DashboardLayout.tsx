@@ -56,6 +56,7 @@ import { TramDashboard } from "@/pages/TramDashboard";
 import { MiscDashboard } from "@/pages/MiscDashboard";
 import { NotificationsPage } from "@/pages/NotificationsPage";
 import { UserManagementPage } from "@/pages/UserManagementPage";
+import { DisruptionDashboard } from "@/pages/DisruptionDashboard";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -67,6 +68,7 @@ export type DashboardView =
   | "train"
   | "tram"
   | "misc"
+  | "disruptions"
   | "notifications"
   | "users";
 
@@ -90,6 +92,7 @@ export const DashboardLayout = () => {
     train: TRANSPORT_ACCESS.train.some((r) => roles.includes(r)),
     tram: TRANSPORT_ACCESS.tram.some((r) => roles.includes(r)),
     misc: true,
+    disruptions: true,
     notifications: true,
     users: canManageUsers,
   };
@@ -208,7 +211,7 @@ export const DashboardLayout = () => {
     },
     {
       icon: <ReportProblemIcon />,
-      path: "/dashboard/disruptions",
+      view: "disruptions" as DashboardView,
       label: "Disruptions",
     },
     {
@@ -607,6 +610,11 @@ export const DashboardLayout = () => {
           {/* Notifications Page — all authenticated users */}
           <Box sx={panelSx("notifications")}>
             <NotificationsPage />
+          </Box>
+
+          {/* Disruptions Dashboard — all authenticated users */}
+          <Box sx={panelSx("disruptions")}>
+            <DisruptionDashboard />
           </Box>
 
           {/* User Management Page */}

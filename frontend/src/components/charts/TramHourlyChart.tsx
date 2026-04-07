@@ -72,9 +72,7 @@ export const TramHourlyChart = ({
         />
         <YAxis unit="%" tick={{ fontSize: 11 }} />
         <Tooltip
-          formatter={(value: number | undefined) => [
-            `${(value ?? 0).toFixed(1)}%`,
-          ]}
+          formatter={(value) => [`${(Number(value) || 0).toFixed(1)}%`]}
         />
         <Legend />
         <Line

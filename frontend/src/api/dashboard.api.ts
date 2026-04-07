@@ -49,6 +49,7 @@ import type {
   TramLiveForecast,
   TramDelay,
   TramHourlyDistribution,
+  TramAlternativeRoute,
 } from "@/types";
 
 export const dashboardApi = {
@@ -508,9 +509,39 @@ export const dashboardApi = {
     await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
   },
 
+  /**
+   * Get full disruption detail including causes and alternatives
+   */
+  getDisruptionById: async (id: number): Promise<DisruptionItem> => {
+    const { data } = await axiosInstance.get<DisruptionItem>(
+      API_ENDPOINTS.DISRUPTION_DETAIL(id),
+    );
+    return data;
+  },
+
   getCycleCoverageGaps: async (): Promise<CoverageGapDTO[]> => {
     const { data } = await axiosInstance.get<CoverageGapDTO[]>(
       API_ENDPOINTS.CYCLE_COVERAGE_GAPS,
+    );
+    return data;
+  },
+
+  /**
+   * Get active disruptions filtered by transport mode
+   */
+  getDisruptionsByMode: async (mode: string): Promise<DisruptionItem[]> => {
+    const { data } = await axiosInstance.get<DisruptionItem[]>(
+      API_ENDPOINTS.DISRUPTIONS_BY_MODE(mode),
+    );
+    return data;
+  },
+
+  /**
+   * Get a disruption publicly (no auth) — for QR code landing page
+   */
+  getPublicDisruption: async (id: number): Promise<DisruptionItem> => {
+    const { data } = await axiosInstance.get<DisruptionItem>(
+      API_ENDPOINTS.PUBLIC_DISRUPTION(id),
     );
     return data;
   },
@@ -541,6 +572,16 @@ export const dashboardApi = {
   getPendingProposals: async (): Promise<StationProposalSummary[]> => {
     const { data } = await axiosInstance.get<StationProposalSummary[]>(
       API_ENDPOINTS.CYCLE_STATION_PROPOSALS,
+    );
+    return data;
+  },
+
+  getTramAlternativeRoutes: async (
+    stopId: string,
+  ): Promise<TramAlternativeRoute[]> => {
+    const { data } = await axiosInstance.get<TramAlternativeRoute[]>(
+      API_ENDPOINTS.TRAM_ALTERNATIVE_ROUTES,
+      { params: { stopId } },
     );
     return data;
   },

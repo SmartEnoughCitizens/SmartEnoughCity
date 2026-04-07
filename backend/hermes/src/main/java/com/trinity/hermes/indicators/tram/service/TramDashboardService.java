@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.tram.service;
 
+import com.trinity.hermes.disruptionmanagement.service.AlternativeTransportService;
 import com.trinity.hermes.indicators.tram.dto.*;
 import com.trinity.hermes.indicators.tram.entity.TramHourlyDistribution;
 import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
@@ -37,6 +38,7 @@ public class TramDashboardService {
   private final TramStopRepository tramStopRepository;
   private final TramLuasForecastRepository tramLuasForecastRepository;
   private final TramHourlyDistributionRepository tramHourlyDistributionRepository;
+  private final AlternativeTransportService alternativeTransportService;
 
   // ── KPIs ────────────────────────────────────────────────────────
 
@@ -75,6 +77,51 @@ public class TramDashboardService {
     return forecasts.stream()
         .map(f -> mapToLiveForecastDTO(f, stopsById))
         .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<TramAlternativeRouteDTO> getAlternativeRoutes(String stopId) {
+    List<TramLuasForecast> forecasts = tramLuasForecastRepository.findByStopId(stopId);
+    boolean isDisrupted = forecasts.stream().anyMatch(f -> isDisruptionMessage(f.getMessage()));
+
+    if (!isDisrupted) return List.of();
+
+    TramStop stop =
+        tramStopRepository.findAll().stream()
+            .filter(s -> s.getStopId().equals(stopId))
+            .findFirst()
+            .orElse(null);
+
+    if (stop == null || stop.getLat() == null || stop.getLon() == null) {
+      return List.of();
+    }
+
+    return alternativeTransportService.findNearby(stop.getLat(), stop.getLon()).stream()
+        .map(
+            r ->
+                TramAlternativeRouteDTO.builder()
+                    .transportType(r.transportType())
+                    .stopId(r.stopId())
+                    .stopName(r.stopName())
+                    .lat(r.lat())
+                    .lon(r.lon())
+                    .distanceM(r.distanceM())
+                    .availableBikes(r.availableBikes())
+                    .capacity(r.capacity())
+                    .build())
+        .collect(Collectors.toList());
+  }
+
+  private boolean isDisruptionMessage(String message) {
+    if (message == null) return false;
+    String lower = message.toLowerCase(Locale.ROOT);
+    return lower.contains("not in service")
+        || lower.contains("disruption")
+        || lower.contains("suspended")
+        || lower.contains("delay")
+        || lower.contains("fault")
+        || lower.contains("no service")
+        || lower.contains("terminated");
   }
 
   // ── Delays ──────────────────────────────────────────────────────

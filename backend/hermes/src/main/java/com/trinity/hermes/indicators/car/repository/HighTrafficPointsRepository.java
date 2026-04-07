@@ -17,4 +17,18 @@ public interface HighTrafficPointsRepository
               + " FROM backend.traffic_aggregated",
       nativeQuery = true)
   List<Object[]> findAggregatedTrafficWithLocation();
+
+  /**
+   * Returns one row per site: [site_id, lat, lon, max_avg_volume]. Used by disruption detection to
+   * identify persistently congested locations.
+   */
+  @Query(
+      value =
+          "SELECT site_id, lat, lon, MAX(avg_volume) AS max_volume"
+              + " FROM backend.traffic_aggregated"
+              + " WHERE lat IS NOT NULL AND lon IS NOT NULL"
+              + " GROUP BY site_id, lat, lon"
+              + " ORDER BY max_volume DESC",
+      nativeQuery = true)
+  List<Object[]> findPeakTrafficSitesWithLocation();
 }
