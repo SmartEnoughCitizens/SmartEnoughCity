@@ -65,46 +65,8 @@ def _is_set(var: str) -> bool:
     return os.environ.get(var, "").lower() in {"1", "true", "yes"}
 
 
-_TRAFFIC_AGGREGATED_VIEW_SQL = """
-CREATE SCHEMA IF NOT EXISTS backend;
-
-CREATE OR REPLACE VIEW backend.traffic_aggregated AS
-SELECT
-    tv.site_id,
-    s.lat,
-    s.lon,
-    CASE
-        WHEN EXTRACT(DOW FROM tv.end_time) IN (0, 6) THEN 'weekend'
-        ELSE 'weekday'
-    END AS day_type,
-    CASE
-        WHEN EXTRACT(HOUR FROM tv.end_time) BETWEEN 7 AND 9  THEN 'morning_peak'
-        WHEN EXTRACT(HOUR FROM tv.end_time) BETWEEN 10 AND 15 THEN 'inter_peak'
-        WHEN EXTRACT(HOUR FROM tv.end_time) BETWEEN 16 AND 18 THEN 'evening_peak'
-        ELSE 'off_peak'
-    END AS time_slot,
-    AVG(tv.avg_volume) AS avg_volume
-FROM external_data.traffic_volumes tv
-JOIN external_data.scats_sites s ON tv.site_id = s.site_id
-GROUP BY
-    tv.site_id,
-    s.lat,
-    s.lon,
-    CASE WHEN EXTRACT(DOW FROM tv.end_time) IN (0, 6) THEN 'weekend' ELSE 'weekday' END,
-    CASE
-        WHEN EXTRACT(HOUR FROM tv.end_time) BETWEEN 7 AND 9  THEN 'morning_peak'
-        WHEN EXTRACT(HOUR FROM tv.end_time) BETWEEN 10 AND 15 THEN 'inter_peak'
-        WHEN EXTRACT(HOUR FROM tv.end_time) BETWEEN 16 AND 18 THEN 'evening_peak'
-        ELSE 'off_peak'
-    END;
-"""
-
-
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
-    with engine.connect() as conn:
-        conn.execute(text(_TRAFFIC_AGGREGATED_VIEW_SQL))
-        conn.commit()
 
 
 def _run_handler(logger: logging.Logger, name: str, fn: Callable[[], None]) -> None:
