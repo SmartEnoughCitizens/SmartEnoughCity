@@ -42,14 +42,18 @@ interface ModeImpact {
 
 function severityScore(s: string): number {
   switch (s) {
-    case "CRITICAL":
+    case "CRITICAL": {
       return 4;
-    case "HIGH":
+    }
+    case "HIGH": {
       return 3;
-    case "MEDIUM":
+    }
+    case "MEDIUM": {
       return 2;
-    default:
+    }
+    default: {
       return 1;
+    }
   }
 }
 
@@ -61,11 +65,11 @@ function computeImpacts(disruptions: ActiveDisruption[]): ModeImpact[] {
     const modes = d.affectedTransportModes ?? [];
     const score = severityScore(d.severity);
     for (const m of modes) {
-      if (!counts[m as TransportMode])
-        counts[m as TransportMode] = { count: 0, max: 0 };
-      counts[m as TransportMode]!.count += 1;
-      counts[m as TransportMode]!.max = Math.max(
-        counts[m as TransportMode]!.max,
+      if (!counts[m])
+        counts[m] = { count: 0, max: 0 };
+      counts[m].count += 1;
+      counts[m].max = Math.max(
+        counts[m].max,
         score,
       );
     }

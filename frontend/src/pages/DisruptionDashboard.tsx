@@ -14,8 +14,6 @@ import {
   Paper,
   Tab,
   Tabs,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -440,7 +438,7 @@ export const DisruptionDashboard = () => {
   const filtered = useMemo(() =>
     disruptions
       .filter((d) => matchesMode(d, modeFilter))
-      .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4)),
+      .toSorted((a, b) => (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4)),
     [disruptions, modeFilter],
   );
 
@@ -569,7 +567,7 @@ export const DisruptionDashboard = () => {
                 Active Disruptions
               </Typography>
               <Typography variant="caption" sx={{ color: "text.disabled", mr: 1 }}>
-                {filtered.length}{filtered.length !== disruptions.length ? `/${disruptions.length}` : ""}
+                {filtered.length}{filtered.length === disruptions.length ? "" : `/${disruptions.length}`}
               </Typography>
               <IconButton size="small" onClick={() => setPanelOpen(false)}>
                 <CloseIcon fontSize="small" />

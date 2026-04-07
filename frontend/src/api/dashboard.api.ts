@@ -575,9 +575,6 @@ export const dashboardApi = {
     );
     return data;
   },
-    );
-    return data;
-  },
 
   getTramAlternativeRoutes: async (stopId: string): Promise<TramAlternativeRoute[]> => {
     const { data } = await axiosInstance.get<TramAlternativeRoute[]>(
@@ -590,9 +587,6 @@ export const dashboardApi = {
   getAcceptedProposals: async (): Promise<StationProposalSummary[]> => {
     const { data } = await axiosInstance.get<StationProposalSummary[]>(
       API_ENDPOINTS.CYCLE_ACCEPTED_PROPOSALS,
-    );
-    return data;
-  },
     );
     return data;
   },

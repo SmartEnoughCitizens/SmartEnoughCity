@@ -42,8 +42,6 @@ public interface BusLiveStopTimeUpdateRepository
       nativeQuery = true)
   List<Object[]> findWorstDelayedStopPerRoute(@Param("thresholdSeconds") int thresholdSeconds);
 
-  List<Object[]> findDelaysByVehicle();
-
   @Query(
       value =
           """

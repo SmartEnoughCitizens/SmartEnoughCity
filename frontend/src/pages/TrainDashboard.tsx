@@ -492,7 +492,6 @@ export const TrainDashboard = () => {
     setSelectedTrainCode(null);
     setSelectedDisruptionId(null);
   };
-  };
 
   // Build a set of connected stop-ID pairs from route data
   const connectedPairs = useMemo(() => {

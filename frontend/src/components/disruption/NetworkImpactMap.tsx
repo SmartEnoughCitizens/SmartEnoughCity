@@ -29,7 +29,7 @@ const SEVERITY_SIZE: Record<DisruptionSeverity, number> = {
 // Inject pulse keyframes once
 const STYLE_ID = "disruption-pulse-styles";
 function ensurePulseStyles() {
-  if (document.getElementById(STYLE_ID)) return;
+  if (document.querySelector(`#${STYLE_ID}`)) return;
   const style = document.createElement("style");
   style.id = STYLE_ID;
   style.textContent = `
@@ -45,7 +45,7 @@ function ensurePulseStyles() {
       animation: disruption-ripple 1.8s ease-out infinite;
     }
   `;
-  document.head.appendChild(style);
+  document.head.append(style);
 }
 
 function makeDivIcon(severity: DisruptionSeverity, selected: boolean): L.DivIcon {

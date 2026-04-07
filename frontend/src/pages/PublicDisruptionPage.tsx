@@ -107,12 +107,12 @@ function AlternativeRow({ alt }: { alt: DisruptionAlternative }) {
 
 export const PublicDisruptionPage = () => {
   const { id } = useParams<{ id: string }>();
-  const numericId = id ? parseInt(id, 10) : null;
+  const numericId = id ? Number.parseInt(id, 10) : null;
 
   const { data: disruption, isLoading, error } = useQuery({
     queryKey: ["public", "disruption", numericId],
     queryFn: () => dashboardApi.getPublicDisruption(numericId!),
-    enabled: numericId != null && !isNaN(numericId),
+    enabled: numericId != null && !Number.isNaN(numericId),
     staleTime: 60_000,
     refetchInterval: 60_000,
   });

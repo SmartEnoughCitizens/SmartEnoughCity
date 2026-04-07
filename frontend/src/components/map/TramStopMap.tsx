@@ -27,6 +27,9 @@ const isDisrupted = (forecasts: TramLiveForecast[]) =>
     DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw))
   );
 
+const iconFor = (type: string) =>
+  type === "bus" ? "🚌" : type === "rail" ? "🚂" : "🚲";
+
 const AlternativesSection = ({ stopId }: { stopId: string }) => {
   const [alternatives, setAlternatives] = useState<TramAlternativeRoute[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,11 +40,6 @@ const AlternativesSection = ({ stopId }: { stopId: string }) => {
     setAlternatives(data);
     setLoading(false);
   };
-
-  
-
-  const iconFor = (type: string) =>
-    type === "bus" ? "🚌" : type === "rail" ? "🚂" : "🚲";
 
   return (
     <div style={{ marginTop: 8 }}>
