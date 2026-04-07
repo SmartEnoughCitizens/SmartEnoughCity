@@ -4,15 +4,17 @@
  * EV Charging tab shows EVDashboard as a full overlay.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
+  Button,
   Chip,
   Divider,
   IconButton,
   Paper,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
   CircularProgress,
 } from "@mui/material";
@@ -26,7 +28,10 @@ import {
   CircleMarker,
   Circle,
   Popup,
+  Polyline,
+  useMap,
 } from "react-leaflet";
+import L from "leaflet";
 import {
   useCarFuelTypeStatistics,
   useCarHighTrafficPoints,
@@ -34,7 +39,10 @@ import {
   useEvChargingStations,
   useEvChargingDemand,
   useEvAreasGeoJson,
+  useTrafficRecommendations,
+  useNotifyTrafficRecommendation,
 } from "@/hooks";
+import type { TrafficRecommendation } from "@/types";
 import { useAppSelector } from "@/store/hooks";
 import { EVDashboard } from "./EVDashboard";
 import "leaflet/dist/leaflet.css";
@@ -57,6 +65,29 @@ const LEGEND_ITEMS: { band: ColorBand; color: string; label: string }[] = [
 const SIDE_PANEL_WIDTH = 420;
 const GAP = 16;
 
+function TrafficRecommendationFitBounds({
+  recommendation,
+}: {
+  recommendation: TrafficRecommendation | null;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!recommendation) return;
+    const points: L.LatLngExpression[] = [
+      [recommendation.siteLat, recommendation.siteLon],
+    ];
+    for (const route of recommendation.alternativeRoutes) {
+      for (const wp of route.path) points.push([wp.lat, wp.lon]);
+    }
+    if (points.length === 1) {
+      map.setView(points[0], 15);
+    } else {
+      map.fitBounds(L.latLngBounds(points), { padding: [52, 52], maxZoom: 16 });
+    }
+  }, [map, recommendation]);
+  return null;
+}
+
 export const CarDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem("carDashboardActiveTab");
@@ -71,9 +102,15 @@ export const CarDashboard = () => {
     () => new Set(["low", "medium", "high"]),
   );
 
+  const [selectedRecommendation, setSelectedRecommendation] =
+    useState<TrafficRecommendation | null>(null);
+
   const theme = useAppSelector((state) => state.ui.theme);
 
   const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
+  const { data: recommendations } = useTrafficRecommendations();
+  const { mutate: notifyRecommendation, isPending: notifying } =
+    useNotifyTrafficRecommendation();
   const { data: trafficPoints, isLoading: trafficLoading } =
     useCarHighTrafficPoints();
   const { data: emissionPoints, isLoading: emissionsLoading } =
@@ -266,6 +303,68 @@ export const CarDashboard = () => {
                   </Popup>
                 </Circle>
               ))}
+          {/* Fit map to selected recommendation */}
+          <TrafficRecommendationFitBounds
+            recommendation={selectedRecommendation}
+          />
+
+          {/* Congestion site marker */}
+          {selectedRecommendation && (
+            <>
+              <CircleMarker
+                center={[
+                  selectedRecommendation.siteLat,
+                  selectedRecommendation.siteLon,
+                ]}
+                radius={22}
+                pathOptions={{
+                  color: "#dc2626",
+                  weight: 2,
+                  fillColor: "#dc2626",
+                  fillOpacity: 0.18,
+                }}
+              />
+              <CircleMarker
+                center={[
+                  selectedRecommendation.siteLat,
+                  selectedRecommendation.siteLon,
+                ]}
+                radius={11}
+                pathOptions={{
+                  color: "#ffffff",
+                  weight: 3,
+                  fillColor: "#dc2626",
+                  fillOpacity: 1,
+                }}
+              >
+                <Popup>
+                  <strong>
+                    Congestion site {selectedRecommendation.siteId}
+                  </strong>
+                  <br />
+                  {selectedRecommendation.recommendedAction}
+                </Popup>
+              </CircleMarker>
+            </>
+          )}
+
+          {/* Alternative route overlays for selected recommendation */}
+          {selectedRecommendation?.alternativeRoutes.map((route) => (
+            <Polyline
+              key={route.routeId}
+              positions={route.path.map((wp) => [wp.lat, wp.lon])}
+              pathOptions={{ color: route.color, weight: 4, opacity: 0.85 }}
+            >
+              <Popup>
+                <strong>{route.label}</strong>
+                <br />
+                {route.summary}
+                <br />
+                Saves ~{route.estimatedTimeSavingsMinutes} min ·{" "}
+                {route.distanceKm.toFixed(1)} km
+              </Popup>
+            </Polyline>
+          ))}
         </MapContainer>
       )}
 
@@ -523,6 +622,144 @@ export const CarDashboard = () => {
                   </Typography>
                 </Box>
               ))}
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Traffic diversion recommendations */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 1, fontWeight: 600 }}
+            >
+              Traffic diversion recommendations
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {recommendations?.map((rec) => {
+                const isSelected =
+                  selectedRecommendation?.recommendationId ===
+                  rec.recommendationId;
+                const levelColor =
+                  rec.congestionLevel === "critical"
+                    ? "#dc2626"
+                    : rec.congestionLevel === "high"
+                      ? "#f97316"
+                      : "#ca8a04";
+                return (
+                  <Box
+                    key={rec.recommendationId}
+                    onClick={() =>
+                      setSelectedRecommendation(isSelected ? null : rec)
+                    }
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: 1.5,
+                      border: "1px solid",
+                      borderColor: isSelected ? "primary.main" : "divider",
+                      bgcolor: isSelected
+                        ? "primary.main"
+                        : (t) => t.palette.action.hover,
+                      color: isSelected ? "primary.contrastText" : "inherit",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                      "&:hover": { borderColor: "primary.main" },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{ lineHeight: 1.3, flex: 1, pr: 1 }}
+                      >
+                        {rec.title}
+                      </Typography>
+                      <Chip
+                        label={rec.congestionLevel}
+                        size="small"
+                        sx={{
+                          bgcolor: levelColor,
+                          color: "#fff",
+                          fontWeight: 700,
+                          fontSize: "0.7rem",
+                          height: 20,
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "block",
+                        mb: 0.75,
+                        color: isSelected
+                          ? "primary.contrastText"
+                          : "text.secondary",
+                      }}
+                    >
+                      {rec.summary}
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                      <Typography
+                        variant="caption"
+                        fontWeight={600}
+                        sx={{
+                          color: isSelected
+                            ? "primary.contrastText"
+                            : "text.secondary",
+                        }}
+                      >
+                        Confidence: {Math.round(rec.confidenceScore * 100)}%
+                      </Typography>
+                      {rec.alternativeRoutes.map((r) => (
+                        <Typography
+                          key={r.routeId}
+                          variant="caption"
+                          sx={{
+                            color: isSelected
+                              ? "primary.contrastText"
+                              : r.color,
+                            fontWeight: 600,
+                          }}
+                        >
+                          -{r.estimatedTimeSavingsMinutes} min
+                        </Typography>
+                      ))}
+                    </Box>
+                    <Tooltip title="Send diversion plan to all City Managers">
+                      <Button
+                        size="small"
+                        variant={isSelected ? "contained" : "outlined"}
+                        color={isSelected ? "inherit" : "primary"}
+                        disabled={notifying}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          notifyRecommendation(rec.recommendationId);
+                        }}
+                        sx={{
+                          mt: 1,
+                          fontSize: "0.72rem",
+                          alignSelf: "flex-start",
+                        }}
+                      >
+                        Send to City Manager
+                      </Button>
+                    </Tooltip>
+                  </Box>
+                );
+              })}
+              {!recommendations?.length && (
+                <Typography variant="caption" color="text.secondary">
+                  No recommendations available.
+                </Typography>
+              )}
             </Box>
           </Box>
         </Paper>
