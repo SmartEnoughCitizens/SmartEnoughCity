@@ -61,6 +61,12 @@ public class NotificationController {
     return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
   }
 
+  @PatchMapping("/{userId}/read-all")
+  public ResponseEntity<?> markAllAsRead(@PathVariable String userId) {
+    int updated = notificationFacade.markAllAsRead(userId);
+    return ResponseEntity.ok(Map.of("status", "updated", "count", updated));
+  }
+
   @PatchMapping("/{userId}/{notificationId}/read")
   public ResponseEntity<?> toggleRead(
       @PathVariable String userId,

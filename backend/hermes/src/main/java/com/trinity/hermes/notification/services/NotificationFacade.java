@@ -202,6 +202,11 @@ public class NotificationFacade {
         .build();
   }
 
+  @jakarta.transaction.Transactional
+  public int markAllAsRead(String userId) {
+    return notificationRepository.markAllAsReadByUserId(userId);
+  }
+
   public boolean markAsRead(String userId, Long notificationId) {
     return setReadState(userId, notificationId, true);
   }

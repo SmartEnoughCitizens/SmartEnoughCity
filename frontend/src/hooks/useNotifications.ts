@@ -114,13 +114,13 @@ export const useMarkAllAsRead = (userId: string) => {
         };
       },
     );
-    // Persist each unread notification to backend
-    const data = queryClient.getQueryData<NotificationResponse>(
-      NOTIFICATION_KEYS.user(userId),
-    );
-    for (const n of data?.notifications.filter((n) => !n.read) ?? []) {
-      notificationApi.setReadState(userId, n.id, true).catch(() => {});
-    }
+
+    // Single bulk call to backend
+    notificationApi.markAllAsRead(userId).catch(() => {
+      queryClient.invalidateQueries({
+        queryKey: NOTIFICATION_KEYS.user(userId),
+      });
+    });
   }, [userId, queryClient]);
 };
 
