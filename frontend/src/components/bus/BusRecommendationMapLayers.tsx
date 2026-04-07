@@ -7,9 +7,13 @@ function useRecommendationMapGeometry(
   recommendation: BusNewStopRecommendation | null,
   routeDetail: BusRouteDetail | undefined,
 ) {
-  const candidatePosition: [number, number] | null = recommendation
-    ? [recommendation.candidateLat, recommendation.candidateLon]
-    : null;
+  const candidatePosition: [number, number] | null = useMemo(
+    () =>
+      recommendation
+        ? [recommendation.candidateLat, recommendation.candidateLon]
+        : null,
+    [recommendation],
+  );
 
   const polylinePositions = useMemo((): [number, number][] | null => {
     if (!routeDetail?.shape?.length) return null;
