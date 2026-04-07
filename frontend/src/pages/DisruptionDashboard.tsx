@@ -76,13 +76,19 @@ const TYPE_LABELS: Record<DisruptionType, string> = {
 };
 
 const CAUSE_ICONS: Record<string, React.ReactNode> = {
-  EVENT: <EventIcon sx={{ fontSize: 15 }} />,
-  CONGESTION: <TrafficIcon sx={{ fontSize: 15 }} />,
-  CROSS_MODE: <CompareArrowsIcon sx={{ fontSize: 15 }} />,
+  EVENT: <EventIcon sx={{ fontSize: 14 }} />,
+  CONGESTION: <TrafficIcon sx={{ fontSize: 14 }} />,
+  CROSS_MODE: <CompareArrowsIcon sx={{ fontSize: 14 }} />,
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {
   HIGH: "#EF4444", MEDIUM: "#F59E0B", LOW: "#10B981",
+};
+
+const ALT_MODE_COLORS: Record<string, string> = {
+  bus: "#3B82F6",
+  rail: "#F59E0B",
+  bike: "#10B981",
 };
 
 type ModeFilter = "ALL" | "BUS" | "TRAM" | "TRAIN" | "CONGESTION" | "EVENT";
@@ -241,6 +247,14 @@ function SectionHeader({ label, color, count }: { label: string; color: string; 
 
 // ── Detail panel ───────────────────────────────────────────────────────
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography sx={{ fontSize: "0.58rem", fontWeight: 700, color: "text.disabled", textTransform: "uppercase", letterSpacing: 0.7, mb: 0.75 }}>
+      {children}
+    </Typography>
+  );
+}
+
 function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["disruption", "detail", id],
@@ -254,87 +268,150 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Header */}
-      <Box sx={{ px: 2, py: 1, display: "flex", alignItems: "center", gap: 1, borderBottom: "1px solid rgba(0,0,0,0.07)", flexShrink: 0 }}>
-        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: color, flexShrink: 0 }} />
-        <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }} noWrap>
-          {data?.affectedArea ?? data?.name ?? "Disruption Detail"}
-        </Typography>
-        <IconButton size="small" onClick={onClose} sx={{ ml: "auto" }}>
+      <Box sx={{
+        px: 2, py: 1,
+        display: "flex", alignItems: "center", gap: 1,
+        borderBottom: "1px solid rgba(0,0,0,0.07)",
+        flexShrink: 0,
+        bgcolor: `${color}08`,
+      }}>
+        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: color, flexShrink: 0, boxShadow: `0 0 6px ${color}88` }} />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="subtitle2" fontWeight={700} noWrap>
+            {data?.affectedArea ?? data?.name ?? "Disruption Detail"}
+          </Typography>
+          {data && (
+            <Box sx={{ display: "flex", gap: 0.4, mt: 0.2, alignItems: "center" }}>
+              <Chip size="small" label={data.severity} sx={{ fontSize: "0.54rem", height: 13, bgcolor: `${color}22`, color, border: `1px solid ${color}44` }} />
+              <Chip size="small" label={TYPE_LABELS[data.disruptionType] ?? data.disruptionType} sx={{ fontSize: "0.54rem", height: 13 }} />
+            </Box>
+          )}
+        </Box>
+        <IconButton size="small" onClick={onClose}>
           <KeyboardArrowDownIcon fontSize="small" />
         </IconButton>
       </Box>
 
       {isLoading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1 }}>
           <CircularProgress size={18} sx={{ color }} />
         </Box>
       ) : (
-        <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.25 }}>
-          {/* Description */}
+        <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+          {/* Description card */}
           {data?.description && (
-            <Box sx={{ mb: 1.25 }}>
-              <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "text.disabled", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.5 }}>
+            <Box>
+              <SectionLabel>
                 {data.disruptionType === "CONGESTION"
                   ? "Impact & Recommendations"
                   : data.disruptionType === "EVENT"
                     ? "Service Pressure Alert"
                     : "What happened"}
-              </Typography>
-              <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", lineHeight: 1.5 }}>
-                {data.description}
-              </Typography>
+              </SectionLabel>
+              <Box sx={{
+                p: 1.25, borderRadius: 1.5,
+                bgcolor: `${color}0a`,
+                border: `1px solid ${color}22`,
+                borderLeft: `3px solid ${color}`,
+              }}>
+                <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", lineHeight: 1.55 }}>
+                  {data.description}
+                </Typography>
+              </Box>
             </Box>
           )}
 
           {/* Causes */}
           {causes.length > 0 && (
-            <>
-              {data?.description && <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mb: 1.25 }} />}
-              <Box sx={{ mb: 1.25 }}>
-                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "text.disabled", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.6 }}>
-                  Possible Causes
-                </Typography>
-                {causes.map((c) => (
-                  <Box key={c.id} sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, py: 0.4 }}>
-                    <Box sx={{ color: CONFIDENCE_COLORS[c.confidence], mt: 0.1, flexShrink: 0 }}>
-                      {CAUSE_ICONS[c.causeType] ?? <WarningAmberIcon sx={{ fontSize: 15 }} />}
+            <Box>
+              <SectionLabel>Possible Causes</SectionLabel>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
+                {causes.map((c) => {
+                  const confColor = CONFIDENCE_COLORS[c.confidence] ?? "#6B7280";
+                  return (
+                    <Box key={c.id} sx={{
+                      display: "flex", alignItems: "center", gap: 1,
+                      p: 1, borderRadius: 1.5,
+                      border: `1px solid ${confColor}22`,
+                      borderLeft: `3px solid ${confColor}`,
+                      bgcolor: `${confColor}08`,
+                    }}>
+                      <Box sx={{
+                        color: confColor, flexShrink: 0,
+                        width: 22, height: 22,
+                        borderRadius: 1,
+                        bgcolor: `${confColor}18`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {CAUSE_ICONS[c.causeType] ?? <WarningAmberIcon sx={{ fontSize: 14 }} />}
+                      </Box>
+                      <Typography sx={{ fontSize: "0.73rem", flex: 1, color: "text.secondary", lineHeight: 1.4 }}>
+                        {c.causeDescription}
+                      </Typography>
+                      <Chip
+                        label={c.confidence}
+                        size="small"
+                        sx={{ fontSize: "0.52rem", height: 14, bgcolor: `${confColor}18`, color: confColor, border: `1px solid ${confColor}33`, flexShrink: 0 }}
+                      />
                     </Box>
-                    <Typography sx={{ fontSize: "0.75rem", flex: 1, color: "text.secondary", lineHeight: 1.4 }}>
-                      {c.causeDescription}
-                    </Typography>
-                    <Chip label={c.confidence} size="small" sx={{ fontSize: "0.53rem", height: 13, bgcolor: `${CONFIDENCE_COLORS[c.confidence]}18`, color: CONFIDENCE_COLORS[c.confidence], flexShrink: 0 }} />
-                  </Box>
-                ))}
+                  );
+                })}
               </Box>
-            </>
+            </Box>
           )}
 
           {/* Alternatives */}
           {alternatives.length > 0 && (
-            <>
-              {(data?.description || causes.length > 0) && <Divider sx={{ borderColor: "rgba(0,0,0,0.06)", mb: 1.25 }} />}
-              <Box>
-                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "text.disabled", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.6 }}>
-                  Alternative Transport
-                </Typography>
-                {alternatives.map((a) => (
-                  <Box key={a.id} sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, py: 0.4 }}>
-                    <Box sx={{ color: "text.disabled", mt: 0.1, flexShrink: 0 }}>{altIcon(a.mode)}</Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", lineHeight: 1.3 }} noWrap>{a.description}</Typography>
-                      {a.etaMinutes != null && <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>~{a.etaMinutes} min</Typography>}
+            <Box>
+              <SectionLabel>Alternative Transport</SectionLabel>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
+                {alternatives.map((a) => {
+                  const modeKey = (a.mode ?? "").toLowerCase();
+                  const modeColor = ALT_MODE_COLORS[modeKey] ?? "#6B7280";
+                  return (
+                    <Box key={a.id} sx={{
+                      display: "flex", alignItems: "center", gap: 1,
+                      p: 1, borderRadius: 1.5,
+                      border: `1px solid ${modeColor}22`,
+                      borderLeft: `3px solid ${modeColor}`,
+                      bgcolor: `${modeColor}08`,
+                    }}>
+                      <Box sx={{
+                        color: modeColor, flexShrink: 0,
+                        width: 22, height: 22,
+                        borderRadius: 1,
+                        bgcolor: `${modeColor}18`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {altIcon(a.mode)}
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: "0.73rem", color: "text.primary", lineHeight: 1.3, fontWeight: 500 }} noWrap>
+                          {a.description}
+                        </Typography>
+                        {a.etaMinutes != null && (
+                          <Typography sx={{ fontSize: "0.62rem", color: "text.disabled" }}>~{a.etaMinutes} min</Typography>
+                        )}
+                      </Box>
+                      {a.availabilityCount != null && (
+                        <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                          <Typography sx={{ fontSize: "0.78rem", fontWeight: 800, color: modeColor, lineHeight: 1 }}>{a.availabilityCount}</Typography>
+                          <Typography sx={{ fontSize: "0.56rem", color: "text.disabled" }}>avail.</Typography>
+                        </Box>
+                      )}
                     </Box>
-                    {a.availabilityCount != null && <Typography sx={{ fontSize: "0.65rem", color: "text.disabled", flexShrink: 0 }}>{a.availabilityCount} avail.</Typography>}
-                  </Box>
-                ))}
+                  );
+                })}
               </Box>
-            </>
+            </Box>
           )}
 
           {!data?.description && causes.length === 0 && alternatives.length === 0 && (
-            <Typography sx={{ fontSize: "0.75rem", color: "text.disabled", textAlign: "center", py: 1.5 }}>
-              No additional details available
-            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1 }}>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
+                No additional details available
+              </Typography>
+            </Box>
           )}
         </Box>
       )}
@@ -575,6 +652,7 @@ export const DisruptionDashboard = () => {
             backdropFilter: "blur(12px)",
             bgcolor: (t) => t.palette.background.paper,
             fontWeight: 600, fontSize: "0.7rem", cursor: "pointer",
+            transition: "right 0.2s ease",
             "& .MuiChip-icon": { color: "#EF4444" },
           }}
         />
@@ -589,13 +667,14 @@ export const DisruptionDashboard = () => {
             right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
             height: DETAIL_HEIGHT, zIndex: 1000,
             borderRadius: 3, overflow: "hidden",
+            transition: "right 0.2s ease",
           }}
         >
           <DetailPanel id={selectedId} onClose={() => setDetailOpen(false)} />
         </Paper>
       )}
 
-      {/* ── Bottom ripple viz (when no selection) ── */}
+      {/* ── Bottom mode impact panel (when no selection) ── */}
       {!detailOpen && !selectedId && disruptions.length > 0 && (
         <Paper
           elevation={0}
@@ -605,13 +684,14 @@ export const DisruptionDashboard = () => {
             height: 200, zIndex: 1000,
             borderRadius: 3, overflow: "hidden",
             display: "flex", flexDirection: "column",
+            transition: "right 0.2s ease",
           }}
         >
           <Box sx={{ px: 2, py: 1, borderBottom: "1px solid rgba(0,0,0,0.07)", flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>Mode Impact</Typography>
             <Typography sx={{ fontSize: "0.6rem", color: "text.secondary" }}>Click a disruption to see causes & alternatives</Typography>
           </Box>
-          <Box sx={{ flex: 1, overflow: "hidden" }}>
+          <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             <RippleEffectVisualization disruptions={disruptions} />
           </Box>
         </Paper>

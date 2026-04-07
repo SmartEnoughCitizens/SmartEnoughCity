@@ -1,9 +1,10 @@
 /**
- * RippleEffectVisualization — SVG-based animated ripple chart showing severity
- * impact across transport modes. Uses CSS keyframe animations for the pulse effect.
+ * ModeImpactPanel — compact mode-by-mode disruption breakdown.
+ * Replaces the old ripple SVG which had sizing and overflow issues.
  */
 
-import { Box, Typography, Chip } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import type { ActiveDisruption, TransportMode } from "@/types";
 
 const MODE_COLORS: Record<TransportMode, string> = {
@@ -22,6 +23,15 @@ const MODE_LABELS: Record<TransportMode, string> = {
   CYCLE: "Cycle",
 };
 
+const SEVERITY_LABELS = ["", "Low", "Med", "High", "Crit"];
+const SEVERITY_COLORS_ARR = [
+  "",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#7C3AED",
+];
+
 const ALL_MODES: TransportMode[] = ["BUS", "TRAM", "TRAIN", "CAR", "CYCLE"];
 
 interface ModeImpact {
@@ -32,18 +42,14 @@ interface ModeImpact {
 
 function severityScore(s: string): number {
   switch (s) {
-    case "CRITICAL": {
+    case "CRITICAL":
       return 4;
-    }
-    case "HIGH": {
+    case "HIGH":
       return 3;
-    }
-    case "MEDIUM": {
+    case "MEDIUM":
       return 2;
-    }
-    default: {
+    default:
       return 1;
-    }
   }
 }
 
@@ -55,9 +61,13 @@ function computeImpacts(disruptions: ActiveDisruption[]): ModeImpact[] {
     const modes = d.affectedTransportModes ?? [];
     const score = severityScore(d.severity);
     for (const m of modes) {
-      if (!counts[m]) counts[m] = { count: 0, max: 0 };
-      counts[m].count += 1;
-      counts[m].max = Math.max(counts[m].max, score);
+      if (!counts[m as TransportMode])
+        counts[m as TransportMode] = { count: 0, max: 0 };
+      counts[m as TransportMode]!.count += 1;
+      counts[m as TransportMode]!.max = Math.max(
+        counts[m as TransportMode]!.max,
+        score,
+      );
     }
   }
 
@@ -74,8 +84,9 @@ interface Props {
 
 export const RippleEffectVisualization = ({ disruptions }: Props) => {
   const impacts = computeImpacts(disruptions);
-  const totalActive = disruptions.length;
   const maxCount = Math.max(...impacts.map((i) => i.count), 1);
+  const affected = impacts.filter((i) => i.count > 0);
+  const allClear = affected.length === 0;
 
   return (
     <Box
@@ -84,185 +95,165 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        p: 2,
-        gap: 2,
+        px: 2,
+        py: 1.25,
+        gap: 1.25,
+        boxSizing: "border-box",
       }}
     >
-      {/* Central pulse node */}
-      <Box sx={{ display: "flex", justifyContent: "center", pt: 1 }}>
-        <Box sx={{ position: "relative", width: 80, height: 80 }}>
-          {/* Animated ripple rings */}
-          {[0, 1, 2].map((i) => (
-            <Box
-              key={i}
-              sx={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                border: `2px solid ${totalActive > 0 ? "#EF4444" : "#9CA3AF"}`,
-                opacity: 0,
-                animation:
-                  totalActive > 0
-                    ? `ripple 2s ease-out ${i * 0.6}s infinite`
-                    : "none",
-                "@keyframes ripple": {
-                  "0%": { transform: "scale(0.5)", opacity: 0.8 },
-                  "100%": { transform: "scale(2.2)", opacity: 0 },
-                },
-              }}
-            />
-          ))}
-          {/* Core node */}
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 16,
-              borderRadius: "50%",
-              bgcolor: totalActive > 0 ? "#EF4444" : "#9CA3AF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow:
-                totalActive > 0 ? "0 0 12px rgba(239,68,68,0.5)" : "none",
-              transition: "all 0.3s",
-            }}
-          >
-            <Typography
-              sx={{ color: "#fff", fontWeight: 800, fontSize: "1rem" }}
-            >
-              {totalActive}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
-      <Typography
-        sx={{
-          textAlign: "center",
-          fontSize: "0.72rem",
-          color: "text.secondary",
-          mt: -1,
-        }}
-      >
-        active disruption{totalActive === 1 ? "" : "s"}
-      </Typography>
-
-      {/* Mode impact bars */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, flex: 1 }}>
+      {/* Mode status cards — one per mode */}
+      <Box sx={{ display: "flex", gap: 0.75, flexShrink: 0 }}>
         {impacts.map(({ mode, count, maxSeverity }) => {
           const color = MODE_COLORS[mode];
-          const barPct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+          const sevColor = SEVERITY_COLORS_ARR[maxSeverity] ?? color;
           const isAffected = count > 0;
-
           return (
             <Box
               key={mode}
-              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+              sx={{
+                flex: 1,
+                borderRadius: 2,
+                border: `1px solid ${isAffected ? color + "55" : "rgba(0,0,0,0.07)"}`,
+                bgcolor: isAffected ? color + "0e" : "rgba(0,0,0,0.02)",
+                px: 0.75,
+                py: 0.75,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 0.25,
+                transition: "border-color 0.2s, background-color 0.2s",
+              }}
             >
-              {/* Mode label */}
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  bgcolor: isAffected ? color : "#9CA3AF",
+                  boxShadow: isAffected ? `0 0 4px ${color}99` : "none",
+                  transition: "all 0.2s",
+                }}
+              />
               <Typography
                 sx={{
-                  fontSize: "0.75rem",
-                  fontWeight: 500,
-                  color: isAffected ? "text.primary" : "text.disabled",
-                  width: 40,
-                  flexShrink: 0,
+                  fontSize: "0.58rem",
+                  fontWeight: 700,
+                  color: isAffected ? color : "text.disabled",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.4,
+                  lineHeight: 1,
                 }}
               >
                 {MODE_LABELS[mode]}
               </Typography>
-
-              {/* Bar */}
-              <Box
+              <Typography
                 sx={{
-                  flex: 1,
-                  height: 10,
-                  borderRadius: 5,
-                  bgcolor: "rgba(0,0,0,0.06)",
-                  overflow: "hidden",
-                  position: "relative",
+                  fontSize: "1rem",
+                  fontWeight: 800,
+                  color: isAffected ? color : "text.disabled",
+                  lineHeight: 1,
                 }}
               >
-                <Box
-                  sx={{
-                    height: "100%",
-                    width: `${Math.max(barPct, isAffected ? 4 : 0)}%`,
-                    bgcolor: color,
-                    borderRadius: 5,
-                    transition: "width 0.5s ease",
-                    position: "relative",
-                    "&::after": isAffected
-                      ? {
-                          content: '""',
-                          position: "absolute",
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: "30%",
-                          background: `linear-gradient(to right, transparent, ${color}99)`,
-                          animation: "shimmer 1.5s ease-in-out infinite",
-                        }
-                      : {},
-                    "@keyframes shimmer": {
-                      "0%, 100%": { opacity: 0.3 },
-                      "50%": { opacity: 1 },
-                    },
-                  }}
-                />
-              </Box>
-
-              {/* Count + severity chip */}
-              <Box
+                {count}
+              </Typography>
+              <Typography
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  width: 56,
+                  fontSize: "0.55rem",
+                  color: isAffected ? sevColor : "text.disabled",
+                  lineHeight: 1,
                 }}
               >
-                {isAffected ? (
-                  <>
-                    <Typography
-                      sx={{ fontSize: "0.7rem", fontWeight: 700, color }}
-                    >
-                      {count}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={["", "LOW", "MED", "HIGH", "CRIT"][maxSeverity]}
-                      sx={{
-                        fontSize: "0.55rem",
-                        height: 14,
-                        bgcolor: color + "22",
-                        color,
-                        border: `1px solid ${color}44`,
-                        px: 0.25,
-                      }}
-                    />
-                  </>
-                ) : (
-                  <Typography
-                    sx={{ fontSize: "0.68rem", color: "text.disabled" }}
-                  >
-                    —
-                  </Typography>
-                )}
-              </Box>
+                {isAffected ? (SEVERITY_LABELS[maxSeverity] ?? "—") : "—"}
+              </Typography>
             </Box>
           );
         })}
       </Box>
 
-      <Typography
+      {/* Proportional bars for affected modes only */}
+      <Box
         sx={{
-          fontSize: "0.6rem",
-          color: "text.disabled",
-          textAlign: "center",
-          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.55,
+          flex: 1,
+          justifyContent: allClear ? "center" : "flex-start",
         }}
       >
-        Auto-detected · refreshes every 30 s
-      </Typography>
+        {allClear ? (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <CheckCircleOutlineIcon
+              sx={{ fontSize: 22, color: "#10B981" }}
+            />
+            <Typography
+              sx={{ fontSize: "0.72rem", color: "text.secondary" }}
+            >
+              All modes operating normally
+            </Typography>
+          </Box>
+        ) : (
+          affected.map(({ mode, count }) => {
+            const color = MODE_COLORS[mode];
+            const pct = (count / maxCount) * 100;
+            return (
+              <Box
+                key={mode}
+                sx={{ display: "flex", alignItems: "center", gap: 1 }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.62rem",
+                    color,
+                    width: 34,
+                    flexShrink: 0,
+                    fontWeight: 600,
+                  }}
+                >
+                  {MODE_LABELS[mode]}
+                </Typography>
+                <Box
+                  sx={{
+                    flex: 1,
+                    height: 7,
+                    borderRadius: 4,
+                    bgcolor: "rgba(0,0,0,0.06)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: "100%",
+                      width: `${Math.max(pct, 6)}%`,
+                      bgcolor: color,
+                      borderRadius: 4,
+                      transition: "width 0.45s ease",
+                    }}
+                  />
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: "0.62rem",
+                    color,
+                    fontWeight: 700,
+                    width: 14,
+                    textAlign: "right",
+                    flexShrink: 0,
+                  }}
+                >
+                  {count}
+                </Typography>
+              </Box>
+            );
+          })
+        )}
+      </Box>
     </Box>
   );
 };
