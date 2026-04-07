@@ -4,7 +4,7 @@
  * EV Charging tab shows EVDashboard as a full overlay.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Chip,
@@ -27,7 +27,9 @@ import {
   Circle,
   Popup,
   Polyline,
+  useMap,
 } from "react-leaflet";
+import L from "leaflet";
 import {
   useCarFuelTypeStatistics,
   useCarHighTrafficPoints,
@@ -59,6 +61,29 @@ const LEGEND_ITEMS: { band: ColorBand; color: string; label: string }[] = [
 
 const SIDE_PANEL_WIDTH = 420;
 const GAP = 16;
+
+function TrafficRecommendationFitBounds({
+  recommendation,
+}: {
+  recommendation: TrafficRecommendation | null;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!recommendation) return;
+    const points: L.LatLngExpression[] = [
+      [recommendation.siteLat, recommendation.siteLon],
+    ];
+    for (const route of recommendation.alternativeRoutes) {
+      for (const wp of route.path) points.push([wp.lat, wp.lon]);
+    }
+    if (points.length === 1) {
+      map.setView(points[0] as L.LatLngExpression, 15);
+    } else {
+      map.fitBounds(L.latLngBounds(points), { padding: [52, 52], maxZoom: 16 });
+    }
+  }, [map, recommendation]);
+  return null;
+}
 
 export const CarDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
@@ -273,6 +298,51 @@ export const CarDashboard = () => {
                   </Popup>
                 </Circle>
               ))}
+          {/* Fit map to selected recommendation */}
+          <TrafficRecommendationFitBounds
+            recommendation={selectedRecommendation}
+          />
+
+          {/* Congestion site marker */}
+          {selectedRecommendation && (
+            <>
+              <CircleMarker
+                center={[
+                  selectedRecommendation.siteLat,
+                  selectedRecommendation.siteLon,
+                ]}
+                radius={22}
+                pathOptions={{
+                  color: "#dc2626",
+                  weight: 2,
+                  fillColor: "#dc2626",
+                  fillOpacity: 0.18,
+                }}
+              />
+              <CircleMarker
+                center={[
+                  selectedRecommendation.siteLat,
+                  selectedRecommendation.siteLon,
+                ]}
+                radius={11}
+                pathOptions={{
+                  color: "#ffffff",
+                  weight: 3,
+                  fillColor: "#dc2626",
+                  fillOpacity: 1,
+                }}
+              >
+                <Popup>
+                  <strong>
+                    Congestion site {selectedRecommendation.siteId}
+                  </strong>
+                  <br />
+                  {selectedRecommendation.recommendedAction}
+                </Popup>
+              </CircleMarker>
+            </>
+          )}
+
           {/* Alternative route overlays for selected recommendation */}
           {selectedRecommendation?.alternativeRoutes.map((route) => (
             <Polyline
