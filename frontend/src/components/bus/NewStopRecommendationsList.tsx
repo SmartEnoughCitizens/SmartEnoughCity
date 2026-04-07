@@ -86,9 +86,7 @@ export const NewStopRecommendationsList = ({
             <Box
               component="tr"
               key={key}
-              onClick={() =>
-                onSelectRecommendation(isSelected ? null : row)
-              }
+              onClick={() => onSelectRecommendation(isSelected ? null : row)}
               sx={{
                 cursor: "pointer",
                 bgcolor: isSelected ? "action.selected" : "transparent",

@@ -229,7 +229,9 @@ export const BusDashboard = () => {
                 recommendation={selectedRecommendation}
                 routeDetail={routeDetailForMap}
               />
-              <BusRecommendationPolylineAndStops routeDetail={routeDetailForMap} />
+              <BusRecommendationPolylineAndStops
+                routeDetail={routeDetailForMap}
+              />
             </>
           )}
           {filteredVehicles?.map((vehicle) => (
@@ -262,7 +264,9 @@ export const BusDashboard = () => {
             </CircleMarker>
           ))}
           {selectedRecommendation && (
-            <BusRecommendationCandidate recommendation={selectedRecommendation} />
+            <BusRecommendationCandidate
+              recommendation={selectedRecommendation}
+            />
           )}
         </MapContainer>
       </Box>
@@ -462,8 +466,14 @@ export const BusDashboard = () => {
           <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
             New stop recommendations
           </Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-            Click a row to show route shape, stops, and suggested location on the map.
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mb: 1 }}
+          >
+            Click a row to show route shape, stops, and suggested location on
+            the map.
           </Typography>
           {selectedRecommendation && (
             <Box sx={{ mb: 1 }}>
@@ -474,8 +484,12 @@ export const BusDashboard = () => {
             </Box>
           )}
           {selectedRecommendation && routeDetailError && (
-            <Alert severity="warning" sx={{ mb: 1, py: 0, fontSize: "0.75rem" }}>
-              Could not load route geometry; only the suggested stop is shown on the map.
+            <Alert
+              severity="warning"
+              sx={{ mb: 1, py: 0, fontSize: "0.75rem" }}
+            >
+              Could not load route geometry; only the suggested stop is shown on
+              the map.
             </Alert>
           )}
           <NewStopRecommendationsList

@@ -43,8 +43,8 @@ export function BusRecommendationFitBounds({
     if (!recommendation || !candidatePosition) return;
 
     const points: L.LatLngExpression[] = [];
-    polylinePositions?.forEach((pt) => points.push(pt));
-    stopsWithCoords.forEach((s) => points.push([s.lat, s.lon]));
+    if (polylinePositions) for (const pt of polylinePositions) points.push(pt);
+    for (const s of stopsWithCoords) points.push([s.lat, s.lon]);
     points.push(candidatePosition);
 
     if (points.length === 1) {
