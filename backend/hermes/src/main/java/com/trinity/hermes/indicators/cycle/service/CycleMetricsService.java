@@ -48,7 +48,6 @@ public class CycleMetricsService {
 
   @PostConstruct
   public void initProposalsTable() {
-    jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS backend");
     jdbcTemplate.execute(
         "CREATE TABLE IF NOT EXISTS backend.cycle_station_proposals ("
             + "id                  BIGSERIAL PRIMARY KEY, "
