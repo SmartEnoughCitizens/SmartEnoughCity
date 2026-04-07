@@ -76,7 +76,7 @@ class DataSourcesSettings(BaseSettings):
 
     # Population data URLs
     population_boundaries_url: str = Field(
-        "https://data-osi.opendata.arcgis.com/api/download/v1/items/9472cff586d74f2ba3c240d4344c5720/geojson?layers=0",
+        "https://www.dropbox.com/scl/fi/n2nfymtsserhismpgevss/small_area_boundaries_2022.geojson?rlkey=45yvos43xofay1daxkajc1fm9&st=mr9jpxzd&dl=1",
         alias="POPULATION_BOUNDARIES_URL",
     )
     population_census_url: str = Field(
