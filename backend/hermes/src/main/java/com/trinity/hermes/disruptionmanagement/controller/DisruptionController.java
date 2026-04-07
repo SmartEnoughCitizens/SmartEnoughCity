@@ -88,6 +88,13 @@ public class DisruptionController {
     return ResponseEntity.ok(disruptions);
   }
 
+  /** Get active disruptions for a transport mode GET /api/v1/disruptions/transport/{mode} */
+  @GetMapping("/transport/{mode}")
+  public ResponseEntity<List<DisruptionResponse>> getDisruptionsByTransportMode(
+      @PathVariable String mode) {
+    return ResponseEntity.ok(disruptionFacade.getActiveDisruptionsByTransportMode(mode));
+  }
+
   /** Get disruptions by area GET /api/v1/disruptions/area/{area} */
   @GetMapping("/area/{area}")
   public ResponseEntity<List<DisruptionResponse>> getDisruptionsByArea(@PathVariable String area) {

@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import { useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -21,6 +22,10 @@ import {
   Button,
   Autocomplete,
   Slider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -31,6 +36,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import SpeedIcon from "@mui/icons-material/Speed";
 import SearchIcon from "@mui/icons-material/Search";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import {
   MapContainer,
   TileLayer,
@@ -47,8 +53,10 @@ import {
   useTrainRoutes,
   useTrainDemand,
   useSimulateTrainDemand,
+  useTrainRecommendations,
 } from "@/hooks";
 import type { StationDemand } from "@/types";
+import { safeJsonParse } from "@/utils/safeJsonParse";
 import { useAppSelector } from "@/store/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { approvalApi, type CreateApprovalDTO } from "@/api/approval.api";
@@ -285,6 +293,9 @@ export const TrainDashboard = () => {
   const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
     null,
   );
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
 
   // Demand simulation state — up to 3 corridors
   const [corridors, setCorridors] = useState<CorridorEntry[]>([
@@ -348,6 +359,12 @@ export const TrainDashboard = () => {
   const { data: trainRoutes = [] } = useTrainRoutes();
   const { data: demandData = [] } = useTrainDemand();
   const simulateMutation = useSimulateTrainDemand();
+  const { data: trainRecommendations = [], isLoading: recommendationsLoading } =
+    useTrainRecommendations();
+  const [simulationModal, setSimulationModal] = useState<{
+    open: boolean;
+    simulation: string | null;
+  }>({ open: false, simulation: null });
 
   // Lookup map: stopId → demand score (uses simulated when available)
   const activeDemand: StationDemand[] = useMemo(() => {
@@ -488,6 +505,7 @@ export const TrainDashboard = () => {
     setTabValue(v);
     setSelectedStationCode(null);
     setSelectedTrainCode(null);
+    setSelectedDisruptionId(null);
   };
 
   // Build a set of connected stop-ID pairs from route data
@@ -1072,6 +1090,8 @@ export const TrainDashboard = () => {
             <Tab
               label={`Approvals${approvals.some((a) => a.status === "PENDING") ? ` (${approvals.filter((a) => a.status === "PENDING").length})` : ""}`}
             />
+            <Tab label={`Recommendations (${trainRecommendations.length})`} />
+            <Tab label="Disruptions" />
           </Tabs>
 
           {/* Tab content */}
@@ -2094,9 +2114,347 @@ export const TrainDashboard = () => {
                   ))}
               </Box>
             )}
+
+            {/* ── Tab 5: Recommendations ─────────────────────────── */}
+            {tabValue === 5 && (
+              <Box sx={{ p: 1.5 }}>
+                {recommendationsLoading ? (
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", py: 4 }}
+                  >
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : trainRecommendations.length === 0 ? (
+                  <Typography
+                    sx={{
+                      color: "text.secondary",
+                      fontSize: "0.8rem",
+                      textAlign: "center",
+                      py: 4,
+                    }}
+                  >
+                    No recommendations available
+                  </Typography>
+                ) : (
+                  <Box
+                    component="table"
+                    sx={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <Box component="thead">
+                      <Box component="tr">
+                        {[
+                          "Train Name",
+                          "Status",
+                          "Current",
+                          "Predicted",
+                          "Recommendation",
+                        ].map((h) => (
+                          <Box
+                            component="th"
+                            key={h}
+                            sx={{
+                              textAlign: "left",
+                              py: 0.75,
+                              px: 1,
+                              color: "text.secondary",
+                              fontSize: "0.62rem",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.6,
+                              borderBottom: 1,
+                              borderColor: "divider",
+                              position: "sticky",
+                              top: 0,
+                              bgcolor: "background.paper",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                    <Box component="tbody">
+                      {trainRecommendations.map((rec) => {
+                        const recommendationSchema = {
+                          parse: (data: unknown) => {
+                            const arr = data as Array<{
+                              "Train Name": string;
+                              Attributes: {
+                                status: string;
+                                Current_count: number;
+                                Predicted_count: number;
+                                Recommendation: string;
+                              };
+                            }>;
+                            if (!Array.isArray(arr)) return [];
+                            return arr.map((item) => ({
+                              trainName: item["Train Name"],
+                              status: item.Attributes.status,
+                              currentCount: item.Attributes.Current_count,
+                              predictedCount: item.Attributes.Predicted_count,
+                              recommendation: item.Attributes.Recommendation,
+                            }));
+                          },
+                        };
+                        let rows: Array<{
+                          trainName: string;
+                          status: string;
+                          currentCount: number;
+                          predictedCount: number;
+                          recommendation: string;
+                        }> = [];
+                        try {
+                          rows = safeJsonParse(
+                            rec.recommendation,
+                            recommendationSchema,
+                          );
+                        } catch {
+                          rows = [];
+                        }
+                        return rows.map((row, idx) => (
+                          <Box
+                            component="tr"
+                            key={`${rec.id}-${idx}`}
+                            sx={{ "&:hover td": { bgcolor: "action.hover" } }}
+                          >
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                fontWeight: 600,
+                                borderBottom: 1,
+                                borderColor: "divider",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {row.trainName}
+                            </Box>
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                borderBottom: 1,
+                                borderColor: "divider",
+                              }}
+                            >
+                              <Chip
+                                size="small"
+                                label={row.status}
+                                sx={{
+                                  fontSize: "0.62rem",
+                                  height: 18,
+                                  bgcolor:
+                                    row.status === "over-utilised"
+                                      ? "#fee2e2"
+                                      : "#fef3c7",
+                                  color:
+                                    row.status === "over-utilised"
+                                      ? "#991b1b"
+                                      : "#92400e",
+                                }}
+                              />
+                            </Box>
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                borderBottom: 1,
+                                borderColor: "divider",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {row.currentCount.toLocaleString(undefined, {
+                                maximumFractionDigits: 0,
+                              })}
+                            </Box>
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                borderBottom: 1,
+                                borderColor: "divider",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {row.predictedCount.toLocaleString(undefined, {
+                                maximumFractionDigits: 0,
+                              })}
+                            </Box>
+                            <Box
+                              component="td"
+                              sx={{
+                                py: 0.75,
+                                px: 1,
+                                color: "text.secondary",
+                                borderBottom: 1,
+                                borderColor: "divider",
+                              }}
+                            >
+                              {row.recommendation}
+                            </Box>
+                          </Box>
+                        ));
+                      })}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {/* ── Disruptions ── */}
+            {tabValue === 5 && (
+              <DisruptionsTabContent
+                mode="TRAIN"
+                selectedId={selectedDisruptionId}
+                onSelect={(d) => {
+                  setSelectedDisruptionId(d.id);
+                  if (d.latitude != null && d.longitude != null) {
+                    setFlyTarget({
+                      center: [d.latitude, d.longitude],
+                      id: Date.now(),
+                    });
+                  }
+                }}
+              />
+            )}
           </Box>
         </Paper>
       )}
+
+      {/* ── Simulation Modal ── */}
+      <Dialog
+        open={simulationModal.open}
+        onClose={() => setSimulationModal({ open: false, simulation: null })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}
+        >
+          <LightbulbIcon sx={{ color: "#d97706", fontSize: 20 }} />
+          <Typography fontWeight={700} sx={{ fontSize: "1rem" }}>
+            Simulation Results
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {simulationModal.simulation &&
+            (() => {
+              const simulationSchema = {
+                parse: (data: unknown) => {
+                  const obj = data as {
+                    results?: Array<{
+                      headsign: string;
+                      new_utilisation_pct: number;
+                      passengers_absorbed: number;
+                      co2_saved_kg: number;
+                      sustainability_score: number;
+                      summary: string;
+                    }>;
+                  };
+                  return obj.results ?? [];
+                },
+              };
+              let results: Array<{
+                headsign: string;
+                new_utilisation_pct: number;
+                passengers_absorbed: number;
+                co2_saved_kg: number;
+                sustainability_score: number;
+                summary: string;
+              }> = [];
+              try {
+                results = safeJsonParse(
+                  simulationModal.simulation,
+                  simulationSchema,
+                );
+              } catch {
+                results = [];
+              }
+              return results.map((r, idx) => (
+                <Box
+                  key={idx}
+                  sx={{
+                    mb: 2,
+                    p: 1.5,
+                    borderRadius: 1.5,
+                    border: 1,
+                    borderColor: "divider",
+                  }}
+                >
+                  <Typography
+                    fontWeight={700}
+                    sx={{ fontSize: "0.875rem", mb: 1 }}
+                  >
+                    {r.headsign}
+                  </Typography>
+                  <Box
+                    sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}
+                  >
+                    <Chip
+                      size="small"
+                      label={`${r.new_utilisation_pct.toFixed(1)}% utilisation`}
+                      sx={{
+                        fontSize: "0.65rem",
+                        height: 18,
+                        bgcolor:
+                          r.new_utilisation_pct > 100 ? "#fee2e2" : "#dcfce7",
+                        color:
+                          r.new_utilisation_pct > 100 ? "#991b1b" : "#166534",
+                      }}
+                    />
+                    <Chip
+                      size="small"
+                      label={`${r.passengers_absorbed.toFixed(0)} passengers absorbed`}
+                      sx={{ fontSize: "0.65rem", height: 18 }}
+                    />
+                    <Chip
+                      size="small"
+                      label={`${r.co2_saved_kg.toFixed(0)} kg CO₂ saved`}
+                      sx={{
+                        fontSize: "0.65rem",
+                        height: 18,
+                        bgcolor: "#dcfce7",
+                        color: "#166534",
+                      }}
+                    />
+                    <Chip
+                      size="small"
+                      label={`Sustainability: ${r.sustainability_score}`}
+                      sx={{ fontSize: "0.65rem", height: 18 }}
+                    />
+                  </Box>
+                  <Typography
+                    sx={{
+                      fontSize: "0.75rem",
+                      color: "text.secondary",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {r.summary}
+                  </Typography>
+                </Box>
+              ));
+            })()}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            size="small"
+            onClick={() =>
+              setSimulationModal({ open: false, simulation: null })
+            }
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

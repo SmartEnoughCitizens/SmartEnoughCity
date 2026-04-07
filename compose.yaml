@@ -155,12 +155,152 @@ services:
         
         GRANT SELECT ON ALL SEQUENCES IN SCHEMA "$$DATA_HANDLER_SCHEMA" TO "$$BACKEND_USER";
         
+        CREATE EXTENSION IF NOT EXISTS cube;
+        CREATE EXTENSION IF NOT EXISTS earthdistance;
+
+        CREATE OR REPLACE VIEW external_data.v_tram_disruptions AS
+          SELECT
+              f.id,
+              f.stop_id,
+              f.line,
+              f.message
+          FROM external_data.tram_luas_forecasts f
+          WHERE
+              f.message != ''
+              AND (
+                  f.message ILIKE '%not in service%'
+                  OR f.message ILIKE '%disruption%'
+                  OR f.message ILIKE '%suspended%'
+                  OR f.message ILIKE '%delay%'
+                  OR f.message ILIKE '%fault%'
+                  OR f.message ILIKE '%no service%'
+                  OR f.message ILIKE '%terminated%'
+              );
+        
         SELECT 'Backend user initialization completed successfully!' as status;
+        
+        
         EOF
 
         echo "Database initialization completed!"
     networks:
       - postgres-internal
+
+  views-init:
+    image: postgis/postgis:18-3.6-alpine
+    depends_on:
+      - postgres-init
+    restart: "no"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: smart_enough_city
+      DATA_HANDLER_USER: data_handler
+      DATA_HANDLER_PASSWORD: dev_data_handler_password
+      BACKEND_USER: backend_user
+      APP_OWNER_USER: app_owner
+      APP_OWNER_PASSWORD: dev_app_owner_password
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Waiting for tram tables to exist..."
+        until PGPASSWORD="$$DATA_HANDLER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$DATA_HANDLER_USER" -d "$$DB_NAME" -c "SELECT 1 FROM external_data.tram_luas_stops LIMIT 1" 2>/dev/null; do
+          echo "Tables not ready yet - sleeping 10s"
+          sleep 10
+        done
+        echo "Tables ready! Creating views..."
+
+        PGPASSWORD="$$DATA_HANDLER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$DATA_HANDLER_USER" -d "$$DB_NAME" <<EOF
+        CREATE OR REPLACE VIEW external_data.v_tram_disruptions AS
+        SELECT
+            f.id,
+            f.stop_id,
+            f.line,
+            f.message
+        FROM external_data.tram_luas_forecasts f
+        WHERE
+            f.message != ''
+            AND (
+                f.message ILIKE '%not in service%'
+                OR f.message ILIKE '%disruption%'
+                OR f.message ILIKE '%suspended%'
+                OR f.message ILIKE '%delay%'
+                OR f.message ILIKE '%fault%'
+                OR f.message ILIKE '%no service%'
+                OR f.message ILIKE '%terminated%'
+            );
+
+        CREATE OR REPLACE VIEW external_data.v_tram_alternate_stops AS
+        WITH affected AS (
+            SELECT stop_id, lat, lon
+            FROM external_data.tram_luas_stops
+        ),
+        bus AS (
+            SELECT
+                a.stop_id        AS tram_stop_id,
+                'bus'            AS transport_type,
+                bs.id::text      AS stop_id,
+                bs.name          AS stop_name,
+                bs.lat, bs.lon,
+                NULL::integer    AS available_bikes,
+                NULL::integer    AS capacity,
+                EARTH_DISTANCE(LL_TO_EARTH(a.lat, a.lon), LL_TO_EARTH(bs.lat, bs.lon))::integer AS distance_m
+            FROM external_data.bus_stops bs
+            CROSS JOIN affected a
+            WHERE EARTH_DISTANCE(LL_TO_EARTH(a.lat, a.lon), LL_TO_EARTH(bs.lat, bs.lon)) <= 500
+        ),
+        rail AS (
+            SELECT
+                a.stop_id        AS tram_stop_id,
+                'rail'           AS transport_type,
+                rs.station_code  AS stop_id,
+                rs.station_desc  AS stop_name,
+                rs.lat, rs.lon,
+                NULL::integer    AS available_bikes,
+                NULL::integer    AS capacity,
+                EARTH_DISTANCE(LL_TO_EARTH(a.lat, a.lon), LL_TO_EARTH(rs.lat, rs.lon))::integer AS distance_m
+            FROM external_data.irish_rail_stations rs
+            CROSS JOIN affected a
+            WHERE EARTH_DISTANCE(LL_TO_EARTH(a.lat, a.lon), LL_TO_EARTH(rs.lat, rs.lon)) <= 500
+        ),
+        bikes AS (
+            SELECT
+                a.stop_id                       AS tram_stop_id,
+                'bike'                          AS transport_type,
+                dbs.system_id                   AS stop_id,
+                dbs.name                        AS stop_name,
+                dbs.latitude::double precision  AS lat,
+                dbs.longitude::double precision AS lon,
+                snap.available_bikes,
+                dbs.capacity,
+                EARTH_DISTANCE(LL_TO_EARTH(a.lat, a.lon), LL_TO_EARTH(dbs.latitude::double precision, dbs.longitude::double precision))::integer AS distance_m
+            FROM external_data.dublin_bikes_stations dbs
+            JOIN (
+                SELECT DISTINCT ON (station_id) station_id, available_bikes
+                FROM external_data.dublin_bikes_station_snapshots
+                WHERE is_renting = true
+                ORDER BY station_id, timestamp DESC
+            ) snap ON snap.station_id = dbs.station_id
+            CROSS JOIN affected a
+            WHERE EARTH_DISTANCE(LL_TO_EARTH(a.lat, a.lon), LL_TO_EARTH(dbs.latitude::double precision, dbs.longitude::double precision)) <= 500
+            AND snap.available_bikes > 0
+        )
+        SELECT * FROM bus
+        UNION ALL SELECT * FROM rail
+        UNION ALL SELECT * FROM bikes;
+        EOF
+
+        PGPASSWORD="$$APP_OWNER_PASSWORD" psql -h "$$DB_HOST" -p "$$DB_PORT" -U "$$APP_OWNER_USER" -d "$$DB_NAME" <<EOF
+        GRANT SELECT ON external_data.v_tram_disruptions TO backend_user;
+        GRANT SELECT ON external_data.v_tram_alternate_stops TO backend_user;
+        SELECT 'Views created successfully!' AS status;
+        EOF
+
+        echo "Views initialization completed!"
+    networks:
+      - postgres-internal    
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.7

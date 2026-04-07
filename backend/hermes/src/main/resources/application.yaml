@@ -55,8 +55,17 @@ notification:
         body: |
           {recommendation}
 
+recommendation:
+  train:
+    cron: "0 0 8 * * *"
+
 mail:
   from: no-reply@citycontrol.me
 
 aws:
   region: eu-west-1
+
+# Override this per-environment (dev: http://localhost:3000, prod: your deployed frontend URL)
+# Can also be set via APP_FRONTEND_URL environment variable
+app:
+  frontend-url: http://localhost:3000
