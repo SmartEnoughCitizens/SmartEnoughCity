@@ -79,6 +79,8 @@ export interface TramCommonDelay {
   delayCount: number;
   lat: number | null;
   lon: number | null;
+}
+
 export interface TramAlternativeRoute {
   transportType: "bus" | "rail" | "bike";
   stopId: string;
