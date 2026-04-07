@@ -1,11 +1,12 @@
 import enum
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import ClassVar
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Date,
+    DateTime,
     Double,
     Float,
     ForeignKey,
@@ -15,6 +16,7 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy import (
     Enum as SQLEnum,
@@ -349,3 +351,24 @@ class TramLuasForecast(Base):
 
     # Relationships
     stop: Mapped["TramLuasStop"] = relationship(back_populates="forecasts")
+
+
+class TramDelayHistory(Base):
+    """Historical record of a detected tram delay, persisted each data handler cycle."""
+
+    __tablename__ = "tram_delay_history"
+    __table_args__: ClassVar[dict] = {"schema": DB_SCHEMA}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
+    )
+    stop_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    stop_name: Mapped[str] = mapped_column(String, nullable=False)
+    line: Mapped[str] = mapped_column(String, nullable=False)
+    direction: Mapped[str] = mapped_column(String, nullable=False)
+    destination: Mapped[str] = mapped_column(String, nullable=False)
+    scheduled_time: Mapped[str | None] = mapped_column(String)
+    due_mins: Mapped[int] = mapped_column(Integer, nullable=False)
+    delay_mins: Mapped[int] = mapped_column(Integer, nullable=False)
+    estimated_affected_passengers: Mapped[float | None] = mapped_column(Double)
