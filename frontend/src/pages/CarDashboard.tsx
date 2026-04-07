@@ -7,12 +7,14 @@
 import { useEffect, useState } from "react";
 import {
   Box,
+  Button,
   Chip,
   Divider,
   IconButton,
   Paper,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
   CircularProgress,
 } from "@mui/material";
@@ -38,6 +40,7 @@ import {
   useEvChargingDemand,
   useEvAreasGeoJson,
   useTrafficRecommendations,
+  useNotifyTrafficRecommendation,
 } from "@/hooks";
 import type { TrafficRecommendation } from "@/types";
 import { useAppSelector } from "@/store/hooks";
@@ -106,6 +109,8 @@ export const CarDashboard = () => {
 
   const { data: stats, isLoading: statsLoading } = useCarFuelTypeStatistics();
   const { data: recommendations } = useTrafficRecommendations();
+  const { mutate: notifyRecommendation, isPending: notifying } =
+    useNotifyTrafficRecommendation();
   const { data: trafficPoints, isLoading: trafficLoading } =
     useCarHighTrafficPoints();
   const { data: emissionPoints, isLoading: emissionsLoading } =
@@ -728,6 +733,25 @@ export const CarDashboard = () => {
                         </Typography>
                       ))}
                     </Box>
+                    <Tooltip title="Send diversion plan to all City Managers">
+                      <Button
+                        size="small"
+                        variant={isSelected ? "contained" : "outlined"}
+                        color={isSelected ? "inherit" : "primary"}
+                        disabled={notifying}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          notifyRecommendation(rec.recommendationId);
+                        }}
+                        sx={{
+                          mt: 1,
+                          fontSize: "0.72rem",
+                          alignSelf: "flex-start",
+                        }}
+                      >
+                        Send to City Manager
+                      </Button>
+                    </Tooltip>
                   </Box>
                 );
               })}

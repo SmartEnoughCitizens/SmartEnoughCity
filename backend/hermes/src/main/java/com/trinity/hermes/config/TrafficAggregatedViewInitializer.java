@@ -51,7 +51,13 @@ public class TrafficAggregatedViewInitializer {
   @Transactional
   public void createTrafficAggregatedView() {
     log.info("Creating backend.traffic_aggregated view...");
-    entityManager.createNativeQuery(CREATE_VIEW_SQL).executeUpdate();
-    log.info("backend.traffic_aggregated view ready.");
+    try {
+      entityManager.createNativeQuery(CREATE_VIEW_SQL).executeUpdate();
+      log.info("backend.traffic_aggregated view ready.");
+    } catch (Exception e) {
+      log.warn(
+          "Could not create backend.traffic_aggregated view (source tables may not exist yet): {}",
+          e.getMessage());
+    }
   }
 }

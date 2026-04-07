@@ -267,6 +267,17 @@ export const dashboardApi = {
   },
 
   /**
+   * Send a diversion plan notification to all City_Manager users
+   */
+  notifyTrafficRecommendation: async (
+    recommendationId: string,
+  ): Promise<void> => {
+    await axiosInstance.post(
+      API_ENDPOINTS.CAR_TRAFFIC_RECOMMENDATION_NOTIFY(recommendationId),
+    );
+  },
+
+  /**
    * Get train dashboard KPIs
    */
   getTrainKpis: async (): Promise<TrainKpis> => {

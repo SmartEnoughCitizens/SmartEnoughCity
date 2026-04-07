@@ -45,6 +45,8 @@ export const API_ENDPOINTS = {
   CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
   CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
   CAR_TRAFFIC_RECOMMENDATIONS: "/api/v1/car/traffic-recommendations",
+  CAR_TRAFFIC_RECOMMENDATION_NOTIFY: (id: string) =>
+    `/api/v1/car/traffic-recommendations/${encodeURIComponent(id)}/notify`,
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
