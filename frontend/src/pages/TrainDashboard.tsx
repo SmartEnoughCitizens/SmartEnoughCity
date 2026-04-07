@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import { useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -285,6 +286,9 @@ export const TrainDashboard = () => {
   const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
     null,
   );
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
 
   // Demand simulation state — up to 3 corridors
   const [corridors, setCorridors] = useState<CorridorEntry[]>([
@@ -488,6 +492,7 @@ export const TrainDashboard = () => {
     setTabValue(v);
     setSelectedStationCode(null);
     setSelectedTrainCode(null);
+    setSelectedDisruptionId(null);
   };
 
   // Build a set of connected stop-ID pairs from route data
@@ -1072,6 +1077,7 @@ export const TrainDashboard = () => {
             <Tab
               label={`Approvals${approvals.some((a) => a.status === "PENDING") ? ` (${approvals.filter((a) => a.status === "PENDING").length})` : ""}`}
             />
+            <Tab label="Disruptions" />
           </Tabs>
 
           {/* Tab content */}
@@ -2093,6 +2099,23 @@ export const TrainDashboard = () => {
                     </Box>
                   ))}
               </Box>
+            )}
+
+            {/* ── Disruptions ── */}
+            {tabValue === 5 && (
+              <DisruptionsTabContent
+                mode="TRAIN"
+                selectedId={selectedDisruptionId}
+                onSelect={(d) => {
+                  setSelectedDisruptionId(d.id);
+                  if (d.latitude != null && d.longitude != null) {
+                    setFlyTarget({
+                      center: [d.latitude, d.longitude],
+                      id: Date.now(),
+                    });
+                  }
+                }}
+              />
             )}
           </Box>
         </Paper>

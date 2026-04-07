@@ -15,6 +15,11 @@ import { useAppSelector } from "@/store/hooks";
 const LoginPage = lazy(() =>
   import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage })),
 );
+const PublicDisruptionPage = lazy(() =>
+  import("@/pages/PublicDisruptionPage").then((m) => ({
+    default: m.PublicDisruptionPage,
+  })),
+);
 const ForgotPasswordPage = lazy(() =>
   import("@/pages/ForgotPasswordPage").then((m) => ({
     default: m.ForgotPasswordPage,
@@ -74,6 +79,14 @@ export const router = createBrowserRouter([
     element: (
       <LazyWrapper>
         <ResetPasswordPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/public/disruption/:id",
+    element: (
+      <LazyWrapper>
+        <PublicDisruptionPage />
       </LazyWrapper>
     ),
   },

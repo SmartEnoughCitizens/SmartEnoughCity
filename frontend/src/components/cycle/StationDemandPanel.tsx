@@ -508,8 +508,8 @@ export const StationDemandPanel = () => {
                         tickLine={false}
                       />
                       <Tooltip
-                        formatter={(value: number | undefined) => [
-                          `${(value ?? 0).toFixed(1)}`,
+                        formatter={(value) => [
+                          `${(Number(value) || 0).toFixed(1)}`,
                           "Bike movements",
                         ]}
                         labelFormatter={(h) => `${h}:00–${h}:59`}
