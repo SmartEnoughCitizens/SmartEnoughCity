@@ -3,8 +3,10 @@ package com.trinity.hermes.indicators.bus.service;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusNewStopRecommendationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
+import com.trinity.hermes.indicators.bus.dto.BusStopSummaryDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
@@ -36,6 +38,7 @@ public class BusDashboardService {
   private final BusTripRepository busTripRepository;
   private final BusRouteRepository busRouteRepository;
   private final BusCommonDelayMvRepository busCommonDelayMvRepository;
+  private final BusNewStopRecommendationsRepository busNewStopRecommendationsRepository;
 
   @Transactional(readOnly = true)
   public BusDashboardKpiDTO getKpis() {
@@ -129,6 +132,14 @@ public class BusDashboardService {
   }
 
   @Transactional(readOnly = true)
+  public List<BusNewStopRecommendationDTO> getNewStopRecommendations() {
+    log.info("Fetching top new stop recommendations from MV");
+    return busNewStopRecommendationsRepository.findTop20ByCombinedScoreDesc().stream()
+        .map(this::mapToNewStopRecommendationDTO)
+        .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
   public List<BusRouteBreakdownDTO> getRouteBreakdown(String routeId, String filter) {
     log.info("Fetching bus route breakdown, routeId={}, filter={}", routeId, filter);
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
@@ -207,5 +218,35 @@ public class BusDashboardService {
 
   private double computeSustainabilityScore(double reliabilityPct) {
     return Math.min(100.0, reliabilityPct * 1.05);
+  }
+
+  private BusNewStopRecommendationDTO mapToNewStopRecommendationDTO(
+      BusNewStopRecommendationProjection p) {
+    return BusNewStopRecommendationDTO.builder()
+        .routeId(p.getRouteId())
+        .routeShortName(p.getRouteShortName())
+        .routeLongName(p.getRouteLongName())
+        .stopA(
+            BusStopSummaryDTO.builder()
+                .id(p.getStopAId())
+                .code(p.getStopACode())
+                .name(p.getStopAName())
+                .lat(p.getStopALat())
+                .lon(p.getStopALon())
+                .build())
+        .stopB(
+            BusStopSummaryDTO.builder()
+                .id(p.getStopBId())
+                .code(p.getStopBCode())
+                .name(p.getStopBName())
+                .lat(p.getStopBLat())
+                .lon(p.getStopBLon())
+                .build())
+        .candidateLat(p.getCandidateLat())
+        .candidateLon(p.getCandidateLon())
+        .populationScore(p.getPopulationScore())
+        .publicSpaceScore(p.getPublicSpaceScore())
+        .combinedScore(p.getCombinedScore())
+        .build();
   }
 }

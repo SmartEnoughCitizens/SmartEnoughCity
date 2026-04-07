@@ -3,6 +3,7 @@ package com.trinity.hermes.indicators.bus.controller;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusNewStopRecommendationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
@@ -58,5 +59,11 @@ public class BusController {
       @PathVariable String routeId, @RequestParam(defaultValue = "today") String filter) {
     log.info("GET /api/v1/bus/common-delays/{}?filter={}", routeId, filter);
     return ResponseEntity.ok(busFacade.getRouteBreakdown(routeId, filter));
+  }
+
+  @GetMapping("/new-stops-recommendations")
+  public ResponseEntity<List<BusNewStopRecommendationDTO>> getNewStopRecommendations() {
+    log.info("GET /api/v1/bus/new-stops-recommendations");
+    return ResponseEntity.ok(busFacade.getNewStopRecommendations());
   }
 }

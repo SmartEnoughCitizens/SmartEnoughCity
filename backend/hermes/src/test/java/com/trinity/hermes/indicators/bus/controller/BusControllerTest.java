@@ -7,7 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusNewStopRecommendationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
+import com.trinity.hermes.indicators.bus.dto.BusStopSummaryDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.facade.BusFacade;
 import java.util.List;
@@ -99,5 +101,44 @@ class BusControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.reliabilityPct").value(88.0))
         .andExpect(jsonPath("$.lateArrivalPct").value(12.0));
+  }
+
+  @Test
+  void getNewStopRecommendations_returnsOkWithList() throws Exception {
+    BusNewStopRecommendationDTO row =
+        BusNewStopRecommendationDTO.builder()
+            .routeId("r1")
+            .routeShortName("42")
+            .routeLongName("A - B")
+            .stopA(
+                BusStopSummaryDTO.builder()
+                    .id("s1")
+                    .code(1)
+                    .name("Stop A")
+                    .lat(53.0)
+                    .lon(-6.2)
+                    .build())
+            .stopB(
+                BusStopSummaryDTO.builder()
+                    .id("s2")
+                    .code(2)
+                    .name("Stop B")
+                    .lat(53.1)
+                    .lon(-6.3)
+                    .build())
+            .candidateLat(53.05)
+            .candidateLon(-6.25)
+            .populationScore(1.0)
+            .publicSpaceScore(2.0)
+            .combinedScore(4.01)
+            .build();
+    when(busFacade.getNewStopRecommendations()).thenReturn(List.of(row));
+
+    mockMvc
+        .perform(get("/api/v1/bus/new-stops-recommendations"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].routeId").value("r1"))
+        .andExpect(jsonPath("$[0].combinedScore").value(4.01))
+        .andExpect(jsonPath("$[0].stopA.name").value("Stop A"));
   }
 }

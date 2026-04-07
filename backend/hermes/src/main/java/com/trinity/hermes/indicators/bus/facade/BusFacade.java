@@ -3,6 +3,7 @@ package com.trinity.hermes.indicators.bus.facade;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusNewStopRecommendationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
@@ -39,5 +40,9 @@ public class BusFacade {
 
   public List<BusRouteBreakdownDTO> getRouteBreakdown(String routeId, String filter) {
     return busDashboardService.getRouteBreakdown(routeId, filter);
+  }
+
+  public List<BusNewStopRecommendationDTO> getNewStopRecommendations() {
+    return busDashboardService.getNewStopRecommendations();
   }
 }
