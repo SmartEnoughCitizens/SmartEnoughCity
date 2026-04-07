@@ -23,6 +23,12 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
 
   Optional<NotificationEntity> findByIdAndUserId(Long id, String userId);
 
+  /** Mark all unread active notifications as read for a user. */
+  @Modifying
+  @Query(
+      "UPDATE NotificationEntity n SET n.isRead = true WHERE n.userId = :userId AND n.isRead = false AND n.deletedAt IS NULL")
+  int markAllAsReadByUserId(String userId);
+
   /** Hard-delete bin entries older than 30 days. */
   @Modifying
   @Query("DELETE FROM NotificationEntity n WHERE n.deletedAt IS NOT NULL AND n.deletedAt < :cutoff")

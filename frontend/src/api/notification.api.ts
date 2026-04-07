@@ -16,6 +16,12 @@ export const notificationApi = {
     return data;
   },
 
+  markAllAsRead: async (userId: string): Promise<void> => {
+    await axiosInstance.patch(
+      `${API_ENDPOINTS.NOTIFICATIONS(userId)}/read-all`,
+    );
+  },
+
   setReadState: async (
     userId: string,
     notificationId: string,
