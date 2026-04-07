@@ -285,7 +285,8 @@ export const CarDashboard = () => {
                 <br />
                 {route.summary}
                 <br />
-                Saves ~{route.estimatedTimeSavingsMinutes} min · {route.distanceKm.toFixed(1)} km
+                Saves ~{route.estimatedTimeSavingsMinutes} min ·{" "}
+                {route.distanceKm.toFixed(1)} km
               </Popup>
             </Polyline>
           ))}
@@ -647,7 +648,9 @@ export const CarDashboard = () => {
                           key={r.routeId}
                           variant="caption"
                           sx={{
-                            color: isSelected ? "primary.contrastText" : r.color,
+                            color: isSelected
+                              ? "primary.contrastText"
+                              : r.color,
                             fontWeight: 600,
                           }}
                         >
