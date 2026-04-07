@@ -77,7 +77,7 @@ function TrafficRecommendationFitBounds({
       for (const wp of route.path) points.push([wp.lat, wp.lon]);
     }
     if (points.length === 1) {
-      map.setView(points[0] as L.LatLngExpression, 15);
+      map.setView(points[0], 15);
     } else {
       map.fitBounds(L.latLngBounds(points), { padding: [52, 52], maxZoom: 16 });
     }
