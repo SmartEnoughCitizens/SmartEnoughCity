@@ -29,4 +29,6 @@ public class DisruptionResponse {
   private Boolean notificationSent;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
+  private List<CauseDTO> causes;
+  private List<AlternativeDTO> alternatives;
 }

@@ -13,6 +13,18 @@ class DataSourcesSettings(BaseSettings):
 
     This class manages which data sources should be enabled/disabled.
     Allows toggling API calls for different data sources via environment variables.
+
+    Attributes:
+        enable_cycle_data: Toggle for cycle data source (from ENABLE_CYCLE_DATA)
+        enable_car_data: Toggle for car data source (from ENABLE_CAR_DATA)
+        enable_bus_data: Toggle for bus data source (from ENABLE_BUS_DATA)
+        enable_train_data: Toggle for train data source (from ENABLE_TRAIN_DATA)
+        enable_tram_data: Toggle for tram data source (from ENABLE_TRAM_DATA)
+        enable_construction_data: Toggle for construction/traffic data source (from ENABLE_CONSTRUCTION_DATA)
+        enable_pedestrian_data: Toggle for pedestrian data source (from ENABLE_PEDESTRIAN_DATA)
+        enable_events_data: Toggle for events data source (from ENABLE_EVENTS_DATA)
+        enable_population_data: Toggle for population data source (from ENABLE_POPULATION_DATA)
+        enable_public_spaces_data: Toggle for public spaces data source (from ENABLE_PUBLIC_SPACES_DATA)
     """
 
     enable_cycle_data: bool = Field(True, alias="ENABLE_CYCLE_DATA")
@@ -21,9 +33,10 @@ class DataSourcesSettings(BaseSettings):
     enable_train_data: bool = Field(True, alias="ENABLE_TRAIN_DATA")
     enable_tram_data: bool = Field(True, alias="ENABLE_TRAM_DATA")
     enable_construction_data: bool = Field(True, alias="ENABLE_CONSTRUCTION_DATA")
-    enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
     enable_pedestrian_data: bool = Field(True, alias="ENABLE_PEDESTRIAN_DATA")
+    enable_events_data: bool = Field(True, alias="ENABLE_EVENTS_DATA")
     enable_population_data: bool = Field(True, alias="ENABLE_POPULATION_DATA")
+    enable_public_spaces_data: bool = Field(True, alias="ENABLE_PUBLIC_SPACES_DATA")
 
     base_static_data_dir: Path = Field(
         Path("static_data"), alias="BASE_STATIC_DATA_DIR"
@@ -63,7 +76,7 @@ class DataSourcesSettings(BaseSettings):
 
     # Population data URLs
     population_boundaries_url: str = Field(
-        "https://data-osi.opendata.arcgis.com/api/download/v1/items/9472cff586d74f2ba3c240d4344c5720/geojson?layers=0",
+        "https://www.dropbox.com/scl/fi/n2nfymtsserhismpgevss/small_area_boundaries_2022.geojson?rlkey=45yvos43xofay1daxkajc1fm9&st=mr9jpxzd&dl=1",
         alias="POPULATION_BOUNDARIES_URL",
     )
     population_census_url: str = Field(
@@ -73,6 +86,17 @@ class DataSourcesSettings(BaseSettings):
 
     # Car static data — Google Drive folder ID
     car_gdrive_folder_id: str | None = Field(None, alias="CAR_GDRIVE_FOLDER_ID")
+
+    # Train ridership static data — Google Drive folder ID
+    train_ridership_gdrive_folder_id: str | None = Field(
+        None, alias="TRAIN_RIDERSHIP_GDRIVE_FOLDER_ID"
+    )
+
+    # Public spaces OSM data (Geofabrik, updated daily)
+    public_spaces_osm_url: str = Field(
+        "https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf",
+        alias="PUBLIC_SPACES_OSM_URL",
+    )
 
     @field_validator("base_static_data_dir")
     @classmethod

@@ -5,9 +5,13 @@
 import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
+  CoverageGapDTO,
   BusCommonDelay,
+  BusNewStopRecommendation,
+  BusRouteDetail,
   DisruptionItem,
   BusDashboardResponse,
+  StationProposalSummary,
   BusKpis,
   BusLiveVehicle,
   BusRouteBreakdown,
@@ -27,18 +31,25 @@ import type {
   RebalanceSuggestionDTO,
   StationODPairDTO,
   StationRankingDTO,
+  StationRiskScoreDTO,
   JunctionEmission,
+  TrafficRecommendation,
   PedestrianLive,
+  StationDemand,
   TrainDashboardResponse,
   TrainDelay,
+  TrainDemandSimulateRequest,
+  TrainDemandSimulateResponse,
   TrainKpis,
   TrainLiveTrain,
+  TrainRoute,
   TrainServiceStats,
   TramDashboardResponse,
   TramKpis,
   TramLiveForecast,
   TramDelay,
   TramHourlyDistribution,
+  TramAlternativeRoute,
 } from "@/types";
 
 export const dashboardApi = {
@@ -185,6 +196,28 @@ export const dashboardApi = {
   },
 
   /**
+   * Top new bus stop recommendations (materialized view + route/stop joins)
+   */
+  getBusNewStopRecommendations: async (): Promise<
+    BusNewStopRecommendation[]
+  > => {
+    const { data } = await axiosInstance.get<BusNewStopRecommendation[]>(
+      API_ENDPOINTS.BUS_NEW_STOPS_RECOMMENDATIONS,
+    );
+    return data;
+  },
+
+  /**
+   * Route metadata, shape polyline, and stops (representative trip) for map display.
+   */
+  getBusRouteDetail: async (routeId: string): Promise<BusRouteDetail> => {
+    const { data } = await axiosInstance.get<BusRouteDetail>(
+      `${API_ENDPOINTS.BUS_ROUTES}/${encodeURIComponent(routeId)}`,
+    );
+    return data;
+  },
+
+  /**
    * Get per-stop delay breakdown for a specific bus route
    */
   getBusRouteBreakdown: async (
@@ -220,6 +253,16 @@ export const dashboardApi = {
   getCarJunctionEmissions: async (): Promise<JunctionEmission[]> => {
     const { data } = await axiosInstance.get<JunctionEmission[]>(
       API_ENDPOINTS.CAR_JUNCTION_EMISSIONS,
+    );
+    return data;
+  },
+
+  /**
+   * Get traffic diversion recommendations for high congestion points
+   */
+  getCarTrafficRecommendations: async (): Promise<TrafficRecommendation[]> => {
+    const { data } = await axiosInstance.get<TrafficRecommendation[]>(
+      API_ENDPOINTS.CAR_TRAFFIC_RECOMMENDATIONS,
     );
     return data;
   },
@@ -343,6 +386,35 @@ export const dashboardApi = {
   },
 
   /**
+   * Get real route corridors (ordered stop coordinates) for the Dublin rail network
+   */
+  getTrainRoutes: async (): Promise<TrainRoute[]> => {
+    const { data } = await axiosInstance.get<TrainRoute[]>(
+      API_ENDPOINTS.TRAIN_ROUTES,
+    );
+    return data;
+  },
+
+  /** Get trip-frequency demand scores per Dublin station */
+  getTrainDemand: async (): Promise<StationDemand[]> => {
+    const { data } = await axiosInstance.get<StationDemand[]>(
+      API_ENDPOINTS.TRAIN_DEMAND,
+    );
+    return data;
+  },
+
+  /** Simulate adding a new train and return updated demand */
+  simulateTrainDemand: async (
+    request: TrainDemandSimulateRequest,
+  ): Promise<TrainDemandSimulateResponse> => {
+    const { data } = await axiosInstance.post<TrainDemandSimulateResponse>(
+      API_ENDPOINTS.TRAIN_DEMAND_SIMULATE,
+      request,
+    );
+    return data;
+  },
+
+  /**
    * Get frequently delayed trains ordered by total average delay descending
    */
   getTrainFrequentDelays: async (): Promise<TrainDelay[]> => {
@@ -402,6 +474,13 @@ export const dashboardApi = {
     return data;
   },
 
+  getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
+    const { data } = await axiosInstance.get<StationRiskScoreDTO[]>(
+      API_ENDPOINTS.CYCLE_RISK_SCORES,
+    );
+    return data;
+  },
+
   /**
    * Get live pedestrian counts per site
    */
@@ -428,5 +507,109 @@ export const dashboardApi = {
    */
   resolveDisruption: async (id: number): Promise<void> => {
     await axiosInstance.post(API_ENDPOINTS.DISRUPTION_RESOLVE(id));
+  },
+
+  /**
+   * Get full disruption detail including causes and alternatives
+   */
+  getDisruptionById: async (id: number): Promise<DisruptionItem> => {
+    const { data } = await axiosInstance.get<DisruptionItem>(
+      API_ENDPOINTS.DISRUPTION_DETAIL(id),
+    );
+    return data;
+  },
+
+  getCycleCoverageGaps: async (): Promise<CoverageGapDTO[]> => {
+    const { data } = await axiosInstance.get<CoverageGapDTO[]>(
+      API_ENDPOINTS.CYCLE_COVERAGE_GAPS,
+    );
+    return data;
+  },
+
+  /**
+   * Get active disruptions filtered by transport mode
+   */
+  getDisruptionsByMode: async (mode: string): Promise<DisruptionItem[]> => {
+    const { data } = await axiosInstance.get<DisruptionItem[]>(
+      API_ENDPOINTS.DISRUPTIONS_BY_MODE(mode),
+    );
+    return data;
+  },
+
+  /**
+   * Get a disruption publicly (no auth) — for QR code landing page
+   */
+  getPublicDisruption: async (id: number): Promise<DisruptionItem> => {
+    const { data } = await axiosInstance.get<DisruptionItem>(
+      API_ENDPOINTS.PUBLIC_DISRUPTION(id),
+    );
+    return data;
+  },
+
+  markCoverageGapProcessed: async (
+    electoralDivision: string,
+  ): Promise<void> => {
+    await axiosInstance.patch(
+      API_ENDPOINTS.CYCLE_COVERAGE_GAP_PROCESS(electoralDivision),
+    );
+  },
+
+  submitStationProposal: async (proposal: {
+    proposedStations: { latitude: number; longitude: number }[];
+    impactedAreas: {
+      electoralDivision: string;
+      fromCategory: string;
+      toCategory: string;
+      simulatedDistanceM: number;
+    }[];
+    totalImprovedAreas: number;
+    submittedBy?: string;
+    notes?: string;
+  }): Promise<void> => {
+    await axiosInstance.post(API_ENDPOINTS.CYCLE_STATION_PROPOSALS, proposal);
+  },
+
+  getPendingProposals: async (): Promise<StationProposalSummary[]> => {
+    const { data } = await axiosInstance.get<StationProposalSummary[]>(
+      API_ENDPOINTS.CYCLE_STATION_PROPOSALS,
+    );
+    return data;
+  },
+
+  getTramAlternativeRoutes: async (
+    stopId: string,
+  ): Promise<TramAlternativeRoute[]> => {
+    const { data } = await axiosInstance.get<TramAlternativeRoute[]>(
+      API_ENDPOINTS.TRAM_ALTERNATIVE_ROUTES,
+      { params: { stopId } },
+    );
+    return data;
+  },
+
+  getAcceptedProposals: async (): Promise<StationProposalSummary[]> => {
+    const { data } = await axiosInstance.get<StationProposalSummary[]>(
+      API_ENDPOINTS.CYCLE_ACCEPTED_PROPOSALS,
+    );
+    return data;
+  },
+
+  updateImplementationStatus: async (
+    id: number,
+    status: string,
+  ): Promise<void> => {
+    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_IMPL_STATUS(id), {
+      status,
+    });
+  },
+
+  reviewProposal: async (
+    id: number,
+    action: string,
+    reason: string,
+  ): Promise<void> => {
+    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_REVIEW(id), {
+      action,
+      reason,
+    });
   },
 };

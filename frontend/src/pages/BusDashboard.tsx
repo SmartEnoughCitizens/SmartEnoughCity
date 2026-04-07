@@ -3,7 +3,7 @@
  * route utilization, system performance, and live vehicle markers
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -11,20 +11,52 @@ import {
   LinearProgress,
   Autocomplete,
   TextField,
+  Alert,
 } from "@mui/material";
+import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import CommuteIcon from "@mui/icons-material/Commute";
 import WarningIcon from "@mui/icons-material/Warning";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import EcoIcon from "@mui/icons-material/EnergySavingsLeaf";
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+  useMap,
+} from "react-leaflet";
+
+function MapController({
+  target,
+}: {
+  target: { center: [number, number]; id: number } | null;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (target)
+      map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
+  }, [map, target]);
+  return null;
+}
 import {
   useBusKpis,
   useBusLiveVehicles,
+  useBusRouteDetail,
   useBusRouteUtilization,
   useBusSystemPerformance,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import {
+  BusRecommendationCandidate,
+  BusRecommendationFitBounds,
+  BusRecommendationPolylineAndStops,
+} from "@/components/bus/BusRecommendationMapLayers";
 import { DelayLeaderboard } from "@/components/bus/DelayLeaderboard";
+import {
+  NewStopRecommendationsList,
+  SelectedRecommendationChip,
+} from "@/components/bus/NewStopRecommendationsList";
+import type { BusNewStopRecommendation } from "@/types";
 import "leaflet/dist/leaflet.css";
 
 const KpiCard = ({
@@ -154,12 +186,24 @@ const PerformanceGauge = ({
 
 export const BusDashboard = () => {
   const [selectedRoute, setSelectedRoute] = useState<string>("");
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
+  const [flyTarget, setFlyTarget] = useState<{
+    center: [number, number];
+    id: number;
+  } | null>(null);
+  const [selectedRecommendation, setSelectedRecommendation] =
+    useState<BusNewStopRecommendation | null>(null);
   const theme = useAppSelector((state) => state.ui.theme);
 
   const { data: kpis } = useBusKpis();
   const { data: liveVehicles } = useBusLiveVehicles();
   const { data: routeUtilization } = useBusRouteUtilization();
   const { data: systemPerformance } = useBusSystemPerformance();
+
+  const { data: routeDetailForMap, isError: routeDetailError } =
+    useBusRouteDetail(selectedRecommendation?.routeId ?? null);
 
   // Build unique route list sorted by short name for the dropdown
   const routes = routeUtilization
@@ -206,6 +250,18 @@ export const BusDashboard = () => {
           zoomControl={false}
         >
           <TileLayer attribution={tileAttribution} url={tileUrl} />
+          <MapController target={flyTarget} />
+          {selectedRecommendation && (
+            <>
+              <BusRecommendationFitBounds
+                recommendation={selectedRecommendation}
+                routeDetail={routeDetailForMap}
+              />
+              <BusRecommendationPolylineAndStops
+                routeDetail={routeDetailForMap}
+              />
+            </>
+          )}
           {filteredVehicles?.map((vehicle) => (
             <CircleMarker
               key={vehicle.vehicleId}
@@ -235,6 +291,11 @@ export const BusDashboard = () => {
               </Popup>
             </CircleMarker>
           ))}
+          {selectedRecommendation && (
+            <BusRecommendationCandidate
+              recommendation={selectedRecommendation}
+            />
+          )}
         </MapContainer>
       </Box>
 
@@ -417,12 +478,81 @@ export const BusDashboard = () => {
         {/* Common Delays leaderboard */}
         <Paper
           elevation={0}
-          sx={{ borderRadius: 2, p: 2, maxHeight: 420, overflow: "auto" }}
+          sx={{ borderRadius: 2, p: 2, maxHeight: 340, overflow: "auto" }}
         >
           <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
             Common Bus Delays
           </Typography>
           <DelayLeaderboard />
+        </Paper>
+
+        {/* Active Disruptions */}
+        <Paper
+          elevation={0}
+          sx={{ borderRadius: 2, overflow: "hidden", maxHeight: 280 }}
+        >
+          <Box
+            sx={{ px: 2, py: 1.25, borderBottom: "1px solid rgba(0,0,0,0.08)" }}
+          >
+            <Typography variant="subtitle2" fontWeight="bold">
+              Active Disruptions
+            </Typography>
+          </Box>
+          <Box sx={{ overflow: "auto", maxHeight: 220 }}>
+            <DisruptionsTabContent
+              mode="BUS"
+              selectedId={selectedDisruptionId}
+              onSelect={(d) => {
+                setSelectedDisruptionId(d.id);
+                if (d.latitude != null && d.longitude != null) {
+                  setFlyTarget({
+                    center: [d.latitude, d.longitude],
+                    id: Date.now(),
+                  });
+                }
+              }}
+            />
+          </Box>
+        </Paper>
+
+        {/* New stop recommendations (MV-backed) */}
+        <Paper
+          elevation={0}
+          sx={{ borderRadius: 2, p: 2, maxHeight: 360, overflow: "auto" }}
+        >
+          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+            New stop recommendations
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mb: 1 }}
+          >
+            Click a row to show route shape, stops, and suggested location on
+            the map.
+          </Typography>
+          {selectedRecommendation && (
+            <Box sx={{ mb: 1 }}>
+              <SelectedRecommendationChip
+                recommendation={selectedRecommendation}
+                onClear={() => setSelectedRecommendation(null)}
+              />
+            </Box>
+          )}
+          {selectedRecommendation && routeDetailError && (
+            <Alert
+              severity="warning"
+              sx={{ mb: 1, py: 0, fontSize: "0.75rem" }}
+            >
+              Could not load route geometry; only the suggested stop is shown on
+              the map.
+            </Alert>
+          )}
+          <NewStopRecommendationsList
+            selectedRecommendation={selectedRecommendation}
+            onSelectRecommendation={setSelectedRecommendation}
+          />
         </Paper>
       </Box>
     </Box>

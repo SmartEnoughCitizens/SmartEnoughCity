@@ -1,9 +1,11 @@
 /**
  * NetworkImpactMap — Leaflet map showing active disruption locations with
- * severity-coloured markers and ripple pulse animations.
+ * severity-coloured pulsating DivIcon markers. Flies to the selected marker.
  */
 
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import { useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
 import { Box, Typography, Chip } from "@mui/material";
 import type { ActiveDisruption, DisruptionSeverity } from "@/types";
 import "leaflet/dist/leaflet.css";
@@ -17,12 +19,71 @@ const SEVERITY_COLORS: Record<DisruptionSeverity, string> = {
   CRITICAL: "#7C3AED",
 };
 
-const SEVERITY_RADIUS: Record<DisruptionSeverity, number> = {
-  LOW: 10,
-  MEDIUM: 14,
-  HIGH: 18,
-  CRITICAL: 22,
+const SEVERITY_SIZE: Record<DisruptionSeverity, number> = {
+  LOW: 18,
+  MEDIUM: 22,
+  HIGH: 26,
+  CRITICAL: 30,
 };
+
+// Inject pulse keyframes once
+const STYLE_ID = "disruption-pulse-styles";
+function ensurePulseStyles() {
+  if (document.querySelector(`#${STYLE_ID}`)) return;
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = `
+    @keyframes disruption-ripple {
+      0%   { transform: scale(1);   opacity: 0.9; }
+      70%  { transform: scale(2.4); opacity: 0;   }
+      100% { transform: scale(2.4); opacity: 0;   }
+    }
+    .disruption-marker-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      animation: disruption-ripple 1.8s ease-out infinite;
+    }
+  `;
+  document.head.append(style);
+}
+
+function makeDivIcon(
+  severity: DisruptionSeverity,
+  selected: boolean,
+): L.DivIcon {
+  ensurePulseStyles();
+  const color = SEVERITY_COLORS[severity] ?? "#6B7280";
+  const size = SEVERITY_SIZE[severity] ?? 22;
+  const ring = selected
+    ? `<span class="disruption-marker-ring" style="border: 3px solid ${color};"></span>`
+    : `<span class="disruption-marker-ring" style="border: 2px solid ${color}88;"></span>`;
+
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="
+        position: relative;
+        width: ${size}px;
+        height: ${size}px;
+      ">
+        ${ring}
+        <div style="
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: ${color};
+          opacity: ${selected ? 1 : 0.75};
+          border: 2px solid ${selected ? "#fff" : color + "cc"};
+          box-shadow: 0 0 ${selected ? 10 : 6}px ${color}99;
+        "></div>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2) - 4],
+  });
+}
 
 function formatTime(iso: string | null): string {
   if (!iso) return "—";
@@ -36,11 +97,42 @@ function formatTime(iso: string | null): string {
   }
 }
 
-interface Props {
+// Flies to the selected disruption
+function FlyToSelected({
+  disruptions,
+  selectedId,
+}: {
   disruptions: ActiveDisruption[];
+  selectedId: number | null;
+}) {
+  const map = useMap();
+  const prevId = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (selectedId === null || selectedId === prevId.current) return;
+    const d = disruptions.find((x) => x.id === selectedId);
+    if (d?.latitude != null && d?.longitude != null) {
+      map.flyTo([d.latitude, d.longitude], 15, { duration: 1.2 });
+    }
+    prevId.current = selectedId;
+  }, [selectedId, disruptions, map]);
+
+  return null;
 }
 
-export const NetworkImpactMap = ({ disruptions }: Props) => {
+interface Props {
+  disruptions: ActiveDisruption[];
+  selectedId?: number | null;
+  onMarkerClick?: (id: number) => void;
+  darkTiles?: boolean;
+}
+
+export const NetworkImpactMap = ({
+  disruptions,
+  selectedId = null,
+  onMarkerClick,
+  darkTiles = false,
+}: Props) => {
   const mappable = disruptions.filter(
     (d) => d.latitude != null && d.longitude != null,
   );
@@ -63,24 +155,31 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={
+            darkTiles
+              ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+              : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          }
+          url={
+            darkTiles
+              ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          }
         />
+
+        <FlyToSelected disruptions={mappable} selectedId={selectedId} />
 
         {mappable.map((d) => {
           const color = SEVERITY_COLORS[d.severity] ?? "#6B7280";
-          const radius = SEVERITY_RADIUS[d.severity] ?? 12;
+          const isSelected = d.id === selectedId;
           return (
-            <CircleMarker
+            <Marker
               key={d.id}
-              center={[d.latitude!, d.longitude!]}
-              radius={radius}
-              pathOptions={{
-                color,
-                fillColor: color,
-                fillOpacity: 0.55,
-                weight: 2,
-              }}
+              position={[d.latitude!, d.longitude!]}
+              icon={makeDivIcon(d.severity, isSelected)}
+              eventHandlers={
+                onMarkerClick ? { click: () => onMarkerClick(d.id) } : undefined
+              }
             >
               <Popup>
                 <Box sx={{ minWidth: 180 }}>
@@ -138,12 +237,12 @@ export const NetworkImpactMap = ({ disruptions }: Props) => {
                   </Typography>
                 </Box>
               </Popup>
-            </CircleMarker>
+            </Marker>
           );
         })}
       </MapContainer>
 
-      {/* Legend overlay */}
+      {/* Legend */}
       <Box
         sx={{
           position: "absolute",

@@ -8,6 +8,7 @@ import type {
   RecommendationEngineRequest,
   BusTripUpdate,
   CycleStation,
+  TrainRecommendation,
 } from "@/types";
 
 export const recommendationApi = {
@@ -34,6 +35,18 @@ export const recommendationApi = {
     const { data } = await axiosInstance.get(
       API_ENDPOINTS.RECOMMENDATION_GET(indicatorType),
       { params: { limit } },
+    );
+    return data;
+  },
+
+  /**
+   * Get active recommendations by indicator (GET)
+   */
+  getRecommendationsByIndicator: async (
+    indicator: string,
+  ): Promise<TrainRecommendation[]> => {
+    const { data } = await axiosInstance.get<TrainRecommendation[]>(
+      API_ENDPOINTS.RECOMMENDATION_BY_INDICATOR(indicator),
     );
     return data;
   },

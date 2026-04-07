@@ -18,4 +18,23 @@ public interface BusStopRepository extends JpaRepository<BusStop, String> {
       @Param("maxLat") Double maxLat,
       @Param("minLon") Double minLon,
       @Param("maxLon") Double maxLon);
+
+  /**
+   * Returns [route_id, short_name] for distinct bus routes whose GTFS stops lie within {@code
+   * radiusM} metres of (lat, lon). Uses PostGIS earth_distance for accuracy.
+   */
+  @Query(
+      value =
+          "SELECT DISTINCT bt.route_id, br.short_name"
+              + " FROM external_data.bus_stops bs"
+              + " JOIN external_data.bus_stop_times bst ON bst.stop_id = bs.id"
+              + " JOIN external_data.bus_trips bt ON bst.trip_id = bt.id"
+              + " JOIN external_data.bus_routes br ON bt.route_id = br.id"
+              + " WHERE public.EARTH_DISTANCE(public.LL_TO_EARTH(:lat, :lon), public.LL_TO_EARTH(bs.lat, bs.lon))"
+              + "     <= :radiusM"
+              + " ORDER BY br.short_name"
+              + " LIMIT 20",
+      nativeQuery = true)
+  List<Object[]> findRouteShortNamesNear(
+      @Param("lat") double lat, @Param("lon") double lon, @Param("radiusM") int radiusM);
 }

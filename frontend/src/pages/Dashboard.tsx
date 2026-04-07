@@ -114,8 +114,8 @@ const MiniDonut = ({
           ))}
         </Pie>
         <Tooltip
-          formatter={(v: number | undefined, name: string | undefined) => [
-            `${(v ?? 0).toFixed(1)}`,
+          formatter={(v, name) => [
+            `${(Number(v) || 0).toFixed(1)}`,
             name ?? "",
           ]}
           contentStyle={{ fontSize: 11, borderRadius: 6 }}
@@ -608,9 +608,7 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                         ))}
                       </Bar>
                       <Tooltip
-                        formatter={(v: number | undefined) =>
-                          (v ?? 0).toLocaleString()
-                        }
+                        formatter={(v) => (v ?? 0).toLocaleString()}
                         contentStyle={{ fontSize: 11, borderRadius: 6 }}
                       />
                     </BarChart>

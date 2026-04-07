@@ -22,7 +22,7 @@ public class RecommendationFacade {
     return recommendationService.getAllRecommendations();
   }
 
-  public Optional<RecommendationResponse> getRecommendationById(Long id) {
+  public Optional<RecommendationResponse> getRecommendationById(Integer id) {
     return recommendationService.getRecommendationById(id);
   }
 
@@ -30,12 +30,11 @@ public class RecommendationFacade {
     return recommendationService.createRecommendation(request);
   }
 
-  //    public Optional<RecommendationResponse> updateRecommendation(Long id,
-  // UpdateRecommendationRequest request) {
-  //        return recommendationService.updateRecommendation(id, request);
-  //    }
+  public List<RecommendationResponse> getActiveByIndicator(String indicator) {
+    return recommendationService.getActiveByIndicator(indicator);
+  }
 
-  public boolean deleteRecommendation(Long id) {
+  public boolean deleteRecommendation(Integer id) {
     return recommendationService.deleteRecommendation(id);
   }
 }

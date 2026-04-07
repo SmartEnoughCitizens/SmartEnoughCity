@@ -4,6 +4,9 @@ server:
 spring:
   liquibase:
     enabled: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   security:
     oauth2:
       resourceserver:
@@ -16,7 +19,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/smart_enough_city
     username: backend_user
-    password: dev_backend_user_password
+    password: bqO5SQD4vQwAlO7fYI26KBbsddLEb9M0
 
   jpa:
     properties:

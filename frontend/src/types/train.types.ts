@@ -48,3 +48,60 @@ export interface TrainDelay {
   direction: string;
   totalAvgDelayMinutes: number;
 }
+
+export interface TrainRoute {
+  routeName: string;
+  shortName: string;
+  /** Ordered [[lat, lon], ...] waypoints */
+  stops: [number, number][];
+  /** GTFS stop IDs parallel to stops — used for demand colouring */
+  stopIds: string[];
+}
+
+export interface StationDemand {
+  stopId: string;
+  name: string;
+  lat: number;
+  lon: number;
+  tripCount: number;
+  ridershipCount: number;
+  catchmentPopulation: number;
+  stationType: string | null;
+  footfallCount: number;
+  /** Normalised sub-scores (0-1) for popup breakdown */
+  normRidership: number;
+  normUptake: number;
+  normPressure: number;
+  normFootfall: number;
+  rawPressure: number;
+  maxPressure: number;
+  /** Composite 0.0 (low) → 1.0 (high) */
+  demandScore: number;
+}
+
+export interface TrainDemandCorridor {
+  originStopId: string;
+  destinationStopId: string;
+  trainCount: number;
+}
+
+export interface TrainDemandSimulateRequest {
+  corridors: TrainDemandCorridor[];
+}
+
+export interface TrainDemandSimulateResponse {
+  baseDemand: StationDemand[];
+  simulatedDemand: StationDemand[];
+  affectedStopIds: string[];
+}
+
+export interface TrainRecommendation {
+  id: number;
+  indicator: string;
+  recommendation: string;
+  simulation: string;
+  usecase: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}

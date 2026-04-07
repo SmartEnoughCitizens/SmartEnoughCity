@@ -170,26 +170,6 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
         ],
     )
 
-    # ASSERT: Verify electoral divisions (Dublin City + Fingal, Cork filtered)
-    assert_rows(
-        db_session,
-        "ev_electoral_divisions",
-        [
-            {
-                "id": 1,
-                "ed_english": "Arran Quay A",
-                "county_english": "DUBLIN CITY",
-                "geom": ANY,
-            },
-            {
-                "id": 2,
-                "ed_english": "Swords Rural",
-                "county_english": "FINGAL",
-                "geom": ANY,
-            },
-        ],
-    )
-
     # ASSERT: Verify EV charging demand data (including null registered_ev)
     assert_rows(
         db_session,
@@ -239,6 +219,26 @@ def test_process_car_static_data(db_session: Session, tests_data_dir: Path) -> N
                 "home_charge_pct": 0.42415789473684207,
                 "charge_frequency": 0.09789315789473686,
                 "charging_demand": 13.0,
+            },
+        ],
+    )
+
+    # ASSERT: Verify electoral divisions (Dublin City + Fingal, Cork filtered)
+    assert_rows(
+        db_session,
+        "ev_electoral_divisions",
+        [
+            {
+                "id": 1,
+                "ed_english": "Arran Quay A",
+                "county_english": "DUBLIN CITY",
+                "geom": ANY,
+            },
+            {
+                "id": 2,
+                "ed_english": "Swords Rural",
+                "county_english": "FINGAL",
+                "geom": ANY,
             },
         ],
     )

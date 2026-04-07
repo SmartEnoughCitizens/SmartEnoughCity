@@ -1,16 +1,25 @@
 package com.trinity.hermes.indicators.bus.service;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
 import com.trinity.hermes.indicators.bus.dto.BusLiveVehicleDTO;
+import com.trinity.hermes.indicators.bus.dto.BusNewStopRecommendationDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteBreakdownDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteDetailDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteShapePointDTO;
+import com.trinity.hermes.indicators.bus.dto.BusRouteStopDTO;
 import com.trinity.hermes.indicators.bus.dto.BusRouteUtilizationDTO;
+import com.trinity.hermes.indicators.bus.dto.BusStopSummaryDTO;
 import com.trinity.hermes.indicators.bus.dto.BusSystemPerformanceDTO;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
 import com.trinity.hermes.indicators.bus.entity.BusRoute;
 import com.trinity.hermes.indicators.bus.entity.BusRouteMetrics;
+import com.trinity.hermes.indicators.bus.entity.BusStop;
+import com.trinity.hermes.indicators.bus.entity.BusStopTime;
 import com.trinity.hermes.indicators.bus.entity.BusTrip;
+import com.trinity.hermes.indicators.bus.entity.BusTripShape;
 import com.trinity.hermes.indicators.bus.repository.*;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +28,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -34,8 +45,12 @@ public class BusDashboardService {
   private final BusRouteMetricsRepository busRouteMetricsRepository;
   private final BusRidershipRepository busRidershipRepository;
   private final BusTripRepository busTripRepository;
+  private final BusTripShapeRepository busTripShapeRepository;
+  private final BusStopTimeRepository busStopTimeRepository;
+  private final BusStopRepository busStopRepository;
   private final BusRouteRepository busRouteRepository;
-  private final BusTripUpdateRepository busTripUpdateRepository;
+  private final BusCommonDelayMvRepository busCommonDelayMvRepository;
+  private final BusNewStopRecommendationsRepository busNewStopRecommendationsRepository;
 
   @Transactional(readOnly = true)
   public BusDashboardKpiDTO getKpis() {
@@ -114,25 +129,104 @@ public class BusDashboardService {
 
   @Transactional(readOnly = true)
   public List<BusCommonDelayDTO> getCommonDelays(String filter) {
-    log.info("Fetching common bus delays, filter={}", filter);
+    log.info("Fetching common bus delays from MV, filter={}", LogSanitizer.sanitizeLog(filter));
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
-    return busTripUpdateRepository.findCommonDelays(safeFilter).stream()
+    return busCommonDelayMvRepository.findByPeriodOrderByAvgDelayMinutesDesc(safeFilter).stream()
         .map(
-            p ->
+            mv ->
                 BusCommonDelayDTO.builder()
-                    .routeId(p.getRouteId())
-                    .routeShortName(p.getRouteShortName())
-                    .routeLongName(p.getRouteLongName())
-                    .avgDelayMinutes(p.getAvgDelayMinutes())
+                    .routeId(mv.getRouteId())
+                    .routeShortName(mv.getRouteShortName())
+                    .routeLongName(mv.getRouteLongName())
+                    .avgDelayMinutes(mv.getAvgDelayMinutes())
                     .build())
         .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
+  public BusRouteDetailDTO getRouteDetail(String routeId) {
+    log.info("Fetching bus route detail with shape, routeId={}", routeId);
+    BusRoute route =
+        busRouteRepository
+            .findById(routeId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Route not found: " + routeId));
+    BusTrip trip =
+        busTripRepository
+            .findFirstByRouteIdOrderByIdAsc(routeId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "No trips found for route: " + routeId));
+
+    List<BusRouteShapePointDTO> shapePoints =
+        busTripShapeRepository.findByShapeIdOrderByPtSequenceAsc(trip.getShapeId()).stream()
+            .map(this::mapShapePoint)
+            .collect(Collectors.toList());
+
+    List<BusStopTime> stopTimes =
+        busStopTimeRepository.findByTripIdOrderBySequenceAsc(trip.getId());
+    Set<String> stopIds =
+        stopTimes.stream().map(BusStopTime::getStopId).collect(Collectors.toSet());
+    Map<String, BusStop> stopsById =
+        busStopRepository.findAllById(stopIds).stream()
+            .collect(Collectors.toMap(BusStop::getId, Function.identity()));
+    List<BusRouteStopDTO> stops =
+        stopTimes.stream()
+            .map(st -> mapRouteStop(st, stopsById.get(st.getStopId())))
+            .collect(Collectors.toList());
+
+    return BusRouteDetailDTO.builder()
+        .routeId(route.getId())
+        .agencyId(route.getAgencyId())
+        .shortName(route.getShortName())
+        .longName(route.getLongName())
+        .representativeTripId(trip.getId())
+        .shapeId(trip.getShapeId())
+        .shape(shapePoints)
+        .stops(stops)
+        .build();
+  }
+
+  private static BusRouteStopDTO mapRouteStop(BusStopTime st, BusStop stop) {
+    BusRouteStopDTO.BusRouteStopDTOBuilder b =
+        BusRouteStopDTO.builder()
+            .sequence(st.getSequence())
+            .stopId(st.getStopId())
+            .headsign(st.getHeadsign());
+    if (stop != null) {
+      b.code(stop.getCode()).name(stop.getName()).lat(stop.getLat()).lon(stop.getLon());
+    }
+    return b.build();
+  }
+
+  private BusRouteShapePointDTO mapShapePoint(BusTripShape s) {
+    return BusRouteShapePointDTO.builder()
+        .sequence(s.getPtSequence())
+        .lat(s.getPtLat())
+        .lon(s.getPtLon())
+        .distTraveled(s.getDistTraveled())
+        .build();
+  }
+
+  @Transactional(readOnly = true)
+  public List<BusNewStopRecommendationDTO> getNewStopRecommendations() {
+    log.info("Fetching top new stop recommendations from MV");
+    return busNewStopRecommendationsRepository.findTop20ByCombinedScoreDesc().stream()
+        .map(this::mapToNewStopRecommendationDTO)
+        .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
   public List<BusRouteBreakdownDTO> getRouteBreakdown(String routeId, String filter) {
-    log.info("Fetching bus route breakdown, routeId={}, filter={}", routeId, filter);
+    log.info(
+        "Fetching bus route breakdown, routeId={}, filter={}",
+        LogSanitizer.sanitizeLog(routeId),
+        LogSanitizer.sanitizeLog(filter));
     String safeFilter = List.of("today", "week", "month").contains(filter) ? filter : "today";
-    return busTripUpdateRepository.findBreakdownByRoute(routeId, safeFilter).stream()
+    return busLiveStopTimeUpdateRepository.findBreakdownByRoute(routeId, safeFilter).stream()
         .map(
             p ->
                 BusRouteBreakdownDTO.builder()
@@ -207,5 +301,35 @@ public class BusDashboardService {
 
   private double computeSustainabilityScore(double reliabilityPct) {
     return Math.min(100.0, reliabilityPct * 1.05);
+  }
+
+  private BusNewStopRecommendationDTO mapToNewStopRecommendationDTO(
+      BusNewStopRecommendationProjection p) {
+    return BusNewStopRecommendationDTO.builder()
+        .routeId(p.getRouteId())
+        .routeShortName(p.getRouteShortName())
+        .routeLongName(p.getRouteLongName())
+        .stopA(
+            BusStopSummaryDTO.builder()
+                .id(p.getStopAId())
+                .code(p.getStopACode())
+                .name(p.getStopAName())
+                .lat(p.getStopALat())
+                .lon(p.getStopALon())
+                .build())
+        .stopB(
+            BusStopSummaryDTO.builder()
+                .id(p.getStopBId())
+                .code(p.getStopBCode())
+                .name(p.getStopBName())
+                .lat(p.getStopBLat())
+                .lon(p.getStopBLon())
+                .build())
+        .candidateLat(p.getCandidateLat())
+        .candidateLon(p.getCandidateLon())
+        .populationScore(p.getPopulationScore())
+        .publicSpaceScore(p.getPublicSpaceScore())
+        .combinedScore(p.getCombinedScore())
+        .build();
   }
 }
