@@ -12,26 +12,26 @@ const DISRUPTION_KEYWORDS = [
   "not in service",
   "disruption",
   "suspended",
-  "suspension",   // ← hinzufügen
+  "suspension", // ← hinzufügen
   "delay",
   "fault",
   "no service",
   "terminated",
-  "partial",      // ← optional, fängt noch mehr
+  "partial", // ← optional, fängt noch mehr
 ];
-
-
 
 const isDisrupted = (forecasts: TramLiveForecast[]) =>
   forecasts.some((f) =>
-    DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw))
+    DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw)),
   );
 
 const iconFor = (type: string) =>
   type === "bus" ? "🚌" : type === "rail" ? "🚂" : "🚲";
 
 const AlternativesSection = ({ stopId }: { stopId: string }) => {
-  const [alternatives, setAlternatives] = useState<TramAlternativeRoute[] | null>(null);
+  const [alternatives, setAlternatives] = useState<
+    TramAlternativeRoute[] | null
+  >(null);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -94,7 +94,6 @@ interface TramStopMapProps {
   darkTiles?: boolean;
 }
 
-
 export const TramStopMap = ({
   forecasts,
   height = "100%",
@@ -112,19 +111,16 @@ export const TramStopMap = ({
     ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
     : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
- const stopMap = new Map<
-  string,
-  {
-    lat: number;
-    lon: number;
-    name: string;
-    line: string;
-    forecasts: TramLiveForecast[];
-  }
->();
-
-
-
+  const stopMap = new Map<
+    string,
+    {
+      lat: number;
+      lon: number;
+      name: string;
+      line: string;
+      forecasts: TramLiveForecast[];
+    }
+  >();
 
   for (const f of forecasts) {
     if (f.lat == null || f.lon == null) continue;
@@ -142,17 +138,21 @@ export const TramStopMap = ({
 
   const stops = [...stopMap.values()];
 
-
   console.log("stops:", stops);
-  console.log("disrupted stops:", stops.filter(s => isDisrupted(s.forecasts)));
-  
-console.log("stops with messages:", stops.map(s => ({ 
-  name: s.name, 
-  messages: s.forecasts.map(f => f.message),
-  disrupted: isDisrupted(s.forecasts)
-})));
-  
-  
+  console.log(
+    "disrupted stops:",
+    stops.filter((s) => isDisrupted(s.forecasts)),
+  );
+
+  console.log(
+    "stops with messages:",
+    stops.map((s) => ({
+      name: s.name,
+      messages: s.forecasts.map((f) => f.message),
+      disrupted: isDisrupted(s.forecasts),
+    })),
+  );
+
   return (
     <MapContainer
       center={defaultCenter}
@@ -191,8 +191,7 @@ console.log("stops with messages:", stops.map(s => ({
 
               {stop.forecasts.slice(0, 4).map((f, i) => (
                 <div key={i} style={{ fontSize: 12, marginTop: 2 }}>
-                  → {f.destination}:{" "}
-                  <strong>{f.dueMins ?? "—"} min</strong>{" "}
+                  → {f.destination}: <strong>{f.dueMins ?? "—"} min</strong>{" "}
                   <span style={{ color: "#888" }}>({f.direction})</span>
                 </div>
               ))}

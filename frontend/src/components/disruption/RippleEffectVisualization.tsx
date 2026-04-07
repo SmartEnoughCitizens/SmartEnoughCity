@@ -24,13 +24,7 @@ const MODE_LABELS: Record<TransportMode, string> = {
 };
 
 const SEVERITY_LABELS = ["", "Low", "Med", "High", "Crit"];
-const SEVERITY_COLORS_ARR = [
-  "",
-  "#10B981",
-  "#F59E0B",
-  "#EF4444",
-  "#7C3AED",
-];
+const SEVERITY_COLORS_ARR = ["", "#10B981", "#F59E0B", "#EF4444", "#7C3AED"];
 
 const ALL_MODES: TransportMode[] = ["BUS", "TRAM", "TRAIN", "CAR", "CYCLE"];
 
@@ -65,13 +59,9 @@ function computeImpacts(disruptions: ActiveDisruption[]): ModeImpact[] {
     const modes = d.affectedTransportModes ?? [];
     const score = severityScore(d.severity);
     for (const m of modes) {
-      if (!counts[m])
-        counts[m] = { count: 0, max: 0 };
+      if (!counts[m]) counts[m] = { count: 0, max: 0 };
       counts[m].count += 1;
-      counts[m].max = Math.max(
-        counts[m].max,
-        score,
-      );
+      counts[m].max = Math.max(counts[m].max, score);
     }
   }
 
@@ -193,12 +183,8 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
               gap: 0.5,
             }}
           >
-            <CheckCircleOutlineIcon
-              sx={{ fontSize: 22, color: "#10B981" }}
-            />
-            <Typography
-              sx={{ fontSize: "0.72rem", color: "text.secondary" }}
-            >
+            <CheckCircleOutlineIcon sx={{ fontSize: 22, color: "#10B981" }} />
+            <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
               All modes operating normally
             </Typography>
           </Box>

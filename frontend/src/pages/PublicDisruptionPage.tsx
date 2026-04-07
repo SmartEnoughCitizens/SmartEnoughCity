@@ -14,7 +14,11 @@ import EventIcon from "@mui/icons-material/Event";
 import TrafficIcon from "@mui/icons-material/Traffic";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import { dashboardApi } from "@/api";
-import type { DisruptionAlternative, DisruptionCause, DisruptionSeverity } from "@/types";
+import type {
+  DisruptionAlternative,
+  DisruptionCause,
+  DisruptionSeverity,
+} from "@/types";
 
 const SEVERITY_COLORS: Record<DisruptionSeverity, string> = {
   LOW: "#10B981",
@@ -38,7 +42,8 @@ const CONFIDENCE_COLORS: Record<string, string> = {
 function altIcon(mode: string): React.ReactNode {
   const m = mode.toUpperCase();
   if (m.includes("BUS")) return <DirectionsBusIcon sx={{ fontSize: 20 }} />;
-  if (m.includes("BIKE") || m.includes("CYCLE")) return <PedalBikeIcon sx={{ fontSize: 20 }} />;
+  if (m.includes("BIKE") || m.includes("CYCLE"))
+    return <PedalBikeIcon sx={{ fontSize: 20 }} />;
   return <TrainIcon sx={{ fontSize: 20 }} />;
 }
 
@@ -58,7 +63,9 @@ function CauseRow({ cause }: { cause: DisruptionCause }) {
   return (
     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, py: 0.75 }}>
       <Box sx={{ color: CONFIDENCE_COLORS[cause.confidence], mt: 0.1 }}>
-        {CAUSE_ICONS[cause.causeType] ?? <WarningAmberIcon sx={{ fontSize: 20 }} />}
+        {CAUSE_ICONS[cause.causeType] ?? (
+          <WarningAmberIcon sx={{ fontSize: 20 }} />
+        )}
       </Box>
       <Box sx={{ flex: 1 }}>
         <Typography sx={{ fontSize: "1rem", color: "#1F2937" }}>
@@ -109,7 +116,11 @@ export const PublicDisruptionPage = () => {
   const { id } = useParams<{ id: string }>();
   const numericId = id ? Number.parseInt(id, 10) : null;
 
-  const { data: disruption, isLoading, error } = useQuery({
+  const {
+    data: disruption,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["public", "disruption", numericId],
     queryFn: () => dashboardApi.getPublicDisruption(numericId!),
     enabled: numericId != null && !Number.isNaN(numericId),
@@ -119,7 +130,14 @@ export const PublicDisruptionPage = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
         <CircularProgress sx={{ color: "#EF4444" }} />
       </Box>
     );
@@ -127,7 +145,15 @@ export const PublicDisruptionPage = () => {
 
   if (error || !disruption) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", bgcolor: "#F9FAFB" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          bgcolor: "#F9FAFB",
+        }}
+      >
         <Box sx={{ textAlign: "center" }}>
           <WarningAmberIcon sx={{ fontSize: 48, color: "#9CA3AF", mb: 2 }} />
           <Typography sx={{ fontSize: "1.1rem", color: "#6B7280" }}>
@@ -175,7 +201,14 @@ export const PublicDisruptionPage = () => {
           }}
         >
           <WarningAmberIcon sx={{ color: "#fff", fontSize: 28 }} />
-          <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: "1.15rem", letterSpacing: -0.3 }}>
+          <Typography
+            sx={{
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: "1.15rem",
+              letterSpacing: -0.3,
+            }}
+          >
             SERVICE DISRUPTION
           </Typography>
           <Box sx={{ ml: "auto" }}>
@@ -194,10 +227,25 @@ export const PublicDisruptionPage = () => {
 
         <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
           {/* Title */}
-          <Typography sx={{ fontSize: "1.4rem", fontWeight: 800, color: "#111827", lineHeight: 1.2 }}>
+          <Typography
+            sx={{
+              fontSize: "1.4rem",
+              fontWeight: 800,
+              color: "#111827",
+              lineHeight: 1.2,
+            }}
+          >
             {disruption.name ?? disruption.disruptionType}
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.75, flexWrap: "wrap" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              mt: 0.75,
+              flexWrap: "wrap",
+            }}
+          >
             {disruption.affectedArea && (
               <Typography sx={{ fontSize: "0.9rem", color: "#6B7280" }}>
                 {disruption.affectedArea}
@@ -210,7 +258,14 @@ export const PublicDisruptionPage = () => {
             )}
           </Box>
           {disruption.description && (
-            <Typography sx={{ mt: 1.25, fontSize: "0.95rem", color: "#374151", lineHeight: 1.5 }}>
+            <Typography
+              sx={{
+                mt: 1.25,
+                fontSize: "0.95rem",
+                color: "#374151",
+                lineHeight: 1.5,
+              }}
+            >
               {disruption.description}
             </Typography>
           )}
@@ -222,7 +277,16 @@ export const PublicDisruptionPage = () => {
         {/* Causes */}
         {causes.length > 0 && (
           <Box sx={{ px: 3, pb: 1 }}>
-            <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.8, mb: 0.75 }}>
+            <Typography
+              sx={{
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: "#9CA3AF",
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                mb: 0.75,
+              }}
+            >
               Why is this happening?
             </Typography>
             {causes.map((c) => (
@@ -238,7 +302,16 @@ export const PublicDisruptionPage = () => {
         {/* Alternatives */}
         {alternatives.length > 0 && (
           <Box sx={{ px: 3, pb: 1 }}>
-            <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.8, mb: 0.75 }}>
+            <Typography
+              sx={{
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: "#9CA3AF",
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                mb: 0.75,
+              }}
+            >
               What to do
             </Typography>
             {alternatives.map((a) => (

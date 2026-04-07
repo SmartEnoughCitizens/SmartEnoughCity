@@ -576,7 +576,9 @@ export const dashboardApi = {
     return data;
   },
 
-  getTramAlternativeRoutes: async (stopId: string): Promise<TramAlternativeRoute[]> => {
+  getTramAlternativeRoutes: async (
+    stopId: string,
+  ): Promise<TramAlternativeRoute[]> => {
     const { data } = await axiosInstance.get<TramAlternativeRoute[]>(
       API_ENDPOINTS.TRAM_ALTERNATIVE_ROUTES,
       { params: { stopId } },

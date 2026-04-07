@@ -286,7 +286,9 @@ export const TrainDashboard = () => {
   const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
     null,
   );
-  const [selectedDisruptionId, setSelectedDisruptionId] = useState<number | null>(null);
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
 
   // Demand simulation state — up to 3 corridors
   const [corridors, setCorridors] = useState<CorridorEntry[]>([
@@ -1100,7 +1102,6 @@ export const TrainDashboard = () => {
                       },
                     }}
                   />
-
                 </Box>
                 {dataLoading ? (
                   <Box
@@ -2108,7 +2109,10 @@ export const TrainDashboard = () => {
                 onSelect={(d) => {
                   setSelectedDisruptionId(d.id);
                   if (d.latitude != null && d.longitude != null) {
-                    setFlyTarget({ center: [d.latitude, d.longitude], id: Date.now() });
+                    setFlyTarget({
+                      center: [d.latitude, d.longitude],
+                      id: Date.now(),
+                    });
                   }
                 }}
               />

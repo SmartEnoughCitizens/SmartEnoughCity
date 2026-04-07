@@ -22,7 +22,11 @@ interface Props {
   onSelect: (d: DisruptionItem) => void;
 }
 
-export const DisruptionsTabContent = ({ mode, selectedId, onSelect }: Props) => {
+export const DisruptionsTabContent = ({
+  mode,
+  selectedId,
+  onSelect,
+}: Props) => {
   const { data: disruptions = [], isLoading } = useQuery({
     queryKey: ["disruptions", "by-mode", mode],
     queryFn: () => dashboardApi.getDisruptionsByMode(mode),
@@ -41,7 +45,9 @@ export const DisruptionsTabContent = ({ mode, selectedId, onSelect }: Props) => 
   if (disruptions.length === 0) {
     return (
       <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-        <CheckCircleOutlineIcon sx={{ fontSize: 28, color: "#10B981", mb: 0.75 }} />
+        <CheckCircleOutlineIcon
+          sx={{ fontSize: 28, color: "#10B981", mb: 0.75 }}
+        />
         <Typography sx={{ fontSize: "0.8rem", color: "#8b949e" }}>
           No active disruptions
         </Typography>
@@ -94,7 +100,9 @@ export const DisruptionsTabContent = ({ mode, selectedId, onSelect }: Props) => 
                 >
                   {d.affectedArea ?? d.name}
                 </Typography>
-                <Box sx={{ display: "flex", gap: 0.5, mt: 0.3, flexWrap: "wrap" }}>
+                <Box
+                  sx={{ display: "flex", gap: 0.5, mt: 0.3, flexWrap: "wrap" }}
+                >
                   <Chip
                     size="small"
                     label={d.severity}
@@ -108,7 +116,11 @@ export const DisruptionsTabContent = ({ mode, selectedId, onSelect }: Props) => 
                   />
                   <Chip
                     size="small"
-                    label={d.disruptionType === "EVENT" ? "Service Pressure" : d.disruptionType.replaceAll("_", " ")}
+                    label={
+                      d.disruptionType === "EVENT"
+                        ? "Service Pressure"
+                        : d.disruptionType.replaceAll("_", " ")
+                    }
                     sx={{
                       fontSize: "0.58rem",
                       height: 15,
@@ -116,7 +128,8 @@ export const DisruptionsTabContent = ({ mode, selectedId, onSelect }: Props) => 
                       color: "#8b949e",
                     }}
                   />
-                  {(d.disruptionType === "CONGESTION" || d.disruptionType === "EVENT") &&
+                  {(d.disruptionType === "CONGESTION" ||
+                    d.disruptionType === "EVENT") &&
                     (d.affectedRoutes ?? []).slice(0, 3).map((r) => (
                       <Chip
                         key={r}
@@ -130,9 +143,16 @@ export const DisruptionsTabContent = ({ mode, selectedId, onSelect }: Props) => 
                         }}
                       />
                     ))}
-                  {(d.disruptionType === "CONGESTION" || d.disruptionType === "EVENT") &&
+                  {(d.disruptionType === "CONGESTION" ||
+                    d.disruptionType === "EVENT") &&
                     (d.affectedRoutes ?? []).length > 3 && (
-                      <Typography sx={{ fontSize: "0.55rem", color: "#6e7681", alignSelf: "center" }}>
+                      <Typography
+                        sx={{
+                          fontSize: "0.55rem",
+                          color: "#6e7681",
+                          alignSelf: "center",
+                        }}
+                      >
                         +{(d.affectedRoutes ?? []).length - 3} more
                       </Typography>
                     )}

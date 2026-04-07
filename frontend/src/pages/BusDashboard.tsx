@@ -18,12 +18,23 @@ import CommuteIcon from "@mui/icons-material/Commute";
 import WarningIcon from "@mui/icons-material/Warning";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import EcoIcon from "@mui/icons-material/EnergySavingsLeaf";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 
-function MapController({ target }: { target: { center: [number, number]; id: number } | null }) {
+function MapController({
+  target,
+}: {
+  target: { center: [number, number]; id: number } | null;
+}) {
   const map = useMap();
   useEffect(() => {
-    if (target) map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
+    if (target)
+      map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
   }, [map, target]);
   return null;
 }
@@ -175,8 +186,13 @@ const PerformanceGauge = ({
 
 export const BusDashboard = () => {
   const [selectedRoute, setSelectedRoute] = useState<string>("");
-  const [selectedDisruptionId, setSelectedDisruptionId] = useState<number | null>(null);
-  const [flyTarget, setFlyTarget] = useState<{ center: [number, number]; id: number } | null>(null);
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
+  const [flyTarget, setFlyTarget] = useState<{
+    center: [number, number];
+    id: number;
+  } | null>(null);
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<BusNewStopRecommendation | null>(null);
   const theme = useAppSelector((state) => state.ui.theme);
@@ -475,7 +491,9 @@ export const BusDashboard = () => {
           elevation={0}
           sx={{ borderRadius: 2, overflow: "hidden", maxHeight: 280 }}
         >
-          <Box sx={{ px: 2, py: 1.25, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          <Box
+            sx={{ px: 2, py: 1.25, borderBottom: "1px solid rgba(0,0,0,0.08)" }}
+          >
             <Typography variant="subtitle2" fontWeight="bold">
               Active Disruptions
             </Typography>
@@ -487,7 +505,10 @@ export const BusDashboard = () => {
               onSelect={(d) => {
                 setSelectedDisruptionId(d.id);
                 if (d.latitude != null && d.longitude != null) {
-                  setFlyTarget({ center: [d.latitude, d.longitude], id: Date.now() });
+                  setFlyTarget({
+                    center: [d.latitude, d.longitude],
+                    id: Date.now(),
+                  });
                 }
               }}
             />

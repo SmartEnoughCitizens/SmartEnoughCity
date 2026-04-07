@@ -528,9 +528,7 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                         ))}
                       </Bar>
                       <Tooltip
-                        formatter={(v) =>
-                          (v ?? 0).toLocaleString()
-                        }
+                        formatter={(v) => (v ?? 0).toLocaleString()}
                         contentStyle={{ fontSize: 11, borderRadius: 6 }}
                       />
                     </BarChart>

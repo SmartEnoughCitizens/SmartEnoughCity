@@ -48,7 +48,10 @@ function ensurePulseStyles() {
   document.head.append(style);
 }
 
-function makeDivIcon(severity: DisruptionSeverity, selected: boolean): L.DivIcon {
+function makeDivIcon(
+  severity: DisruptionSeverity,
+  selected: boolean,
+): L.DivIcon {
   ensurePulseStyles();
   const color = SEVERITY_COLORS[severity] ?? "#6B7280";
   const size = SEVERITY_SIZE[severity] ?? 22;
@@ -124,7 +127,12 @@ interface Props {
   darkTiles?: boolean;
 }
 
-export const NetworkImpactMap = ({ disruptions, selectedId = null, onMarkerClick, darkTiles = false }: Props) => {
+export const NetworkImpactMap = ({
+  disruptions,
+  selectedId = null,
+  onMarkerClick,
+  darkTiles = false,
+}: Props) => {
   const mappable = disruptions.filter(
     (d) => d.latitude != null && d.longitude != null,
   );
@@ -169,14 +177,25 @@ export const NetworkImpactMap = ({ disruptions, selectedId = null, onMarkerClick
               key={d.id}
               position={[d.latitude!, d.longitude!]}
               icon={makeDivIcon(d.severity, isSelected)}
-              eventHandlers={onMarkerClick ? { click: () => onMarkerClick(d.id) } : undefined}
+              eventHandlers={
+                onMarkerClick ? { click: () => onMarkerClick(d.id) } : undefined
+              }
             >
               <Popup>
                 <Box sx={{ minWidth: 180 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: "0.85rem", mb: 0.5 }}>
+                  <Typography
+                    sx={{ fontWeight: 700, fontSize: "0.85rem", mb: 0.5 }}
+                  >
                     {d.name}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 0.5,
+                      flexWrap: "wrap",
+                      mb: 0.5,
+                    }}
+                  >
                     <Chip
                       size="small"
                       label={d.severity}
@@ -195,7 +214,9 @@ export const NetworkImpactMap = ({ disruptions, selectedId = null, onMarkerClick
                     />
                   </Box>
                   {d.description && (
-                    <Typography sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.5 }}>
+                    <Typography
+                      sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.5 }}
+                    >
                       {d.description}
                     </Typography>
                   )}
@@ -209,7 +230,9 @@ export const NetworkImpactMap = ({ disruptions, selectedId = null, onMarkerClick
                       Delay: ~{d.delayMinutes} min
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: "0.68rem", color: "#9CA3AF", mt: 0.5 }}>
+                  <Typography
+                    sx={{ fontSize: "0.68rem", color: "#9CA3AF", mt: 0.5 }}
+                  >
                     Detected: {formatTime(d.detectedAt)}
                   </Typography>
                 </Box>
@@ -236,19 +259,26 @@ export const NetworkImpactMap = ({ disruptions, selectedId = null, onMarkerClick
           gap: 0.4,
         }}
       >
-        {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as DisruptionSeverity[]).map((s) => (
-          <Box key={s} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+        {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as DisruptionSeverity[]).map(
+          (s) => (
             <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                bgcolor: SEVERITY_COLORS[s],
-              }}
-            />
-            <Typography sx={{ fontSize: "0.62rem", color: "#374151" }}>{s}</Typography>
-          </Box>
-        ))}
+              key={s}
+              sx={{ display: "flex", alignItems: "center", gap: 0.6 }}
+            >
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  bgcolor: SEVERITY_COLORS[s],
+                }}
+              />
+              <Typography sx={{ fontSize: "0.62rem", color: "#374151" }}>
+                {s}
+              </Typography>
+            </Box>
+          ),
+        )}
       </Box>
 
       {mappable.length === 0 && (

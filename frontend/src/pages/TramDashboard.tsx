@@ -47,9 +47,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 import { dashboardApi } from "@/api";
-import type { TramAlternativeRoute , TramLiveForecast } from "@/types";
-
-
+import type { TramAlternativeRoute, TramLiveForecast } from "@/types";
 
 // ── Constants ───────────────────────────────────────────────────────
 
@@ -282,20 +280,29 @@ function buildStopMap(forecasts: TramLiveForecast[]) {
 }
 
 const DISRUPTION_KEYWORDS = [
-  "not in service", "disruption", "suspended", "suspension",
-  "delay", "fault", "no service", "terminated", "partial",
+  "not in service",
+  "disruption",
+  "suspended",
+  "suspension",
+  "delay",
+  "fault",
+  "no service",
+  "terminated",
+  "partial",
 ];
 
 const isDisrupted = (forecasts: TramLiveForecast[]) =>
   forecasts.some((f) =>
-    DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw))
+    DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw)),
   );
 
 const iconFor = (type: string) =>
   type === "bus" ? "🚌" : type === "rail" ? "🚂" : "🚲";
 
 const AlternativesSection = ({ stopId }: { stopId: string }) => {
-  const [alternatives, setAlternatives] = useState<TramAlternativeRoute[] | null>(null);
+  const [alternatives, setAlternatives] = useState<
+    TramAlternativeRoute[] | null
+  >(null);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -308,17 +315,32 @@ const AlternativesSection = ({ stopId }: { stopId: string }) => {
   return (
     <Box sx={{ mt: 1 }}>
       {!alternatives && (
-        <Button size="small" variant="outlined" color="warning" onClick={load} disabled={loading}
-          sx={{ fontSize: "0.65rem", py: 0.25 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          color="warning"
+          onClick={load}
+          disabled={loading}
+          sx={{ fontSize: "0.65rem", py: 0.25 }}
+        >
           {loading ? <CircularProgress size={10} /> : "⚠ Show alternatives"}
         </Button>
       )}
       {alternatives?.length === 0 && (
-        <Typography sx={{ fontSize: "0.68rem", color: "#8b949e" }}>No alternatives nearby</Typography>
+        <Typography sx={{ fontSize: "0.68rem", color: "#8b949e" }}>
+          No alternatives nearby
+        </Typography>
       )}
       {alternatives && alternatives.length > 0 && (
         <>
-          <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: "#e6edf3", mb: 0.5 }}>
+          <Typography
+            sx={{
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              color: "#e6edf3",
+              mb: 0.5,
+            }}
+          >
             Nearby alternatives:
           </Typography>
           {alternatives.slice(0, 5).map((a, i) => (
@@ -343,7 +365,9 @@ export const TramDashboard = () => {
     center: [number, number];
     id: number;
   } | null>(null);
-  const [selectedDisruptionId, setSelectedDisruptionId] = useState<number | null>(null);
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
 
   const theme = useAppSelector((state) => state.ui.theme);
@@ -430,7 +454,6 @@ export const TramDashboard = () => {
     [],
   );
 
-
   const PANEL_W = 400;
 
   return (
@@ -507,8 +530,10 @@ export const TramDashboard = () => {
                     </Typography>
                   )}
                   {isDisrupted(stop.forecasts) && (
-      <AlternativesSection stopId={stop.forecasts[0]?.stopId ?? ""} />
-    )}
+                    <AlternativesSection
+                      stopId={stop.forecasts[0]?.stopId ?? ""}
+                    />
+                  )}
                 </Box>
               </Popup>
             </Marker>
@@ -863,7 +888,10 @@ export const TramDashboard = () => {
                   onSelect={(d) => {
                     setSelectedDisruptionId(d.id);
                     if (d.latitude != null && d.longitude != null) {
-                      setFlyTarget({ center: [d.latitude, d.longitude], id: Date.now() });
+                      setFlyTarget({
+                        center: [d.latitude, d.longitude],
+                        id: Date.now(),
+                      });
                     }
                   }}
                 />

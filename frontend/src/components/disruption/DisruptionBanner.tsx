@@ -62,7 +62,8 @@ export const DisruptionBanner = ({ mode, onViewDetails }: Props) => {
       />
       <WarningAmberIcon sx={{ fontSize: 15, flexShrink: 0 }} />
       <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, flex: 1 }}>
-        {disruptions.length} active disruption{disruptions.length === 1 ? "" : "s"} affecting {mode} services
+        {disruptions.length} active disruption
+        {disruptions.length === 1 ? "" : "s"} affecting {mode} services
       </Typography>
       {onViewDetails && (
         <Box
