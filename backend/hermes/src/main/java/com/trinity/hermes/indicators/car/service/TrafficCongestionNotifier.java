@@ -50,7 +50,7 @@ public class TrafficCongestionNotifier {
     StringBuilder sb = new StringBuilder();
     sb.append(
         String.format(
-            "**Site %d** — %s congestion (confidence: %d%%)\n\n%s\n\n",
+            "**Site %d** — %s congestion (confidence: %d%%)%n%n%s%n%n",
             r.getSiteId(),
             capitalize(r.getCongestionLevel()),
             Math.round(r.getConfidenceScore() * 100),
@@ -58,7 +58,7 @@ public class TrafficCongestionNotifier {
     for (TrafficRecommendation.AlternativeRoute route : r.getAlternativeRoutes()) {
       sb.append(
           String.format(
-              "- **%s**: saves ~%d min, %.1f km\n",
+              "- **%s**: saves ~%d min, %.1f km%n",
               route.getLabel(), route.getEstimatedTimeSavingsMinutes(), route.getDistanceKm()));
     }
     return sb.toString().strip();
