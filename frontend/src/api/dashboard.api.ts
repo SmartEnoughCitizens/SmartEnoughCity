@@ -20,7 +20,6 @@ import type {
   CarFuelTypeStat,
   CycleDashboardResponse,
   CycleStation,
-  EventItem,
   HighTrafficPoint,
   HourlyNetworkProfileDTO,
   IndicatorType,
@@ -495,19 +494,6 @@ export const dashboardApi = {
   getTramCommonDelays: async (): Promise<TramCommonDelay[]> => {
     const { data } = await axiosInstance.get<TramCommonDelay[]>(
       API_ENDPOINTS.TRAM_COMMON_DELAYS,
-    );
-    return data;
-  },
-
-  /**
-   * Get upcoming events
-   */
-  getEvents: async (limit = 10): Promise<EventItem[]> => {
-    const { data } = await axiosInstance.get<EventItem[]>(
-      API_ENDPOINTS.EVENTS,
-      {
-        params: { limit },
-      },
     );
     return data;
   },
