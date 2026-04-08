@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
 export const MISC_KEYS = {
-  events: (limit?: number) => ["misc", "events", { limit }] as const,
   pedestriansLive: (limit?: number) =>
     ["misc", "pedestrians", "live", { limit }] as const,
   disruptionsActive: ["misc", "disruptions", "active"] as const,
@@ -546,19 +545,6 @@ export const useTramCommonDelays = () => {
     queryFn: () => dashboardApi.getTramCommonDelays(),
     staleTime: 60_000,
     refetchInterval: 60_000,
-    refetchIntervalInBackground: true,
-  });
-};
-
-/**
- * Get upcoming events (default 10, show 5 initially)
- */
-export const useEvents = (limit = 10) => {
-  return useQuery({
-    queryKey: MISC_KEYS.events(limit),
-    queryFn: () => dashboardApi.getEvents(limit),
-    staleTime: 300_000, // 5 minutes — events don't change often
-    refetchInterval: 300_000,
     refetchIntervalInBackground: true,
   });
 };

@@ -11,7 +11,6 @@ import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import TrainIcon from "@mui/icons-material/Train";
 import TramIcon from "@mui/icons-material/Tram";
-import EventNoteIcon from "@mui/icons-material/EventNote";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -38,8 +37,6 @@ import {
   useCycleNetworkSummary,
   useEvChargingStations,
   useEvChargingDemand,
-  useEvents,
-  usePedestriansLive,
   useActiveDisruptions,
 } from "@/hooks";
 import { SkeletonCard } from "@/components/common/SkeletonCard";
@@ -230,9 +227,6 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
   const { data: evStations, isLoading: evStationsLoading } =
     useEvChargingStations();
   const { data: evDemand, isLoading: evDemandLoading } = useEvChargingDemand();
-  const { data: events, isLoading: eventsLoading } = useEvents(10);
-  const { data: pedestrians, isLoading: pedestriansLoading } =
-    usePedestriansLive(20);
   const { data: disruptions, isLoading: disruptionsLoading } =
     useActiveDisruptions();
 
@@ -706,26 +700,6 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                 }
               />
               <MetricRow label="Total" value={totalCount} />
-            </IndicatorCard>
-          </Box>
-
-          {/* Events & Pedestrians */}
-          <Box sx={{ display: "flex" }}>
-            <IndicatorCard
-              title="Events & Pedestrians"
-              icon={<EventNoteIcon />}
-              accent={muiTheme.palette.secondary.light}
-              loading={eventsLoading || pedestriansLoading}
-              onClick={() => onNavigate("misc")}
-            >
-              <MetricRow
-                label="Upcoming Events"
-                value={events?.length ?? "—"}
-              />
-              <MetricRow
-                label="Monitoring Sites"
-                value={pedestrians?.length ?? "—"}
-              />
             </IndicatorCard>
           </Box>
 
