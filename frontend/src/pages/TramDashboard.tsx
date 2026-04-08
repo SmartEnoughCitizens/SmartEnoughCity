@@ -1,17 +1,12 @@
 /**
- * Tram dashboard — Google Maps-style smart city view (matches TrainDashboard design)
+ * Tram dashboard — matches CycleDashboard design
+ * Right-side floating panel, MUI Tabs, theme-aware
  *
- * Features:
- *  - Full-viewport map: OSM (light) / Carto dark (dark)
- *  - Left glass panel: KPI strip, line filters, Live | Delays | Hourly tabs, search
- *  - Red/Green coloured stop markers on map
- *  - Line filter applies to panel lists; map always shows all stops
- *  - Click a stop in the list → map flies to it
- *  - Map legend overlay (bottom-left)
+ * 4 tabs: Live | Delays | Usage | Common Delays
+ * Map: Live/Delays=standard, Usage=sized markers, CommonDelays=delay-sized markers
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import {
   Box,
   Paper,
@@ -19,81 +14,108 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  Divider,
+  Tabs,
+  Tab,
   Chip,
   TextField,
   InputAdornment,
   ListItemButton,
-  Button,
+  Select,
+  MenuItem,
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import TramIcon from "@mui/icons-material/Tram";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import HistoryIcon from "@mui/icons-material/History";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import {
   useTramKpis,
   useTramLiveForecasts,
   useTramDelays,
-  useTramHourlyDistribution,
+  useTramStopUsage,
+  useTramCommonDelays,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
-import { TramHourlyChart } from "@/components/charts/TramHourlyChart";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import { dashboardApi } from "@/api";
-import type { TramAlternativeRoute, TramLiveForecast } from "@/types";
+import type { TramLiveForecast, TramStopUsage } from "@/types";
 
-// ── Constants ───────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────
 
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
-
 type LineFilter = "" | "red" | "green";
-type PanelTab = "live" | "delays" | "hourly" | "disruptions";
 
 const LINE_COLORS: Record<string, string> = {
   red: "#DC2626",
   green: "#16A34A",
 };
 
-// ── CSS ──────────────────────────────────────────────────────────────
+const TIME_PERIODS = [
+  {
+    key: "early",
+    label: "Early Service (05:30–07:00)",
+    startHour: 5,
+    endHour: 7,
+  },
+  {
+    key: "morning",
+    label: "Morning Peak (07:00–10:00)",
+    startHour: 7,
+    endHour: 10,
+  },
+  {
+    key: "interpeak",
+    label: "Inter-Peak (10:00–16:00)",
+    startHour: 10,
+    endHour: 16,
+  },
+  {
+    key: "evening",
+    label: "Evening Peak (16:00–19:00)",
+    startHour: 16,
+    endHour: 19,
+  },
+  {
+    key: "offpeak",
+    label: "Evening Off-Peak (19:00–23:00)",
+    startHour: 19,
+    endHour: 23,
+  },
+  {
+    key: "latenight",
+    label: "Late Night (23:00–00:30)",
+    startHour: 23,
+    endHour: 1,
+  },
+] as const;
+
+// ── CSS ──────────────────────────────────────────────────────────
 
 const INJECTED_CSS = `
-  .tram-map .leaflet-popup-content-wrapper {
-    background: rgba(13,17,23,0.96) !important;
-    color: #e6edf3 !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.55) !important;
-  }
-  .tram-map .leaflet-popup-tip { background: rgba(13,17,23,0.96) !important; }
-  .tram-map .leaflet-popup-close-button {
-    color: #8b949e !important; top: 8px !important; right: 8px !important;
-  }
-  .tram-map .leaflet-popup-content { margin: 14px 16px !important; }
-  .tram-pin {
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 800; color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.50), 0 0 0 2px rgba(255,255,255,0.20);
-    transition: transform 0.15s ease; cursor: pointer;
-  }
-  .tram-pin:hover { transform: scale(1.25); }
+  .leaflet-popup-content-wrapper { background:rgba(13,17,23,0.96)!important;color:#e6edf3!important;border:1px solid rgba(255,255,255,0.10)!important;border-radius:12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.55)!important; }
+  .leaflet-popup-tip { background:rgba(13,17,23,0.96)!important; }
+  .leaflet-popup-close-button { color:#8b949e!important;top:8px!important;right:8px!important; }
+  .leaflet-popup-content { margin:14px 16px!important; }
+  .tram-pin { border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.50),0 0 0 2px rgba(255,255,255,0.20);transition:transform 0.15s ease;cursor:pointer; }
+  .tram-pin:hover { transform:scale(1.25); }
 `;
 
-// ── Leaflet icon factory ─────────────────────────────────────────────
+// ── Icons ────────────────────────────────────────────────────────
 
-function makeStopIcon(line: string, disrupted = false): L.DivIcon {
-  const color = disrupted ? "#f97316" : (LINE_COLORS[line] ?? "#607D8B");
-  const letter = line === "red" ? "R" : line === "green" ? "G" : "T";
+function makeStopIcon(line: string): L.DivIcon {
+  const c = LINE_COLORS[line] ?? "#607D8B";
+  const l = line === "red" ? "R" : line === "green" ? "G" : "T";
   return L.divIcon({
-    html: `<div class="tram-pin" style="width:22px;height:22px;background:${color};font-size:9px;">${letter}</div>`,
+    html: `<div class="tram-pin" style="width:22px;height:22px;background:${c};font-size:9px;">${l}</div>`,
     className: "",
     iconSize: [22, 22],
     iconAnchor: [11, 11],
@@ -101,7 +123,41 @@ function makeStopIcon(line: string, disrupted = false): L.DivIcon {
   });
 }
 
-// ── Map controller ───────────────────────────────────────────────────
+function makeUsageIcon(pax: number, maxPax: number, line: string): L.DivIcon {
+  const ratio = maxPax > 0 ? pax / maxPax : 0;
+  const size = Math.round(14 + ratio * 28);
+  let color: string;
+  if (line === "red") {
+    const g = Math.round(200 - ratio * 190);
+    color = `rgb(220,${g},${g})`;
+  } else {
+    const r = Math.round(200 - ratio * 180);
+    const b = Math.round(200 - ratio * 170);
+    color = `rgb(${r},${Math.round(180 - ratio * 30)},${b})`;
+  }
+  const letter = line === "red" ? "R" : "G";
+  return L.divIcon({
+    html: `<div class="tram-pin" style="width:${size}px;height:${size}px;background:${color};font-size:${Math.max(8, size * 0.3)}px;">${letter}</div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2 - 4],
+  });
+}
+
+function makeDelayIcon(avgDelay: number): L.DivIcon {
+  const size = Math.min(16 + avgDelay * 2, 40);
+  const c = avgDelay >= 10 ? "#DC2626" : avgDelay >= 5 ? "#d29922" : "#1565C0";
+  return L.divIcon({
+    html: `<div class="tram-pin" style="width:${size}px;height:${size}px;background:${c};font-size:${Math.max(8, size * 0.35)}px;">+${Math.round(avgDelay)}</div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2 - 4],
+  });
+}
+
+// ── Map controller ───────────────────────────────────────────────
 
 function MapController({
   target,
@@ -112,132 +168,12 @@ function MapController({
   useEffect(() => {
     if (target)
       map.flyTo(target.center, 15, { duration: 1.2, easeLinearity: 0.25 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
+  }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
-// ── KPI Card (matches TrainDashboard) ────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────
 
-function KpiCard({
-  icon,
-  label,
-  value,
-  accent,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  accent: string;
-}) {
-  return (
-    <Box
-      sx={{
-        p: 1.25,
-        borderRadius: 2,
-        background: "rgba(22,27,34,0.75)",
-        border: "1px solid rgba(48,54,61,0.6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.5,
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-        <Box sx={{ color: accent, display: "flex", fontSize: 14 }}>{icon}</Box>
-        <Typography
-          variant="caption"
-          sx={{
-            color: "#8b949e",
-            fontSize: "0.62rem",
-            textTransform: "uppercase",
-            letterSpacing: 0.6,
-          }}
-        >
-          {label}
-        </Typography>
-      </Box>
-      <Typography
-        variant="h6"
-        fontWeight={700}
-        sx={{ color: "#e6edf3", lineHeight: 1, fontSize: "1.05rem" }}
-      >
-        {value}
-      </Typography>
-    </Box>
-  );
-}
-
-// ── Map Legend ────────────────────────────────────────────────────────
-
-function MapLegend() {
-  return (
-    <Box
-      sx={{
-        position: "absolute",
-        bottom: 36,
-        left: 16,
-        zIndex: 1000,
-        background: "rgba(13,17,23,0.92)",
-        backdropFilter: "blur(14px)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 2,
-        p: 1.5,
-        minWidth: 120,
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          color: "#484f58",
-          textTransform: "uppercase",
-          letterSpacing: 0.8,
-          fontSize: "0.6rem",
-          display: "block",
-          mb: 0.75,
-        }}
-      >
-        Luas Lines
-      </Typography>
-      {(["red", "green"] as const).map((line) => (
-        <Box
-          key={line}
-          sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}
-        >
-          <Box
-            sx={{
-              width: 14,
-              height: 14,
-              borderRadius: "50%",
-              bgcolor: LINE_COLORS[line],
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Typography sx={{ fontSize: 7, fontWeight: 800, color: "#fff" }}>
-              {line === "red" ? "R" : "G"}
-            </Typography>
-          </Box>
-          <Typography
-            variant="caption"
-            sx={{
-              color: "#c9d1d9",
-              fontSize: "0.7rem",
-              textTransform: "capitalize",
-            }}
-          >
-            {line} Line
-          </Typography>
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-/** Deduplicate forecasts into unique stops; pick top 2 inbound + top 2 outbound by soonest due */
 function buildStopMap(forecasts: TramLiveForecast[]) {
   const map = new Map<
     string,
@@ -251,7 +187,7 @@ function buildStopMap(forecasts: TramLiveForecast[]) {
   >();
   for (const f of forecasts) {
     if (f.lat == null || f.lon == null) continue;
-    if (!map.has(f.stopId)) {
+    if (!map.has(f.stopId))
       map.set(f.stopId, {
         lat: f.lat,
         lon: f.lon,
@@ -259,128 +195,113 @@ function buildStopMap(forecasts: TramLiveForecast[]) {
         line: f.line,
         forecasts: [],
       });
-    }
     map.get(f.stopId)!.forecasts.push(f);
   }
-  // For each stop, pick the soonest 2 inbound + soonest 2 outbound
-  const dueSorter = (a: TramLiveForecast, b: TramLiveForecast) =>
+  const s = (a: TramLiveForecast, b: TramLiveForecast) =>
     (a.dueMins ?? 999) - (b.dueMins ?? 999);
   for (const stop of map.values()) {
-    const inbound = stop.forecasts
-      .filter((f) => f.direction.toLowerCase() === "inbound")
-      .toSorted(dueSorter)
-      .slice(0, 2);
-    const outbound = stop.forecasts
-      .filter((f) => f.direction.toLowerCase() === "outbound")
-      .toSorted(dueSorter)
-      .slice(0, 2);
-    stop.forecasts = [...inbound, ...outbound];
+    stop.forecasts = [
+      ...stop.forecasts
+        .filter((f) => f.direction.toLowerCase() === "inbound")
+        .toSorted(s)
+        .slice(0, 2),
+      ...stop.forecasts
+        .filter((f) => f.direction.toLowerCase() === "outbound")
+        .toSorted(s)
+        .slice(0, 2),
+    ];
   }
   return [...map.values()];
 }
 
-const DISRUPTION_KEYWORDS = [
-  "not in service",
-  "disruption",
-  "suspended",
-  "suspension",
-  "delay",
-  "fault",
-  "no service",
-  "terminated",
-  "partial",
-];
+// ── KPI strip ────────────────────────────────────────────────────
 
-const isDisrupted = (forecasts: TramLiveForecast[]) =>
-  forecasts.some((f) =>
-    DISRUPTION_KEYWORDS.some((kw) => f.message?.toLowerCase().includes(kw)),
-  );
-
-const iconFor = (type: string) =>
-  type === "bus" ? "🚌" : type === "rail" ? "🚂" : "🚲";
-
-const AlternativesSection = ({ stopId }: { stopId: string }) => {
-  const [alternatives, setAlternatives] = useState<
-    TramAlternativeRoute[] | null
-  >(null);
-  const [loading, setLoading] = useState(false);
-
-  const load = async () => {
-    setLoading(true);
-    const data = await dashboardApi.getTramAlternativeRoutes(stopId);
-    setAlternatives(data);
-    setLoading(false);
-  };
-
+function KpiStrip({
+  kpis,
+  delayCount,
+}: {
+  kpis: { totalStops: number; activeForecastCount: number; avgDueMins: number };
+  delayCount: number;
+}) {
+  const items = [
+    {
+      icon: <LocationOnIcon sx={{ fontSize: 14 }} />,
+      label: "Stops",
+      value: kpis.totalStops,
+      color: "#00ACC1",
+    },
+    {
+      icon: <TramIcon sx={{ fontSize: 14 }} />,
+      label: "Forecasts",
+      value: kpis.activeForecastCount,
+      color: "#2ea043",
+    },
+    {
+      icon: <AccessTimeIcon sx={{ fontSize: 14 }} />,
+      label: "Avg Due",
+      value: `${kpis.avgDueMins.toFixed(1)}m`,
+      color: kpis.avgDueMins <= 10 ? "#2ea043" : "#d29922",
+    },
+    {
+      icon: <WarningAmberIcon sx={{ fontSize: 14 }} />,
+      label: "Delays",
+      value: delayCount,
+      color: delayCount === 0 ? "#2ea043" : "#DC2626",
+    },
+  ];
   return (
-    <Box sx={{ mt: 1 }}>
-      {!alternatives && (
-        <Button
-          size="small"
-          variant="outlined"
-          color="warning"
-          onClick={load}
-          disabled={loading}
-          sx={{ fontSize: "0.65rem", py: 0.25 }}
+    <Box sx={{ display: "flex", gap: 1.5, px: 2, py: 1.5, flexWrap: "wrap" }}>
+      {items.map((item) => (
+        <Box
+          key={item.label}
+          sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
         >
-          {loading ? <CircularProgress size={10} /> : "⚠ Show alternatives"}
-        </Button>
-      )}
-      {alternatives?.length === 0 && (
-        <Typography sx={{ fontSize: "0.68rem", color: "#8b949e" }}>
-          No alternatives nearby
-        </Typography>
-      )}
-      {alternatives && alternatives.length > 0 && (
-        <>
+          <Box sx={{ color: item.color }}>{item.icon}</Box>
           <Typography
-            sx={{
-              fontSize: "0.68rem",
-              fontWeight: 700,
-              color: "#e6edf3",
-              mb: 0.5,
-            }}
+            variant="caption"
+            sx={{ color: "text.secondary", fontSize: "0.65rem" }}
           >
-            Nearby alternatives:
+            {item.label}
           </Typography>
-          {alternatives.slice(0, 5).map((a, i) => (
-            <Typography key={i} sx={{ fontSize: "0.68rem", color: "#c9d1d9" }}>
-              {iconFor(a.transportType)} {a.stopName}
-              <span style={{ color: "#8b949e" }}> — {a.distanceM}m</span>
-            </Typography>
-          ))}
-        </>
-      )}
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            sx={{ fontSize: "0.8rem" }}
+          >
+            {item.value}
+          </Typography>
+        </Box>
+      ))}
     </Box>
   );
-};
-// ── Main Component ───────────────────────────────────────────────────
+}
+
+// ── Main Component ───────────────────────────────────────────────
 
 export const TramDashboard = () => {
+  const [tabValue, setTabValue] = useState(0);
   const [panelOpen, setPanelOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<PanelTab>("live");
   const [lineFilter, setLineFilter] = useState<LineFilter>("");
   const [search, setSearch] = useState("");
   const [flyTarget, setFlyTarget] = useState<{
     center: [number, number];
     id: number;
   } | null>(null);
-  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
-    number | null
-  >(null);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
+  const [timePeriod, setTimePeriod] = useState("morning");
 
   const theme = useAppSelector((state) => state.ui.theme);
   const { data: kpis } = useTramKpis();
-  const {
-    data: liveForecasts,
-    isLoading: forecastsLoading,
-    error,
-  } = useTramLiveForecasts();
+  const { data: liveForecasts, isLoading, error } = useTramLiveForecasts();
   const { data: delays } = useTramDelays();
-  const { data: hourlyDistribution } = useTramHourlyDistribution();
+  const selectedPeriod =
+    TIME_PERIODS.find((p) => p.key === timePeriod) ?? TIME_PERIODS[1];
+  const { data: stopUsage } = useTramStopUsage(
+    selectedPeriod.startHour,
+    selectedPeriod.endHour,
+  );
+  const { data: commonDelays } = useTramCommonDelays();
 
-  // Inject CSS once
   useEffect(() => {
     const el = document.createElement("style");
     el.dataset["tramUi"] = "1";
@@ -400,51 +321,89 @@ export const TramDashboard = () => {
       ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
       : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-  // All stops for map (always unfiltered)
   const allStops = useMemo(
     () => buildStopMap(liveForecasts ?? []),
     [liveForecasts],
   );
-
-  // Lookup: stopId → {lat, lon} for fly-to from delay list
   const stopCoords = useMemo(() => {
-    const coords = new Map<string, { lat: number; lon: number }>();
-    for (const stop of allStops) {
-      const id = stop.forecasts[0]?.stopId ?? stop.name;
-      coords.set(id, { lat: stop.lat, lon: stop.lon });
-    }
-    return coords;
+    const c = new Map<string, { lat: number; lon: number }>();
+    for (const s of allStops)
+      c.set(s.forecasts[0]?.stopId ?? s.name, { lat: s.lat, lon: s.lon });
+    return c;
   }, [allStops]);
+  const maxPax = useMemo(
+    () =>
+      Math.max(1, ...(stopUsage ?? []).map((u) => u.estimatedTotalPassengers)),
+    [stopUsage],
+  );
+  const usageByStopId = useMemo(() => {
+    const m = new Map<string, TramStopUsage>();
+    for (const u of stopUsage ?? []) m.set(u.stopId, u);
+    return m;
+  }, [stopUsage]);
 
-  // Filtered forecasts for panel — sorted by soonest due time
-  const filteredForecasts = useMemo(() => {
-    let list = liveForecasts ?? [];
-    if (lineFilter) list = list.filter((f) => f.line === lineFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (f) =>
-          f.stopName.toLowerCase().includes(q) ||
-          f.destination.toLowerCase().includes(q),
-      );
+  // Group delays by stopId — one marker per stop, popup shows all directions
+  const delaysByStop = useMemo(() => {
+    const m = new Map<string, typeof filteredDelays>();
+    for (const d of delays ?? []) {
+      const list = m.get(d.stopId) ?? [];
+      list.push(d);
+      m.set(d.stopId, list);
     }
-    return list.toSorted((a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999));
-  }, [liveForecasts, lineFilter, search]);
+    return m;
+  }, [delays]);
 
-  // Filtered delays for panel
-  const filteredDelays = useMemo(() => {
-    let list = delays ?? [];
-    if (lineFilter) list = list.filter((d) => d.line === lineFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (d) =>
-          d.stopName.toLowerCase().includes(q) ||
-          d.destination.toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [delays, lineFilter, search]);
+  const filteredForecasts = (() => {
+    const base = liveForecasts ?? [];
+    const byLine = lineFilter
+      ? base.filter((f) => f.line === lineFilter)
+      : base;
+    const q = search.trim().toLowerCase();
+    const bySearch = q
+      ? byLine.filter(
+          (f) =>
+            f.stopName.toLowerCase().includes(q) ||
+            f.destination.toLowerCase().includes(q),
+        )
+      : byLine;
+    return bySearch.toSorted((a, b) => (a.dueMins ?? 999) - (b.dueMins ?? 999));
+  })();
+  const filteredDelays = (() => {
+    const base = delays ?? [];
+    const byLine = lineFilter
+      ? base.filter((d) => d.line === lineFilter)
+      : base;
+    const q = search.trim().toLowerCase();
+    return q
+      ? byLine.filter(
+          (d) =>
+            d.stopName.toLowerCase().includes(q) ||
+            d.destination.toLowerCase().includes(q),
+        )
+      : byLine;
+  })();
+  const filteredUsage = (() => {
+    const base = stopUsage ?? [];
+    const byLine = lineFilter
+      ? base.filter((u) => u.line === lineFilter)
+      : base;
+    return search.trim()
+      ? byLine.filter((u) =>
+          u.stopName.toLowerCase().includes(search.toLowerCase()),
+        )
+      : byLine;
+  })();
+  const filteredCommonDelays = (() => {
+    const base = commonDelays ?? [];
+    const byLine = lineFilter
+      ? base.filter((d) => d.line === lineFilter)
+      : base;
+    return search.trim()
+      ? byLine.filter((d) =>
+          d.stopName.toLowerCase().includes(search.toLowerCase()),
+        )
+      : byLine;
+  })();
 
   const handleStopClick = useCallback(
     (lat: number, lon: number, stopId: string) => {
@@ -454,35 +413,45 @@ export const TramDashboard = () => {
     [],
   );
 
-  const PANEL_W = 400;
+  const activeTab = (["live", "delays", "usage", "commonDelays"] as const)[
+    tabValue
+  ];
+  const panelWidth = 400;
+
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Box
-      sx={{
-        position: "relative",
-        height: "100%",
-        width: "100%",
-        bgcolor: "#0d1117",
-      }}
-    >
-      {/* ── Full-viewport map ── */}
-      <Box sx={{ height: "100%", width: "100%" }}>
-        <MapContainer
-          center={DUBLIN_CENTER}
-          zoom={12}
-          style={{ height: "100%", width: "100%" }}
-          zoomControl={false}
-          className="tram-map"
-        >
-          <TileLayer attribution={tileAttr} url={tileUrl} />
-          <MapController target={flyTarget} />
+    <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
+      {/* Full-viewport map */}
+      <MapContainer
+        center={DUBLIN_CENTER}
+        zoom={12}
+        style={{ height: "100%", width: "100%" }}
+        zoomControl={false}
+      >
+        <TileLayer attribution={tileAttr} url={tileUrl} />
+        <MapController target={flyTarget} />
 
-          {/* Stop markers — always show all */}
-          {allStops.map((stop) => (
+        {/* Live → standard markers */}
+        {activeTab === "live" &&
+          allStops.map((stop) => (
             <Marker
               key={stop.name}
               position={[stop.lat, stop.lon]}
-              icon={makeStopIcon(stop.line, isDisrupted(stop.forecasts))}
+              icon={makeStopIcon(stop.line)}
               eventHandlers={{
                 click: () =>
                   handleStopClick(
@@ -522,29 +491,225 @@ export const TramDashboard = () => {
                       <span style={{ color: "#8b949e" }}>({f.direction})</span>
                     </Typography>
                   ))}
-                  {stop.forecasts[0]?.message && (
-                    <Typography
-                      sx={{ fontSize: "0.68rem", color: "#8b949e", mt: 0.4 }}
-                    >
-                      {stop.forecasts[0].message}
-                    </Typography>
-                  )}
-                  {isDisrupted(stop.forecasts) && (
-                    <AlternativesSection
-                      stopId={stop.forecasts[0]?.stopId ?? ""}
-                    />
-                  )}
                 </Box>
               </Popup>
             </Marker>
           ))}
-        </MapContainer>
-      </Box>
 
-      {/* Map legend */}
-      <MapLegend />
+        {/* Delays → faded base markers + one bright marker per delayed stop */}
+        {activeTab === "delays" && (
+          <>
+            {allStops.map((stop) => (
+              <Marker
+                key={`base-${stop.name}`}
+                position={[stop.lat, stop.lon]}
+                icon={makeStopIcon(stop.line)}
+                opacity={0.35}
+                eventHandlers={{
+                  click: () =>
+                    handleStopClick(
+                      stop.lat,
+                      stop.lon,
+                      stop.forecasts[0]?.stopId ?? stop.name,
+                    ),
+                }}
+              >
+                <Popup>
+                  <Box sx={{ minWidth: 160 }}>
+                    <Typography
+                      fontWeight={700}
+                      sx={{ fontSize: "0.9rem", color: "#e6edf3" }}
+                    >
+                      {stop.name}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.7rem", color: "#8b949e" }}>
+                      {stop.line} line · No delays
+                    </Typography>
+                  </Box>
+                </Popup>
+              </Marker>
+            ))}
+            {[...delaysByStop.entries()].map(([stopId, stopDelays]) => {
+              const coords = stopCoords.get(stopId);
+              if (!coords) return null;
+              const worstDelay = Math.max(
+                ...stopDelays.map((d) => d.delayMins),
+              );
+              const size = Math.min(18 + worstDelay * 1.5, 36);
+              const c =
+                worstDelay >= 10
+                  ? "#DC2626"
+                  : worstDelay >= 5
+                    ? "#d29922"
+                    : "#FF6B35";
+              const icon = L.divIcon({
+                html: `<div class="tram-pin" style="width:${size}px;height:${size}px;background:${c};font-size:${Math.max(8, size * 0.32)}px;">+${worstDelay}</div>`,
+                className: "",
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+                popupAnchor: [0, -size / 2 - 4],
+              });
+              return (
+                <Marker
+                  key={`delay-${stopId}`}
+                  position={[coords.lat, coords.lon]}
+                  icon={icon}
+                  eventHandlers={{
+                    click: () =>
+                      handleStopClick(coords.lat, coords.lon, stopId),
+                  }}
+                >
+                  <Popup>
+                    <Box sx={{ minWidth: 200 }}>
+                      <Typography
+                        fontWeight={700}
+                        sx={{ fontSize: "0.95rem", color: "#e6edf3", mb: 0.75 }}
+                      >
+                        {stopDelays[0].stopName}
+                      </Typography>
+                      {stopDelays.map((d, i) => (
+                        <Box
+                          key={i}
+                          sx={{
+                            mb: 0.5,
+                            pb: 0.5,
+                            borderBottom:
+                              i < stopDelays.length - 1
+                                ? "1px solid rgba(255,255,255,0.08)"
+                                : "none",
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "0.72rem",
+                              color: "#f85149",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {d.direction}: +{d.delayMins} min
+                          </Typography>
+                          <Typography
+                            sx={{ fontSize: "0.65rem", color: "#8b949e" }}
+                          >
+                            → {d.destination} · Due {d.dueMins}m
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </>
+        )}
 
-      {/* Error */}
+        {/* Usage → sized markers */}
+        {activeTab === "usage" &&
+          allStops.map((stop) => {
+            const sid = stop.forecasts[0]?.stopId ?? stop.name;
+            const pax = usageByStopId.get(sid)?.estimatedTotalPassengers ?? 0;
+            return (
+              <Marker
+                key={stop.name}
+                position={[stop.lat, stop.lon]}
+                icon={makeUsageIcon(pax, maxPax, stop.line)}
+                eventHandlers={{
+                  click: () => handleStopClick(stop.lat, stop.lon, sid),
+                }}
+              >
+                <Popup>
+                  <Box sx={{ minWidth: 180 }}>
+                    <Typography
+                      fontWeight={700}
+                      sx={{ fontSize: "0.95rem", color: "#e6edf3", mb: 0.5 }}
+                    >
+                      {stop.name}
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={selectedPeriod.label}
+                      sx={{
+                        fontSize: "0.6rem",
+                        height: 18,
+                        bgcolor: "rgba(21,101,192,0.2)",
+                        color: "#90caf9",
+                        border: "1px solid #1565C044",
+                        mb: 0.75,
+                      }}
+                    />
+                    {usageByStopId.get(sid) ? (
+                      <>
+                        <Typography
+                          sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}
+                        >
+                          Est. passengers:{" "}
+                          <strong>{pax.toLocaleString()}</strong>
+                        </Typography>
+                        <Typography
+                          sx={{ fontSize: "0.68rem", color: "#2ea043" }}
+                        >
+                          ↓{" "}
+                          {usageByStopId
+                            .get(sid)!
+                            .estimatedInboundPassengers.toLocaleString()}{" "}
+                          inbound
+                        </Typography>
+                        <Typography
+                          sx={{ fontSize: "0.68rem", color: "#d29922" }}
+                        >
+                          ↑{" "}
+                          {usageByStopId
+                            .get(sid)!
+                            .estimatedOutboundPassengers.toLocaleString()}{" "}
+                          outbound
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography
+                        sx={{ fontSize: "0.72rem", color: "#484f58" }}
+                      >
+                        No usage data
+                      </Typography>
+                    )}
+                  </Box>
+                </Popup>
+              </Marker>
+            );
+          })}
+
+        {/* Common Delays → delay-sized markers */}
+        {activeTab === "commonDelays" &&
+          (commonDelays ?? [])
+            .filter((d) => d.lat != null && d.lon != null)
+            .map((d) => (
+              <Marker
+                key={d.stopId}
+                position={[d.lat!, d.lon!]}
+                icon={makeDelayIcon(d.avgDelayMins)}
+                eventHandlers={{
+                  click: () => handleStopClick(d.lat!, d.lon!, d.stopId),
+                }}
+              >
+                <Popup>
+                  <Box sx={{ minWidth: 180 }}>
+                    <Typography
+                      fontWeight={700}
+                      sx={{ fontSize: "0.95rem", color: "#e6edf3", mb: 0.5 }}
+                    >
+                      {d.stopName}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.72rem", color: "#c9d1d9" }}>
+                      Avg delay: <strong>+{d.avgDelayMins} min</strong>
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.68rem", color: "#8b949e" }}>
+                      Max: +{d.maxDelayMins} min · {d.delayCount} records
+                    </Typography>
+                  </Box>
+                </Popup>
+              </Marker>
+            ))}
+      </MapContainer>
+
       {error && (
         <Alert
           severity="error"
@@ -553,7 +718,7 @@ export const TramDashboard = () => {
             top: 16,
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1001,
+            zIndex: 1000,
             borderRadius: 2,
           }}
         >
@@ -568,565 +733,506 @@ export const TramDashboard = () => {
           sx={{
             position: "absolute",
             top: 16,
-            left: 16,
-            zIndex: 1001,
-            bgcolor: "rgba(13,17,23,0.92)",
-            border: "1px solid rgba(255,255,255,0.10)",
+            right: 16,
+            zIndex: 1000,
+            bgcolor: (t) => t.palette.background.paper,
             backdropFilter: "blur(12px)",
-            color: "#e6edf3",
-            "&:hover": { bgcolor: "rgba(22,27,34,0.96)" },
+            "&:hover": { bgcolor: (t) => t.palette.background.paper },
           }}
         >
           <MenuOpenIcon />
         </IconButton>
       )}
 
-      {/* ── Left glass panel ── */}
+      {/* ── Floating right panel (matches CycleDashboard) ── */}
       {panelOpen && (
         <Paper
           elevation={0}
           sx={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            bottom: 0,
-            width: PANEL_W,
+            top: 16,
+            right: 16,
+            bottom: 16,
+            width: panelWidth,
             zIndex: 1000,
-            borderRadius: 0,
-            borderRight: "1px solid rgba(48,54,61,0.5)",
+            borderRadius: 3,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            background: "rgba(13,17,23,0.95)",
-            backdropFilter: "blur(20px)",
           }}
         >
           {/* Header */}
           <Box
             sx={{
-              px: 2,
-              py: 1.75,
+              p: 2,
+              pb: 1,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              borderBottom: "1px solid rgba(48,54,61,0.5)",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-              <Box
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  background:
-                    "linear-gradient(135deg, #DC2626 0%, #16A34A 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 2px 8px rgba(220,38,38,0.3)",
-                }}
-              >
-                <TramIcon sx={{ fontSize: 18, color: "#fff" }} />
-              </Box>
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  fontWeight={700}
-                  sx={{
-                    color: "#e6edf3",
-                    lineHeight: 1.2,
-                    letterSpacing: -0.2,
-                  }}
-                >
-                  Luas Tram Network
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <FiberManualRecordIcon
-                    sx={{ fontSize: 7, color: "#2ea043" }}
-                  />
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#2ea043",
-                      fontSize: "0.62rem",
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    LIVE · Red & Green Lines
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-            <IconButton
-              size="small"
-              onClick={() => setPanelOpen(false)}
-              sx={{ color: "#8b949e" }}
-            >
+            <Typography variant="h5">Luas Tram Network</Typography>
+            <IconButton size="small" onClick={() => setPanelOpen(false)}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
 
-          {/* KPI grid */}
-          {kpis && (
-            <Box
-              sx={{
-                p: 1.75,
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 1,
-              }}
-            >
-              <KpiCard
-                icon={<LocationOnIcon fontSize="inherit" />}
-                label="Total Stops"
-                value={kpis.totalStops}
-                accent="#00ACC1"
-              />
-              <KpiCard
-                icon={<TramIcon fontSize="inherit" />}
-                label="Forecasts"
-                value={kpis.activeForecastCount}
-                accent="#2ea043"
-              />
-              <KpiCard
-                icon={<AccessTimeIcon fontSize="inherit" />}
-                label="Avg Due Time"
-                value={`${kpis.avgDueMins.toFixed(1)} min`}
-                accent={kpis.avgDueMins <= 10 ? "#2ea043" : "#d29922"}
-              />
-              <KpiCard
-                icon={<WarningAmberIcon fontSize="inherit" />}
-                label="Delays"
-                value={filteredDelays.length}
-                accent={filteredDelays.length === 0 ? "#2ea043" : "#DC2626"}
-              />
-            </Box>
-          )}
+          {/* KPI strip */}
+          {kpis && <KpiStrip kpis={kpis} delayCount={filteredDelays.length} />}
 
-          <Divider sx={{ borderColor: "rgba(48,54,61,0.5)" }} />
-
-          {/* Tab toggle */}
-          <Box
+          {/* Tabs */}
+          <Tabs
+            value={tabValue}
+            onChange={(_, v) => setTabValue(v)}
+            variant="fullWidth"
             sx={{
-              px: 1.75,
-              pt: 1.25,
-              pb: 1,
-              display: "flex",
-              gap: 0.5,
+              minHeight: 36,
+              px: 1,
+              "& .MuiTab-root": {
+                minHeight: 36,
+                fontSize: "0.72rem",
+                textTransform: "none",
+              },
             }}
           >
-            {(
-              [
-                { key: "live", label: "Live", count: filteredForecasts.length },
-                {
-                  key: "delays",
-                  label: "Delays",
-                  count: filteredDelays.length,
-                },
-                { key: "hourly", label: "Hourly", count: null },
-                { key: "disruptions", label: "Disruptions", count: null },
-              ] as { key: PanelTab; label: string; count: number | null }[]
-            ).map(({ key, label, count }) => {
-              const active = activeTab === key;
+            <Tab label={`Live (${filteredForecasts.length})`} />
+            <Tab label={`Delays (${filteredDelays.length})`} />
+            <Tab label={`Usage (${filteredUsage.length})`} />
+            <Tab label={`Common Delays (${filteredCommonDelays.length})`} />
+          </Tabs>
+
+          {/* Line filter + Search */}
+          <Box
+            sx={{
+              px: 2,
+              pt: 1.5,
+              display: "flex",
+              gap: 1,
+              alignItems: "center",
+            }}
+          >
+            {(["", "red", "green"] as LineFilter[]).map((key) => {
+              const active = lineFilter === key;
+              const label =
+                key === "" ? "All" : key === "red" ? "Red" : "Green";
               return (
-                <Box
-                  key={key}
-                  onClick={() => setActiveTab(key)}
+                <Chip
+                  key={key || "all"}
+                  size="small"
+                  label={label}
+                  onClick={() => setLineFilter(key)}
                   sx={{
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 1.5,
+                    fontSize: "0.7rem",
                     cursor: "pointer",
-                    bgcolor: active ? "rgba(21,101,192,0.2)" : "transparent",
-                    border: "1px solid",
-                    borderColor: active ? "#1565C0" : "rgba(48,54,61,0.6)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.75,
-                    transition: "all 0.15s",
-                    "&:hover": {
-                      bgcolor: active
-                        ? "rgba(21,101,192,0.25)"
-                        : "rgba(255,255,255,0.04)",
-                    },
+                    bgcolor: active
+                      ? key === ""
+                        ? "primary.main"
+                        : LINE_COLORS[key]
+                      : "action.hover",
+                    color: active ? "#fff" : "text.secondary",
                   }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: "0.75rem",
-                      fontWeight: active ? 600 : 400,
-                      color: active ? "#e6edf3" : "#8b949e",
-                    }}
-                  >
-                    {label}
-                  </Typography>
-                  {count !== null && (
-                    <Box
-                      sx={{
-                        px: 0.75,
-                        py: 0.15,
-                        borderRadius: 1,
-                        bgcolor: active ? "#1565C0" : "rgba(48,54,61,0.6)",
-                        minWidth: 20,
-                        textAlign: "center",
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          fontSize: "0.62rem",
-                          fontWeight: 700,
-                          color: "#e6edf3",
-                        }}
-                      >
-                        {count}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
+                />
               );
             })}
           </Box>
-
-          {/* Line filter */}
-          <Box sx={{ px: 1.75, pb: 1 }}>
-            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-              {(["", "red", "green"] as LineFilter[]).map((key) => {
-                const active = lineFilter === key;
-                const label =
-                  key === "" ? "All" : key === "red" ? "Red" : "Green";
-                const accent =
-                  key === "" ? "#1565C0" : (LINE_COLORS[key] ?? "#607D8B");
-                return (
-                  <Chip
-                    key={key || "all"}
-                    size="small"
-                    label={label}
-                    onClick={() => setLineFilter(key)}
-                    sx={{
-                      fontSize: "0.7rem",
-                      cursor: "pointer",
-                      bgcolor: active ? accent : "rgba(22,27,34,0.7)",
-                      color: active ? "#fff" : "#8b949e",
-                      border: "1px solid",
-                      borderColor: active ? accent : "rgba(48,54,61,0.6)",
-                      transition: "all 0.15s",
-                      "&:hover": { opacity: 0.85 },
-                    }}
-                  />
-                );
-              })}
-            </Box>
+          <Box sx={{ px: 2, py: 1 }}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Search stops…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 16 }} />
+                    </InputAdornment>
+                  ),
+                  sx: { fontSize: "0.85rem", borderRadius: 2 },
+                },
+              }}
+            />
           </Box>
 
-          {/* Search (Live + Delays tabs) */}
-          {activeTab !== "hourly" && (
-            <Box sx={{ px: 1.75, pb: 1.25 }}>
-              <TextField
+          {/* Time period dropdown — Usage tab only */}
+          {tabValue === 2 && (
+            <Box sx={{ px: 2, pb: 1 }}>
+              <Select
+                value={timePeriod}
+                onChange={(e: SelectChangeEvent) =>
+                  setTimePeriod(e.target.value)
+                }
                 size="small"
                 fullWidth
-                placeholder="Search stops…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 16, color: "#8b949e" }} />
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      bgcolor: "rgba(22,27,34,0.7)",
-                      color: "#e6edf3",
-                      fontSize: "0.85rem",
-                      borderRadius: 2,
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(48,54,61,0.6)",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(255,255,255,0.18)",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#1565C0",
-                      },
-                      "& input": {
-                        color: "#e6edf3",
-                        "&::placeholder": { color: "#8b949e", opacity: 1 },
-                      },
-                    },
-                  },
-                }}
-              />
+                sx={{ fontSize: "0.8rem", borderRadius: 2 }}
+              >
+                {TIME_PERIODS.map((p) => (
+                  <MenuItem key={p.key} value={p.key}>
+                    {p.label}
+                  </MenuItem>
+                ))}
+              </Select>
             </Box>
           )}
-
-          {/* Count caption */}
-          <Box sx={{ px: 2, pb: 0.5 }}>
-            <Typography
-              variant="caption"
-              sx={{ color: "#484f58", fontSize: "0.68rem" }}
-            >
-              {activeTab === "live"
-                ? `${filteredForecasts.length} forecast${filteredForecasts.length === 1 ? "" : "s"}${lineFilter ? ` · ${lineFilter} line` : ""}${search.trim() ? ` · "${search}"` : ""}`
-                : activeTab === "delays"
-                  ? `${filteredDelays.length} delay${filteredDelays.length === 1 ? "" : "s"}${lineFilter ? ` · ${lineFilter} line` : ""}`
-                  : "Hourly passenger distribution (CSO data)"}
-            </Typography>
-          </Box>
 
           {/* ── Scrollable list ── */}
-          {forecastsLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress size={24} sx={{ color: "#1565C0" }} />
-            </Box>
-          ) : (
-            <Box sx={{ flex: 1, overflow: "auto" }}>
-              {/* ── DISRUPTIONS TAB ── */}
-              {activeTab === "disruptions" && (
-                <DisruptionsTabContent
-                  mode="TRAM"
-                  selectedId={selectedDisruptionId}
-                  onSelect={(d) => {
-                    setSelectedDisruptionId(d.id);
-                    if (d.latitude != null && d.longitude != null) {
-                      setFlyTarget({
-                        center: [d.latitude, d.longitude],
-                        id: Date.now(),
-                      });
+          <Box sx={{ flex: 1, overflow: "auto", px: 1, pt: 0.5 }}>
+            {/* LIVE */}
+            {tabValue === 0 &&
+              filteredForecasts.map((f, idx) => {
+                const sel = selectedStopId === f.stopId;
+                const noService = f.dueMins === null;
+                const subtitle =
+                  noService && f.message
+                    ? f.message
+                    : `${f.direction} → ${f.destination}`;
+                return (
+                  <ListItemButton
+                    key={`${f.stopId}-${f.direction}-${idx}`}
+                    onClick={() =>
+                      f.lat != null &&
+                      f.lon != null &&
+                      handleStopClick(f.lat, f.lon, f.stopId)
                     }
+                    disabled={f.lat == null}
+                    selected={sel}
+                    sx={{ py: 0.75, px: 1.5, borderRadius: 1.5, mb: 0.25 }}
+                  >
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        bgcolor: LINE_COLORS[f.line] ?? "#607D8B",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        mr: 1.5,
+                      }}
+                    >
+                      <Typography
+                        sx={{ fontSize: 8, fontWeight: 800, color: "#fff" }}
+                      >
+                        {f.line === "red" ? "R" : "G"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        noWrap
+                        sx={{
+                          fontSize: "0.82rem",
+                          fontWeight: sel ? 600 : 400,
+                        }}
+                      >
+                        {f.stopName}
+                      </Typography>
+                      <Typography
+                        noWrap
+                        variant="caption"
+                        sx={{
+                          fontSize: "0.68rem",
+                          color: noService ? "error.main" : "text.secondary",
+                        }}
+                      >
+                        {subtitle}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      label={noService ? "No Service" : `${f.dueMins}m`}
+                      sx={{
+                        fontSize: "0.6rem",
+                        height: 20,
+                        bgcolor: noService
+                          ? "error.main"
+                          : (f.dueMins ?? 999) <= 3
+                            ? "success.main"
+                            : "warning.main",
+                        color: "#fff",
+                        fontWeight: 700,
+                      }}
+                    />
+                  </ListItemButton>
+                );
+              })}
+
+            {/* DELAYS */}
+            {tabValue === 1 &&
+              filteredDelays.map((d, idx) => (
+                <ListItemButton
+                  key={`${d.stopId}-${d.direction}-${idx}`}
+                  onClick={() => {
+                    const c = stopCoords.get(d.stopId);
+                    if (c) handleStopClick(c.lat, c.lon, d.stopId);
                   }}
-                />
-              )}
+                  sx={{ py: 0.75, px: 1.5, borderRadius: 1.5, mb: 0.25 }}
+                >
+                  <Box
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      bgcolor: LINE_COLORS[d.line] ?? "#607D8B",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      mr: 1.5,
+                    }}
+                  >
+                    <Typography
+                      sx={{ fontSize: 8, fontWeight: 800, color: "#fff" }}
+                    >
+                      {d.line === "red" ? "R" : "G"}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      noWrap
+                      sx={{ fontSize: "0.82rem", fontWeight: 500 }}
+                    >
+                      {d.stopName}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.68rem" }}
+                    >
+                      {d.direction} → {d.destination} · Due {d.dueMins}m
+                    </Typography>
+                  </Box>
+                  <Chip
+                    size="small"
+                    label={`+${d.delayMins}m`}
+                    sx={{
+                      fontSize: "0.62rem",
+                      height: 20,
+                      bgcolor:
+                        d.delayMins >= 10
+                          ? "error.main"
+                          : d.delayMins >= 5
+                            ? "warning.main"
+                            : "action.hover",
+                      color: d.delayMins >= 5 ? "#fff" : "text.primary",
+                      fontWeight: 700,
+                    }}
+                  />
+                </ListItemButton>
+              ))}
 
-              {/* ── LIVE FORECASTS LIST ── */}
-              {activeTab === "live" &&
-                filteredForecasts.map((f, idx) => {
-                  const color = LINE_COLORS[f.line] ?? "#607D8B";
-                  const selected = selectedStopId === f.stopId;
-                  return (
-                    <ListItemButton
-                      key={`${f.stopId}-${f.direction}-${idx}`}
-                      onClick={() =>
-                        f.lat != null &&
-                        f.lon != null &&
-                        handleStopClick(f.lat, f.lon, f.stopId)
+            {/* USAGE */}
+            {tabValue === 2 &&
+              filteredUsage.map((u) => {
+                const sel = selectedStopId === u.stopId;
+                return (
+                  <ListItemButton
+                    key={u.stopId}
+                    onClick={() => {
+                      if (u.lat != null && u.lon != null)
+                        handleStopClick(u.lat, u.lon, u.stopId);
+                      else {
+                        const c = stopCoords.get(u.stopId);
+                        if (c) handleStopClick(c.lat, c.lon, u.stopId);
                       }
-                      disabled={f.lat == null}
+                    }}
+                    selected={sel}
+                    sx={{ py: 0.75, px: 1.5, borderRadius: 1.5, mb: 0.25 }}
+                  >
+                    <Box
                       sx={{
-                        py: 0.875,
-                        px: 2,
-                        bgcolor: selected
-                          ? "rgba(21,101,192,0.12)"
-                          : "transparent",
-                        borderLeft: selected
-                          ? "3px solid #1565C0"
-                          : "3px solid transparent",
-                        "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
-                        transition: "all 0.12s",
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        bgcolor: LINE_COLORS[u.line] ?? "#607D8B",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        mr: 1.5,
                       }}
                     >
-                      {/* Line dot */}
-                      <Box
+                      <Typography
+                        sx={{ fontSize: 8, fontWeight: 800, color: "#fff" }}
+                      >
+                        {u.line === "red" ? "R" : "G"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        noWrap
                         sx={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          bgcolor: color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          mr: 1.5,
+                          fontSize: "0.82rem",
+                          fontWeight: sel ? 600 : 400,
                         }}
                       >
+                        {u.stopName}
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 1 }}>
                         <Typography
-                          sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}
-                        >
-                          {f.line === "red" ? "R" : "G"}
-                        </Typography>
-                      </Box>
-
-                      {/* Stop + destination + direction */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          noWrap
+                          variant="caption"
                           sx={{
-                            fontSize: "0.855rem",
-                            fontWeight: selected ? 600 : 400,
-                            color: selected ? "#e6edf3" : "#c9d1d9",
-                            lineHeight: 1.25,
+                            fontSize: "0.65rem",
+                            color: "success.main",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.25,
                           }}
                         >
-                          {f.stopName}
+                          <ArrowDownwardIcon sx={{ fontSize: 10 }} />
+                          {u.estimatedInboundPassengers.toLocaleString()}
                         </Typography>
                         <Typography
+                          variant="caption"
                           sx={{
-                            fontSize: "0.68rem",
-                            color: "#484f58",
-                            lineHeight: 1.2,
+                            fontSize: "0.65rem",
+                            color: "warning.main",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.25,
                           }}
                         >
-                          {f.direction} → {f.destination}
+                          <ArrowUpwardIcon sx={{ fontSize: 10 }} />
+                          {u.estimatedOutboundPassengers.toLocaleString()}
                         </Typography>
                       </Box>
-
-                      {/* Due time badge */}
-                      <Chip
-                        size="small"
-                        label={
-                          f.dueMins === null ? "No trams" : `${f.dueMins} min`
-                        }
-                        sx={{
-                          fontSize: "0.62rem",
-                          height: 18,
-                          ml: 0.5,
-                          flexShrink: 0,
-                          bgcolor:
-                            f.dueMins === null
-                              ? "rgba(48,54,61,0.6)"
-                              : f.dueMins <= 3
-                                ? "#2ea04320"
-                                : "#d2992220",
-                          color:
-                            f.dueMins === null
-                              ? "#8b949e"
-                              : f.dueMins <= 3
-                                ? "#2ea043"
-                                : "#d29922",
-                          border: `1px solid ${f.dueMins === null ? "#484f58" : f.dueMins <= 3 ? "#2ea043" : "#d29922"}40`,
-                        }}
-                      />
-                    </ListItemButton>
-                  );
-                })}
-
-              {/* ── DELAYS LIST ── */}
-              {activeTab === "delays" &&
-                filteredDelays.map((d, idx) => {
-                  const color = LINE_COLORS[d.line] ?? "#607D8B";
-                  const delayColor =
-                    d.delayMins >= 10
-                      ? "#DC2626"
-                      : d.delayMins >= 5
-                        ? "#d29922"
-                        : "#8b949e";
-                  return (
-                    <ListItemButton
-                      key={`${d.stopId}-${d.direction}-${idx}`}
-                      onClick={() => {
-                        const coords = stopCoords.get(d.stopId);
-                        if (coords)
-                          handleStopClick(coords.lat, coords.lon, d.stopId);
-                      }}
+                    </Box>
+                    <Chip
+                      size="small"
+                      icon={<PeopleIcon sx={{ fontSize: "11px !important" }} />}
+                      label={u.estimatedTotalPassengers.toLocaleString()}
                       sx={{
-                        py: 0.875,
-                        px: 2,
-                        "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
-                        transition: "all 0.12s",
+                        fontSize: "0.62rem",
+                        height: 20,
+                        fontWeight: 700,
+                        "& .MuiChip-icon": { color: "inherit", ml: "4px" },
+                      }}
+                    />
+                  </ListItemButton>
+                );
+              })}
+
+            {/* COMMON DELAYS */}
+            {tabValue === 3 &&
+              filteredCommonDelays.map((d) => {
+                const sel = selectedStopId === d.stopId;
+                return (
+                  <ListItemButton
+                    key={d.stopId}
+                    onClick={() => {
+                      if (d.lat != null && d.lon != null)
+                        handleStopClick(d.lat, d.lon, d.stopId);
+                      else {
+                        const c = stopCoords.get(d.stopId);
+                        if (c) handleStopClick(c.lat, c.lon, d.stopId);
+                      }
+                    }}
+                    selected={sel}
+                    sx={{ py: 0.75, px: 1.5, borderRadius: 1.5, mb: 0.25 }}
+                  >
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        bgcolor: LINE_COLORS[d.line] ?? "#607D8B",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        mr: 1.5,
                       }}
                     >
-                      <Box
+                      <Typography
+                        sx={{ fontSize: 8, fontWeight: 800, color: "#fff" }}
+                      >
+                        {d.line === "red" ? "R" : "G"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        noWrap
                         sx={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          bgcolor: color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          mr: 1.5,
+                          fontSize: "0.82rem",
+                          fontWeight: sel ? 600 : 400,
                         }}
                       >
-                        <Typography
-                          sx={{ fontSize: 9, fontWeight: 800, color: "#fff" }}
-                        >
-                          {d.line === "red" ? "R" : "G"}
-                        </Typography>
-                      </Box>
+                        {d.stopName}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontSize: "0.65rem" }}
+                      >
+                        {d.delayCount} records · max +{d.maxDelayMins}m
+                      </Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      icon={
+                        <HistoryIcon sx={{ fontSize: "11px !important" }} />
+                      }
+                      label={`+${d.avgDelayMins}m`}
+                      sx={{
+                        fontSize: "0.62rem",
+                        height: 20,
+                        bgcolor:
+                          d.avgDelayMins >= 10
+                            ? "error.main"
+                            : d.avgDelayMins >= 5
+                              ? "warning.main"
+                              : "action.hover",
+                        color: d.avgDelayMins >= 5 ? "#fff" : "text.primary",
+                        fontWeight: 700,
+                        "& .MuiChip-icon": { color: "inherit", ml: "4px" },
+                      }}
+                    />
+                  </ListItemButton>
+                );
+              })}
 
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          noWrap
-                          sx={{
-                            fontSize: "0.855rem",
-                            fontWeight: 500,
-                            color: "#c9d1d9",
-                            lineHeight: 1.25,
-                          }}
-                        >
-                          {d.stopName}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: "0.68rem",
-                            color: "#484f58",
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {d.direction} → {d.destination} · Due {d.dueMins} min
-                        </Typography>
-                      </Box>
-
-                      <Chip
-                        size="small"
-                        label={`+${d.delayMins} min`}
-                        sx={{
-                          fontSize: "0.62rem",
-                          height: 18,
-                          ml: 0.5,
-                          flexShrink: 0,
-                          bgcolor: delayColor + "20",
-                          color: delayColor,
-                          border: `1px solid ${delayColor}40`,
-                          fontWeight: 700,
-                        }}
-                      />
-                    </ListItemButton>
-                  );
-                })}
-
-              {/* ── HOURLY CHART ── */}
-              {activeTab === "hourly" && (
-                <Box sx={{ p: 2 }}>
-                  <TramHourlyChart
-                    data={hourlyDistribution ?? []}
-                    height={280}
-                  />
-                </Box>
-              )}
-
-              {/* Empty states */}
-              {activeTab === "live" && filteredForecasts.length === 0 && (
-                <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <TramIcon sx={{ fontSize: 32, color: "#30363d", mb: 1 }} />
-                  <Typography sx={{ fontSize: "0.8rem", color: "#484f58" }}>
-                    No live forecasts at the moment
-                  </Typography>
-                </Box>
-              )}
-              {activeTab === "delays" && filteredDelays.length === 0 && (
-                <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-                  <AccessTimeIcon
-                    sx={{ fontSize: 32, color: "#2ea043", mb: 1 }}
-                  />
-                  <Typography sx={{ fontSize: "0.8rem", color: "#2ea043" }}>
-                    No delays — all trams on schedule
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-
-          {/* Footer */}
-          <Box
-            sx={{ px: 2, py: 1.25, borderTop: "1px solid rgba(48,54,61,0.5)" }}
-          >
-            <Typography
-              variant="caption"
-              sx={{ color: "#30363d", fontSize: "0.62rem" }}
-            >
-              Luas · Red & Green Lines · Real-time Forecasting API
-            </Typography>
+            {/* Empty states */}
+            {tabValue === 0 && filteredForecasts.length === 0 && (
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <TramIcon
+                  sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                />
+                <Typography color="text.secondary" fontSize="0.8rem">
+                  No live forecasts
+                </Typography>
+              </Box>
+            )}
+            {tabValue === 1 && filteredDelays.length === 0 && (
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <AccessTimeIcon
+                  sx={{ fontSize: 32, color: "success.main", mb: 1 }}
+                />
+                <Typography color="success.main" fontSize="0.8rem">
+                  All trams on schedule
+                </Typography>
+              </Box>
+            )}
+            {tabValue === 2 && filteredUsage.length === 0 && (
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <PeopleIcon
+                  sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                />
+                <Typography color="text.secondary" fontSize="0.8rem">
+                  No usage data
+                </Typography>
+              </Box>
+            )}
+            {tabValue === 3 && filteredCommonDelays.length === 0 && (
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <HistoryIcon
+                  sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                />
+                <Typography color="text.secondary" fontSize="0.8rem">
+                  No delay history
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Paper>
       )}
