@@ -303,7 +303,11 @@ const SearchBar = ({
       <Box sx={{ position: "absolute", top: 16, right: 16, zIndex: 1000 }}>
         <IconButton
           onClick={onToggle}
-          sx={{ bgcolor: (t) => t.palette.background.paper, backdropFilter: "blur(12px)", "&:hover": { bgcolor: (t) => t.palette.background.paper } }}
+          sx={{
+            bgcolor: (t) => t.palette.background.paper,
+            backdropFilter: "blur(12px)",
+            "&:hover": { bgcolor: (t) => t.palette.background.paper },
+          }}
         >
           <MenuOpenIcon />
         </IconButton>
@@ -489,9 +493,20 @@ const SearchBar = ({
                   label={result.type}
                   size="small"
                   color={result.type === "station" ? "primary" : "secondary"}
-                  sx={{ fontSize: "0.7rem", height: 20, textTransform: "capitalize" }}
+                  sx={{
+                    fontSize: "0.7rem",
+                    height: 20,
+                    textTransform: "capitalize",
+                  }}
                 />
-                <Box component="span" sx={{ fontSize: "0.875rem", fontWeight: 500, color: "text.primary" }}>
+                <Box
+                  component="span"
+                  sx={{
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                    color: "text.primary",
+                  }}
+                >
                   {result.name}
                 </Box>
               </Box>

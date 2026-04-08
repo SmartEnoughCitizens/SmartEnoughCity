@@ -84,9 +84,10 @@ function PedestrianTab({ theme }: { theme: string }) {
     (s) => Number.isFinite(s.lat) && Number.isFinite(s.lon),
   );
 
-  const maxCount = withCoords.length > 0
-    ? Math.max(...withCoords.map((s) => s.totalCount))
-    : 1;
+  const maxCount =
+    withCoords.length > 0
+      ? Math.max(...withCoords.map((s) => s.totalCount))
+      : 1;
 
   const getPedColor = (count: number) => {
     const r = count / maxCount;
@@ -99,21 +100,36 @@ function PedestrianTab({ theme }: { theme: string }) {
   const sorted = pedestrians.toSorted((a, b) => b.totalCount - a.totalCount);
   const busiest = sorted[0];
   const quietest = sorted.findLast((p) => p.totalCount > 0);
-  const highCount = pedestrians.filter((p) => p.totalCount / maxCount > 0.66).length;
-  const avgCount = pedestrians.length > 0 ? Math.round(totalFootfall / pedestrians.length) : 0;
+  const highCount = pedestrians.filter(
+    (p) => p.totalCount / maxCount > 0.66,
+  ).length;
+  const avgCount =
+    pedestrians.length > 0 ? Math.round(totalFootfall / pedestrians.length) : 0;
 
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
       {/* Map */}
       {isLoading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+          }}
+        >
           <CircularProgress sx={{ color: "#0891B2" }} />
         </Box>
       ) : (
         <MapContainer
           center={dublinCenter}
           zoom={13}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+          }}
           zoomControl={false}
         >
           <TileLayer attribution={tileAttribution} url={tileUrl} />
@@ -121,13 +137,28 @@ function PedestrianTab({ theme }: { theme: string }) {
             <CircleMarker
               key={site.siteId}
               center={[site.lat, site.lon]}
-              radius={Math.max(8, Math.min(24, (site.totalCount / maxCount) * 24))}
-              pathOptions={{ color: "#fff", weight: 1.5, fillColor: getPedColor(site.totalCount), fillOpacity: 0.82 }}
+              radius={Math.max(
+                8,
+                Math.min(24, (site.totalCount / maxCount) * 24),
+              )}
+              pathOptions={{
+                color: "#fff",
+                weight: 1.5,
+                fillColor: getPedColor(site.totalCount),
+                fillOpacity: 0.82,
+              }}
             >
               <Popup>
-                <strong>{site.siteName}</strong><br />
-                Count: {site.totalCount.toLocaleString()} / 15 min<br />
-                {site.lastUpdated && <>Updated: {new Date(site.lastUpdated).toLocaleTimeString("en-IE")}</>}
+                <strong>{site.siteName}</strong>
+                <br />
+                Count: {site.totalCount.toLocaleString()} / 15 min
+                <br />
+                {site.lastUpdated && (
+                  <>
+                    Updated:{" "}
+                    {new Date(site.lastUpdated).toLocaleTimeString("en-IE")}
+                  </>
+                )}
               </Popup>
             </CircleMarker>
           ))}
@@ -170,7 +201,15 @@ function PedestrianTab({ theme }: { theme: string }) {
           }}
         >
           {/* Header */}
-          <Box sx={{ p: 2, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box
+            sx={{
+              p: 2,
+              pb: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <DirectionsWalkIcon fontSize="small" color="primary" />
               <Typography variant="h5">Pedestrian Activity</Typography>
@@ -183,22 +222,68 @@ function PedestrianTab({ theme }: { theme: string }) {
           <Divider />
 
           <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5, fontWeight: 600 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.5, fontWeight: 600 }}
+            >
               Eco Counter · latest batch · {pedestrians.length} sites
             </Typography>
 
             {/* KPI row */}
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, mb: 2 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 1,
+                mb: 2,
+              }}
+            >
               {[
-                { icon: <PeopleIcon sx={{ fontSize: 15 }} />, label: "Total footfall", value: totalFootfall.toLocaleString(), color: "#0891B2" },
-                { icon: <TrendingUpIcon sx={{ fontSize: 15 }} />, label: "Avg per site", value: avgCount.toLocaleString(), color: "#7C3AED" },
+                {
+                  icon: <PeopleIcon sx={{ fontSize: 15 }} />,
+                  label: "Total footfall",
+                  value: totalFootfall.toLocaleString(),
+                  color: "#0891B2",
+                },
+                {
+                  icon: <TrendingUpIcon sx={{ fontSize: 15 }} />,
+                  label: "Avg per site",
+                  value: avgCount.toLocaleString(),
+                  color: "#7C3AED",
+                },
               ].map(({ icon, label, value, color }) => (
-                <Box key={label} sx={{ px: 1.5, py: 1, borderRadius: 1.5, bgcolor: (t) => t.palette.action.hover }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color, mb: 0.25 }}>
+                <Box
+                  key={label}
+                  sx={{
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 1.5,
+                    bgcolor: (t) => t.palette.action.hover,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      color,
+                      mb: 0.25,
+                    }}
+                  >
                     {icon}
-                    <Typography sx={{ fontSize: "0.62rem", color: "text.disabled" }}>{label}</Typography>
+                    <Typography
+                      sx={{ fontSize: "0.62rem", color: "text.disabled" }}
+                    >
+                      {label}
+                    </Typography>
                   </Box>
-                  <Typography fontWeight={700} sx={{ fontSize: "1.05rem", color }}>{value}</Typography>
+                  <Typography
+                    fontWeight={700}
+                    sx={{ fontSize: "1.05rem", color }}
+                  >
+                    {value}
+                  </Typography>
                 </Box>
               ))}
             </Box>
@@ -206,18 +291,69 @@ function PedestrianTab({ theme }: { theme: string }) {
             <Divider sx={{ mb: 1.5 }} />
 
             {/* Quick stats */}
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 1 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 600, display: "block", mb: 1 }}
+            >
               Quick insights
             </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 0.75,
+                mb: 2,
+              }}
+            >
               {[
-                { label: "Busiest site", value: busiest ? `${busiest.siteName} (${busiest.totalCount.toLocaleString()})` : "—", color: "#dc2626" },
-                { label: "Quietest site", value: quietest ? `${quietest.siteName} (${quietest.totalCount.toLocaleString()})` : "—", color: "#16a34a" },
-                { label: "High-activity", value: `${highCount} of ${pedestrians.length} sites`, color: "#f97316" },
+                {
+                  label: "Busiest site",
+                  value: busiest
+                    ? `${busiest.siteName} (${busiest.totalCount.toLocaleString()})`
+                    : "—",
+                  color: "#dc2626",
+                },
+                {
+                  label: "Quietest site",
+                  value: quietest
+                    ? `${quietest.siteName} (${quietest.totalCount.toLocaleString()})`
+                    : "—",
+                  color: "#16a34a",
+                },
+                {
+                  label: "High-activity",
+                  value: `${highCount} of ${pedestrians.length} sites`,
+                  color: "#f97316",
+                },
               ].map(({ label, value, color }) => (
-                <Box key={label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: (t) => t.palette.action.hover }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0, mr: 1 }}>{label}</Typography>
-                  <Typography variant="body2" fontWeight={700} sx={{ color, textAlign: "right" }} noWrap>{value}</Typography>
+                <Box
+                  key={label}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    px: 1.25,
+                    py: 0.75,
+                    borderRadius: 1.5,
+                    bgcolor: (t) => t.palette.action.hover,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ flexShrink: 0, mr: 1 }}
+                  >
+                    {label}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    sx={{ color, textAlign: "right" }}
+                    noWrap
+                  >
+                    {value}
+                  </Typography>
                 </Box>
               ))}
             </Box>
@@ -225,7 +361,11 @@ function PedestrianTab({ theme }: { theme: string }) {
             <Divider sx={{ mb: 1.5 }} />
 
             {/* Site list */}
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 1 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 600, display: "block", mb: 1 }}
+            >
               All sites
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
@@ -233,25 +373,86 @@ function PedestrianTab({ theme }: { theme: string }) {
                 const intensity = maxCount > 0 ? site.totalCount / maxCount : 0;
                 const color = getPedColor(site.totalCount);
                 return (
-                  <Box key={site.siteId} sx={{ px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: (t) => t.palette.action.hover }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.3 }}>
-                      <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: "text.disabled", width: 16, textAlign: "right", flexShrink: 0 }}>
+                  <Box
+                    key={site.siteId}
+                    sx={{
+                      px: 1.25,
+                      py: 0.75,
+                      borderRadius: 1.5,
+                      bgcolor: (t) => t.palette.action.hover,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 0.3,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.65rem",
+                          fontWeight: 700,
+                          color: "text.disabled",
+                          width: 16,
+                          textAlign: "right",
+                          flexShrink: 0,
+                        }}
+                      >
                         {idx + 1}
                       </Typography>
-                      <Typography noWrap variant="body2" fontWeight={500} sx={{ flex: 1 }}>
+                      <Typography
+                        noWrap
+                        variant="body2"
+                        fontWeight={500}
+                        sx={{ flex: 1 }}
+                      >
                         {site.siteName}
                       </Typography>
-                      <Typography variant="body2" fontWeight={700} sx={{ color, flexShrink: 0 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        sx={{ color, flexShrink: 0 }}
+                      >
                         {site.totalCount.toLocaleString()}
                       </Typography>
                     </Box>
-                    <Box sx={{ ml: "24px", height: 3, borderRadius: 2, bgcolor: "rgba(0,0,0,0.06)", overflow: "hidden" }}>
-                      <Box sx={{ height: "100%", width: `${Math.max(intensity * 100, 2)}%`, bgcolor: color, borderRadius: 2, transition: "width 0.4s ease" }} />
+                    <Box
+                      sx={{
+                        ml: "24px",
+                        height: 3,
+                        borderRadius: 2,
+                        bgcolor: "rgba(0,0,0,0.06)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          height: "100%",
+                          width: `${Math.max(intensity * 100, 2)}%`,
+                          bgcolor: color,
+                          borderRadius: 2,
+                          transition: "width 0.4s ease",
+                        }}
+                      />
                     </Box>
                     {site.lastUpdated && (
-                      <Typography sx={{ ml: "24px", fontSize: "0.6rem", color: "text.disabled", mt: 0.2 }}>
-                        <AccessTimeIcon sx={{ fontSize: 8, mr: 0.3, verticalAlign: "middle" }} />
-                        {new Date(site.lastUpdated).toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit" })}
+                      <Typography
+                        sx={{
+                          ml: "24px",
+                          fontSize: "0.6rem",
+                          color: "text.disabled",
+                          mt: 0.2,
+                        }}
+                      >
+                        <AccessTimeIcon
+                          sx={{ fontSize: 8, mr: 0.3, verticalAlign: "middle" }}
+                        />
+                        {new Date(site.lastUpdated).toLocaleTimeString(
+                          "en-IE",
+                          { hour: "2-digit", minute: "2-digit" },
+                        )}
                       </Typography>
                     )}
                   </Box>
@@ -261,10 +462,28 @@ function PedestrianTab({ theme }: { theme: string }) {
 
             {/* Legend */}
             <Box sx={{ display: "flex", gap: 1.5, mt: 2 }}>
-              {[{ color: "#10B981", label: "Low" }, { color: "#f97316", label: "Medium" }, { color: "#dc2626", label: "High" }].map(({ color, label }) => (
-                <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: color }} />
-                  <Typography sx={{ fontSize: "0.62rem", color: "text.secondary" }}>{label}</Typography>
+              {[
+                { color: "#10B981", label: "Low" },
+                { color: "#f97316", label: "Medium" },
+                { color: "#dc2626", label: "High" },
+              ].map(({ color, label }) => (
+                <Box
+                  key={label}
+                  sx={{ display: "flex", alignItems: "center", gap: 0.4 }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: color,
+                    }}
+                  />
+                  <Typography
+                    sx={{ fontSize: "0.62rem", color: "text.secondary" }}
+                  >
+                    {label}
+                  </Typography>
                 </Box>
               ))}
             </Box>
@@ -276,7 +495,6 @@ function PedestrianTab({ theme }: { theme: string }) {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-
 
 export const CarDashboard = () => {
   const [activeMode, setActiveMode] = useState<ActiveMode>(() => {
@@ -320,7 +538,10 @@ export const CarDashboard = () => {
     });
   };
 
-  const handleModeChange = (_: React.SyntheticEvent, mode: ActiveMode | null) => {
+  const handleModeChange = (
+    _: React.SyntheticEvent,
+    mode: ActiveMode | null,
+  ) => {
     if (!mode) return;
     setActiveMode(mode);
     localStorage.setItem("carDashboardActiveMode", mode);
@@ -419,7 +640,14 @@ export const CarDashboard = () => {
           onChange={handleModeChange}
           sx={{
             minHeight: 36,
-            "& .MuiTab-root": { minHeight: 36, py: 0, px: 1.5, fontSize: "0.78rem", textTransform: "none", fontWeight: 500 },
+            "& .MuiTab-root": {
+              minHeight: 36,
+              py: 0,
+              px: 1.5,
+              fontSize: "0.78rem",
+              textTransform: "none",
+              fontWeight: 500,
+            },
             "& .MuiTabs-indicator": { height: 2 },
           }}
         >
@@ -448,14 +676,26 @@ export const CarDashboard = () => {
       {activeMode === "traffic" && (
         <>
           {isLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
               <CircularProgress />
             </Box>
           ) : (
             <MapContainer
               center={dublinCenter}
               zoom={12}
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+              }}
               zoomControl={false}
             >
               <TileLayer attribution={tileAttribution} url={tileUrl} />
@@ -523,10 +763,16 @@ export const CarDashboard = () => {
 
           {/* Hamburger */}
           {!panelOpen && (
-            <Box sx={{ position: "absolute", top: GAP, right: GAP, zIndex: 1000 }}>
+            <Box
+              sx={{ position: "absolute", top: GAP, right: GAP, zIndex: 1000 }}
+            >
               <IconButton
                 onClick={() => setPanelOpen(true)}
-                sx={{ bgcolor: (t) => t.palette.background.paper, backdropFilter: "blur(12px)", "&:hover": { bgcolor: (t) => t.palette.background.paper } }}
+                sx={{
+                  bgcolor: (t) => t.palette.background.paper,
+                  backdropFilter: "blur(12px)",
+                  "&:hover": { bgcolor: (t) => t.palette.background.paper },
+                }}
               >
                 <MenuOpenIcon />
               </IconButton>
@@ -550,7 +796,15 @@ export const CarDashboard = () => {
                 overflow: "hidden",
               }}
             >
-              <Box sx={{ p: 2, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Box
+                sx={{
+                  p: 2,
+                  pb: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <DirectionsCarIcon fontSize="small" color="primary" />
                   <Typography variant="h5">Traffic & Fuel</Typography>
@@ -563,7 +817,11 @@ export const CarDashboard = () => {
               <Divider />
 
               <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75, fontWeight: 600 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
+                >
                   Map mode
                 </Typography>
                 <ToggleButtonGroup
@@ -578,7 +836,11 @@ export const CarDashboard = () => {
                   <ToggleButton value="pollution">Pollution</ToggleButton>
                 </ToggleButtonGroup>
 
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75, fontWeight: 600 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
+                >
                   Day type
                 </Typography>
                 <ToggleButtonGroup
@@ -593,7 +855,11 @@ export const CarDashboard = () => {
                   <ToggleButton value="weekend">Weekend</ToggleButton>
                 </ToggleButtonGroup>
 
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75, fontWeight: 600 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
+                >
                   Time slot
                 </Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
@@ -614,9 +880,16 @@ export const CarDashboard = () => {
                         px: 1,
                         borderRadius: 1,
                         border: "1px solid",
-                        borderColor: timeSlotFilter === value ? "primary.main" : "divider",
-                        bgcolor: timeSlotFilter === value ? "primary.main" : "transparent",
-                        color: timeSlotFilter === value ? "primary.contrastText" : "text.secondary",
+                        borderColor:
+                          timeSlotFilter === value ? "primary.main" : "divider",
+                        bgcolor:
+                          timeSlotFilter === value
+                            ? "primary.main"
+                            : "transparent",
+                        color:
+                          timeSlotFilter === value
+                            ? "primary.contrastText"
+                            : "text.secondary",
                         fontSize: "0.8125rem",
                         fontWeight: timeSlotFilter === value ? 600 : 400,
                         textAlign: "center",
@@ -625,7 +898,10 @@ export const CarDashboard = () => {
                         transition: "all 0.15s",
                         "&:hover": {
                           borderColor: "primary.main",
-                          color: timeSlotFilter === value ? "primary.contrastText" : "primary.main",
+                          color:
+                            timeSlotFilter === value
+                              ? "primary.contrastText"
+                              : "primary.main",
                         },
                       }}
                     >
@@ -634,7 +910,11 @@ export const CarDashboard = () => {
                   ))}
                 </Box>
 
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75, fontWeight: 600 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 0.75, fontWeight: 600 }}
+                >
                   Filter by intensity
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1, mb: 2.5 }}>
@@ -658,10 +938,16 @@ export const CarDashboard = () => {
 
                 <Divider sx={{ mb: 2 }} />
 
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontWeight: 600 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 1, fontWeight: 600 }}
+                >
                   Vehicles by fuel type
                 </Typography>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}
+                >
                   {stats?.map((stat) => (
                     <Box
                       key={stat.fuelType}
