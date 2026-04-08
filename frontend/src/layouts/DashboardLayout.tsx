@@ -43,7 +43,7 @@ import {
 } from "@/store/slices/uiSlice";
 import { useLogout, useUserNotifications } from "@/hooks";
 import { clearAuthentication } from "@/store/slices/authSlice";
-import { getCreatableRoles, TRANSPORT_ACCESS } from "@/types";
+import { getCreatableRoles, TRANSPORT_ACCESS, MISC_ACCESS } from "@/types";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import { ChangePasswordDialog } from "@/components/profile/ChangePasswordDialog";
 import sseService from "@/services/sseService";
@@ -57,6 +57,7 @@ import { MiscDashboard } from "@/pages/MiscDashboard";
 import { NotificationsPage } from "@/pages/NotificationsPage";
 import { UserManagementPage } from "@/pages/UserManagementPage";
 import { DisruptionDashboard } from "@/pages/DisruptionDashboard";
+import { GovAdminOverviewPage } from "@/pages/GovAdminOverviewPage";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -85,14 +86,15 @@ export const DashboardLayout = () => {
 
   // Role-based view visibility — mirrors the allowedRoles from the original router
   const canSeeView: Record<DashboardView, boolean> = {
-    overview: roles.includes("City_Manager"),
+    overview:
+      roles.includes("City_Manager") || roles.includes("Government_Admin"),
     bus: TRANSPORT_ACCESS.bus.some((r) => roles.includes(r)),
     cycle: TRANSPORT_ACCESS.cycle.some((r) => roles.includes(r)),
     car: TRANSPORT_ACCESS.car.some((r) => roles.includes(r)),
     train: TRANSPORT_ACCESS.train.some((r) => roles.includes(r)),
     tram: TRANSPORT_ACCESS.tram.some((r) => roles.includes(r)),
-    misc: true,
-    disruptions: true,
+    misc: MISC_ACCESS.some((r) => roles.includes(r)),
+    disruptions: MISC_ACCESS.some((r) => roles.includes(r)),
     notifications: true,
     users: canManageUsers,
   };
@@ -477,21 +479,22 @@ export const DashboardLayout = () => {
         }}
       >
         {/* Overview Dashboard — City_Manager only */}
-        {canSeeView.overview && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              zIndex: activeView === "overview" ? 2 : 1,
-              visibility: activeView === "overview" ? "visible" : "hidden",
-              opacity: activeView === "overview" ? 1 : 0,
-              pointerEvents: activeView === "overview" ? "auto" : "none",
-              transition: "opacity 0.15s ease-in-out",
-            }}
-          >
-            <Dashboard onNavigate={setActiveView} />
-          </Box>
-        )}
+        {roles.includes("City_Manager") &&
+          !roles.includes("Government_Admin") && (
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                zIndex: activeView === "overview" ? 2 : 1,
+                visibility: activeView === "overview" ? "visible" : "hidden",
+                opacity: activeView === "overview" ? 1 : 0,
+                pointerEvents: activeView === "overview" ? "auto" : "none",
+                transition: "opacity 0.15s ease-in-out",
+              }}
+            >
+              <Dashboard onNavigate={setActiveView} />
+            </Box>
+          )}
         {/* New notification banner */}
         {newNotifBanner && (
           <Box
@@ -544,10 +547,18 @@ export const DashboardLayout = () => {
           </Box>
         )}
         <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {/* Overview Dashboard — City_Manager only */}
-          {canSeeView.overview && (
+          {/* Overview: City Manager sees transport KPIs */}
+          {roles.includes("City_Manager") &&
+            !roles.includes("Government_Admin") && (
+              <Box sx={panelSx("overview")}>
+                <Dashboard onNavigate={setActiveView} />
+              </Box>
+            )}
+
+          {/* Overview: Government Admin sees platform user breakdown */}
+          {roles.includes("Government_Admin") && (
             <Box sx={panelSx("overview")}>
-              <Dashboard onNavigate={setActiveView} />
+              <GovAdminOverviewPage />
             </Box>
           )}
 
@@ -602,20 +613,24 @@ export const DashboardLayout = () => {
             </Box>
           )}
 
-          {/* Misc Dashboard (Events & Pedestrians) — all authenticated users */}
-          <Box sx={panelSx("misc")}>
-            <MiscDashboard />
-          </Box>
+          {/* Misc Dashboard (Events & Pedestrians) */}
+          {canSeeView.misc && (
+            <Box sx={panelSx("misc")}>
+              <MiscDashboard />
+            </Box>
+          )}
 
           {/* Notifications Page — all authenticated users */}
           <Box sx={panelSx("notifications")}>
             <NotificationsPage />
           </Box>
 
-          {/* Disruptions Dashboard — all authenticated users */}
-          <Box sx={panelSx("disruptions")}>
-            <DisruptionDashboard />
-          </Box>
+          {/* Disruptions Dashboard */}
+          {canSeeView.disruptions && (
+            <Box sx={panelSx("disruptions")}>
+              <DisruptionDashboard />
+            </Box>
+          )}
 
           {/* User Management Page */}
           {canManageUsers && (
