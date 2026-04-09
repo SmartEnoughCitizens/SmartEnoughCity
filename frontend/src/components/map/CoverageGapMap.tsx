@@ -13,7 +13,6 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import type { GeoJsonObject } from "geojson";
 import type { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
 import {
   Box,
@@ -910,7 +909,7 @@ export const CoverageGapMap = ({
           );
 
           if (g.geomGeoJson) {
-            const geomData = JSON.parse(g.geomGeoJson) as GeoJsonObject;
+            const geomData = JSON.parse(g.geomGeoJson) as Parameters<typeof L.geoJSON>[0];
             const baseStyle: PathOptions = {
               fillColor: color,
               fillOpacity: improved ? 0.65 : 0.45,
