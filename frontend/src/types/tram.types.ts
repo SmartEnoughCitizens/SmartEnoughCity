@@ -55,6 +55,32 @@ export interface TramHourlyDistribution {
   percentage: number | null;
 }
 
+export interface TramStopUsage {
+  stopId: string;
+  stopName: string;
+  line: string;
+  currentHour: number;
+  inboundTrips: number;
+  outboundTrips: number;
+  totalTrips: number;
+  estimatedInboundPassengers: number;
+  estimatedOutboundPassengers: number;
+  estimatedTotalPassengers: number;
+  lat: number | null;
+  lon: number | null;
+}
+
+export interface TramCommonDelay {
+  stopId: string;
+  stopName: string;
+  line: string;
+  avgDelayMins: number;
+  maxDelayMins: number;
+  delayCount: number;
+  lat: number | null;
+  lon: number | null;
+}
+
 export interface TramAlternativeRoute {
   transportType: "bus" | "rail" | "bike";
   stopId: string;

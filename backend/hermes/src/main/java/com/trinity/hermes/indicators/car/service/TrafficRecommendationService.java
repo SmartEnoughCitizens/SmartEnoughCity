@@ -7,6 +7,7 @@ import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,13 @@ public class TrafficRecommendationService {
           Double.NEGATIVE_INFINITY, "elevated", 0.68, 0.27, 4.0, 8.0, 0.97, HIGH_NODE);
 
   private final HighTrafficPointsService highTrafficPointsService;
+
+  @Transactional(readOnly = true)
+  public Optional<TrafficRecommendation> getRecommendationById(String recommendationId) {
+    return getTrafficRecommendations().stream()
+        .filter(r -> recommendationId.equals(r.getRecommendationId()))
+        .findFirst();
+  }
 
   @Transactional(readOnly = true)
   public List<TrafficRecommendation> getTrafficRecommendations() {

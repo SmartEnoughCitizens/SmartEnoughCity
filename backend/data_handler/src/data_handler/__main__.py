@@ -35,6 +35,7 @@ from data_handler.train.static_data_handler import (
     process_train_ridership_data,
     process_train_static_data,
 )
+from data_handler.tram.delay_history_handler import store_delay_snapshot
 from data_handler.tram.forecast_handler import (
     process_tram_live_data,
     process_tram_stop_info,
@@ -86,6 +87,7 @@ def main_1_min() -> None:
         _run_handler(logger, "bus_live", process_bus_live_data)
     if settings.enable_tram_data:
         _run_handler(logger, "tram_live", process_tram_live_data)
+        _run_handler(logger, "tram_delay_history", store_delay_snapshot)
     if settings.enable_train_data:
         _run_handler(logger, "train_live", process_train_live_data)
 

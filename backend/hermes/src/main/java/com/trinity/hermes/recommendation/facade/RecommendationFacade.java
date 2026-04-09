@@ -30,6 +30,10 @@ public class RecommendationFacade {
     return recommendationService.createRecommendation(request);
   }
 
+  public List<RecommendationResponse> getActiveByIndicator(String indicator) {
+    return recommendationService.getActiveByIndicator(indicator);
+  }
+
   public boolean deleteRecommendation(Integer id) {
     return recommendationService.deleteRecommendation(id);
   }

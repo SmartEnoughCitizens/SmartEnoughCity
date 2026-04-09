@@ -45,6 +45,8 @@ export const API_ENDPOINTS = {
   CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
   CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
   CAR_TRAFFIC_RECOMMENDATIONS: "/api/v1/car/traffic-recommendations",
+  CAR_TRAFFIC_RECOMMENDATION_NOTIFY: (id: string) =>
+    `/api/v1/car/traffic-recommendations/${encodeURIComponent(id)}/notify`,
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
@@ -72,6 +74,8 @@ export const API_ENDPOINTS = {
   TRAM_ALTERNATIVE_ROUTES: "/api/v1/tram/alternative-routes",
   TRAM_DELAYS: "/api/v1/tram/delays",
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
+  TRAM_STOP_USAGE: "/api/v1/tram/stop-usage",
+  TRAM_COMMON_DELAYS: "/api/v1/tram/common-delays",
 
   // Cycle Metrics (CycleMetricsController)
   CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
@@ -104,6 +108,8 @@ export const API_ENDPOINTS = {
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
     `/api/v1/recommendation-engine/indicators/${type}`,
+  RECOMMENDATION_BY_INDICATOR: (indicator: string) =>
+    `/api/v1/recommendation-engine/by-indicator/${indicator}`,
 
   // Approvals (generic — used by any indicator)
   APPROVALS: "/api/v1/approvals",
@@ -114,8 +120,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_BIN: (userId: string) => `/api/notification/v1/${userId}/bin`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
 
-  // Misc (Events + Pedestrians)
-  EVENTS: "/api/v1/events",
+  // Pedestrians
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 
   // Disruptions

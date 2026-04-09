@@ -11,10 +11,9 @@ import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import TrainIcon from "@mui/icons-material/Train";
 import TramIcon from "@mui/icons-material/Tram";
-import EvStationIcon from "@mui/icons-material/EvStation";
-import EventNoteIcon from "@mui/icons-material/EventNote";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import {
   PieChart,
   Pie,
@@ -28,18 +27,20 @@ import {
 } from "recharts";
 import {
   useBusKpis,
+  useCommonDelays,
   useTramKpis,
+  useTramDelays,
   useTrainKpis,
+  useUserNotifications,
   useCarFuelTypeStatistics,
   useCarHighTrafficPoints,
   useCycleNetworkSummary,
   useEvChargingStations,
   useEvChargingDemand,
-  useEvents,
-  usePedestriansLive,
   useActiveDisruptions,
 } from "@/hooks";
 import { SkeletonCard } from "@/components/common/SkeletonCard";
+import { useAppSelector } from "@/store/hooks";
 import type { DashboardView } from "@/layouts/DashboardLayout";
 
 const orbs = [
@@ -213,22 +214,27 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
   const orbOpacity = muiTheme.palette.mode === "dark" ? 0.25 : 0.15;
 
   const { data: busKpis, isLoading: busLoading } = useBusKpis();
+  const { data: busCommonDelays, isLoading: busDelaysLoading } =
+    useCommonDelays("month");
   const { data: tramKpis, isLoading: tramLoading } = useTramKpis();
+  const { data: tramDelaysRaw, isLoading: tramDelayLoading } = useTramDelays();
   const { data: trainKpis, isLoading: trainLoading } = useTrainKpis();
   const { data: fuelStats, isLoading: fuelLoading } =
     useCarFuelTypeStatistics();
-  const { data: trafficPoints, isLoading: trafficLoading } =
-    useCarHighTrafficPoints();
+  const { isLoading: trafficLoading } = useCarHighTrafficPoints();
   const { data: cycleNetwork, isLoading: cycleLoading } =
     useCycleNetworkSummary();
   const { data: evStations, isLoading: evStationsLoading } =
     useEvChargingStations();
   const { data: evDemand, isLoading: evDemandLoading } = useEvChargingDemand();
-  const { data: events, isLoading: eventsLoading } = useEvents(10);
-  const { data: pedestrians, isLoading: pedestriansLoading } =
-    usePedestriansLive(20);
   const { data: disruptions, isLoading: disruptionsLoading } =
     useActiveDisruptions();
+
+  const username = useAppSelector((state) => state.auth.username) ?? "";
+  const { data: notifData, isLoading: notifLoading } = useUserNotifications(
+    username,
+    !!username,
+  );
 
   // ── Derived values ────────────────────────────────────────────────────────
 
@@ -237,7 +243,6 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
   );
   const topFuelType =
     filteredFuelStats.toSorted((a, b) => b.count - a.count)[0]?.fuelType ?? "—";
-  const monitoringSites = new Set(trafficPoints?.map((p) => p.siteId)).size;
   const criticalCount =
     disruptions?.filter((d) => d.severity === "CRITICAL").length ?? 0;
   const highCount =
@@ -247,23 +252,20 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
       ? muiTheme.palette.error.main
       : muiTheme.palette.success.main;
 
+  const unreadCount = (notifData?.notifications ?? []).filter(
+    (n) => !n.read,
+  ).length;
+  const totalCount = notifData?.totalCount ?? 0;
+
   // ── Chart data ────────────────────────────────────────────────────────────
 
   const faded = alpha(muiTheme.palette.divider, 0.5);
 
-  const busDonutData = busKpis
-    ? [
-        { name: "Utilized", value: busKpis.fleetUtilizationPct },
-        { name: "Idle", value: Math.max(0, 100 - busKpis.fleetUtilizationPct) },
-      ]
-    : [];
+  const topBusDelays = (busCommonDelays ?? []).slice(0, 3);
 
-  const tramDonutData = tramKpis
-    ? [
-        { name: "Operating", value: tramKpis.linesOperating },
-        { name: "Offline", value: Math.max(0, 2 - tramKpis.linesOperating) },
-      ]
-    : [];
+  const topTramDelays = (tramDelaysRaw ?? [])
+    .toSorted((a, b) => b.delayMins - a.delayMins)
+    .slice(0, 3);
 
   const trainDonutData = trainKpis
     ? [
@@ -379,7 +381,7 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
               title="Bus"
               icon={<DirectionsBusIcon />}
               accent={muiTheme.palette.primary.main}
-              loading={busLoading}
+              loading={busLoading || busDelaysLoading}
               onClick={() => onNavigate("bus")}
             >
               <MetricRow
@@ -401,12 +403,44 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                   busKpis ? `${busKpis.fleetUtilizationPct.toFixed(1)}%` : "—"
                 }
               />
-              {busDonutData.length > 0 && (
+              {!busDelaysLoading && topBusDelays.length > 0 && (
                 <Box sx={{ mt: 1.5 }}>
-                  <MiniDonut
-                    data={busDonutData}
-                    colors={[muiTheme.palette.primary.main, faded]}
-                  />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mb: 0.5, display: "block" }}
+                  >
+                    Highest Avg Delay (Month)
+                  </Typography>
+                  {topBusDelays.map((d, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        noWrap
+                        sx={{ flex: 1, mr: 1 }}
+                      >
+                        {d.routeShortName}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        fontWeight={700}
+                        sx={{
+                          color: muiTheme.palette.error.main,
+                          flexShrink: 0,
+                        }}
+                      >
+                        +{d.avgDelayMinutes.toFixed(1)} min
+                      </Typography>
+                    </Box>
+                  ))}
                 </Box>
               )}
             </IndicatorCard>
@@ -418,7 +452,7 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
               title="Luas"
               icon={<TramIcon />}
               accent={muiTheme.palette.info.main}
-              loading={tramLoading}
+              loading={tramLoading || tramDelayLoading}
               onClick={() => onNavigate("tram")}
             >
               <MetricRow
@@ -433,12 +467,51 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                 label="Active Forecasts"
                 value={tramKpis?.activeForecastCount ?? "—"}
               />
-              {tramDonutData.length > 0 && (
+              {!tramDelayLoading && topTramDelays.length > 0 && (
                 <Box sx={{ mt: 1.5 }}>
-                  <MiniDonut
-                    data={tramDonutData}
-                    colors={[muiTheme.palette.info.main, faded]}
-                  />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mb: 0.5, display: "block" }}
+                  >
+                    Top Delays
+                  </Typography>
+                  {topTramDelays.map((d, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        noWrap
+                        sx={{ flex: 1, mr: 1 }}
+                      >
+                        {d.stopName}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        fontWeight={700}
+                        sx={{
+                          color: muiTheme.palette.error.main,
+                          flexShrink: 0,
+                        }}
+                      >
+                        +{d.delayMins} min
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              {!tramDelayLoading && topTramDelays.length === 0 && (
+                <Box sx={{ mt: 1.5 }}>
+                  <Typography variant="caption" color="success.main">
+                    No delays
+                  </Typography>
                 </Box>
               )}
             </IndicatorCard>
@@ -496,13 +569,14 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
               title="Car / Traffic"
               icon={<DirectionsCarIcon />}
               accent={muiTheme.palette.warning.main}
-              loading={fuelLoading || trafficLoading}
+              loading={
+                fuelLoading ||
+                trafficLoading ||
+                evStationsLoading ||
+                evDemandLoading
+              }
               onClick={() => onNavigate("car")}
             >
-              <MetricRow
-                label="Monitoring Sites"
-                value={monitoringSites > 0 ? monitoringSites : "—"}
-              />
               <MetricRow label="Top Fuel Type" value={topFuelType} />
               {topFuelData.length > 0 && (
                 <Box sx={{ mt: 1.5 }}>
@@ -542,6 +616,23 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                   </Typography>
                 </Box>
               )}
+              <Box sx={{ mt: 1.5 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 0.5, display: "block" }}
+                >
+                  EV Charging
+                </Typography>
+                <MetricRow
+                  label="Total Stations"
+                  value={evStations?.stations?.length ?? "—"}
+                />
+                <MetricRow
+                  label="High Demand Areas"
+                  value={evDemand?.high_priority_areas?.length ?? "—"}
+                />
+              </Box>
             </IndicatorCard>
           </Box>
 
@@ -586,43 +677,29 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
             </IndicatorCard>
           </Box>
 
-          {/* EV Charging */}
+          {/* Notifications */}
           <Box sx={{ display: "flex" }}>
             <IndicatorCard
-              title="EV Charging"
-              icon={<EvStationIcon />}
-              accent={muiTheme.palette.success.dark}
-              loading={evStationsLoading || evDemandLoading}
-              onClick={() => onNavigate("car")}
+              title="Notifications"
+              icon={<NotificationsIcon />}
+              accent={
+                unreadCount > 0
+                  ? muiTheme.palette.warning.main
+                  : muiTheme.palette.success.main
+              }
+              loading={notifLoading}
+              onClick={() => onNavigate("notifications")}
             >
               <MetricRow
-                label="Total Stations"
-                value={evStations?.stations?.length ?? "—"}
+                label="Unread"
+                value={unreadCount}
+                color={
+                  unreadCount > 0
+                    ? muiTheme.palette.warning.main
+                    : muiTheme.palette.success.main
+                }
               />
-              <MetricRow
-                label="High Demand Areas"
-                value={evDemand?.high_priority_areas?.length ?? "—"}
-              />
-            </IndicatorCard>
-          </Box>
-
-          {/* Events & Pedestrians */}
-          <Box sx={{ display: "flex" }}>
-            <IndicatorCard
-              title="Events & Pedestrians"
-              icon={<EventNoteIcon />}
-              accent={muiTheme.palette.secondary.light}
-              loading={eventsLoading || pedestriansLoading}
-              onClick={() => onNavigate("misc")}
-            >
-              <MetricRow
-                label="Upcoming Events"
-                value={events?.length ?? "—"}
-              />
-              <MetricRow
-                label="Monitoring Sites"
-                value={pedestrians?.length ?? "—"}
-              />
+              <MetricRow label="Total" value={totalCount} />
             </IndicatorCard>
           </Box>
 
