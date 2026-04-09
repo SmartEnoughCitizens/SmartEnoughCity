@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -304,31 +303,6 @@ public class CycleMetricsController {
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
       log.error("Error reviewing proposal id={}", id, e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  @PatchMapping("/coverage-gaps/proposals/{id}/implementation-status")
-  @PreAuthorize("hasRole('Cycle_Admin')")
-  public ResponseEntity<Void> updateImplementationStatus(
-      @PathVariable Long id,
-      @RequestBody ProposalImplementationStatusDTO body,
-      @AuthenticationPrincipal Jwt jwt) {
-    log.info(
-        "PATCH /api/v1/cycle/coverage-gaps/proposals/{}/implementation-status status={}",
-        id,
-        body.getStatus());
-    var allowed = java.util.Set.of("PLANNED", "IN_PROGRESS", "COMPLETED");
-    if (!allowed.contains(body.getStatus())) {
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "status must be PLANNED, IN_PROGRESS or COMPLETED");
-    }
-    try {
-      String updaterUsername = resolveSubmitterRole(jwt);
-      cycleMetricsService.updateImplementationStatus(id, body.getStatus(), updaterUsername);
-      return ResponseEntity.noContent().build();
-    } catch (Exception e) {
-      log.error("Error updating implementation status for proposal id={}", id, e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
