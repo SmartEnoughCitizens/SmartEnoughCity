@@ -35,7 +35,6 @@ import org.springframework.web.server.ResponseStatusException;
 public class CycleMetricsController {
 
   private final CycleMetricsService cycleMetricsService;
-  private final UserManagementService userManagementService;
 
   // -------------------------------------------------------------------------
   // Live Station Data
@@ -329,22 +328,5 @@ public class CycleMetricsController {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Debug / Test
-  // -------------------------------------------------------------------------
 
-  @GetMapping("/debug/whoami")
-  public ResponseEntity<java.util.Map<String, Object>> whoami(
-      @AuthenticationPrincipal Jwt jwt) {
-    java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
-    if (jwt == null) {
-      result.put("jwt", "null");
-      return ResponseEntity.ok(result);
-    }
-    String sid = jwt.getClaimAsString("sid");
-    result.put("jwtClaims", jwt.getClaims());
-    result.put("sid", sid);
-    result.put("resolvedUsername", userManagementService.getUsernameBySid(sid));
-    return ResponseEntity.ok(result);
-  }
 }
