@@ -11,6 +11,7 @@ import type {
   BusRouteDetail,
   DisruptionItem,
   DisruptionAlternative,
+  EventItem,
   BusDashboardResponse,
   StationProposalSummary,
   BusKpis,
@@ -513,6 +514,17 @@ export const dashboardApi = {
     const { data } = await axiosInstance.get<PedestrianLive[]>(
       API_ENDPOINTS.PEDESTRIANS_LIVE,
       { params: { limit } },
+    );
+    return data;
+  },
+
+  /**
+   * Get upcoming city events within the next N days (default 7).
+   */
+  getUpcomingEvents: async (days = 7): Promise<EventItem[]> => {
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS_UPCOMING,
+      { params: { days } },
     );
     return data;
   },

@@ -65,3 +65,20 @@ export interface DisruptionItem {
 
 /** Alias kept for compatibility with main-branch imports */
 export type ActiveDisruption = DisruptionItem;
+
+/** A city event (concert, match, festival, etc.) returned by the events API. */
+export interface EventItem {
+  id: number;
+  eventName: string;
+  eventType: string;
+  eventDate: string; // ISO date string, e.g. "2025-06-01"
+  startTime: string | null;
+  endTime: string | null;
+  venueName: string;
+  venueCapacity: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  estimatedAttendance: number | null;
+  /** Pre-computed from venue capacity by the backend: CRITICAL / HIGH / MEDIUM / LOW */
+  riskLevel: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+}

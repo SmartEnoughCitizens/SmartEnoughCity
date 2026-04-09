@@ -9,7 +9,6 @@ import { useState, useMemo } from "react";
 import {
   Alert,
   Box,
-  Chip,
   CircularProgress,
   Divider,
   IconButton,
@@ -746,7 +745,7 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
     DisruptionAlternative[]
   >({
     queryKey: ["event", "nearby-alternatives", event.latitude, event.longitude],
-    queryFn: () => dashboardApi.getNearbyAlternatives(event.latitude, event.longitude),
+    queryFn: () => dashboardApi.getNearbyAlternatives(event.latitude!, event.longitude!),
     staleTime: 120_000,
     enabled: event.latitude != null && event.longitude != null,
   });

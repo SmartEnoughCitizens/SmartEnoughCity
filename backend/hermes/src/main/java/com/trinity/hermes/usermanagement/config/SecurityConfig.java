@@ -85,6 +85,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/disruptions", "/api/v1/disruptions/**")
                     .permitAll()
+                    .requestMatchers("/api/v1/events", "/api/v1/events/**")
+                    .permitAll()
                     .requestMatchers("/api/v1/dashboard/train", "/api/v1/dashboard/train/**")
                     .hasAnyRole("City_Manager", "Train_Admin", "Train_Provider")
                     .requestMatchers("/api/v1/dashboard/cycle", "/api/v1/dashboard/cycle/**")

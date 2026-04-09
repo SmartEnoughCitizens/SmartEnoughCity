@@ -4,6 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
+import type { EventItem } from "@/types";
 
 export const MISC_KEYS = {
   pedestriansLive: (limit?: number) =>
@@ -668,5 +669,18 @@ export const useReviewProposal = () => {
         queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
       });
     },
+  });
+};
+
+/**
+ * Get upcoming city events for the next N days (default 7).
+ * Refreshed every 5 minutes; stale data shown while refetching.
+ */
+export const useEvents = (days = 7) => {
+  return useQuery<EventItem[]>({
+    queryKey: ["events", days],
+    queryFn: () => dashboardApi.getUpcomingEvents(days),
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
   });
 };
