@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   USER_DELETE: "/api/usermanagement/delete",
   USER_PROFILE: "/api/usermanagement/profile",
   USER_PASSWORD: "/api/usermanagement/password",
+  USER_COUNTS: "/api/usermanagement/user-counts",
   TRAINS: "/api/trains",
   BUSES: "/api/buses",
 

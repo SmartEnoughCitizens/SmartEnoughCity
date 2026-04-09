@@ -111,6 +111,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.DELETE, "/api/usermanagement/delete")
                     .authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/usermanagement/user-counts")
+                    .hasRole("Government_Admin")
                     .requestMatchers(HttpMethod.GET, "/api/usermanagement/users")
                     .authenticated()
                     .requestMatchers("/api/usermanagement/profile")
