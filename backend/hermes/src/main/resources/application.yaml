@@ -57,7 +57,7 @@ notification:
 
 recommendation:
   train:
-    cron: "0 0 8 * * *"
+    cron: "0 0/2 * * * *"
 
 mail:
   from: no-reply@citycontrol.me
