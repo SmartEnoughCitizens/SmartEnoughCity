@@ -98,8 +98,11 @@ def load_daily_passengers() -> dict[str, float]:
             result["green"] = value / 7.0
 
     if result:
-        logger.info("Daily passengers from CSO: red=%.0f, green=%.0f",
-                     result.get("red", 0), result.get("green", 0))
+        logger.info(
+            "Daily passengers from CSO: red=%.0f, green=%.0f",
+            result.get("red", 0),
+            result.get("green", 0),
+        )
         return result
 
     monthly_query = text("""
@@ -118,8 +121,11 @@ def load_daily_passengers() -> dict[str, float]:
         elif "green" in key:
             result["green"] = value / 30.0
     if result:
-        logger.info("Daily passengers from CSO monthly: red=%.0f, green=%.0f",
-                     result.get("red", 0), result.get("green", 0))
+        logger.info(
+            "Daily passengers from CSO monthly: red=%.0f, green=%.0f",
+            result.get("red", 0),
+            result.get("green", 0),
+        )
         return result
 
     logger.warning("No CSO data, using fallback.")
@@ -128,7 +134,12 @@ def load_daily_passengers() -> dict[str, float]:
 
 def load_luas_stops() -> pd.DataFrame:
     with engine.connect() as conn:
-        df = pd.read_sql(text("SELECT stop_id, name, line, lat, lon FROM external_data.tram_luas_stops"), conn)
+        df = pd.read_sql(
+            text(
+                "SELECT stop_id, name, line, lat, lon FROM external_data.tram_luas_stops"
+            ),
+            conn,
+        )
     logger.info("Loaded %d Luas stops.", len(df))
     return df
 
@@ -162,31 +173,40 @@ def load_weekday_stop_times() -> pd.DataFrame:
     """)
     with engine.connect() as conn:
         df = pd.read_sql(query, conn, params={"min_stops": MIN_STOPS_PER_TRIP})
-    logger.info("Loaded %d weekday stop time records (trips with >=%d stops).",
-                len(df), MIN_STOPS_PER_TRIP)
+    logger.info(
+        "Loaded %d weekday stop time records (trips with >=%d stops).",
+        len(df),
+        MIN_STOPS_PER_TRIP,
+    )
     return df
 
 
 def load_hourly_distribution() -> pd.DataFrame:
     with engine.connect() as conn:
-        df = pd.read_sql(text("""
+        df = pd.read_sql(
+            text("""
             SELECT line_code, line_label, time_code, time_label, value
             FROM external_data.tram_hourly_distribution
             WHERE year = (SELECT MAX(year) FROM external_data.tram_hourly_distribution)
-        """), conn)
+        """),
+            conn,
+        )
     logger.info("Loaded %d hourly distribution rows.", len(df))
     return df
 
 
 def load_delay_history() -> pd.DataFrame:
     with engine.connect() as conn:
-        df = pd.read_sql(text("""
+        df = pd.read_sql(
+            text("""
             SELECT stop_id, stop_name, line,
                    ROUND(AVG(delay_mins)::numeric, 1) AS avg_delay,
                    COUNT(*) AS delay_count
             FROM external_data.tram_delay_history
             GROUP BY stop_id, stop_name, line
-        """), conn)
+        """),
+            conn,
+        )
     logger.info("Loaded delay history for %d stops.", len(df))
     return df
 
@@ -195,7 +215,8 @@ def load_delay_history() -> pd.DataFrame:
 
 
 def build_luas_to_gtfs_name_map(
-    luas_stops: pd.DataFrame, gtfs_stops: pd.DataFrame,
+    luas_stops: pd.DataFrame,
+    gtfs_stops: pd.DataFrame,
 ) -> dict[str, str]:
     gtfs_names = set(gtfs_stops["name"].str.lower().unique())
     normalised = {n.replace(" - ", " ").replace("  ", " "): n for n in gtfs_names}
@@ -261,8 +282,9 @@ def compute_stop_metrics(  # noqa: PLR0913, PLR0912, PLR0915
     hour_set = set(hours)
 
     st = stop_times.copy()
-    st["hour"] = pd.to_datetime(st["arrival_time"].astype(str),
-                                format="%H:%M:%S", errors="coerce").dt.hour
+    st["hour"] = pd.to_datetime(
+        st["arrival_time"].astype(str), format="%H:%M:%S", errors="coerce"
+    ).dt.hour
     st = st[st["hour"].isin(hour_set)]
 
     st["gtfs_name"] = st["stop_id"].map(gtfs_id_to_name)
@@ -278,7 +300,8 @@ def compute_stop_metrics(  # noqa: PLR0913, PLR0912, PLR0915
     # Count unique real-service trams per stop per direction
     trip_counts = (
         st.groupby(["gtfs_name", "direction_id"])["trip_id"]
-        .nunique().unstack(fill_value=0)
+        .nunique()
+        .unstack(fill_value=0)
         .rename(columns={0: "outbound", 1: "inbound"})
     )
     for col in ("outbound", "inbound"):
@@ -316,7 +339,11 @@ def compute_stop_metrics(  # noqa: PLR0913, PLR0912, PLR0915
         if gname is None:
             continue
 
-        tc = trip_counts.loc[gname] if gname in trip_counts.index else pd.Series({"outbound": 0, "inbound": 0})
+        tc = (
+            trip_counts.loc[gname]
+            if gname in trip_counts.index
+            else pd.Series({"outbound": 0, "inbound": 0})
+        )
         out_trips = int(tc.get("outbound", 0))
         in_trips = int(tc.get("inbound", 0))
         total_trips = out_trips + in_trips
@@ -336,14 +363,24 @@ def compute_stop_metrics(  # noqa: PLR0913, PLR0912, PLR0915
         d_avg, d_count = delay_lookup.get(sid, (0.0, 0))
         seq = float(avg_seq.get(gname, 0.0))
 
-        metrics.append(StopMetrics(
-            stop_id=sid, stop_name=luas_row["name"], line=line,
-            sequence=seq, inbound_trips=in_trips, outbound_trips=out_trips,
-            total_trips=total_trips, est_inbound_pax=round(est_in, 1),
-            est_outbound_pax=round(est_out, 1), est_total_pax=round(est_total, 1),
-            capacity=round(capacity, 1), utilisation=round(util, 4),
-            avg_delay_mins=d_avg, delay_count=d_count,
-        ))
+        metrics.append(
+            StopMetrics(
+                stop_id=sid,
+                stop_name=luas_row["name"],
+                line=line,
+                sequence=seq,
+                inbound_trips=in_trips,
+                outbound_trips=out_trips,
+                total_trips=total_trips,
+                est_inbound_pax=round(est_in, 1),
+                est_outbound_pax=round(est_out, 1),
+                est_total_pax=round(est_total, 1),
+                capacity=round(capacity, 1),
+                utilisation=round(util, 4),
+                avg_delay_mins=d_avg,
+                delay_count=d_count,
+            )
+        )
 
     return metrics
 
@@ -352,7 +389,9 @@ def compute_stop_metrics(  # noqa: PLR0913, PLR0912, PLR0915
 
 
 def _detect_frequency_change(
-    metrics: list[StopMetrics], line: str, period: dict,
+    metrics: list[StopMetrics],
+    line: str,
+    period: dict,
 ) -> list[Recommendation]:
     stops = [m for m in metrics if m.line == line and m.total_trips > 0]
     if not stops:
@@ -377,51 +416,67 @@ def _detect_frequency_change(
         hrs = max(1, period["end"] - period["start"])
         avg_tph = sum(m.total_trips for m in stops) / len(stops) / hrs
         target = 0.65
-        extra = max(1, round((avg_util / target - 1.0) * avg_tph)) if avg_util > target else 1
+        extra = (
+            max(1, round((avg_util / target - 1.0) * avg_tph))
+            if avg_util > target
+            else 1
+        )
         sev = "high" if avg_util > 0.85 else "medium"
 
-        recs.append(Recommendation(
-            type="add_frequency", line=line,
-            time_period=period["key"], time_label=period["label"],
-            severity=sev,
-            description=(
-                f"[{sev.upper()} PRIORITY] {line.capitalize()} Line is overcrowded during "
-                f"{period['label']}. Current load: {avg_util:.0%} of capacity "
-                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
-                f"passengers per tram). {over_count} out of {len(stops)} stops are above 75% capacity. "
-                f"Average delay: {avg_delay:.1f} minutes. "
-                f"Action: Increase service by {extra} additional tram(s) per hour to bring "
-                f"utilisation down to 65%."
-            ),
-            details={
-                "avg_utilisation": round(avg_util, 4), "max_utilisation": round(max_util, 4),
-                "avg_delay_mins": round(avg_delay, 1),
-                "overloaded_stop_count": over_count, "total_stop_count": len(stops),
-                "extra_trams_per_hour": extra,
-            },
-        ))
+        recs.append(
+            Recommendation(
+                type="add_frequency",
+                line=line,
+                time_period=period["key"],
+                time_label=period["label"],
+                severity=sev,
+                description=(
+                    f"[{sev.upper()} PRIORITY] {line.capitalize()} Line is overcrowded during "
+                    f"{period['label']}. Current load: {avg_util:.0%} of capacity "
+                    f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
+                    f"passengers per tram). {over_count} out of {len(stops)} stops are above 75% capacity. "
+                    f"Average delay: {avg_delay:.1f} minutes. "
+                    f"Action: Increase service by {extra} additional tram(s) per hour to bring "
+                    f"utilisation down to 65%."
+                ),
+                details={
+                    "avg_utilisation": round(avg_util, 4),
+                    "max_utilisation": round(max_util, 4),
+                    "avg_delay_mins": round(avg_delay, 1),
+                    "overloaded_stop_count": over_count,
+                    "total_stop_count": len(stops),
+                    "extra_trams_per_hour": extra,
+                },
+            )
+        )
 
     # ── MONITOR: >50% of stops in 50-75% range ──
     elif monitor_pct > 0.50:
-        recs.append(Recommendation(
-            type="monitor", line=line,
-            time_period=period["key"], time_label=period["label"],
-            severity="very_low",
-            description=(
-                f"{line.capitalize()} Line is approaching capacity during "
-                f"{period['label']}. Current load: {avg_util:.0%} of capacity "
-                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
-                f"passengers per tram). {monitor_count} out of {len(stops)} stops are between "
-                f"50-75% capacity. Average delay: {avg_delay:.1f} minutes. "
-                f"No immediate change needed. Continue monitoring — if demand increases, "
-                f"additional trams may be required."
-            ),
-            details={
-                "avg_utilisation": round(avg_util, 4), "max_utilisation": round(max_util, 4),
-                "avg_delay_mins": round(avg_delay, 1),
-                "monitor_stop_count": monitor_count, "total_stop_count": len(stops),
-            },
-        ))
+        recs.append(
+            Recommendation(
+                type="monitor",
+                line=line,
+                time_period=period["key"],
+                time_label=period["label"],
+                severity="very_low",
+                description=(
+                    f"{line.capitalize()} Line is approaching capacity during "
+                    f"{period['label']}. Current load: {avg_util:.0%} of capacity "
+                    f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
+                    f"passengers per tram). {monitor_count} out of {len(stops)} stops are between "
+                    f"50-75% capacity. Average delay: {avg_delay:.1f} minutes. "
+                    f"No immediate change needed. Continue monitoring — if demand increases, "
+                    f"additional trams may be required."
+                ),
+                details={
+                    "avg_utilisation": round(avg_util, 4),
+                    "max_utilisation": round(max_util, 4),
+                    "avg_delay_mins": round(avg_delay, 1),
+                    "monitor_stop_count": monitor_count,
+                    "total_stop_count": len(stops),
+                },
+            )
+        )
 
     # ── REDUCE: >60% of stops underutilised (<25%) ──
     elif under_pct > 0.60:
@@ -430,32 +485,39 @@ def _detect_frequency_change(
         headway = 60 / avg_tph if avg_tph > 0 else 15
         new_headway = min(20, headway * (0.40 / max(0.01, avg_util)))
 
-        recs.append(Recommendation(
-            type="reduce_frequency", line=line,
-            time_period=period["key"], time_label=period["label"],
-            severity="low",
-            description=(
-                f"[LOW PRIORITY] {line.capitalize()} Line is underutilised during "
-                f"{period['label']}. Current load: only {avg_util:.0%} of capacity "
-                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
-                f"passengers per tram). {under_count} out of {len(stops)} stops are below 25% capacity. "
-                f"Current frequency: every ~{headway:.0f} minutes. "
-                f"Action: Reduce frequency to every ~{new_headway:.0f} minutes to optimise "
-                f"operational costs while maintaining adequate service."
-            ),
-            details={
-                "avg_utilisation": round(avg_util, 4),
-                "underutilised_stop_count": under_count, "total_stop_count": len(stops),
-                "current_headway_mins": round(headway, 1),
-                "recommended_headway_mins": round(new_headway, 1),
-            },
-        ))
+        recs.append(
+            Recommendation(
+                type="reduce_frequency",
+                line=line,
+                time_period=period["key"],
+                time_label=period["label"],
+                severity="low",
+                description=(
+                    f"[LOW PRIORITY] {line.capitalize()} Line is underutilised during "
+                    f"{period['label']}. Current load: only {avg_util:.0%} of capacity "
+                    f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
+                    f"passengers per tram). {under_count} out of {len(stops)} stops are below 25% capacity. "
+                    f"Current frequency: every ~{headway:.0f} minutes. "
+                    f"Action: Reduce frequency to every ~{new_headway:.0f} minutes to optimise "
+                    f"operational costs while maintaining adequate service."
+                ),
+                details={
+                    "avg_utilisation": round(avg_util, 4),
+                    "underutilised_stop_count": under_count,
+                    "total_stop_count": len(stops),
+                    "current_headway_mins": round(headway, 1),
+                    "recommended_headway_mins": round(new_headway, 1),
+                },
+            )
+        )
 
     return recs
 
 
 def _detect_partial_run(
-    metrics: list[StopMetrics], line: str, period: dict,
+    metrics: list[StopMetrics],
+    line: str,
+    period: dict,
 ) -> list[Recommendation]:
     stops = sorted(
         [m for m in metrics if m.line == line and m.total_trips > 0],
@@ -506,31 +568,38 @@ def _detect_partial_run(
         fi = max(0, si[0] - 1)
         li = min(len(stops) - 1, si[-1] + 1)
 
-        recs.append(Recommendation(
-            type="partial_run", line=line,
-            time_period=period["key"], time_label=period["label"],
-            severity="medium",
-            description=(
-                f"[MEDIUM PRIORITY] A section of the {line.capitalize()} Line between "
-                f"{stops[fi].stop_name} and {stops[li].stop_name} is overloaded during "
-                f"{period['label']}. This {len(ss)}-stop segment has {sa:.0%} utilisation "
-                f"while the rest of the line is at {oa:.0%}. "
-                f"Action: Add a short-run tram service covering only this segment "
-                f"to relieve pressure without adding full-line services."
-            ),
-            details={
-                "start_stop_name": stops[fi].stop_name, "end_stop_name": stops[li].stop_name,
-                "segment_stop_count": len(ss),
-                "segment_stops": [s.stop_name for s in ss],
-                "segment_avg_utilisation": round(sa, 4),
-                "outer_avg_utilisation": round(oa, 4),
-            },
-        ))
+        recs.append(
+            Recommendation(
+                type="partial_run",
+                line=line,
+                time_period=period["key"],
+                time_label=period["label"],
+                severity="medium",
+                description=(
+                    f"[MEDIUM PRIORITY] A section of the {line.capitalize()} Line between "
+                    f"{stops[fi].stop_name} and {stops[li].stop_name} is overloaded during "
+                    f"{period['label']}. This {len(ss)}-stop segment has {sa:.0%} utilisation "
+                    f"while the rest of the line is at {oa:.0%}. "
+                    f"Action: Add a short-run tram service covering only this segment "
+                    f"to relieve pressure without adding full-line services."
+                ),
+                details={
+                    "start_stop_name": stops[fi].stop_name,
+                    "end_stop_name": stops[li].stop_name,
+                    "segment_stop_count": len(ss),
+                    "segment_stops": [s.stop_name for s in ss],
+                    "segment_avg_utilisation": round(sa, 4),
+                    "outer_avg_utilisation": round(oa, 4),
+                },
+            )
+        )
     return recs
 
 
 def _detect_direction_imbalance(
-    metrics: list[StopMetrics], line: str, period: dict,
+    metrics: list[StopMetrics],
+    line: str,
+    period: dict,
 ) -> list[Recommendation]:
     stops = [m for m in metrics if m.line == line and m.total_trips > 0]
     if not stops:
@@ -548,32 +617,42 @@ def _detect_direction_imbalance(
     hd = "Inbound" if ti > to else "Outbound"
     ld = "Outbound" if ti > to else "Inbound"
     cap = TRAM_CAPACITY.get(line, 200)
-    ht = sum(m.inbound_trips for m in stops) if ti > to else sum(m.outbound_trips for m in stops)
+    ht = (
+        sum(m.inbound_trips for m in stops)
+        if ti > to
+        else sum(m.outbound_trips for m in stops)
+    )
     hc = ht * cap
     hu = max(ti, to) / hc if hc > 0 else 0.0
 
     if hu < 0.60:
         return []
 
-    return [Recommendation(
-        type="rebalance", line=line,
-        time_period=period["key"], time_label=period["label"],
-        severity="medium",
-        description=(
-            f"[MEDIUM PRIORITY] {line.capitalize()} Line has a significant direction imbalance "
-            f"during {period['label']}. {hd} demand is {ratio:.1f}x higher than {ld} "
-            f"({max(ti, to):.0f} vs {min(ti, to):.0f} estimated passengers). "
-            f"{hd} utilisation: {hu:.0%}. "
-            f"Action: Reallocate 1 tram per hour from {ld} to {hd} direction "
-            f"to balance capacity with demand."
-        ),
-        details={
-            "heavy_direction": hd, "light_direction": ld,
-            "inbound_pax": round(ti, 0), "outbound_pax": round(to, 0),
-            "imbalance_ratio": round(ratio, 2),
-            "heavy_direction_utilisation": round(hu, 4),
-        },
-    )]
+    return [
+        Recommendation(
+            type="rebalance",
+            line=line,
+            time_period=period["key"],
+            time_label=period["label"],
+            severity="medium",
+            description=(
+                f"[MEDIUM PRIORITY] {line.capitalize()} Line has a significant direction imbalance "
+                f"during {period['label']}. {hd} demand is {ratio:.1f}x higher than {ld} "
+                f"({max(ti, to):.0f} vs {min(ti, to):.0f} estimated passengers). "
+                f"{hd} utilisation: {hu:.0%}. "
+                f"Action: Reallocate 1 tram per hour from {ld} to {hd} direction "
+                f"to balance capacity with demand."
+            ),
+            details={
+                "heavy_direction": hd,
+                "light_direction": ld,
+                "inbound_pax": round(ti, 0),
+                "outbound_pax": round(to, 0),
+                "imbalance_ratio": round(ratio, 2),
+                "heavy_direction_utilisation": round(hu, 4),
+            },
+        )
+    ]
 
 
 # ── Orchestration ─────────────────────────────────────────────────
@@ -592,12 +671,22 @@ def analyse_all_periods() -> list[Recommendation]:
     all_recs = []
 
     for period in TIME_PERIODS:
-        logger.info("Analysing: %s (%02d:00-%02d:00)",
-                     period["key"], period["start"], period["end"])
+        logger.info(
+            "Analysing: %s (%02d:00-%02d:00)",
+            period["key"],
+            period["start"],
+            period["end"],
+        )
 
         metrics = compute_stop_metrics(
-            luas_stops, gtfs_stops, stop_times, hourly_dist,
-            delay_df, daily_pax, period["start"], period["end"],
+            luas_stops,
+            gtfs_stops,
+            stop_times,
+            hourly_dist,
+            delay_df,
+            daily_pax,
+            period["start"],
+            period["end"],
         )
 
         for line in ("red", "green"):
@@ -613,16 +702,28 @@ def analyse_all_periods() -> list[Recommendation]:
 
             logger.info(
                 "  %s: %d stops, avg=%.1f%%, max=%.1f%%, min=%.1f%%",
-                line.capitalize(), len(utils),
+                line.capitalize(),
+                len(utils),
                 100 * sum(utils) / len(utils),
-                100 * max(utils), 100 * min(utils),
+                100 * max(utils),
+                100 * min(utils),
             )
             for s in top3:
-                logger.info("    HIGH: %s — %d trams, %.0f pax, util=%.1f%%",
-                            s.stop_name, s.total_trips, s.est_total_pax, s.utilisation * 100)
+                logger.info(
+                    "    HIGH: %s — %d trams, %.0f pax, util=%.1f%%",
+                    s.stop_name,
+                    s.total_trips,
+                    s.est_total_pax,
+                    s.utilisation * 100,
+                )
             for s in bot3:
-                logger.info("    LOW:  %s — %d trams, %.0f pax, util=%.1f%%",
-                            s.stop_name, s.total_trips, s.est_total_pax, s.utilisation * 100)
+                logger.info(
+                    "    LOW:  %s — %d trams, %.0f pax, util=%.1f%%",
+                    s.stop_name,
+                    s.total_trips,
+                    s.est_total_pax,
+                    s.utilisation * 100,
+                )
 
             all_recs.extend(_detect_frequency_change(metrics, line, period))
             all_recs.extend(_detect_partial_run(metrics, line, period))
@@ -644,9 +745,12 @@ def build_recommendation_json(recs: list[Recommendation]) -> list[dict]:
         {
             "Name": f"{r.line.capitalize()} Line - {r.time_label}",
             "Attributes": {
-                "type": r.type, "line": r.line,
-                "time_period": r.time_period, "time_label": r.time_label,
-                "severity": r.severity, "description": r.description,
+                "type": r.type,
+                "line": r.line,
+                "time_period": r.time_period,
+                "time_label": r.time_label,
+                "severity": r.severity,
+                "description": r.description,
                 **r.details,
             },
         }
@@ -672,9 +776,14 @@ def save_recommendation_to_db(rec_json: list[dict]) -> bool:
         VALUES (:indicator, CAST(:recommendation AS jsonb), :usecase, :simulation,
                 :deleted, :status, NOW())
     """)
-    params = {"indicator": "Tram", "usecase": "utilisation_tram",
-              "recommendation": rec_str, "simulation": "",
-              "deleted": False, "status": "pending"}
+    params = {
+        "indicator": "Tram",
+        "usecase": "utilisation_tram",
+        "recommendation": rec_str,
+        "simulation": "",
+        "deleted": False,
+        "status": "pending",
+    }
 
     with engine.begin() as conn:
         if conn.execute(check, params).fetchone():

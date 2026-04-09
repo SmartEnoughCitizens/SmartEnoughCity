@@ -19,7 +19,7 @@ def test_root() -> None:
         "scheduler": {
             "enabled": True,
             "interval_hours": 1,
-            "data_indicators": ["bus", "car", "train"],
+            "data_indicators": ["bus", "car", "train", "tram"],
         },
         "endpoints": {
             "generate_recommendation": "POST /recommendations/generate",

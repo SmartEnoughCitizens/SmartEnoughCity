@@ -396,6 +396,8 @@ def run_tram_utilisation() -> None:
             logger.info("🚋 Tram recommendations unchanged — skipped duplicate.")
     except Exception:
         logger.exception("❌ Tram utilisation analysis failed")
+
+
 async def scheduled_train_utilisation_task() -> None:
     """
     Runs the full train utilisation pipeline daily at 8 AM and saves
