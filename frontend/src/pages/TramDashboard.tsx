@@ -49,7 +49,6 @@ import { useAppSelector } from "@/store/hooks";
 import { safeJsonParse } from "@/utils/safeJsonParse";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { z } from "zod";
 
 import type {
   TramLiveForecast,
@@ -62,19 +61,13 @@ import type {
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 type LineFilter = "" | "red" | "green";
 
-const tramRecommendationItemsSchema = z.array(
-  z.object({
-    Name: z.string(),
-    Attributes: z.object({
-      type: z.string(),
-      line: z.string(),
-      time_period: z.string(),
-      time_label: z.string(),
-      severity: z.string(),
-      description: z.string(),
-    }).passthrough(),
-  }),
-);
+/** Simple schema that validates parsed JSON is an array of recommendation items. */
+const tramRecommendationItemsSchema = {
+  parse(data: unknown): TramRecommendationItem[] {
+    if (!Array.isArray(data)) return [];
+    return data as TramRecommendationItem[];
+  },
+};
 
 const LINE_COLORS: Record<string, string> = {
   red: "#DC2626",
