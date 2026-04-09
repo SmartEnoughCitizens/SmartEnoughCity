@@ -269,8 +269,8 @@ public class TramDashboardService {
       String gtfsName = luasToGtfs.get(stop.getStopId());
       List<String> gtfsIds = gtfsName != null ? nameToGtfsIds.get(gtfsName) : null;
       if (gtfsIds == null || gtfsIds.isEmpty()) {
-        gtfsIds = findGtfsStopIdsByPartialName(
-            stop.getName().toLowerCase(Locale.ROOT), nameToGtfsIds);
+        gtfsIds =
+            findGtfsStopIdsByPartialName(stop.getName().toLowerCase(Locale.ROOT), nameToGtfsIds);
       }
       int total = 0;
       if (gtfsIds != null) {
@@ -284,19 +284,20 @@ public class TramDashboardService {
     int maxTrips = tripsPerLuasStop.values().stream().mapToInt(v -> v).max().orElse(1);
 
     return luasStops.values().stream()
-        .map(stop -> {
-          int trips = tripsPerLuasStop.getOrDefault(stop.getStopId(), 0);
-          double score = maxTrips > 0 ? (double) trips / maxTrips : 0.0;
-          return TramStopDemandDTO.builder()
-              .stopId(stop.getStopId())
-              .stopName(stop.getName())
-              .line(stop.getLine())
-              .lat(stop.getLat())
-              .lon(stop.getLon())
-              .tripCount(trips)
-              .demandScore(score)
-              .build();
-        })
+        .map(
+            stop -> {
+              int trips = tripsPerLuasStop.getOrDefault(stop.getStopId(), 0);
+              double score = maxTrips > 0 ? (double) trips / maxTrips : 0.0;
+              return TramStopDemandDTO.builder()
+                  .stopId(stop.getStopId())
+                  .stopName(stop.getName())
+                  .line(stop.getLine())
+                  .lat(stop.getLat())
+                  .lon(stop.getLon())
+                  .tripCount(trips)
+                  .demandScore(score)
+                  .build();
+            })
         .collect(Collectors.toList());
   }
 
@@ -310,9 +311,10 @@ public class TramDashboardService {
     List<String> affectedStopIds = new ArrayList<>();
 
     for (TramStopDemandDTO stop : baseDemand) {
-      boolean isAffected = stop.getLine() != null
-          && stop.getLine().toLowerCase(Locale.ROOT).equals(targetLine)
-          && stop.getTripCount() > 0;
+      boolean isAffected =
+          stop.getLine() != null
+              && stop.getLine().toLowerCase(Locale.ROOT).equals(targetLine)
+              && stop.getTripCount() > 0;
 
       if (!isAffected) {
         simulated.add(stop);
@@ -325,15 +327,16 @@ public class TramDashboardService {
       double pressureFactor = Math.exp(-reliefRatio * SIMULATION_SENSITIVITY);
       double newScore = Math.max(0.0, stop.getDemandScore() * pressureFactor);
 
-      simulated.add(TramStopDemandDTO.builder()
-          .stopId(stop.getStopId())
-          .stopName(stop.getStopName())
-          .line(stop.getLine())
-          .lat(stop.getLat())
-          .lon(stop.getLon())
-          .tripCount(stop.getTripCount() + extraTrams)
-          .demandScore(Math.round(newScore * 1_000_000.0) / 1_000_000.0)
-          .build());
+      simulated.add(
+          TramStopDemandDTO.builder()
+              .stopId(stop.getStopId())
+              .stopName(stop.getStopName())
+              .line(stop.getLine())
+              .lat(stop.getLat())
+              .lon(stop.getLon())
+              .tripCount(stop.getTripCount() + extraTrams)
+              .demandScore(Math.round(newScore * 1_000_000.0) / 1_000_000.0)
+              .build());
       affectedStopIds.add(stop.getStopId());
     }
 

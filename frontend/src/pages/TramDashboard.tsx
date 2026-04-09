@@ -460,12 +460,8 @@ export const TramDashboard = () => {
     () => simResult?.simulatedDemand ?? stopDemandData,
     [simResult, stopDemandData],
   );
-  const demandByStopId = useMemo(
-    () => new Map(activeDemand.map((d) => [d.stopId, d])),
-    [activeDemand],
-  );
   const affectedSet = useMemo(
-    () => new Set(simResult?.affectedStopIds ?? []),
+    () => new Set(simResult?.affectedStopIds),
     [simResult],
   );
   const simMetrics = useMemo(() => {
@@ -479,9 +475,13 @@ export const TramDashboard = () => {
       const base = baseMap.get(id);
       const sim = simResult.simulatedDemand.find((d) => d.stopId === id);
       if (!base || !sim || base.demandScore === 0) continue;
-      const relief = ((base.demandScore - sim.demandScore) / base.demandScore) * 100;
+      const relief =
+        ((base.demandScore - sim.demandScore) / base.demandScore) * 100;
       totalRelief += relief;
-      if (relief > peakRelief) { peakRelief = relief; peakStop = sim; }
+      if (relief > peakRelief) {
+        peakRelief = relief;
+        peakStop = sim;
+      }
       validCount++;
     }
     return {
@@ -507,9 +507,9 @@ export const TramDashboard = () => {
     );
   };
 
-  const activeTab = (["live", "delays", "usage", "commonDelays", "simulation"] as const)[
-    tabValue
-  ];
+  const activeTab = (
+    ["live", "delays", "usage", "commonDelays", "simulation"] as const
+  )[tabValue];
   const panelWidth = 400;
 
   if (isLoading) {
@@ -819,8 +819,7 @@ export const TramDashboard = () => {
                   position={[s.lat!, s.lon!]}
                   icon={makeDemandIcon(s.demandScore, isAffected)}
                   eventHandlers={{
-                    click: () =>
-                      handleStopClick(s.lat!, s.lon!, s.stopId),
+                    click: () => handleStopClick(s.lat!, s.lon!, s.stopId),
                   }}
                 >
                   <Popup>
@@ -846,15 +845,19 @@ export const TramDashboard = () => {
                       />
                       {base && isAffected ? (
                         <>
-                          <Typography sx={{ fontSize: "0.72rem", color: "#374151" }}>
+                          <Typography
+                            sx={{ fontSize: "0.72rem", color: "#374151" }}
+                          >
                             Before:{" "}
-                            <strong>{(base.demandScore * 100).toFixed(1)}%</strong>
-                          </Typography>
-                          <Typography sx={{ fontSize: "0.72rem", color: "#059669" }}>
-                            After:{" "}
                             <strong>
-                              {(s.demandScore * 100).toFixed(1)}%
-                            </strong>{" "}
+                              {(base.demandScore * 100).toFixed(1)}%
+                            </strong>
+                          </Typography>
+                          <Typography
+                            sx={{ fontSize: "0.72rem", color: "#059669" }}
+                          >
+                            After:{" "}
+                            <strong>{(s.demandScore * 100).toFixed(1)}%</strong>{" "}
                             (
                             {(
                               ((base.demandScore - s.demandScore) /
@@ -864,13 +867,19 @@ export const TramDashboard = () => {
                             % relief)
                           </Typography>
                           <Typography
-                            sx={{ fontSize: "0.68rem", color: "#6b7280", mt: 0.5 }}
+                            sx={{
+                              fontSize: "0.68rem",
+                              color: "#6b7280",
+                              mt: 0.5,
+                            }}
                           >
                             Trips: {base.tripCount} → {s.tripCount}
                           </Typography>
                         </>
                       ) : (
-                        <Typography sx={{ fontSize: "0.72rem", color: "#374151" }}>
+                        <Typography
+                          sx={{ fontSize: "0.72rem", color: "#374151" }}
+                        >
                           Demand:{" "}
                           <strong>{(s.demandScore * 100).toFixed(1)}%</strong>
                         </Typography>
@@ -1396,13 +1405,15 @@ export const TramDashboard = () => {
                       value={simLine}
                       label="Line"
                       onChange={(e) => {
-                        setSimLine(e.target.value as "red" | "green");
+                        setSimLine(e.target.value);
                         setSimResult(null);
                       }}
                       sx={{ fontSize: "0.8rem" }}
                     >
                       <MenuItem value="red">
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
                           <Box
                             sx={{
                               width: 10,
@@ -1415,7 +1426,9 @@ export const TramDashboard = () => {
                         </Box>
                       </MenuItem>
                       <MenuItem value="green">
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
                           <Box
                             sx={{
                               width: 10,
@@ -1434,7 +1447,9 @@ export const TramDashboard = () => {
                     sx={{ fontSize: "0.75rem", color: "text.secondary" }}
                   >
                     Extra trams:{" "}
-                    <strong style={{ color: "inherit" }}>{simExtraTrams}</strong>
+                    <strong style={{ color: "inherit" }}>
+                      {simExtraTrams}
+                    </strong>
                   </Typography>
                   <Slider
                     value={simExtraTrams}
@@ -1447,7 +1462,7 @@ export const TramDashboard = () => {
                       { value: 20, label: "20" },
                     ]}
                     onChange={(_, v) => {
-                      setSimExtraTrams(v as number);
+                      setSimExtraTrams(Array.isArray(v) ? v[0] : v);
                       setSimResult(null);
                     }}
                     sx={{ mt: 0.5, mb: 1 }}
@@ -1469,7 +1484,10 @@ export const TramDashboard = () => {
                     {simulateMutation.isPending ? "Running…" : "Run Simulation"}
                   </Button>
                   {simulateMutation.isError && (
-                    <Alert severity="error" sx={{ mt: 1, fontSize: "0.72rem", py: 0.25 }}>
+                    <Alert
+                      severity="error"
+                      sx={{ mt: 1, fontSize: "0.72rem", py: 0.25 }}
+                    >
                       Simulation failed
                     </Alert>
                   )}
@@ -1479,7 +1497,12 @@ export const TramDashboard = () => {
                 {simResult && simMetrics && (
                   <Paper
                     variant="outlined"
-                    sx={{ p: 1.5, mb: 1.5, borderRadius: 2, bgcolor: "success.light" + "18" }}
+                    sx={{
+                      p: 1.5,
+                      mb: 1.5,
+                      borderRadius: 2,
+                      bgcolor: "success.light" + "18",
+                    }}
                   >
                     <Typography
                       variant="caption"
@@ -1497,7 +1520,14 @@ export const TramDashboard = () => {
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                       <Box>
-                        <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "0.65rem",
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                          }}
+                        >
                           Stops affected
                         </Typography>
                         <Typography fontWeight={700} sx={{ fontSize: "1rem" }}>
@@ -1505,20 +1535,41 @@ export const TramDashboard = () => {
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "0.65rem",
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                          }}
+                        >
                           Avg relief
                         </Typography>
-                        <Typography fontWeight={700} sx={{ fontSize: "1rem", color: "success.main" }}>
+                        <Typography
+                          fontWeight={700}
+                          sx={{ fontSize: "1rem", color: "success.main" }}
+                        >
                           {simMetrics.avgReliefPct.toFixed(1)}%
                         </Typography>
                       </Box>
                       {simMetrics.peakStop && (
                         <Box>
-                          <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                          <Typography
+                            sx={{
+                              fontSize: "0.65rem",
+                              color: "text.secondary",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.4,
+                            }}
+                          >
                             Peak relief
                           </Typography>
-                          <Typography fontWeight={700} sx={{ fontSize: "0.85rem", color: "success.dark" }}>
-                            {simMetrics.peakStop.stopName} ({simMetrics.peakRelief.toFixed(1)}%)
+                          <Typography
+                            fontWeight={700}
+                            sx={{ fontSize: "0.85rem", color: "success.dark" }}
+                          >
+                            {simMetrics.peakStop.stopName} (
+                            {simMetrics.peakRelief.toFixed(1)}%)
                           </Typography>
                         </Box>
                       )}
@@ -1582,11 +1633,18 @@ export const TramDashboard = () => {
                           </Typography>
                         </Box>
                         <Box sx={{ textAlign: "right", flexShrink: 0 }}>
-                          <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color }}>
+                          <Typography
+                            sx={{ fontSize: "0.75rem", fontWeight: 700, color }}
+                          >
                             {(s.demandScore * 100).toFixed(0)}%
                           </Typography>
                           {relief > 0 && (
-                            <Typography sx={{ fontSize: "0.62rem", color: "success.main" }}>
+                            <Typography
+                              sx={{
+                                fontSize: "0.62rem",
+                                color: "success.main",
+                              }}
+                            >
                               -{relief.toFixed(0)}%
                             </Typography>
                           )}
@@ -1597,7 +1655,9 @@ export const TramDashboard = () => {
 
                 {activeDemand.length === 0 && (
                   <Box sx={{ py: 4, textAlign: "center" }}>
-                    <SpeedIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
+                    <SpeedIcon
+                      sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                    />
                     <Typography color="text.secondary" fontSize="0.8rem">
                       Select a line and run the simulation
                     </Typography>
