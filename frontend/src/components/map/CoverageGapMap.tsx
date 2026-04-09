@@ -143,6 +143,10 @@ interface CoverageGapMapProps {
   onAccept?: (proposalId: number) => void;
   onReject?: (proposalId: number, reason: string) => void;
   isReviewing?: boolean;
+  /** Only Cycle_Provider may submit proposals. */
+  canSubmit?: boolean;
+  /** Role of the current reviewer — controls the primary action button label. */
+  reviewerRole?: string;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -155,6 +159,8 @@ export const CoverageGapMap = ({
   onAccept,
   onReject,
   isReviewing = false,
+  canSubmit = false,
+  reviewerRole,
 }: CoverageGapMapProps) => {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [simulateMode, setSimulateMode] = useState(false);
@@ -486,10 +492,10 @@ export const CoverageGapMap = ({
         />
       )}
 
-      {/* Improvement panel */}
+      {/* Improvement panel — always shown in review mode; otherwise requires at least one improvement */}
       {simulateMode &&
         proposedStations.length > 0 &&
-        improvedCount > 0 &&
+        (improvedCount > 0 || isReviewMode) &&
         (() => {
           // Group improvements by "from → to" transition
           const groups: Record<
@@ -557,9 +563,9 @@ export const CoverageGapMap = ({
                     fontSize: "0.65rem",
                   }}
                 >
-                  {improvedCount} area{improvedCount > 1 ? "s" : ""} improve
-                  with {proposedStations.length} proposed station
-                  {proposedStations.length > 1 ? "s" : ""}
+                  {improvedCount > 0
+                    ? `${improvedCount} area${improvedCount > 1 ? "s" : ""} improved with ${proposedStations.length} proposed station${proposedStations.length > 1 ? "s" : ""}`
+                    : `${proposedStations.length} proposed station${proposedStations.length > 1 ? "s" : ""} — no coverage change detected`}
                 </Typography>
               </Box>
 
@@ -753,7 +759,11 @@ export const CoverageGapMap = ({
                         variant="contained"
                         fullWidth
                         startIcon={
-                          <CheckCircleIcon sx={{ fontSize: "0.85rem" }} />
+                          reviewerRole === "Cycle_Admin" ? (
+                            <SendIcon sx={{ fontSize: "0.85rem" }} />
+                          ) : (
+                            <CheckCircleIcon sx={{ fontSize: "0.85rem" }} />
+                          )
                         }
                         disabled={isReviewing}
                         onClick={() => onAccept?.(reviewProposal?.id ?? 0)}
@@ -765,7 +775,9 @@ export const CoverageGapMap = ({
                           "&:hover": { bgcolor: "#16a34a" },
                         }}
                       >
-                        Accept
+                        {reviewerRole === "Cycle_Admin"
+                          ? "Forward to City Manager"
+                          : "Approve"}
                       </Button>
                       <Button
                         size="small"
@@ -798,9 +810,9 @@ export const CoverageGapMap = ({
                       fontSize: "0.7rem",
                     }}
                   >
-                    ✓ Proposal sent for review
+                    ✓ Proposal sent to Cycle Admin
                   </Typography>
-                ) : (
+                ) : canSubmit ? (
                   <Button
                     fullWidth
                     size="small"
@@ -816,9 +828,9 @@ export const CoverageGapMap = ({
                       "&:hover": { bgcolor: "#2563eb" },
                     }}
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Station Proposal"}
+                    {isSubmitting ? "Submitting..." : "Submit Proposal to Cycle Admin"}
                   </Button>
-                )}
+                ) : null}
               </Box>
             </Paper>
           );
