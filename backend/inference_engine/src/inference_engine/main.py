@@ -23,6 +23,7 @@ from inference_engine.indicators.train.train_utilisation import (
     load_train_station_ridership,
     predict_ridership_2025,
     process_stop_times,
+)
 from inference_engine.indicators.tram.tram_utilisation import (
     analyse_all_periods,
     build_recommendation_json,
