@@ -81,20 +81,39 @@ export const CycleDashboard = () => {
 
   const [reviewingProposal, setReviewingProposal] =
     useState<StationProposalSummary | null>(null);
+  const [reviewedProposalIds, setReviewedProposalIds] = useState<Set<number>>(
+    new Set(),
+  );
 
-  const canReviewProposals =
-    roles.includes("City_Manager") || roles.includes("Cycle_Admin");
+  const isCycleProvider = roles.includes("Cycle_Provider");
+  const isCycleAdmin = roles.includes("Cycle_Admin");
+  const isCityManager = roles.includes("City_Manager");
+
+  const canReviewProposals = isCityManager || isCycleAdmin;
+
+  // City_Manager takes priority over Cycle_Admin (matches backend resolveSubmitterRole order)
+  const reviewerRole = isCityManager ? "City_Manager" : isCycleAdmin ? "Cycle_Admin" : null;
 
   const { data: pendingProposals } = usePendingProposals();
   const { data: acceptedProposals } = useAcceptedProposals();
   const { mutate: reviewProposal, isPending: isReviewing } =
     useReviewProposal();
 
+  // Filter out proposals that have already been acted on locally (before server refetch)
+  const visiblePendingProposals = (pendingProposals ?? []).filter(
+    (p) => !reviewedProposalIds.has(p.id),
+  );
+
   const handleAcceptProposal = (proposalId: number) => {
+    // Cycle_Admin forwards; City_Manager approves — use reviewerRole (priority-aware)
+    const action = reviewerRole === "Cycle_Admin" ? "FORWARD" : "ACCEPTED";
     reviewProposal(
-      { id: proposalId, action: "ACCEPTED", reason: "" },
+      { id: proposalId, action, reason: "" },
       {
-        onSuccess: () => setReviewingProposal(null),
+        onSuccess: () => {
+          setReviewingProposal(null);
+          setReviewedProposalIds((prev) => new Set(prev).add(proposalId));
+        },
       },
     );
   };
@@ -103,7 +122,10 @@ export const CycleDashboard = () => {
     reviewProposal(
       { id: proposalId, action: "REJECTED", reason },
       {
-        onSuccess: () => setReviewingProposal(null),
+        onSuccess: () => {
+          setReviewingProposal(null);
+          setReviewedProposalIds((prev) => new Set(prev).add(proposalId));
+        },
       },
     );
   };
@@ -218,6 +240,8 @@ export const CycleDashboard = () => {
           onAccept={handleAcceptProposal}
           onReject={handleRejectProposal}
           isReviewing={isReviewing}
+          canSubmit={isCycleProvider}
+          reviewerRole={reviewerRole ?? undefined}
         />
       ) : (
         <LiveCycleStationMap
@@ -245,7 +269,7 @@ export const CycleDashboard = () => {
       )}
 
       {/* ── Proposal review tray — left middle, visible on all tabs ── */}
-      {canReviewProposals && (pendingProposals?.length ?? 0) > 0 && (
+      {canReviewProposals && visiblePendingProposals.length > 0 && (
         <Box
           sx={{
             position: "absolute",
@@ -257,7 +281,7 @@ export const CycleDashboard = () => {
           }}
         >
           <ProposalTray
-            proposals={pendingProposals ?? []}
+            proposals={visiblePendingProposals}
             onSelect={(p) => {
               setReviewingProposal(p.id === reviewingProposal?.id ? null : p);
               if (p.id !== reviewingProposal?.id) setTabValue(TAB_COVERAGE);
@@ -409,10 +433,7 @@ export const CycleDashboard = () => {
                 gaps={coverageGaps ?? []}
                 acceptedProposals={acceptedProposals ?? []}
                 isLoading={coverageLoading}
-                isCycleAdmin={
-                  roles.includes("Cycle_Admin") &&
-                  !roles.includes("City_Manager")
-                }
+                isCycleAdmin={isCycleAdmin && !isCityManager}
               />
             )}
           </Box>
