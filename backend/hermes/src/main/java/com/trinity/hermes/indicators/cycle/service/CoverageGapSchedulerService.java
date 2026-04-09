@@ -10,9 +10,9 @@ import org.springframework.stereotype.Service;
 /**
  * Computes cycle coverage gaps and stores them in backend.cycle_coverage_gaps.
  *
- * <p>Joins ev_charging_demand (dwelling counts per electoral division) with small_areas (geometry)
- * to derive ED-level polygons, then finds the nearest Dublin Bikes station for each area and
- * categorises coverage.
+ * <p>Joins ev_charging_demand (dwelling counts per electoral division) with small_areas (geometry,
+ * SRID 4326) to derive ED-level polygons, then finds the nearest Dublin Bikes station for each area
+ * and categorises coverage.
  *
  * <p>Categories:
  *
@@ -89,7 +89,7 @@ public class CoverageGapSchedulerService {
               eg.geom,
               MIN(
                   ST_Distance(
-                      ST_Transform(ST_SetSRID(ST_Centroid(eg.geom), 2157), 4326)::geography,
+                      ST_SetSRID(ST_Centroid(eg.geom), 4326)::geography,
                       ST_SetSRID(ST_MakePoint(st.longitude::float, st.latitude::float), 4326)::geography
                   )
               ) AS min_distance_m
@@ -107,26 +107,30 @@ public class CoverageGapSchedulerService {
           flat_apartment_count,
           house_bungalow_count,
           total_dwellings,
-          ST_Y(ST_Transform(ST_SetSRID(ST_Centroid(geom), 2157), 4326))::double precision,
-          ST_X(ST_Transform(ST_SetSRID(ST_Centroid(geom), 2157), 4326))::double precision,
+          ST_Y(ST_Centroid(geom))::double precision,
+          ST_X(ST_Centroid(geom))::double precision,
           min_distance_m::double precision,
           CASE
-              WHEN min_distance_m > 5000                               THEN 'NO_COVERAGE'
-              WHEN flat_apartment_count > 50 AND min_distance_m > 3000 THEN 'NO_COVERAGE'
-              WHEN flat_apartment_count > 50 AND min_distance_m > 1000 THEN 'POOR_COVERAGE'
-              WHEN flat_apartment_count > 50 AND min_distance_m > 500  THEN 'PARTIAL_COVERAGE'
-              ELSE                                                           'ADEQUATE'
+              WHEN min_distance_m > 5000                                          THEN 'NO_COVERAGE'
+              WHEN flat_apartment_count > 50  AND min_distance_m > 3000           THEN 'NO_COVERAGE'
+              WHEN house_bungalow_count > 200 AND min_distance_m > 3000           THEN 'NO_COVERAGE'
+              WHEN flat_apartment_count > 50  AND min_distance_m > 1000           THEN 'POOR_COVERAGE'
+              WHEN house_bungalow_count > 200 AND min_distance_m > 2000           THEN 'POOR_COVERAGE'
+              WHEN flat_apartment_count > 50  AND min_distance_m > 500            THEN 'PARTIAL_COVERAGE'
+              WHEN house_bungalow_count > 200 AND min_distance_m > 1000           THEN 'PARTIAL_COVERAGE'
+              ELSE                                                                      'ADEQUATE'
           END,
           ROUND(
               CASE
-                  WHEN min_distance_m > 3000 THEN flat_apartment_count::float
-                  WHEN min_distance_m > 1000 THEN flat_apartment_count::float * 0.75
-                  WHEN min_distance_m > 500  THEN flat_apartment_count::float * 0.5
+                  WHEN min_distance_m > 3000 THEN flat_apartment_count::float       + house_bungalow_count::float * 0.4
+                  WHEN min_distance_m > 2000 THEN flat_apartment_count::float * 0.9 + house_bungalow_count::float * 0.3
+                  WHEN min_distance_m > 1000 THEN flat_apartment_count::float * 0.75 + house_bungalow_count::float * 0.2
+                  WHEN min_distance_m > 500  THEN flat_apartment_count::float * 0.5 + house_bungalow_count::float * 0.1
                   ELSE 0
               END
           )::int,
           NOW(),
-          ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_SimplifyPreserveTopology(geom, 5), 2157), 4326), 4)
+          ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.00005), 4)
       FROM nearest_station
       ON CONFLICT (electoral_division) DO UPDATE SET
           flat_apartment_count  = EXCLUDED.flat_apartment_count,

@@ -24,17 +24,13 @@ public class TramController {
   @GetMapping("/api/v1/dashboard/tram")
   public ResponseEntity<Map<String, Object>> getTramData(
       @RequestParam(defaultValue = "200") Integer limit) {
-
     log.info("Dashboard API: Getting tram data with limit: {}", LogSanitizer.sanitizeLog(limit));
-
     try {
       List<TramStopDTO> stops = tramFacade.getStops(limit);
-
       Map<String, Object> response = new HashMap<>();
       response.put("indicatorType", "tram");
       response.put("totalRecords", stops.size());
       response.put("data", stops);
-
       return ResponseEntity.ok(response);
     } catch (Exception e) {
       log.error("Error fetching tram data: {}", e.getMessage(), e);
@@ -71,5 +67,21 @@ public class TramController {
   public ResponseEntity<List<TramHourlyDistributionDTO>> getHourlyDistribution() {
     log.info("GET /api/v1/tram/hourly-distribution");
     return ResponseEntity.ok(tramFacade.getHourlyDistribution());
+  }
+
+  /** Per-stop estimated passenger usage for a time period. */
+  @GetMapping("/api/v1/tram/stop-usage")
+  public ResponseEntity<List<TramStopUsageDTO>> getStopUsage(
+      @RequestParam(defaultValue = "7") int startHour,
+      @RequestParam(defaultValue = "10") int endHour) {
+    log.info("GET /api/v1/tram/stop-usage?startHour={}&endHour={}", startHour, endHour);
+    return ResponseEntity.ok(tramFacade.getStopUsage(startHour, endHour));
+  }
+
+  /** Historical average delay per stop. */
+  @GetMapping("/api/v1/tram/common-delays")
+  public ResponseEntity<List<TramCommonDelayDTO>> getCommonDelays() {
+    log.info("GET /api/v1/tram/common-delays");
+    return ResponseEntity.ok(tramFacade.getCommonDelays());
   }
 }

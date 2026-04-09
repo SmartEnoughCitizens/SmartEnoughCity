@@ -75,6 +75,8 @@ export const API_ENDPOINTS = {
   TRAM_ALTERNATIVE_ROUTES: "/api/v1/tram/alternative-routes",
   TRAM_DELAYS: "/api/v1/tram/delays",
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
+  TRAM_STOP_USAGE: "/api/v1/tram/stop-usage",
+  TRAM_COMMON_DELAYS: "/api/v1/tram/common-delays",
 
   // Cycle Metrics (CycleMetricsController)
   CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
@@ -119,8 +121,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_BIN: (userId: string) => `/api/notification/v1/${userId}/bin`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
 
-  // Misc (Events + Pedestrians)
-  EVENTS: "/api/v1/events",
+  // Pedestrians
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 
   // Disruptions
