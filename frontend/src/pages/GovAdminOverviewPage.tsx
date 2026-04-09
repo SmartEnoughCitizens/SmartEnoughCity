@@ -3,7 +3,14 @@
  * Shows a read-only breakdown of platform users by role type as an org-tree chart.
  */
 
-import { Box, Typography, Paper, Skeleton, Alert, Divider } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Paper,
+  Skeleton,
+  Alert,
+  Divider,
+} from "@mui/material";
 import PeopleIcon from "@mui/icons-material/People";
 import { useGetUserCounts } from "@/hooks";
 
@@ -65,7 +72,12 @@ const OrgTreeChart = ({ counts }: { counts: Record<string, number> }) => {
     <Box sx={{ width: "100%", overflowX: "auto" }}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        style={{ width: "100%", minWidth: 640, height: "auto", display: "block" }}
+        style={{
+          width: "100%",
+          minWidth: 640,
+          height: "auto",
+          display: "block",
+        }}
         aria-label="Platform user hierarchy tree"
       >
         {/* ── Connectors: root → spine ── */}
@@ -82,7 +94,7 @@ const OrgTreeChart = ({ counts }: { counts: Record<string, number> }) => {
         <line
           x1={GROUP_XS[0]}
           y1={SPINE_Y}
-          x2={GROUP_XS[GROUP_XS.length - 1]}
+          x2={GROUP_XS.at(-1)}
           y2={SPINE_Y}
           stroke={C.line}
           strokeWidth={2}
@@ -166,7 +178,7 @@ const OrgTreeChart = ({ counts }: { counts: Record<string, number> }) => {
           const gx = GROUP_XS[i];
           const groupTotal = group.roles.reduce(
             (sum, r) => sum + (counts[r] ?? 0),
-            0
+            0,
           );
           return (
             <g key={`group-${group.label}`}>
@@ -281,7 +293,10 @@ export const GovAdminOverviewPage = () => {
           </Typography>
         </Box>
         {!isLoading && !isError && (
-          <Paper variant="outlined" sx={{ ml: "auto", px: 2, py: 1, borderRadius: 2 }}>
+          <Paper
+            variant="outlined"
+            sx={{ ml: "auto", px: 2, py: 1, borderRadius: 2 }}
+          >
             <Typography variant="caption" color="text.secondary">
               Total users
             </Typography>
@@ -296,7 +311,12 @@ export const GovAdminOverviewPage = () => {
 
       {/* Loading */}
       {isLoading && (
-        <Skeleton variant="rounded" width="100%" height={380} sx={{ borderRadius: 2 }} />
+        <Skeleton
+          variant="rounded"
+          width="100%"
+          height={380}
+          sx={{ borderRadius: 2 }}
+        />
       )}
 
       {/* Error */}
