@@ -450,7 +450,7 @@ export const dashboardApi = {
     );
     return data;
   },
-    getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
+  getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
     const { data } = await axiosInstance.get<StationRiskScoreDTO[]>(
       API_ENDPOINTS.CYCLE_RISK_SCORES,
     );
