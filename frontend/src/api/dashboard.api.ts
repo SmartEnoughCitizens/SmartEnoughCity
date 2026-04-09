@@ -20,7 +20,6 @@ import type {
   CarFuelTypeStat,
   CycleDashboardResponse,
   CycleStation,
-  EventItem,
   HighTrafficPoint,
   HourlyNetworkProfileDTO,
   IndicatorType,
@@ -49,6 +48,8 @@ import type {
   TramLiveForecast,
   TramDelay,
   TramHourlyDistribution,
+  TramStopUsage,
+  TramCommonDelay,
   TramAlternativeRoute,
 } from "@/types";
 
@@ -472,15 +473,27 @@ export const dashboardApi = {
     );
     return data;
   },
+
   /**
-   * Get upcoming events
+   * Get per-stop estimated passenger usage for a time period
    */
-  getEvents: async (limit = 10): Promise<EventItem[]> => {
-    const { data } = await axiosInstance.get<EventItem[]>(
-      API_ENDPOINTS.EVENTS,
-      {
-        params: { limit },
-      },
+  getTramStopUsage: async (
+    startHour: number,
+    endHour: number,
+  ): Promise<TramStopUsage[]> => {
+    const { data } = await axiosInstance.get<TramStopUsage[]>(
+      API_ENDPOINTS.TRAM_STOP_USAGE,
+      { params: { startHour, endHour } },
+    );
+    return data;
+  },
+
+  /**
+   * Get historical average delay per stop
+   */
+  getTramCommonDelays: async (): Promise<TramCommonDelay[]> => {
+    const { data } = await axiosInstance.get<TramCommonDelay[]>(
+      API_ENDPOINTS.TRAM_COMMON_DELAYS,
     );
     return data;
   },

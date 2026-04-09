@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
 export const MISC_KEYS = {
-  events: (limit?: number) => ["misc", "events", { limit }] as const,
   pedestriansLive: (limit?: number) =>
     ["misc", "pedestrians", "live", { limit }] as const,
   disruptionsActive: ["misc", "disruptions", "active"] as const,
@@ -66,6 +65,9 @@ export const DASHBOARD_KEYS = {
   tramLiveForecasts: ["tram", "live-forecasts"] as const,
   tramDelays: ["tram", "delays"] as const,
   tramHourlyDistribution: ["tram", "hourly-distribution"] as const,
+  tramStopUsage: (startHour: number, endHour: number) =>
+    ["tram", "stop-usage", { startHour, endHour }] as const,
+  tramCommonDelays: ["tram", "common-delays"] as const,
 };
 
 /**
@@ -524,14 +526,25 @@ export const useTramHourlyDistribution = () => {
 };
 
 /**
- * Get upcoming events (default 10, show 5 initially)
+ * Get per-stop estimated passenger usage for a time period
  */
-export const useEvents = (limit = 10) => {
+export const useTramStopUsage = (startHour: number, endHour: number) => {
   return useQuery({
-    queryKey: MISC_KEYS.events(limit),
-    queryFn: () => dashboardApi.getEvents(limit),
-    staleTime: 300_000, // 5 minutes — events don't change often
-    refetchInterval: 300_000,
+    queryKey: DASHBOARD_KEYS.tramStopUsage(startHour, endHour),
+    queryFn: () => dashboardApi.getTramStopUsage(startHour, endHour),
+    staleTime: 300_000,
+  });
+};
+
+/**
+ * Get historical average delay per stop (common delays)
+ */
+export const useTramCommonDelays = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramCommonDelays,
+    queryFn: () => dashboardApi.getTramCommonDelays(),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
     refetchIntervalInBackground: true,
   });
 };
