@@ -248,7 +248,12 @@ export const EventMap = ({
         }}
       >
         <Typography
-          sx={{ fontSize: "0.58rem", fontWeight: 700, color: "#374151", mb: 0.2 }}
+          sx={{
+            fontSize: "0.58rem",
+            fontWeight: 700,
+            color: "#374151",
+            mb: 0.2,
+          }}
         >
           VENUE RISK
         </Typography>

@@ -122,7 +122,11 @@ function eventAttendanceLevel(att: number | null): "high" | "medium" | "low" {
   return "low";
 }
 
-const ATTENDANCE_COLORS = { high: "#EF4444", medium: "#F59E0B", low: "#10B981" };
+const ATTENDANCE_COLORS = {
+  high: "#EF4444",
+  medium: "#F59E0B",
+  low: "#10B981",
+};
 
 // ── Mode filter (disruptions tab) ───────────────────────────────────────
 type ModeFilter = "ALL" | "BUS" | "TRAM" | "TRAIN" | "CONGESTION" | "EVENT";
@@ -306,37 +310,62 @@ function DisruptionCard({
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.75, mb: 0.2 }}>
-            <Typography noWrap sx={{ fontSize: "0.875rem", fontWeight: 650, flex: 1 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "baseline", gap: 0.75, mb: 0.2 }}
+          >
+            <Typography
+              noWrap
+              sx={{ fontSize: "0.875rem", fontWeight: 650, flex: 1 }}
+            >
               {d.affectedArea ?? d.name}
             </Typography>
             {d.delayMinutes != null && d.delayMinutes > 0 && (
-              <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color, flexShrink: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  color,
+                  flexShrink: 0,
+                }}
+              >
                 +{d.delayMinutes} min
               </Typography>
             )}
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.2 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.2 }}
+          >
             <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color }}>
               {TYPE_LABELS[d.disruptionType] ?? d.disruptionType}
             </Typography>
             {(d.affectedTransportModes ?? []).length > 0 && (
               <>
-                <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>·</Typography>
-                <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+                <Typography
+                  sx={{ fontSize: "0.65rem", color: "text.disabled" }}
+                >
+                  ·
+                </Typography>
+                <Typography
+                  sx={{ fontSize: "0.72rem", color: "text.secondary" }}
+                >
                   {(d.affectedTransportModes ?? []).join(", ")}
                 </Typography>
               </>
             )}
             {d.notificationSent && (
               <Tooltip title="Notification sent" arrow>
-                <NotificationsActiveIcon sx={{ fontSize: 11, color: "#10B981", ml: 0.25 }} />
+                <NotificationsActiveIcon
+                  sx={{ fontSize: 11, color: "#10B981", ml: 0.25 }}
+                />
               </Tooltip>
             )}
           </Box>
 
-          <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }} noWrap>
+          <Typography
+            sx={{ fontSize: "0.7rem", color: "text.disabled" }}
+            noWrap
+          >
             {fmtTime(d.detectedAt)}
             {eta ? ` · ${eta}` : ""}
           </Typography>
@@ -411,7 +440,14 @@ function EventCard({
         >
           <PeopleIcon sx={{ fontSize: 16 }} />
           {event.estimatedAttendance != null && (
-            <Typography sx={{ fontSize: "0.52rem", fontWeight: 700, lineHeight: 1, color: attColor }}>
+            <Typography
+              sx={{
+                fontSize: "0.52rem",
+                fontWeight: 700,
+                lineHeight: 1,
+                color: attColor,
+              }}
+            >
               {event.estimatedAttendance >= 1000
                 ? `${Math.round(event.estimatedAttendance / 1000)}k`
                 : event.estimatedAttendance}
@@ -420,16 +456,26 @@ function EventCard({
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography noWrap sx={{ fontSize: "0.875rem", fontWeight: 650, mb: 0.2 }}>
+          <Typography
+            noWrap
+            sx={{ fontSize: "0.875rem", fontWeight: 650, mb: 0.2 }}
+          >
             {event.eventName}
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.2 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.2 }}
+          >
             <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color }}>
               {event.eventType}
             </Typography>
-            <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>·</Typography>
+            <Typography sx={{ fontSize: "0.65rem", color: "text.disabled" }}>
+              ·
+            </Typography>
             <LocationOnIcon sx={{ fontSize: 11, color: "text.disabled" }} />
-            <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }} noWrap>
+            <Typography
+              sx={{ fontSize: "0.72rem", color: "text.secondary" }}
+              noWrap
+            >
               {event.venueName}
             </Typography>
           </Box>
@@ -513,7 +559,13 @@ function DaySelector({
 
 // ── Disruption detail panel ─────────────────────────────────────────────
 
-function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
+function DisruptionDetailPanel({
+  id,
+  onClose,
+}: {
+  id: number;
+  onClose: () => void;
+}) {
   const { data, isLoading } = useQuery({
     queryKey: ["disruption", "detail", id],
     queryFn: () => dashboardApi.getDisruptionById(id),
@@ -554,25 +606,48 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
           {modeIcon(data?.affectedTransportModes ?? null, 17)}
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography noWrap sx={{ fontSize: "0.95rem", fontWeight: 750, color: "#fff", lineHeight: 1.2 }}>
+          <Typography
+            noWrap
+            sx={{
+              fontSize: "0.95rem",
+              fontWeight: 750,
+              color: "#fff",
+              lineHeight: 1.2,
+            }}
+          >
             {data?.affectedArea ?? data?.name ?? "Loading…"}
           </Typography>
           {data && (
-            <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.8)" }}>
+            <Typography
+              sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.8)" }}
+            >
               {TYPE_LABELS[data.disruptionType] ?? data.disruptionType}
-              {data.delayMinutes != null && data.delayMinutes > 0 ? ` · +${data.delayMinutes} min` : ""}
+              {data.delayMinutes != null && data.delayMinutes > 0
+                ? ` · +${data.delayMinutes} min`
+                : ""}
               {" · "}
               {fmtTime(data.detectedAt)}
             </Typography>
           )}
         </Box>
-        <IconButton size="small" onClick={onClose} sx={{ color: "#fff", opacity: 0.8 }}>
+        <IconButton
+          size="small"
+          onClick={onClose}
+          sx={{ color: "#fff", opacity: 0.8 }}
+        >
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
 
       {isLoading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flex: 1,
+          }}
+        >
           <CircularProgress size={20} sx={{ color }} />
         </Box>
       ) : (
@@ -593,13 +668,20 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
               display: "flex",
               flexDirection: "column",
               gap: 1.5,
-              borderRight: alternatives.length > 0 ? "1px solid rgba(0,0,0,0.07)" : "none",
+              borderRight:
+                alternatives.length > 0 ? "1px solid rgba(0,0,0,0.07)" : "none",
             }}
           >
             {data?.description && (
               <Box>
                 <SectionLabel>What happened</SectionLabel>
-                <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", lineHeight: 1.6 }}>
+                <Typography
+                  sx={{
+                    fontSize: "0.8rem",
+                    color: "text.secondary",
+                    lineHeight: 1.6,
+                  }}
+                >
                   {data.description}
                 </Typography>
               </Box>
@@ -608,7 +690,9 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
             {causes.length > 0 && (
               <Box>
                 <SectionLabel>Possible causes</SectionLabel>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}
+                >
                   {causes.map((c) => {
                     const cc = CONFIDENCE_COLORS[c.confidence] ?? "#6B7280";
                     return (
@@ -638,13 +722,28 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
                             mt: 0.1,
                           }}
                         >
-                          {CAUSE_ICONS[c.causeType] ?? <WarningAmberIcon sx={{ fontSize: 15 }} />}
+                          {CAUSE_ICONS[c.causeType] ?? (
+                            <WarningAmberIcon sx={{ fontSize: 15 }} />
+                          )}
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", lineHeight: 1.45 }}>
+                          <Typography
+                            sx={{
+                              fontSize: "0.78rem",
+                              color: "text.secondary",
+                              lineHeight: 1.45,
+                            }}
+                          >
                             {c.causeDescription}
                           </Typography>
-                          <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: cc, mt: 0.25 }}>
+                          <Typography
+                            sx={{
+                              fontSize: "0.65rem",
+                              fontWeight: 600,
+                              color: cc,
+                              mt: 0.25,
+                            }}
+                          >
                             {c.confidence} confidence
                           </Typography>
                         </Box>
@@ -664,10 +763,20 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
 
           {/* Right: alternatives */}
           {alternatives.length > 0 && (
-            <Box sx={{ overflow: "auto", px: 2, py: 1.5, display: "flex", flexDirection: "column", gap: 0.75 }}>
+            <Box
+              sx={{
+                overflow: "auto",
+                px: 2,
+                py: 1.5,
+                display: "flex",
+                flexDirection: "column",
+                gap: 0.75,
+              }}
+            >
               <SectionLabel>Nearby alternatives</SectionLabel>
               {alternatives.map((a) => {
-                const mc = ALT_MODE_COLORS[a.mode?.toLowerCase() ?? ""] ?? "#6B7280";
+                const mc =
+                  ALT_MODE_COLORS[a.mode?.toLowerCase() ?? ""] ?? "#6B7280";
                 return (
                   <Box
                     key={a.id}
@@ -678,10 +787,14 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
                       p: 1,
                       borderRadius: 1.5,
                       bgcolor: (t) =>
-                        t.palette.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
+                        t.palette.mode === "dark"
+                          ? "rgba(255,255,255,0.04)"
+                          : "rgba(0,0,0,0.025)",
                       "&:hover": {
                         bgcolor: (t) =>
-                          t.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                          t.palette.mode === "dark"
+                            ? "rgba(255,255,255,0.07)"
+                            : "rgba(0,0,0,0.05)",
                       },
                     }}
                   >
@@ -701,12 +814,20 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
                       {altModeIcon(a.mode, 15)}
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography noWrap sx={{ fontSize: "0.8rem", fontWeight: 550 }}>
+                      <Typography
+                        noWrap
+                        sx={{ fontSize: "0.8rem", fontWeight: 550 }}
+                      >
                         {a.stopName ?? a.description}
                       </Typography>
-                      <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }} noWrap>
+                      <Typography
+                        sx={{ fontSize: "0.68rem", color: "text.disabled" }}
+                        noWrap
+                      >
                         {a.description}
-                        {a.availabilityCount == null ? "" : ` · ${a.availabilityCount} available`}
+                        {a.availabilityCount == null
+                          ? ""
+                          : ` · ${a.availabilityCount} available`}
                       </Typography>
                     </Box>
                     {a.googleMapsWalkingUrl && (
@@ -736,7 +857,13 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
 
 // ── Event detail panel ──────────────────────────────────────────────────
 
-function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () => void }) {
+function EventDetailPanel({
+  event,
+  onClose,
+}: {
+  event: EventItem;
+  onClose: () => void;
+}) {
   const color = eventColor(event.eventType);
   const attLevel = eventAttendanceLevel(event.estimatedAttendance);
   const attColor = ATTENDANCE_COLORS[attLevel];
@@ -745,7 +872,8 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
     DisruptionAlternative[]
   >({
     queryKey: ["event", "nearby-alternatives", event.latitude, event.longitude],
-    queryFn: () => dashboardApi.getNearbyAlternatives(event.latitude!, event.longitude!),
+    queryFn: () =>
+      dashboardApi.getNearbyAlternatives(event.latitude!, event.longitude!),
     staleTime: 120_000,
     enabled: event.latitude != null && event.longitude != null,
   });
@@ -780,14 +908,28 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
           <EventIcon sx={{ fontSize: 17 }} />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography noWrap sx={{ fontSize: "0.95rem", fontWeight: 750, color: "#fff", lineHeight: 1.2 }}>
+          <Typography
+            noWrap
+            sx={{
+              fontSize: "0.95rem",
+              fontWeight: 750,
+              color: "#fff",
+              lineHeight: 1.2,
+            }}
+          >
             {event.eventName}
           </Typography>
-          <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.8)" }}>
+          <Typography
+            sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.8)" }}
+          >
             {event.eventType} · {event.venueName}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose} sx={{ color: "#fff", opacity: 0.8 }}>
+        <IconButton
+          size="small"
+          onClick={onClose}
+          sx={{ color: "#fff", opacity: 0.8 }}
+        >
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -815,8 +957,21 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
           <Box>
             <SectionLabel>Venue</SectionLabel>
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75 }}>
-              <LocationOnIcon sx={{ fontSize: 15, color: "text.disabled", mt: 0.15, flexShrink: 0 }} />
-              <Typography sx={{ fontSize: "0.82rem", color: "text.primary", lineHeight: 1.45 }}>
+              <LocationOnIcon
+                sx={{
+                  fontSize: 15,
+                  color: "text.disabled",
+                  mt: 0.15,
+                  flexShrink: 0,
+                }}
+              />
+              <Typography
+                sx={{
+                  fontSize: "0.82rem",
+                  color: "text.primary",
+                  lineHeight: 1.45,
+                }}
+              >
                 {event.venueName}
               </Typography>
             </Box>
@@ -825,7 +980,9 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
           <Box>
             <SectionLabel>Time</SectionLabel>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-              <AccessTimeIcon sx={{ fontSize: 15, color: "text.disabled", flexShrink: 0 }} />
+              <AccessTimeIcon
+                sx={{ fontSize: 15, color: "text.disabled", flexShrink: 0 }}
+              />
               <Typography sx={{ fontSize: "0.82rem", color: "text.primary" }}>
                 {fmtEventTime(event.startTime)}
                 {event.endTime ? ` – ${fmtEventTime(event.endTime)}` : ""}
@@ -837,8 +994,12 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
             <Box>
               <SectionLabel>Expected attendance</SectionLabel>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                <PeopleIcon sx={{ fontSize: 15, color: attColor, flexShrink: 0 }} />
-                <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: attColor }}>
+                <PeopleIcon
+                  sx={{ fontSize: 15, color: attColor, flexShrink: 0 }}
+                />
+                <Typography
+                  sx={{ fontSize: "0.88rem", fontWeight: 700, color: attColor }}
+                >
                   {event.estimatedAttendance.toLocaleString()}
                 </Typography>
                 <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }}>
@@ -871,7 +1032,8 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
             </Typography>
           ) : (
             nearbyTransport.map((a, idx) => {
-              const mc = ALT_MODE_COLORS[a.mode?.toLowerCase() ?? ""] ?? "#6B7280";
+              const mc =
+                ALT_MODE_COLORS[a.mode?.toLowerCase() ?? ""] ?? "#6B7280";
               return (
                 <Box
                   key={idx}
@@ -882,10 +1044,14 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
                     p: 1,
                     borderRadius: 1.5,
                     bgcolor: (t) =>
-                      t.palette.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
+                      t.palette.mode === "dark"
+                        ? "rgba(255,255,255,0.04)"
+                        : "rgba(0,0,0,0.025)",
                     "&:hover": {
                       bgcolor: (t) =>
-                        t.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                        t.palette.mode === "dark"
+                          ? "rgba(255,255,255,0.07)"
+                          : "rgba(0,0,0,0.05)",
                     },
                   }}
                 >
@@ -905,12 +1071,20 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
                     {altModeIcon(a.mode, 15)}
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography noWrap sx={{ fontSize: "0.8rem", fontWeight: 550 }}>
+                    <Typography
+                      noWrap
+                      sx={{ fontSize: "0.8rem", fontWeight: 550 }}
+                    >
                       {a.stopName ?? a.description}
                     </Typography>
-                    <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }} noWrap>
+                    <Typography
+                      sx={{ fontSize: "0.68rem", color: "text.disabled" }}
+                      noWrap
+                    >
                       {a.description}
-                      {a.availabilityCount == null ? "" : ` · ${a.availabilityCount} available`}
+                      {a.availabilityCount == null
+                        ? ""
+                        : ` · ${a.availabilityCount} available`}
                     </Typography>
                   </Box>
                   {a.googleMapsWalkingUrl && (
@@ -945,14 +1119,19 @@ export const DisruptionDashboard = () => {
   const [detailOpen, setDetailOpen] = useState(false);
 
   // Disruptions state
-  const [selectedDisruptionId, setSelectedDisruptionId] = useState<number | null>(null);
+  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
+    number | null
+  >(null);
   const [modeTab, setModeTab] = useState(0);
 
   // Events state
-  const [tabMode, setTabMode] = useState<"disruptions" | "events">("disruptions");
+  const [tabMode, setTabMode] = useState<"disruptions" | "events">(
+    "disruptions",
+  );
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>(() => isoDateStr(0));
-  const [selectedMapItem, setSelectedMapItem] = useState<SelectedMapItem | null>(null);
+  const [selectedMapItem, setSelectedMapItem] =
+    useState<SelectedMapItem | null>(null);
 
   const theme = useAppSelector((s) => s.ui.theme);
 
@@ -983,7 +1162,8 @@ export const DisruptionDashboard = () => {
         .filter((d) => matchesMode(d, modeFilter))
         .toSorted(
           (a, b) =>
-            (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4),
+            (SEVERITY_ORDER[a.severity] ?? 4) -
+            (SEVERITY_ORDER[b.severity] ?? 4),
         ),
     [disruptions, modeFilter],
   );
@@ -1042,7 +1222,8 @@ export const DisruptionDashboard = () => {
     setSelectedMapItem(null);
   }
 
-  const isLoading = tabMode === "disruptions" ? disruptionsLoading : eventsLoading;
+  const isLoading =
+    tabMode === "disruptions" ? disruptionsLoading : eventsLoading;
   const error = tabMode === "disruptions" ? disruptionsError : null;
 
   // All categories/severities for events map (show everything)
@@ -1136,11 +1317,18 @@ export const DisruptionDashboard = () => {
               }}
             >
               <Typography
-                sx={{ fontSize: "1.1rem", fontWeight: 800, color, lineHeight: 1 }}
+                sx={{
+                  fontSize: "1.1rem",
+                  fontWeight: 800,
+                  color,
+                  lineHeight: 1,
+                }}
               >
                 {value}
               </Typography>
-              <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}>
+              <Typography
+                sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}
+              >
                 {label}
               </Typography>
             </Box>
@@ -1167,7 +1355,9 @@ export const DisruptionDashboard = () => {
                   fontSize: 8,
                   color: disruptions.length > 0 ? "#EF4444" : "#10B981",
                   animation:
-                    disruptions.length > 0 ? "pulse 1.5s ease-in-out infinite" : "none",
+                    disruptions.length > 0
+                      ? "pulse 1.5s ease-in-out infinite"
+                      : "none",
                   "@keyframes pulse": {
                     "0%, 100%": { opacity: 1 },
                     "50%": { opacity: 0.3 },
@@ -1175,10 +1365,14 @@ export const DisruptionDashboard = () => {
                 }}
               />
               <Typography sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
-                {disruptions.length > 0 ? `${disruptions.length} active` : "All clear"}
+                {disruptions.length > 0
+                  ? `${disruptions.length} active`
+                  : "All clear"}
               </Typography>
               {lastUpdated && (
-                <Typography sx={{ fontSize: "0.6rem", color: "text.disabled", ml: 0.25 }}>
+                <Typography
+                  sx={{ fontSize: "0.6rem", color: "text.disabled", ml: 0.25 }}
+                >
                   · {lastUpdated}
                 </Typography>
               )}
@@ -1231,7 +1425,9 @@ export const DisruptionDashboard = () => {
                   display: "flex",
                   flex: 1,
                   bgcolor: (t) =>
-                    t.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                    t.palette.mode === "dark"
+                      ? "rgba(255,255,255,0.07)"
+                      : "rgba(0,0,0,0.05)",
                   borderRadius: 2,
                   p: 0.4,
                   gap: 0.4,
@@ -1252,7 +1448,9 @@ export const DisruptionDashboard = () => {
                         bgcolor: active
                           ? (t) => t.palette.background.paper
                           : "transparent",
-                        boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+                        boxShadow: active
+                          ? "0 1px 3px rgba(0,0,0,0.12)"
+                          : "none",
                         transition: "all 0.15s",
                       }}
                     >
@@ -1358,13 +1556,22 @@ export const DisruptionDashboard = () => {
           {/* List content */}
           {isLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress size={22} sx={{ color: tabMode === "disruptions" ? "#EF4444" : "#6366F1" }} />
+              <CircularProgress
+                size={22}
+                sx={{
+                  color: tabMode === "disruptions" ? "#EF4444" : "#6366F1",
+                }}
+              />
             </Box>
           ) : tabMode === "disruptions" ? (
             filteredDisruptions.length === 0 ? (
               <Box sx={{ px: 2, py: 5, textAlign: "center" }}>
-                <CheckCircleOutlineIcon sx={{ fontSize: 32, color: "#10B981", mb: 1 }} />
-                <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
+                <CheckCircleOutlineIcon
+                  sx={{ fontSize: 32, color: "#10B981", mb: 1 }}
+                />
+                <Typography
+                  sx={{ fontSize: "0.82rem", color: "text.secondary" }}
+                >
                   No disruptions in this category
                 </Typography>
               </Box>
@@ -1378,7 +1585,9 @@ export const DisruptionDashboard = () => {
                       onClick={() => handleDisruptionSelect(d.id)}
                     />
                     {idx < filteredDisruptions.length - 1 && (
-                      <Divider sx={{ borderColor: "rgba(0,0,0,0.05)", ml: 7 }} />
+                      <Divider
+                        sx={{ borderColor: "rgba(0,0,0,0.05)", ml: 7 }}
+                      />
                     )}
                   </Box>
                 ))}
@@ -1426,27 +1635,29 @@ export const DisruptionDashboard = () => {
       )}
 
       {/* Bottom detail panel */}
-      {detailOpen && tabMode === "disruptions" && selectedDisruptionId != null && (
-        <Paper
-          elevation={0}
-          sx={{
-            position: "absolute",
-            bottom: GAP,
-            left: GAP,
-            right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
-            height: DETAIL_HEIGHT,
-            zIndex: 1000,
-            borderRadius: 3,
-            overflow: "hidden",
-            transition: "right 0.2s ease",
-          }}
-        >
-          <DisruptionDetailPanel
-            id={selectedDisruptionId}
-            onClose={() => setDetailOpen(false)}
-          />
-        </Paper>
-      )}
+      {detailOpen &&
+        tabMode === "disruptions" &&
+        selectedDisruptionId != null && (
+          <Paper
+            elevation={0}
+            sx={{
+              position: "absolute",
+              bottom: GAP,
+              left: GAP,
+              right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
+              height: DETAIL_HEIGHT,
+              zIndex: 1000,
+              borderRadius: 3,
+              overflow: "hidden",
+              transition: "right 0.2s ease",
+            }}
+          >
+            <DisruptionDetailPanel
+              id={selectedDisruptionId}
+              onClose={() => setDetailOpen(false)}
+            />
+          </Paper>
+        )}
 
       {detailOpen && tabMode === "events" && selectedEvent != null && (
         <Paper
@@ -1471,45 +1682,50 @@ export const DisruptionDashboard = () => {
       )}
 
       {/* Mode impact panel — disruptions mode, nothing selected */}
-      {!detailOpen && tabMode === "disruptions" && !selectedDisruptionId && disruptions.length > 0 && (
-        <Paper
-          elevation={0}
-          sx={{
-            position: "absolute",
-            bottom: GAP,
-            left: GAP,
-            right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
-            height: 200,
-            zIndex: 1000,
-            borderRadius: 3,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            transition: "right 0.2s ease",
-          }}
-        >
-          <Box
+      {!detailOpen &&
+        tabMode === "disruptions" &&
+        !selectedDisruptionId &&
+        disruptions.length > 0 && (
+          <Paper
+            elevation={0}
             sx={{
-              px: 2,
-              py: 1,
-              borderBottom: "1px solid rgba(0,0,0,0.07)",
-              flexShrink: 0,
+              position: "absolute",
+              bottom: GAP,
+              left: GAP,
+              right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
+              height: 200,
+              zIndex: 1000,
+              borderRadius: 3,
+              overflow: "hidden",
               display: "flex",
-              alignItems: "center",
+              flexDirection: "column",
+              transition: "right 0.2s ease",
             }}
           >
-            <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, flex: 1 }}>
-              Mode Impact
-            </Typography>
-            <Typography sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
-              Select a disruption for causes & alternatives
-            </Typography>
-          </Box>
-          <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-            <RippleEffectVisualization disruptions={disruptions} />
-          </Box>
-        </Paper>
-      )}
+            <Box
+              sx={{
+                px: 2,
+                py: 1,
+                borderBottom: "1px solid rgba(0,0,0,0.07)",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Typography
+                sx={{ fontSize: "0.875rem", fontWeight: 700, flex: 1 }}
+              >
+                Mode Impact
+              </Typography>
+              <Typography sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
+                Select a disruption for causes & alternatives
+              </Typography>
+            </Box>
+            <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+              <RippleEffectVisualization disruptions={disruptions} />
+            </Box>
+          </Paper>
+        )}
     </Box>
   );
 };

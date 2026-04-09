@@ -111,11 +111,7 @@ function makeAltIcon(color: string): L.DivIcon {
   });
 }
 
-function FitBounds({
-  points,
-}: {
-  points: [number, number][];
-}) {
+function FitBounds({ points }: { points: [number, number][] }) {
   const map = useMap();
   if (points.length > 1) {
     map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
@@ -138,8 +134,16 @@ function formatTime(iso: string | null): string {
 function CauseRow({ cause }: { cause: DisruptionCause }) {
   return (
     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, py: 0.5 }}>
-      <Box sx={{ color: CONFIDENCE_COLORS[cause.confidence], mt: 0.2, flexShrink: 0 }}>
-        {CAUSE_ICONS[cause.causeType] ?? <WarningAmberIcon sx={{ fontSize: 18 }} />}
+      <Box
+        sx={{
+          color: CONFIDENCE_COLORS[cause.confidence],
+          mt: 0.2,
+          flexShrink: 0,
+        }}
+      >
+        {CAUSE_ICONS[cause.causeType] ?? (
+          <WarningAmberIcon sx={{ fontSize: 18 }} />
+        )}
       </Box>
       <Typography sx={{ fontSize: "0.9rem", color: "#374151", flex: 1 }}>
         {cause.causeDescription}
@@ -286,14 +290,13 @@ export const PublicDisruptionPage = () => {
   const severityColor = SEVERITY_COLORS[disruption.severity] ?? "#6B7280";
   const causes = disruption.causes ?? [];
   const alternatives = (disruption.alternatives ?? []).filter(
-    (a) => a.lat != null && a.lon != null
+    (a) => a.lat != null && a.lon != null,
   );
   const hasMap = disruption.latitude != null && disruption.longitude != null;
 
   // All points for map bounds: disruption + all alternatives
   const mapPoints: [number, number][] = [];
-  if (hasMap)
-    mapPoints.push([disruption.latitude!, disruption.longitude!]);
+  if (hasMap) mapPoints.push([disruption.latitude!, disruption.longitude!]);
   for (const a of alternatives) {
     if (a.lat != null && a.lon != null) mapPoints.push([a.lat, a.lon]);
   }
@@ -323,7 +326,9 @@ export const PublicDisruptionPage = () => {
           >
             SERVICE DISRUPTION
           </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.85)", fontSize: "0.82rem" }}>
+          <Typography
+            sx={{ color: "rgba(255,255,255,0.85)", fontSize: "0.82rem" }}
+          >
             {disruption.affectedArea}
             {disruption.detectedAt
               ? ` · Detected ${formatTime(disruption.detectedAt)}`
