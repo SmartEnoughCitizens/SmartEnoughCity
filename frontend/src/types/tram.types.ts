@@ -80,3 +80,35 @@ export interface TramCommonDelay {
   lat: number | null;
   lon: number | null;
 }
+
+export interface TramRecommendation {
+  id: number;
+  indicator: string;
+  recommendation: string; // JSON string — array of recommendation objects
+  usecase: string;
+  simulation: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  deleted: boolean;
+  status: string;
+}
+
+/** Parsed shape of a single item inside the recommendation JSON array. */
+export interface TramRecommendationItem {
+  Name: string;
+  Attributes: {
+    type:
+      | "add_frequency"
+      | "reduce_frequency"
+      | "partial_run"
+      | "rebalance"
+      | "monitor";
+    line: string;
+    time_period: string;
+    time_label: string;
+    severity: "high" | "medium" | "low" | "very_low";
+    description: string;
+    [key: string]: unknown; // extra detail fields vary by type
+  };
+}
+ 

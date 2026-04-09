@@ -2,7 +2,7 @@
  * Tram dashboard — matches CycleDashboard design
  * Right-side floating panel, MUI Tabs, theme-aware
  *
- * 4 tabs: Live | Delays | Usage | Common Delays
+ * 5 tabs: Live | Delays | Usage | Common Delays | Recommendations
  * Map: Live/Delays=standard, Usage=sized markers, CommonDelays=delay-sized markers
  */
 
@@ -35,6 +35,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import HistoryIcon from "@mui/icons-material/History";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import {
   useTramKpis,
@@ -42,12 +43,17 @@ import {
   useTramDelays,
   useTramStopUsage,
   useTramCommonDelays,
+  useTramRecommendations,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import type { TramLiveForecast, TramStopUsage } from "@/types";
+import type {
+  TramLiveForecast,
+  TramStopUsage,
+  TramRecommendationItem,
+} from "@/types";
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -301,6 +307,22 @@ export const TramDashboard = () => {
     selectedPeriod.endHour,
   );
   const { data: commonDelays } = useTramCommonDelays();
+  const { data: rawRecommendations } = useTramRecommendations();
+
+  // Parse the recommendation JSON strings into typed items
+  const recommendations = useMemo(() => {
+    if (!rawRecommendations || rawRecommendations.length === 0) return [];
+    const items: TramRecommendationItem[] = [];
+    for (const rec of rawRecommendations) {
+      try {
+        const parsed = JSON.parse(rec.recommendation) as TramRecommendationItem[];
+        items.push(...parsed);
+      } catch {
+        // skip malformed entries
+      }
+    }
+    return items;
+  }, [rawRecommendations]);
 
   useEffect(() => {
     const el = document.createElement("style");
@@ -404,6 +426,17 @@ export const TramDashboard = () => {
         )
       : byLine;
   })();
+  const filteredRecommendations = (() => {
+    const base = recommendations ?? [];
+    const byLine = lineFilter
+      ? base.filter((r) => r.Attributes.line === lineFilter)
+      : base;
+    return search.trim()
+      ? byLine.filter((r) =>
+          r.Attributes.description.toLowerCase().includes(search.toLowerCase()),
+        )
+      : byLine;
+  })();
 
   const handleStopClick = useCallback(
     (lat: number, lon: number, stopId: string) => {
@@ -413,7 +446,7 @@ export const TramDashboard = () => {
     [],
   );
 
-  const activeTab = (["live", "delays", "usage", "commonDelays"] as const)[
+  const activeTab = (["live", "delays", "usage", "commonDelays", "recommendations"] as const)[
     tabValue
   ];
   const panelWidth = 400;
@@ -445,8 +478,8 @@ export const TramDashboard = () => {
         <TileLayer attribution={tileAttr} url={tileUrl} />
         <MapController target={flyTarget} />
 
-        {/* Live → standard markers */}
-        {activeTab === "live" &&
+        {/* Live + Recommendations → standard markers */}
+        {(activeTab === "live" || activeTab === "recommendations") &&
           allStops.map((stop) => (
             <Marker
               key={stop.name}
@@ -784,7 +817,8 @@ export const TramDashboard = () => {
           <Tabs
             value={tabValue}
             onChange={(_, v) => setTabValue(v)}
-            variant="fullWidth"
+            variant="scrollable"
+            scrollButtons="auto"
             sx={{
               minHeight: 36,
               px: 1,
@@ -792,13 +826,15 @@ export const TramDashboard = () => {
                 minHeight: 36,
                 fontSize: "0.72rem",
                 textTransform: "none",
+                minWidth: 60,
               },
             }}
           >
             <Tab label={`Live (${filteredForecasts.length})`} />
             <Tab label={`Delays (${filteredDelays.length})`} />
             <Tab label={`Usage (${filteredUsage.length})`} />
-            <Tab label={`Common Delays (${filteredCommonDelays.length})`} />
+            <Tab label={`Delays H. (${filteredCommonDelays.length})`} />
+            <Tab label={`Recs (${filteredRecommendations.length})`} />
           </Tabs>
 
           {/* Line filter + Search */}
@@ -1233,6 +1269,131 @@ export const TramDashboard = () => {
                 </Typography>
               </Box>
             )}
+
+            {/* RECOMMENDATIONS */}
+            {tabValue === 4 &&
+              filteredRecommendations.map((r, idx) => {
+                const a = r.Attributes;
+                const sevColor =
+                  a.severity === "high"
+                    ? "error.main"
+                    : a.severity === "medium"
+                      ? "warning.main"
+                      : a.severity === "low"
+                        ? "info.main"
+                        : "#78909C"; // very_low — grey-blue
+                const sevLabel =
+                  a.severity === "high"
+                    ? "High"
+                    : a.severity === "medium"
+                      ? "Medium"
+                      : a.severity === "low"
+                        ? "Low"
+                        : "Very Low";
+                const typeLabel =
+                  a.type === "add_frequency"
+                    ? "Add Trams"
+                    : a.type === "reduce_frequency"
+                      ? "Reduce Trams"
+                      : a.type === "partial_run"
+                        ? "Short Run"
+                        : a.type === "monitor"
+                          ? "Monitor"
+                          : "Rebalance";
+                return (
+                  <Box
+                    key={idx}
+                    sx={{
+                      mx: 1,
+                      mb: 1,
+                      p: 1.5,
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 0.75,
+                        alignItems: "center",
+                        mb: 0.75,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Chip
+                        size="small"
+                        label={sevLabel}
+                        sx={{
+                          fontSize: "0.6rem",
+                          height: 18,
+                          fontWeight: 700,
+                          bgcolor: sevColor,
+                          color: "#fff",
+                        }}
+                      />
+                      <Chip
+                        size="small"
+                        label={typeLabel}
+                        sx={{
+                          fontSize: "0.6rem",
+                          height: 18,
+                          fontWeight: 600,
+                          bgcolor: "action.selected",
+                          color: "text.primary",
+                        }}
+                      />
+                      <Chip
+                        size="small"
+                        label={a.line.charAt(0).toUpperCase() + a.line.slice(1)}
+                        sx={{
+                          fontSize: "0.6rem",
+                          height: 18,
+                          bgcolor:
+                            LINE_COLORS[a.line]
+                              ? LINE_COLORS[a.line] + "22"
+                              : "action.hover",
+                          color: LINE_COLORS[a.line] ?? "text.primary",
+                          border: `1px solid ${(LINE_COLORS[a.line] ?? "#607D8B") + "44"}`,
+                        }}
+                      />
+                      <Chip
+                        size="small"
+                        label={a.time_label}
+                        sx={{
+                          fontSize: "0.6rem",
+                          height: 18,
+                          bgcolor: "action.hover",
+                          color: "text.secondary",
+                        }}
+                      />
+                    </Box>
+                    <Typography sx={{ fontSize: "0.78rem", lineHeight: 1.5 }}>
+                      {a.description}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            {tabValue === 4 && filteredRecommendations.length === 0 && (
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <LightbulbIcon
+                  sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                />
+                <Typography color="text.secondary" fontSize="0.8rem">
+                  No recommendations available
+                </Typography>
+                <Typography
+                  color="text.disabled"
+                  fontSize="0.7rem"
+                  sx={{ mt: 0.5 }}
+                >
+                  Recommendations are generated when utilisation analysis
+                  detects service change opportunities
+                </Typography>
+              </Box>
+            )}
+
           </Box>
         </Paper>
       )}

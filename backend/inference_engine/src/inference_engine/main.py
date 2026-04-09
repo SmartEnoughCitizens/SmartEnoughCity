@@ -17,7 +17,7 @@ from inference_engine.settings.api_settings import get_api_settings
 # app = FastAPI()
 
 FETCH_INTERVAL_HOURS = 1  # Fetch data every 1 hour (change to 24 for daily)
-DATA_INDICATORS = ["bus", "car", "train"]  # Transport types to process
+DATA_INDICATORS = ["bus", "car", "train", "tram"]  # Transport types to process
 
 
 @asynccontextmanager
@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
 
 
 # Initialize scheduler
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(job_defaults={"misfire_grace_time": 3600})
 recommendations_store = {}  # In-memory storage
 app = FastAPI(
     title="Recommendation Engine API",
@@ -272,21 +272,34 @@ class RecommendationService:
         for data_indicator in DATA_INDICATORS:
             try:
                 logger.info("🔄 Processing: %s", data_indicator)
-                rec_id = await self.process_recommendation(
-                    data_indicator=data_indicator,
-                    context={
-                        "source": "scheduled_task",
-                        "scheduled_at": datetime.utcnow().isoformat(),
-                    },
-                )
-                results["successful"] += 1
-                results["details"].append(
-                    {
-                        "data_indicator": data_indicator,
-                        "status": "success",
-                        "recommendation_id": rec_id,
-                    }
-                )
+
+                # Tram uses its own DB-direct analysis, not the Hermes API
+                if data_indicator == "tram":
+                    run_tram_utilisation()
+                    results["successful"] += 1
+                    results["details"].append(
+                        {
+                            "data_indicator": data_indicator,
+                            "status": "success",
+                            "recommendation_id": "tram_utilisation",
+                        }
+                    )
+                else:
+                    rec_id = await self.process_recommendation(
+                        data_indicator=data_indicator,
+                        context={
+                            "source": "scheduled_task",
+                            "scheduled_at": datetime.utcnow().isoformat(),
+                        },
+                    )
+                    results["successful"] += 1
+                    results["details"].append(
+                        {
+                            "data_indicator": data_indicator,
+                            "status": "success",
+                            "recommendation_id": rec_id,
+                        }
+                    )
             except Exception as e:
                 logger.exception("❌ Failed for %s", data_indicator)
                 results["failed"] += 1
@@ -331,17 +344,46 @@ async def scheduled_recommendation_task() -> None:
         logger.exception("❌ Scheduled task failed")
 
 
+def run_tram_utilisation() -> None:
+    """
+    Run tram utilisation analysis and save recommendations to DB.
+    Called by the scheduler once every 24 hours.
+    """
+    try:
+        from inference_engine.indicators.tram.tram_utilisation import (
+            analyse_all_periods,
+            build_recommendation_json,
+            save_recommendation_to_db,
+        )
+
+        logger.info("🚋 Running scheduled tram utilisation analysis...")
+        recs = analyse_all_periods()
+
+        if not recs:
+            logger.info("🚋 No tram recommendations generated.")
+            return
+
+        rec_json = build_recommendation_json(recs)
+        inserted = save_recommendation_to_db(rec_json)
+        if inserted:
+            logger.info("🚋 Saved %d tram recommendations to DB.", len(recs))
+        else:
+            logger.info("🚋 Tram recommendations unchanged — skipped duplicate.")
+    except Exception:
+        logger.exception("❌ Tram utilisation analysis failed")
+
+
 def start_scheduler() -> None:
     """
     Initialize and start the scheduler
     """
     logger.info("🕐 Initializing scheduler...")
 
-    # Add the scheduled job
+    # Add the scheduled job — processes all indicators including tram
     scheduler.add_job(
         scheduled_recommendation_task,
         ##trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
-        trigger=IntervalTrigger(minutes=1),
+        trigger=IntervalTrigger(hours=24),
         id="fetch_recommendations",
         name="Fetch and generate recommendations",
         replace_existing=True,

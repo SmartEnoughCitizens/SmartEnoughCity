@@ -60,6 +60,7 @@ export const DASHBOARD_KEYS = {
   tramStopUsage: (startHour: number, endHour: number) =>
     ["tram", "stop-usage", { startHour, endHour }] as const,
   tramCommonDelays: ["tram", "common-delays"] as const,
+  tramRecommendations: ["tram", "recommendations"] as const,
 };
 
 /**
@@ -472,6 +473,19 @@ export const useTramCommonDelays = () => {
     queryFn: () => dashboardApi.getTramCommonDelays(),
     staleTime: 60_000,
     refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get tram service change recommendations
+ */
+export const useTramRecommendations = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramRecommendations,
+    queryFn: () => dashboardApi.getTramRecommendations(),
+    staleTime: 120_000, // 2 minutes
+    refetchInterval: 120_000,
     refetchIntervalInBackground: true,
   });
 };

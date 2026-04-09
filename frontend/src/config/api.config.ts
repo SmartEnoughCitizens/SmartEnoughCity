@@ -67,6 +67,7 @@ export const API_ENDPOINTS = {
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
   TRAM_STOP_USAGE: "/api/v1/tram/stop-usage",
   TRAM_COMMON_DELAYS: "/api/v1/tram/common-delays",
+  TRAM_RECOMMENDATIONS: "/api/v1/tram/recommendations",
 
   // Cycle Metrics (CycleMetricsController)
   CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",

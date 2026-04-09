@@ -42,6 +42,7 @@ import type {
   TramHourlyDistribution,
   TramStopUsage,
   TramCommonDelay,
+  TramRecommendation,
 } from "@/types";
 
 export const dashboardApi = {
@@ -423,6 +424,16 @@ export const dashboardApi = {
   getTramCommonDelays: async (): Promise<TramCommonDelay[]> => {
     const { data } = await axiosInstance.get<TramCommonDelay[]>(
       API_ENDPOINTS.TRAM_COMMON_DELAYS,
+    );
+    return data;
+  },
+
+  /**
+   * Get tram service change recommendations
+   */
+  getTramRecommendations: async (): Promise<TramRecommendation[]> => {
+    const { data } = await axiosInstance.get<TramRecommendation[]>(
+      API_ENDPOINTS.TRAM_RECOMMENDATIONS,
     );
     return data;
   },
