@@ -111,17 +111,21 @@ public class CoverageGapSchedulerService {
           ST_X(ST_Centroid(geom))::double precision,
           min_distance_m::double precision,
           CASE
-              WHEN min_distance_m > 5000                               THEN 'NO_COVERAGE'
-              WHEN flat_apartment_count > 50 AND min_distance_m > 3000 THEN 'NO_COVERAGE'
-              WHEN flat_apartment_count > 50 AND min_distance_m > 1000 THEN 'POOR_COVERAGE'
-              WHEN flat_apartment_count > 50 AND min_distance_m > 500  THEN 'PARTIAL_COVERAGE'
-              ELSE                                                           'ADEQUATE'
+              WHEN min_distance_m > 5000                                          THEN 'NO_COVERAGE'
+              WHEN flat_apartment_count > 50  AND min_distance_m > 3000           THEN 'NO_COVERAGE'
+              WHEN house_bungalow_count > 200 AND min_distance_m > 3000           THEN 'NO_COVERAGE'
+              WHEN flat_apartment_count > 50  AND min_distance_m > 1000           THEN 'POOR_COVERAGE'
+              WHEN house_bungalow_count > 200 AND min_distance_m > 2000           THEN 'POOR_COVERAGE'
+              WHEN flat_apartment_count > 50  AND min_distance_m > 500            THEN 'PARTIAL_COVERAGE'
+              WHEN house_bungalow_count > 200 AND min_distance_m > 1000           THEN 'PARTIAL_COVERAGE'
+              ELSE                                                                      'ADEQUATE'
           END,
           ROUND(
               CASE
-                  WHEN min_distance_m > 3000 THEN flat_apartment_count::float
-                  WHEN min_distance_m > 1000 THEN flat_apartment_count::float * 0.75
-                  WHEN min_distance_m > 500  THEN flat_apartment_count::float * 0.5
+                  WHEN min_distance_m > 3000 THEN flat_apartment_count::float       + house_bungalow_count::float * 0.4
+                  WHEN min_distance_m > 2000 THEN flat_apartment_count::float * 0.9 + house_bungalow_count::float * 0.3
+                  WHEN min_distance_m > 1000 THEN flat_apartment_count::float * 0.75 + house_bungalow_count::float * 0.2
+                  WHEN min_distance_m > 500  THEN flat_apartment_count::float * 0.5 + house_bungalow_count::float * 0.1
                   ELSE 0
               END
           )::int,
