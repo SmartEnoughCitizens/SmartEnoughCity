@@ -10,6 +10,8 @@ export const MISC_KEYS = {
   pedestriansLive: (limit?: number) =>
     ["misc", "pedestrians", "live", { limit }] as const,
   disruptionsActive: ["misc", "disruptions", "active"] as const,
+  events: (limit?: number) =>
+    ["misc", "events", { limit }] as const,
 };
 
 export const DASHBOARD_KEYS = {
@@ -703,7 +705,7 @@ export const useReviewProposal = () => {
  * Get upcoming city events for the next N days (default 7).
  * Refreshed every 5 minutes; stale data shown while refetching.
  */
-export const useEvents = (days = 7) => {
+export const useUpcomingEvents = (days = 7) => {
   return useQuery<EventItem[]>({
     queryKey: ["events", days],
     queryFn: () => dashboardApi.getUpcomingEvents(days),

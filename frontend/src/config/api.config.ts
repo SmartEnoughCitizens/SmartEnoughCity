@@ -125,7 +125,8 @@ export const API_ENDPOINTS = {
   // Pedestrians
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 
-  // Events
+// Events
+  EVENTS: "/api/v1/events",
   EVENTS_UPCOMING: "/api/v1/events",
 
   // Disruptions
