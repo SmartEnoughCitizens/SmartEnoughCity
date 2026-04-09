@@ -26,6 +26,14 @@ public interface BusRidershipRepository extends JpaRepository<BusRidership, Inte
 
   @Query(
       value =
+          "SELECT DISTINCT ON (vehicle_id) * FROM external_data.bus_ridership"
+              + " WHERE timestamp >= NOW() - INTERVAL '2 hours'"
+              + " ORDER BY vehicle_id, timestamp DESC",
+      nativeQuery = true)
+  List<BusRidership> findRecentPerVehicle();
+
+  @Query(
+      value =
           "SELECT AVG(passengers_onboard::float / NULLIF(vehicle_capacity, 0))"
               + " FROM external_data.bus_ridership r"
               + " INNER JOIN external_data.bus_trips t ON r.trip_id = t.id"
