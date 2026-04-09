@@ -8,7 +8,6 @@ from typing import Any
 
 import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
@@ -16,9 +15,6 @@ from pydantic import BaseModel
 from inference_engine.db import engine as db_engine
 from inference_engine.ev_router import router as ev_router
 from inference_engine.indicators.cycle.risk_engine import run as run_cycle_risk
-from inference_engine.settings.api_settings import get_api_settings
-from inference_engine.train_router import router as train_router
-from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
 from inference_engine.indicators.train.train_utilisation import (
     build_utilisation_json,
     compute_utilisation,
@@ -29,6 +25,9 @@ from inference_engine.indicators.train.train_utilisation import (
     process_stop_times,
     save_recommendation_to_db,
 )
+from inference_engine.settings.api_settings import get_api_settings
+from inference_engine.train_router import router as train_router
+from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
 
 # app = FastAPI()
 
