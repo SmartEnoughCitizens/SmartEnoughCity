@@ -641,15 +641,6 @@ export const dashboardApi = {
     return data;
   },
 
-  updateImplementationStatus: async (
-    id: number,
-    status: string,
-  ): Promise<void> => {
-    await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_IMPL_STATUS(id), {
-      status,
-    });
-  },
-
   reviewProposal: async (
     id: number,
     action: string,
