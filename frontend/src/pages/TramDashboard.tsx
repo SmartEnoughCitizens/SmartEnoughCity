@@ -2,8 +2,9 @@
  * Tram dashboard — matches CycleDashboard design
  * Right-side floating panel, MUI Tabs, theme-aware
  *
- * 4 tabs: Live | Delays | Usage | Common Delays
- * Map: Live/Delays=standard, Usage=sized markers, CommonDelays=delay-sized markers
+ * 5 tabs: Live | Delays | Usage | Common Delays | Simulation
+ * Map: Live/Delays=standard, Usage=sized markers, CommonDelays=delay-sized markers,
+ *      Simulation=demand-coloured markers
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -22,6 +23,10 @@ import {
   ListItemButton,
   Select,
   MenuItem,
+  Button,
+  Slider,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -35,6 +40,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import HistoryIcon from "@mui/icons-material/History";
+import SpeedIcon from "@mui/icons-material/Speed";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import {
   useTramKpis,
@@ -42,12 +48,14 @@ import {
   useTramDelays,
   useTramStopUsage,
   useTramCommonDelays,
+  useTramStopDemand,
+  useSimulateTramDemand,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import type { TramLiveForecast, TramStopUsage } from "@/types";
+import type { TramLiveForecast, TramStopDemand, TramStopUsage } from "@/types";
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -101,10 +109,13 @@ const TIME_PERIODS = [
 // ── CSS ──────────────────────────────────────────────────────────
 
 const INJECTED_CSS = `
-  .leaflet-popup-content-wrapper { background:rgba(13,17,23,0.96)!important;color:#e6edf3!important;border:1px solid rgba(255,255,255,0.10)!important;border-radius:12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.55)!important; }
+  .leaflet-popup-content-wrapper { background:rgba(13,17,23,0.96)!important;color:#e6edf3!important;border:1px solid rgba(255,255,255,0.10)!important;border-radius:12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.55)!important;padding:0!important; }
   .leaflet-popup-tip { background:rgba(13,17,23,0.96)!important; }
   .leaflet-popup-close-button { color:#8b949e!important;top:8px!important;right:8px!important; }
   .leaflet-popup-content { margin:14px 16px!important; }
+  .tram-sim-popup .leaflet-popup-content-wrapper { background:#fff!important;color:#111827!important;border:1px solid rgba(0,0,0,0.08)!important;border-radius:12px!important;box-shadow:0 6px 24px rgba(0,0,0,0.14)!important; }
+  .tram-sim-popup .leaflet-popup-tip { background:#fff!important; }
+  .tram-sim-popup .leaflet-popup-close-button { color:#6b7280!important; }
   .tram-pin { border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.50),0 0 0 2px rgba(255,255,255,0.20);transition:transform 0.15s ease;cursor:pointer; }
   .tram-pin:hover { transform:scale(1.25); }
 `;
@@ -154,6 +165,26 @@ function makeDelayIcon(avgDelay: number): L.DivIcon {
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2 - 4],
+  });
+}
+
+// ── Demand colour helpers (simulation tab) ────────────────────────
+
+/** hue 120 (green) → 0 (red) based on normalised demand score 0–1 */
+function demandColor(score: number): string {
+  const hue = Math.round((1 - score) * 120);
+  return `hsl(${hue}, 80%, 42%)`;
+}
+
+function makeDemandIcon(score: number, affected: boolean): L.DivIcon {
+  const color = demandColor(score);
+  const ring = affected ? `box-shadow:0 0 0 3px #fff,0 0 0 5px ${color};` : "";
+  return L.divIcon({
+    html: `<div class="tram-pin" style="width:20px;height:20px;background:${color};border:2px solid rgba(255,255,255,0.85);${ring}"></div>`,
+    className: "",
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -14],
   });
 }
 
@@ -290,6 +321,15 @@ export const TramDashboard = () => {
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState("morning");
 
+  // Simulation state
+  const [simLine, setSimLine] = useState<"red" | "green">("red");
+  const [simExtraTrams, setSimExtraTrams] = useState(5);
+  const [simResult, setSimResult] = useState<{
+    baseDemand: TramStopDemand[];
+    simulatedDemand: TramStopDemand[];
+    affectedStopIds: string[];
+  } | null>(null);
+
   const theme = useAppSelector((state) => state.ui.theme);
   const { data: kpis } = useTramKpis();
   const { data: liveForecasts, isLoading, error } = useTramLiveForecasts();
@@ -301,6 +341,8 @@ export const TramDashboard = () => {
     selectedPeriod.endHour,
   );
   const { data: commonDelays } = useTramCommonDelays();
+  const { data: stopDemandData = [] } = useTramStopDemand();
+  const simulateMutation = useSimulateTramDemand();
 
   useEffect(() => {
     const el = document.createElement("style");
@@ -413,7 +455,59 @@ export const TramDashboard = () => {
     [],
   );
 
-  const activeTab = (["live", "delays", "usage", "commonDelays"] as const)[
+  // Simulation helpers
+  const activeDemand: TramStopDemand[] = useMemo(
+    () => simResult?.simulatedDemand ?? stopDemandData,
+    [simResult, stopDemandData],
+  );
+  const demandByStopId = useMemo(
+    () => new Map(activeDemand.map((d) => [d.stopId, d])),
+    [activeDemand],
+  );
+  const affectedSet = useMemo(
+    () => new Set(simResult?.affectedStopIds ?? []),
+    [simResult],
+  );
+  const simMetrics = useMemo(() => {
+    if (!simResult || simResult.affectedStopIds.length === 0) return null;
+    const baseMap = new Map(simResult.baseDemand.map((d) => [d.stopId, d]));
+    let totalRelief = 0;
+    let peakStop: TramStopDemand | null = null;
+    let peakRelief = 0;
+    let validCount = 0;
+    for (const id of simResult.affectedStopIds) {
+      const base = baseMap.get(id);
+      const sim = simResult.simulatedDemand.find((d) => d.stopId === id);
+      if (!base || !sim || base.demandScore === 0) continue;
+      const relief = ((base.demandScore - sim.demandScore) / base.demandScore) * 100;
+      totalRelief += relief;
+      if (relief > peakRelief) { peakRelief = relief; peakStop = sim; }
+      validCount++;
+    }
+    return {
+      count: simResult.affectedStopIds.length,
+      avgReliefPct: validCount > 0 ? totalRelief / validCount : 0,
+      peakStop,
+      peakRelief,
+    };
+  }, [simResult]);
+
+  const handleSimulate = () => {
+    simulateMutation.reset();
+    simulateMutation.mutate(
+      { line: simLine, extraTrams: simExtraTrams },
+      {
+        onSuccess: (res) =>
+          setSimResult({
+            simulatedDemand: res.simulatedDemand,
+            baseDemand: res.baseDemand,
+            affectedStopIds: res.affectedStopIds,
+          }),
+      },
+    );
+  };
+
+  const activeTab = (["live", "delays", "usage", "commonDelays", "simulation"] as const)[
     tabValue
   ];
   const panelWidth = 400;
@@ -441,6 +535,7 @@ export const TramDashboard = () => {
         zoom={12}
         style={{ height: "100%", width: "100%" }}
         zoomControl={false}
+        className={activeTab === "simulation" ? "tram-sim-popup" : undefined}
       >
         <TileLayer attribution={tileAttr} url={tileUrl} />
         <MapController target={flyTarget} />
@@ -708,6 +803,83 @@ export const TramDashboard = () => {
                 </Popup>
               </Marker>
             ))}
+
+        {/* Simulation → demand-coloured markers */}
+        {activeTab === "simulation" &&
+          activeDemand
+            .filter((s) => s.lat != null && s.lon != null)
+            .map((s) => {
+              const isAffected = affectedSet.has(s.stopId);
+              const base = simResult?.baseDemand.find(
+                (b) => b.stopId === s.stopId,
+              );
+              return (
+                <Marker
+                  key={s.stopId}
+                  position={[s.lat!, s.lon!]}
+                  icon={makeDemandIcon(s.demandScore, isAffected)}
+                  eventHandlers={{
+                    click: () =>
+                      handleStopClick(s.lat!, s.lon!, s.stopId),
+                  }}
+                >
+                  <Popup>
+                    <Box sx={{ minWidth: 200 }}>
+                      <Typography
+                        fontWeight={700}
+                        sx={{ fontSize: "0.95rem", color: "#111827", mb: 0.25 }}
+                      >
+                        {s.stopName}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={`${s.line} line`}
+                        sx={{
+                          fontSize: "0.62rem",
+                          height: 16,
+                          textTransform: "capitalize",
+                          bgcolor: LINE_COLORS[s.line] + "22",
+                          color: LINE_COLORS[s.line],
+                          border: `1px solid ${LINE_COLORS[s.line]}44`,
+                          mb: 0.75,
+                        }}
+                      />
+                      {base && isAffected ? (
+                        <>
+                          <Typography sx={{ fontSize: "0.72rem", color: "#374151" }}>
+                            Before:{" "}
+                            <strong>{(base.demandScore * 100).toFixed(1)}%</strong>
+                          </Typography>
+                          <Typography sx={{ fontSize: "0.72rem", color: "#059669" }}>
+                            After:{" "}
+                            <strong>
+                              {(s.demandScore * 100).toFixed(1)}%
+                            </strong>{" "}
+                            (
+                            {(
+                              ((base.demandScore - s.demandScore) /
+                                base.demandScore) *
+                              100
+                            ).toFixed(1)}
+                            % relief)
+                          </Typography>
+                          <Typography
+                            sx={{ fontSize: "0.68rem", color: "#6b7280", mt: 0.5 }}
+                          >
+                            Trips: {base.tripCount} → {s.tripCount}
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography sx={{ fontSize: "0.72rem", color: "#374151" }}>
+                          Demand:{" "}
+                          <strong>{(s.demandScore * 100).toFixed(1)}%</strong>
+                        </Typography>
+                      )}
+                    </Box>
+                  </Popup>
+                </Marker>
+              );
+            })}
       </MapContainer>
 
       {error && (
@@ -798,62 +970,67 @@ export const TramDashboard = () => {
             <Tab label={`Live (${filteredForecasts.length})`} />
             <Tab label={`Delays (${filteredDelays.length})`} />
             <Tab label={`Usage (${filteredUsage.length})`} />
-            <Tab label={`Common Delays (${filteredCommonDelays.length})`} />
+            <Tab label="Common Delays" />
+            <Tab label="Simulation" />
           </Tabs>
 
-          {/* Line filter + Search */}
-          <Box
-            sx={{
-              px: 2,
-              pt: 1.5,
-              display: "flex",
-              gap: 1,
-              alignItems: "center",
-            }}
-          >
-            {(["", "red", "green"] as LineFilter[]).map((key) => {
-              const active = lineFilter === key;
-              const label =
-                key === "" ? "All" : key === "red" ? "Red" : "Green";
-              return (
-                <Chip
-                  key={key || "all"}
+          {/* Line filter + Search — hidden on simulation tab */}
+          {tabValue !== 4 && (
+            <>
+              <Box
+                sx={{
+                  px: 2,
+                  pt: 1.5,
+                  display: "flex",
+                  gap: 1,
+                  alignItems: "center",
+                }}
+              >
+                {(["", "red", "green"] as LineFilter[]).map((key) => {
+                  const active = lineFilter === key;
+                  const label =
+                    key === "" ? "All" : key === "red" ? "Red" : "Green";
+                  return (
+                    <Chip
+                      key={key || "all"}
+                      size="small"
+                      label={label}
+                      onClick={() => setLineFilter(key)}
+                      sx={{
+                        fontSize: "0.7rem",
+                        cursor: "pointer",
+                        bgcolor: active
+                          ? key === ""
+                            ? "primary.main"
+                            : LINE_COLORS[key]
+                          : "action.hover",
+                        color: active ? "#fff" : "text.secondary",
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+              <Box sx={{ px: 2, py: 1 }}>
+                <TextField
                   size="small"
-                  label={label}
-                  onClick={() => setLineFilter(key)}
-                  sx={{
-                    fontSize: "0.7rem",
-                    cursor: "pointer",
-                    bgcolor: active
-                      ? key === ""
-                        ? "primary.main"
-                        : LINE_COLORS[key]
-                      : "action.hover",
-                    color: active ? "#fff" : "text.secondary",
+                  fullWidth
+                  placeholder="Search stops…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ fontSize: 16 }} />
+                        </InputAdornment>
+                      ),
+                      sx: { fontSize: "0.85rem", borderRadius: 2 },
+                    },
                   }}
                 />
-              );
-            })}
-          </Box>
-          <Box sx={{ px: 2, py: 1 }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Search stops…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 16 }} />
-                    </InputAdornment>
-                  ),
-                  sx: { fontSize: "0.85rem", borderRadius: 2 },
-                },
-              }}
-            />
-          </Box>
+              </Box>
+            </>
+          )}
 
           {/* Time period dropdown — Usage tab only */}
           {tabValue === 2 && (
@@ -1191,6 +1368,243 @@ export const TramDashboard = () => {
                   </ListItemButton>
                 );
               })}
+
+            {/* SIMULATION */}
+            {tabValue === 4 && (
+              <Box sx={{ px: 1.5, pt: 1 }}>
+                {/* Controls */}
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1.5, mb: 1.5, borderRadius: 2 }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: "0.7rem",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                      color: "text.secondary",
+                      display: "block",
+                      mb: 1,
+                    }}
+                  >
+                    Add Extra Trams
+                  </Typography>
+                  <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
+                    <InputLabel sx={{ fontSize: "0.8rem" }}>Line</InputLabel>
+                    <Select
+                      value={simLine}
+                      label="Line"
+                      onChange={(e) => {
+                        setSimLine(e.target.value as "red" | "green");
+                        setSimResult(null);
+                      }}
+                      sx={{ fontSize: "0.8rem" }}
+                    >
+                      <MenuItem value="red">
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              bgcolor: "#DC2626",
+                            }}
+                          />
+                          Red Line
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="green">
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              bgcolor: "#16A34A",
+                            }}
+                          />
+                          Green Line
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontSize: "0.75rem", color: "text.secondary" }}
+                  >
+                    Extra trams:{" "}
+                    <strong style={{ color: "inherit" }}>{simExtraTrams}</strong>
+                  </Typography>
+                  <Slider
+                    value={simExtraTrams}
+                    min={1}
+                    max={20}
+                    step={1}
+                    marks={[
+                      { value: 1, label: "1" },
+                      { value: 10, label: "10" },
+                      { value: 20, label: "20" },
+                    ]}
+                    onChange={(_, v) => {
+                      setSimExtraTrams(v as number);
+                      setSimResult(null);
+                    }}
+                    sx={{ mt: 0.5, mb: 1 }}
+                  />
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="small"
+                    onClick={handleSimulate}
+                    disabled={simulateMutation.isPending}
+                    startIcon={
+                      simulateMutation.isPending ? (
+                        <CircularProgress size={14} color="inherit" />
+                      ) : (
+                        <SpeedIcon sx={{ fontSize: 16 }} />
+                      )
+                    }
+                  >
+                    {simulateMutation.isPending ? "Running…" : "Run Simulation"}
+                  </Button>
+                  {simulateMutation.isError && (
+                    <Alert severity="error" sx={{ mt: 1, fontSize: "0.72rem", py: 0.25 }}>
+                      Simulation failed
+                    </Alert>
+                  )}
+                </Paper>
+
+                {/* Results summary */}
+                {simResult && simMetrics && (
+                  <Paper
+                    variant="outlined"
+                    sx={{ p: 1.5, mb: 1.5, borderRadius: 2, bgcolor: "success.light" + "18" }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: "0.7rem",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        color: "success.main",
+                        display: "block",
+                        mb: 0.75,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Simulation Results
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Box>
+                        <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                          Stops affected
+                        </Typography>
+                        <Typography fontWeight={700} sx={{ fontSize: "1rem" }}>
+                          {simMetrics.count}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                          Avg relief
+                        </Typography>
+                        <Typography fontWeight={700} sx={{ fontSize: "1rem", color: "success.main" }}>
+                          {simMetrics.avgReliefPct.toFixed(1)}%
+                        </Typography>
+                      </Box>
+                      {simMetrics.peakStop && (
+                        <Box>
+                          <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                            Peak relief
+                          </Typography>
+                          <Typography fontWeight={700} sx={{ fontSize: "0.85rem", color: "success.dark" }}>
+                            {simMetrics.peakStop.stopName} ({simMetrics.peakRelief.toFixed(1)}%)
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="inherit"
+                      sx={{ mt: 1, fontSize: "0.7rem", py: 0.25 }}
+                      onClick={() => setSimResult(null)}
+                    >
+                      Clear
+                    </Button>
+                  </Paper>
+                )}
+
+                {/* Per-stop demand list */}
+                {activeDemand
+                  .filter((s) => !simLine || s.line === simLine)
+                  .toSorted((a, b) => b.demandScore - a.demandScore)
+                  .map((s) => {
+                    const base = simResult?.baseDemand.find(
+                      (b) => b.stopId === s.stopId,
+                    );
+                    const relief =
+                      base && base.demandScore > 0
+                        ? ((base.demandScore - s.demandScore) /
+                            base.demandScore) *
+                          100
+                        : 0;
+                    const color = demandColor(s.demandScore);
+                    return (
+                      <ListItemButton
+                        key={s.stopId}
+                        onClick={() => {
+                          if (s.lat != null && s.lon != null)
+                            handleStopClick(s.lat, s.lon, s.stopId);
+                        }}
+                        selected={selectedStopId === s.stopId}
+                        sx={{ py: 0.6, px: 1, borderRadius: 1.5, mb: 0.25 }}
+                      >
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: "50%",
+                            bgcolor: color,
+                            flexShrink: 0,
+                            mr: 1.5,
+                            border: affectedSet.has(s.stopId)
+                              ? "2px solid #fff"
+                              : "none",
+                            boxShadow: affectedSet.has(s.stopId)
+                              ? `0 0 0 2px ${color}`
+                              : "none",
+                          }}
+                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography noWrap sx={{ fontSize: "0.8rem" }}>
+                            {s.stopName}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                          <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color }}>
+                            {(s.demandScore * 100).toFixed(0)}%
+                          </Typography>
+                          {relief > 0 && (
+                            <Typography sx={{ fontSize: "0.62rem", color: "success.main" }}>
+                              -{relief.toFixed(0)}%
+                            </Typography>
+                          )}
+                        </Box>
+                      </ListItemButton>
+                    );
+                  })}
+
+                {activeDemand.length === 0 && (
+                  <Box sx={{ py: 4, textAlign: "center" }}>
+                    <SpeedIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
+                    <Typography color="text.secondary" fontSize="0.8rem">
+                      Select a line and run the simulation
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
 
             {/* Empty states */}
             {tabValue === 0 && filteredForecasts.length === 0 && (

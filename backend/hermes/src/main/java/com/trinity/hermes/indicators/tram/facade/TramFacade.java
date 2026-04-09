@@ -45,4 +45,12 @@ public class TramFacade {
   public List<TramCommonDelayDTO> getCommonDelays() {
     return tramDashboardService.getCommonDelays();
   }
+
+  public List<TramStopDemandDTO> getStopDemand() {
+    return tramDashboardService.getStopDemand();
+  }
+
+  public TramDemandSimulateResponseDTO simulateDemand(TramDemandSimulateRequestDTO request) {
+    return tramDashboardService.simulateDemand(request);
+  }
 }

@@ -68,6 +68,7 @@ export const DASHBOARD_KEYS = {
   tramStopUsage: (startHour: number, endHour: number) =>
     ["tram", "stop-usage", { startHour, endHour }] as const,
   tramCommonDelays: ["tram", "common-delays"] as const,
+  tramStopDemand: ["tram", "stop-demand"] as const,
 };
 
 /**
@@ -546,6 +547,23 @@ export const useTramCommonDelays = () => {
     staleTime: 60_000,
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
+  });
+};
+
+/** Trip-frequency demand scores per tram stop (GTFS-derived, static — cache 24 h). */
+export const useTramStopDemand = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramStopDemand,
+    queryFn: () => dashboardApi.getTramStopDemand(),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+};
+
+/** Simulate adding extra trams to a line and get updated demand scores. */
+export const useSimulateTramDemand = () => {
+  return useMutation({
+    mutationFn: dashboardApi.simulateTramDemand,
   });
 };
 

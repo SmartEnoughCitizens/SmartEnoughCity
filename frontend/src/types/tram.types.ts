@@ -91,3 +91,25 @@ export interface TramAlternativeRoute {
   availableBikes?: number;
   capacity?: number;
 }
+
+export interface TramStopDemand {
+  stopId: string;
+  stopName: string;
+  line: string;
+  lat: number | null;
+  lon: number | null;
+  tripCount: number;
+  /** Normalised 0.0 (low) – 1.0 (high) */
+  demandScore: number;
+}
+
+export interface TramDemandSimulateRequest {
+  line: "red" | "green";
+  extraTrams: number;
+}
+
+export interface TramDemandSimulateResponse {
+  baseDemand: TramStopDemand[];
+  simulatedDemand: TramStopDemand[];
+  affectedStopIds: string[];
+}

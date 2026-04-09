@@ -84,4 +84,32 @@ public class TramController {
     log.info("GET /api/v1/tram/common-delays");
     return ResponseEntity.ok(tramFacade.getCommonDelays());
   }
+
+  /** Demand score per stop derived from GTFS trip frequency. */
+  @GetMapping("/api/v1/tram/stop-demand")
+  public ResponseEntity<List<TramStopDemandDTO>> getStopDemand() {
+    log.info("GET /api/v1/tram/stop-demand");
+    try {
+      return ResponseEntity.ok(tramFacade.getStopDemand());
+    } catch (Exception e) {
+      log.error("Error fetching tram stop demand: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  /** Simulate adding extra trams to a line and return updated demand scores. */
+  @PostMapping("/api/v1/tram/stop-demand/simulate")
+  public ResponseEntity<TramDemandSimulateResponseDTO> simulateDemand(
+      @RequestBody TramDemandSimulateRequestDTO request) {
+    log.info(
+        "POST /api/v1/tram/stop-demand/simulate line={} extraTrams={}",
+        request.getLine(),
+        request.getExtraTrams());
+    try {
+      return ResponseEntity.ok(tramFacade.simulateDemand(request));
+    } catch (Exception e) {
+      log.error("Error simulating tram demand: {}", e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
 }

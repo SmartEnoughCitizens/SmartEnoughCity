@@ -25,6 +25,12 @@ public class TramDashboardService {
   private static final double RED_DAILY_PASSENGERS = 110_000.0;
   private static final double GREEN_DAILY_PASSENGERS = 80_000.0;
 
+  // ── Simulation constants ─────────────────────────────────────────
+  // relief_ratio = extraTrams / tripCount
+  // pressure_factor = exp(-relief_ratio * SENSITIVITY)
+  // Tuned so that 10 extra trams on a ~200-trip corridor gives ~30% score relief.
+  private static final double SIMULATION_SENSITIVITY = 8.0;
+
   private final TramStopRepository tramStopRepository;
   private final TramLuasForecastRepository tramLuasForecastRepository;
   private final TramHourlyDistributionRepository tramHourlyDistributionRepository;
@@ -221,6 +227,99 @@ public class TramDashboardService {
         .limit(limit)
         .map(this::mapToStopDTO)
         .collect(Collectors.toList());
+  }
+
+  // ── Demand & Simulation ──────────────────────────────────────────
+
+  @Transactional(readOnly = true)
+  public List<TramStopDemandDTO> getStopDemand() {
+    Map<String, TramStop> luasStops = buildLuasStopsMap();
+    Map<String, List<String>> nameToGtfsIds = buildNameToGtfsIdsMap();
+    Map<String, String> luasToGtfs = buildLuasToGtfsNameMap(luasStops, nameToGtfsIds);
+
+    // Count total daily trips per GTFS stop ID
+    Map<String, Integer> tripsPerGtfsId = new HashMap<>();
+    for (TramStopTime st : tramStopTimeRepository.findAll()) {
+      tripsPerGtfsId.merge(st.getStopId(), 1, Integer::sum);
+    }
+
+    // Map Luas stop → aggregate GTFS trip count
+    Map<String, Integer> tripsPerLuasStop = new HashMap<>();
+    for (TramStop stop : luasStops.values()) {
+      String gtfsName = luasToGtfs.get(stop.getStopId());
+      List<String> gtfsIds = gtfsName != null ? nameToGtfsIds.get(gtfsName) : null;
+      if (gtfsIds == null || gtfsIds.isEmpty()) {
+        gtfsIds = findGtfsStopIdsByPartialName(
+            stop.getName().toLowerCase(Locale.ROOT), nameToGtfsIds);
+      }
+      int total = 0;
+      if (gtfsIds != null) {
+        for (String gid : gtfsIds) {
+          total += tripsPerGtfsId.getOrDefault(gid, 0);
+        }
+      }
+      tripsPerLuasStop.put(stop.getStopId(), total);
+    }
+
+    int maxTrips = tripsPerLuasStop.values().stream().mapToInt(v -> v).max().orElse(1);
+
+    return luasStops.values().stream()
+        .map(stop -> {
+          int trips = tripsPerLuasStop.getOrDefault(stop.getStopId(), 0);
+          double score = maxTrips > 0 ? (double) trips / maxTrips : 0.0;
+          return TramStopDemandDTO.builder()
+              .stopId(stop.getStopId())
+              .stopName(stop.getName())
+              .line(stop.getLine())
+              .lat(stop.getLat())
+              .lon(stop.getLon())
+              .tripCount(trips)
+              .demandScore(score)
+              .build();
+        })
+        .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public TramDemandSimulateResponseDTO simulateDemand(TramDemandSimulateRequestDTO request) {
+    String targetLine = request.getLine() != null ? request.getLine().toLowerCase(Locale.ROOT) : "";
+    int extraTrams = Math.max(1, Math.min(20, request.getExtraTrams()));
+
+    List<TramStopDemandDTO> baseDemand = getStopDemand();
+    List<TramStopDemandDTO> simulated = new ArrayList<>();
+    List<String> affectedStopIds = new ArrayList<>();
+
+    for (TramStopDemandDTO stop : baseDemand) {
+      boolean isAffected = stop.getLine() != null
+          && stop.getLine().toLowerCase(Locale.ROOT).equals(targetLine)
+          && stop.getTripCount() > 0;
+
+      if (!isAffected) {
+        simulated.add(stop);
+        continue;
+      }
+
+      double reliefRatio = (double) extraTrams / Math.max(1, stop.getTripCount());
+      double pressureFactor = Math.exp(-reliefRatio * SIMULATION_SENSITIVITY);
+      double newScore = Math.max(0.0, stop.getDemandScore() * pressureFactor);
+
+      simulated.add(TramStopDemandDTO.builder()
+          .stopId(stop.getStopId())
+          .stopName(stop.getStopName())
+          .line(stop.getLine())
+          .lat(stop.getLat())
+          .lon(stop.getLon())
+          .tripCount(stop.getTripCount() + extraTrams)
+          .demandScore(Math.round(newScore * 1_000_000.0) / 1_000_000.0)
+          .build());
+      affectedStopIds.add(stop.getStopId());
+    }
+
+    return TramDemandSimulateResponseDTO.builder()
+        .baseDemand(baseDemand)
+        .simulatedDemand(simulated)
+        .affectedStopIds(affectedStopIds)
+        .build();
   }
 
   // ── Shared helpers ──────────────────────────────────────────────
