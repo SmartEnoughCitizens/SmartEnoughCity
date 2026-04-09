@@ -3,7 +3,6 @@ package com.trinity.hermes.indicators.cycle.controller;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.*;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
-import com.trinity.hermes.usermanagement.service.UserManagementService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
@@ -327,6 +326,4 @@ public class CycleMetricsController {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
-
-
 }
