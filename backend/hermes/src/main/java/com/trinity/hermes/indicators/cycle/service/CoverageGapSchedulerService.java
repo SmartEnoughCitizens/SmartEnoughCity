@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
  * Computes cycle coverage gaps and stores them in backend.cycle_coverage_gaps.
  *
  * <p>Joins ev_charging_demand (dwelling counts per electoral division) with small_areas (geometry,
- * SRID 4326) to derive ED-level polygons, then finds the nearest Dublin Bikes station for each
- * area and categorises coverage.
+ * SRID 4326) to derive ED-level polygons, then finds the nearest Dublin Bikes station for each area
+ * and categorises coverage.
  *
  * <p>Categories:
  *
