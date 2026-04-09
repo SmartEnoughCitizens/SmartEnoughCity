@@ -3,6 +3,7 @@ package com.trinity.hermes.indicators.cycle.controller;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.cycle.dto.*;
 import com.trinity.hermes.indicators.cycle.service.CycleMetricsService;
+import com.trinity.hermes.usermanagement.service.UserManagementService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class CycleMetricsController {
 
   private final CycleMetricsService cycleMetricsService;
+  private final UserManagementService userManagementService;
 
   // -------------------------------------------------------------------------
   // Live Station Data
@@ -277,22 +279,8 @@ public class CycleMetricsController {
           HttpStatus.BAD_REQUEST, "action must be ACCEPTED or REJECTED");
     }
     try {
-      String reviewerUsername = "unknown";
-      if (jwt != null) {
-        for (String candidate : new String[] {"preferred_username", "email"}) {
-          String claim = jwt.getClaimAsString(candidate);
-          if (claim != null && !claim.isBlank()) {
-            reviewerUsername = claim;
-            break;
-          }
-        }
-        if ("unknown".equals(reviewerUsername)) {
-          String sub = jwt.getSubject();
-          if (sub != null && !sub.isBlank()) reviewerUsername = sub;
-        }
-      }
       String reviewerRole = resolveSubmitterRole(jwt);
-      cycleMetricsService.reviewProposal(id, review, reviewerUsername, reviewerRole);
+      cycleMetricsService.reviewProposal(id, review, reviewerRole, reviewerRole);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
       log.error("Error reviewing proposal id={}", id, e);
@@ -316,13 +304,7 @@ public class CycleMetricsController {
           HttpStatus.BAD_REQUEST, "status must be PLANNED, IN_PROGRESS or COMPLETED");
     }
     try {
-      String updaterUsername = "unknown";
-      if (jwt != null) {
-        String claim = jwt.getClaimAsString("preferred_username");
-        if (claim == null || claim.isBlank()) claim = jwt.getClaimAsString("email");
-        if (claim == null || claim.isBlank()) claim = jwt.getSubject();
-        if (claim != null && !claim.isBlank()) updaterUsername = claim;
-      }
+      String updaterUsername = resolveSubmitterRole(jwt);
       cycleMetricsService.updateImplementationStatus(id, body.getStatus(), updaterUsername);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
@@ -345,5 +327,24 @@ public class CycleMetricsController {
       log.error("Error processing coverage gap: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Debug / Test
+  // -------------------------------------------------------------------------
+
+  @GetMapping("/debug/whoami")
+  public ResponseEntity<java.util.Map<String, Object>> whoami(
+      @AuthenticationPrincipal Jwt jwt) {
+    java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+    if (jwt == null) {
+      result.put("jwt", "null");
+      return ResponseEntity.ok(result);
+    }
+    String sid = jwt.getClaimAsString("sid");
+    result.put("jwtClaims", jwt.getClaims());
+    result.put("sid", sid);
+    result.put("resolvedUsername", userManagementService.getUsernameBySid(sid));
+    return ResponseEntity.ok(result);
   }
 }
