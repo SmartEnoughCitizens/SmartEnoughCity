@@ -658,6 +658,7 @@ export const dashboardApi = {
     await axiosInstance.patch(API_ENDPOINTS.CYCLE_PROPOSAL_REVIEW(id), {
       action,
       reason,
+      reviewedBy: localStorage.getItem("username") ?? undefined,
     });
   },
 };
