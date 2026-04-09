@@ -706,7 +706,7 @@ function DisruptionDetailPanel({ id, onClose }: { id: number; onClose: () => voi
                       </Typography>
                       <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }} noWrap>
                         {a.description}
-                        {a.availabilityCount != null ? ` · ${a.availabilityCount} available` : ""}
+                        {a.availabilityCount == null ? "" : ` · ${a.availabilityCount} available`}
                       </Typography>
                     </Box>
                     {a.googleMapsWalkingUrl && (
@@ -910,7 +910,7 @@ function EventDetailPanel({ event, onClose }: { event: EventItem; onClose: () =>
                     </Typography>
                     <Typography sx={{ fontSize: "0.68rem", color: "text.disabled" }} noWrap>
                       {a.description}
-                      {a.availabilityCount != null ? ` · ${a.availabilityCount} available` : ""}
+                      {a.availabilityCount == null ? "" : ` · ${a.availabilityCount} available`}
                     </Typography>
                   </Box>
                   {a.googleMapsWalkingUrl && (
@@ -951,7 +951,7 @@ export const DisruptionDashboard = () => {
   // Events state
   const [tabMode, setTabMode] = useState<"disruptions" | "events">("disruptions");
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string>(isoDateStr(0));
+  const [selectedDay, setSelectedDay] = useState<string>(() => isoDateStr(0));
   const [selectedMapItem, setSelectedMapItem] = useState<SelectedMapItem | null>(null);
 
   const theme = useAppSelector((s) => s.ui.theme);
@@ -1419,7 +1419,7 @@ export const DisruptionDashboard = () => {
             <Typography sx={{ fontSize: "0.62rem", color: "text.disabled" }}>
               {tabMode === "disruptions"
                 ? "Auto-detected · refreshed every 5 min"
-                : `${dayEvents.length} event${dayEvents.length !== 1 ? "s" : ""} · ${fmtDayLabel(selectedDay)}`}
+                : `${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"} · ${fmtDayLabel(selectedDay)}`}
             </Typography>
           </Box>
         </Paper>
