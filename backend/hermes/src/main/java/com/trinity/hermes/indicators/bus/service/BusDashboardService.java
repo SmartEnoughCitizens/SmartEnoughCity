@@ -76,7 +76,7 @@ public class BusDashboardService {
   public List<BusLiveVehicleDTO> getLiveVehiclePositions() {
     log.info("Fetching live vehicle positions");
 
-    List<BusLiveVehicle> vehicles = busLiveVehicleRepository.findLatestPositionPerVehicle();
+    List<BusLiveVehicle> vehicles = busLiveVehicleRepository.findRecentVehicles();
     if (vehicles.isEmpty()) {
       return List.of();
     }
@@ -94,7 +94,7 @@ public class BusDashboardService {
             .collect(Collectors.toMap(BusRoute::getId, Function.identity()));
 
     Map<Integer, BusRidership> ridershipByVehicleId =
-        busRidershipRepository.findLatestPerVehicle().stream()
+        busRidershipRepository.findRecentPerVehicle().stream()
             .collect(Collectors.toMap(BusRidership::getVehicleId, Function.identity()));
 
     return vehicles.stream()
