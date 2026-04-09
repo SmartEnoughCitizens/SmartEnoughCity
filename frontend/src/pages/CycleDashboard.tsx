@@ -433,7 +433,6 @@ export const CycleDashboard = () => {
                 gaps={coverageGaps ?? []}
                 acceptedProposals={acceptedProposals ?? []}
                 isLoading={coverageLoading}
-                isCycleAdmin={isCycleAdmin && !isCityManager}
               />
             )}
           </Box>
