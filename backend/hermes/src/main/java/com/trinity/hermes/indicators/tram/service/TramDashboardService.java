@@ -26,10 +26,28 @@ public class TramDashboardService {
   private static final double GREEN_DAILY_PASSENGERS = 80_000.0;
 
   // ── Simulation constants ─────────────────────────────────────────
-  // relief_ratio = extraTrams / tripCount
-  // pressure_factor = exp(-relief_ratio * SENSITIVITY)
-  // Tuned so that 10 extra trams on a ~200-trip corridor gives ~30% score relief.
-  private static final double SIMULATION_SENSITIVITY = 8.0;
+  //
+  // Demand score model (occupancy-based):
+  //   For each line:
+  //     line_occupancy = daily_passengers / (max_stop_trips × TRAM_CAPACITY)
+  //     capped at 1.0 (1.0 = trams running at capacity)
+  //   Per stop:
+  //     demand_score = line_occupancy × (stop_trips / max_stop_trips)
+  //     → busiest middle stop scores line_occupancy (red if > ~0.8)
+  //     → terminal stops score ~0.5 × line_occupancy (less pressure, one direction only)
+  //
+  // Simulation formula:
+  //   unique_trips_per_direction = max_stop_trips / 2  (one direction)
+  //   relief_ratio = extra_trams / unique_trips_per_direction
+  //   pressure_factor = exp(-relief_ratio × SENSITIVITY)
+  //   new_score = old_score × pressure_factor
+  //
+  // At SENSITIVITY=12, adding 10 trams to a ~145-trip/direction line gives ~56% relief.
+  // Adding 1 tram gives ~8% relief; adding 20 trams gives ~81% relief.
+  // Calibrated for full-score application (no multi-signal weighting like train).
+  // At 6.0: adding 20 trams to a ~200-trip/day stop gives ~45% relief;
+  //         adding 20 to a ~100-trip terminal gives ~70% relief.
+  private static final double SIMULATION_SENSITIVITY = 6.0;
 
   private final TramStopRepository tramStopRepository;
   private final TramLuasForecastRepository tramLuasForecastRepository;
@@ -237,13 +255,15 @@ public class TramDashboardService {
     Map<String, List<String>> nameToGtfsIds = buildNameToGtfsIdsMap();
     Map<String, String> luasToGtfs = buildLuasToGtfsNameMap(luasStops, nameToGtfsIds);
 
-    // Count total daily trips per GTFS stop ID
-    Map<String, Integer> tripsPerGtfsId = new HashMap<>();
-    for (TramStopTime st : tramStopTimeRepository.findAll()) {
-      tripsPerGtfsId.merge(st.getStopId(), 1, Integer::sum);
+    // Calendar-weighted average daily trips per GTFS stop ID.
+    // Groups by (stop, service_id), weights by days-per-week active, divides by 7.
+    // Avoids raw row-count inflation from multiple service patterns in the GTFS feed.
+    Map<String, Integer> dailyTripsPerGtfsId = new HashMap<>();
+    for (Object[] row : tramStopTimeRepository.findDailyTripCountsPerStop()) {
+      dailyTripsPerGtfsId.put((String) row[0], ((Number) row[1]).intValue());
     }
 
-    // Map Luas stop → aggregate GTFS trip count
+    // Aggregate GTFS daily trip count per Luas stop (may map to multiple GTFS IDs)
     Map<String, Integer> tripsPerLuasStop = new HashMap<>();
     for (TramStop stop : luasStops.values()) {
       String gtfsName = luasToGtfs.get(stop.getStopId());
@@ -255,7 +275,7 @@ public class TramDashboardService {
       int total = 0;
       if (gtfsIds != null) {
         for (String gid : gtfsIds) {
-          total += tripsPerGtfsId.getOrDefault(gid, 0);
+          total += dailyTripsPerGtfsId.getOrDefault(gid, 0);
         }
       }
       tripsPerLuasStop.put(stop.getStopId(), total);
@@ -299,7 +319,9 @@ public class TramDashboardService {
         continue;
       }
 
-      double reliefRatio = (double) extraTrams / Math.max(1, stop.getTripCount());
+      // Mirrors the train simulation: relief is proportional to the fractional
+      // increase in this stop's own service frequency.
+      double reliefRatio = (double) extraTrams / stop.getTripCount();
       double pressureFactor = Math.exp(-reliefRatio * SIMULATION_SENSITIVITY);
       double newScore = Math.max(0.0, stop.getDemandScore() * pressureFactor);
 
