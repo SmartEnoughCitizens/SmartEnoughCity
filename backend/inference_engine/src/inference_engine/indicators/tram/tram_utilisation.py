@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ─────────────────────────────────────────────────────
 
-TRAM_CAPACITY = {"red": 180, "green": 300}
+TRAM_CAPACITY = {"red": 200, "green": 300}
 _FALLBACK_DAILY_PASSENGERS = {"red": 86_000.0, "green": 84_000.0}
 MIN_STOPS_PER_TRIP = 10  # trips with fewer stops are depot moves, not real services
 
@@ -194,7 +194,9 @@ def load_delay_history() -> pd.DataFrame:
 # ── Name Matching ─────────────────────────────────────────────────
 
 
-def build_luas_to_gtfs_name_map(luas_stops, gtfs_stops):
+def build_luas_to_gtfs_name_map(
+    luas_stops: pd.DataFrame, gtfs_stops: pd.DataFrame,
+) -> dict[str, str]:
     gtfs_names = set(gtfs_stops["name"].str.lower().unique())
     normalised = {n.replace(" - ", " ").replace("  ", " "): n for n in gtfs_names}
     mapping = {}
@@ -214,7 +216,7 @@ def build_luas_to_gtfs_name_map(luas_stops, gtfs_stops):
     return mapping
 
 
-def build_gtfs_name_to_ids(gtfs_stops):
+def build_gtfs_name_to_ids(gtfs_stops: pd.DataFrame) -> dict[str, list[str]]:
     result = {}
     for _, row in gtfs_stops.iterrows():
         result.setdefault(row["name"].lower(), []).append(row["id"])
@@ -224,21 +226,29 @@ def build_gtfs_name_to_ids(gtfs_stops):
 # ── Core Analysis ─────────────────────────────────────────────────
 
 
-def _parse_hour(label):
+def _parse_hour(label: str) -> int:
     try:
         return int(label[:2].strip())
     except (ValueError, IndexError):
         return -1
 
 
-def _expand_hours(start, end):
+def _expand_hours(start: int, end: int) -> list[int]:
     if start <= end:
         return list(range(start, end))
-    return list(range(start, 25)) + list(range(0, end))
+    return list(range(start, 25)) + list(range(end))
 
 
-def compute_stop_metrics(luas_stops, gtfs_stops, stop_times, hourly_dist,
-                         delay_df, daily_passengers, start_hour, end_hour):
+def compute_stop_metrics(  # noqa: PLR0913, PLR0912, PLR0915
+    luas_stops: pd.DataFrame,
+    gtfs_stops: pd.DataFrame,
+    stop_times: pd.DataFrame,
+    hourly_dist: pd.DataFrame,
+    delay_df: pd.DataFrame,
+    daily_passengers: dict[str, float],
+    start_hour: int,
+    end_hour: int,
+) -> list[StopMetrics]:
     luas_to_gtfs = build_luas_to_gtfs_name_map(luas_stops, gtfs_stops)
     name_to_ids = build_gtfs_name_to_ids(gtfs_stops)
 
@@ -319,7 +329,7 @@ def compute_stop_metrics(luas_stops, gtfs_stops, stop_times, hourly_dist,
         est_out = (out_trips / max(1, lt)) * pct * daily
         est_total = est_in + est_out
 
-        cap = TRAM_CAPACITY.get(line, 180)
+        cap = TRAM_CAPACITY.get(line, 200)
         capacity = total_trips * cap
         util = est_total / capacity if capacity > 0 else 0.0
 
@@ -341,7 +351,9 @@ def compute_stop_metrics(luas_stops, gtfs_stops, stop_times, hourly_dist,
 # ── Recommendation Logic ──────────────────────────────────────────
 
 
-def _detect_frequency_change(metrics, line, period):
+def _detect_frequency_change(
+    metrics: list[StopMetrics], line: str, period: dict,
+) -> list[Recommendation]:
     stops = [m for m in metrics if m.line == line and m.total_trips > 0]
     if not stops:
         return []
@@ -349,7 +361,6 @@ def _detect_frequency_change(metrics, line, period):
     utils = [m.utilisation for m in stops]
     avg_util = sum(utils) / len(utils)
     max_util = max(utils)
-    min_util = min(utils)
     avg_delay = sum(m.avg_delay_mins for m in stops) / len(stops)
 
     over_count = sum(1 for u in utils if u > OVER_UTILISED_THRESHOLD)
@@ -376,10 +387,11 @@ def _detect_frequency_change(metrics, line, period):
             description=(
                 f"[{sev.upper()} PRIORITY] {line.capitalize()} Line is overcrowded during "
                 f"{period['label']}. Current load: {avg_util:.0%} of capacity "
+                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
                 f"passengers per tram). {over_count} out of {len(stops)} stops are above 75% capacity. "
                 f"Average delay: {avg_delay:.1f} minutes. "
                 f"Action: Increase service by {extra} additional tram(s) per hour to bring "
-                f"utilisation down to 60%."
+                f"utilisation down to 65%."
             ),
             details={
                 "avg_utilisation": round(avg_util, 4), "max_utilisation": round(max_util, 4),
@@ -398,6 +410,7 @@ def _detect_frequency_change(metrics, line, period):
             description=(
                 f"{line.capitalize()} Line is approaching capacity during "
                 f"{period['label']}. Current load: {avg_util:.0%} of capacity "
+                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
                 f"passengers per tram). {monitor_count} out of {len(stops)} stops are between "
                 f"50-75% capacity. Average delay: {avg_delay:.1f} minutes. "
                 f"No immediate change needed. Continue monitoring — if demand increases, "
@@ -416,6 +429,7 @@ def _detect_frequency_change(metrics, line, period):
         avg_tph = sum(m.total_trips for m in stops) / len(stops) / hrs
         headway = 60 / avg_tph if avg_tph > 0 else 15
         new_headway = min(20, headway * (0.40 / max(0.01, avg_util)))
+
         recs.append(Recommendation(
             type="reduce_frequency", line=line,
             time_period=period["key"], time_label=period["label"],
@@ -423,7 +437,7 @@ def _detect_frequency_change(metrics, line, period):
             description=(
                 f"[LOW PRIORITY] {line.capitalize()} Line is underutilised during "
                 f"{period['label']}. Current load: only {avg_util:.0%} of capacity "
-
+                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
                 f"passengers per tram). {under_count} out of {len(stops)} stops are below 25% capacity. "
                 f"Current frequency: every ~{headway:.0f} minutes. "
                 f"Action: Reduce frequency to every ~{new_headway:.0f} minutes to optimise "
@@ -440,7 +454,9 @@ def _detect_frequency_change(metrics, line, period):
     return recs
 
 
-def _detect_partial_run(metrics, line, period):
+def _detect_partial_run(
+    metrics: list[StopMetrics], line: str, period: dict,
+) -> list[Recommendation]:
     stops = sorted(
         [m for m in metrics if m.line == line and m.total_trips > 0],
         key=lambda m: m.sequence,
@@ -513,7 +529,9 @@ def _detect_partial_run(metrics, line, period):
     return recs
 
 
-def _detect_direction_imbalance(metrics, line, period):
+def _detect_direction_imbalance(
+    metrics: list[StopMetrics], line: str, period: dict,
+) -> list[Recommendation]:
     stops = [m for m in metrics if m.line == line and m.total_trips > 0]
     if not stops:
         return []
@@ -529,7 +547,7 @@ def _detect_direction_imbalance(metrics, line, period):
 
     hd = "Inbound" if ti > to else "Outbound"
     ld = "Outbound" if ti > to else "Inbound"
-    cap = TRAM_CAPACITY.get(line, 180)
+    cap = TRAM_CAPACITY.get(line, 200)
     ht = sum(m.inbound_trips for m in stops) if ti > to else sum(m.outbound_trips for m in stops)
     hc = ht * cap
     hu = max(ti, to) / hc if hc > 0 else 0.0
@@ -561,7 +579,7 @@ def _detect_direction_imbalance(metrics, line, period):
 # ── Orchestration ─────────────────────────────────────────────────
 
 
-def analyse_all_periods():
+def analyse_all_periods() -> list[Recommendation]:
     logger.info("Starting tram utilisation analysis...")
 
     luas_stops = load_luas_stops()
@@ -621,7 +639,7 @@ def analyse_all_periods():
 # ── JSON + DB + Notification ──────────────────────────────────────
 
 
-def build_recommendation_json(recs):
+def build_recommendation_json(recs: list[Recommendation]) -> list[dict]:
     return [
         {
             "Name": f"{r.line.capitalize()} Line - {r.time_label}",
@@ -636,7 +654,7 @@ def build_recommendation_json(recs):
     ]
 
 
-def save_recommendation_to_db(rec_json):
+def save_recommendation_to_db(rec_json: list[dict]) -> bool:
     rec_str = json.dumps(rec_json)
     check = text("""
         SELECT 1 FROM backend.recommendations
@@ -669,7 +687,7 @@ def save_recommendation_to_db(rec_json):
         return True
 
 
-def broadcast_notification(recs):
+def broadcast_notification(recs: list[Recommendation]) -> None:
     if not recs:
         return
     api = get_api_settings()
@@ -679,12 +697,11 @@ def broadcast_notification(recs):
     medium = [r for r in recs if r.severity == "medium"]
     low = [r for r in recs if r.severity == "low"]
 
-    lines = [f"Tram analysis generated {len(recs)} recommendation(s)."]
+    lines: list[str] = [f"Tram analysis generated {len(recs)} recommendation(s)."]
     for label, group in [("HIGH", high), ("MEDIUM", medium), ("LOW", low)]:
         if group:
             lines.append(f"\n{len(group)} {label}:")
-            for r in group[:3]:
-                lines.append(f"  - {r.description}")
+            lines.extend(f"  - {r.description}" for r in group[:3])
 
     payload = {
         "dataIndicator": "tram",

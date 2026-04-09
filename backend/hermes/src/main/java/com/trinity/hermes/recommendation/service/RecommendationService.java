@@ -62,8 +62,7 @@ public class RecommendationService {
   }
 
   public List<RecommendationResponse> getRecommendationsByIndicator(String indicator) {
-    return recommendationRepository
-        .findActiveByIndicator(indicator)
+    return recommendationRepository.findByIndicatorAndDeletedFalseOrderByCreatedAtDesc(indicator)
         .stream()
         .map(this::mapToResponse)
         .collect(Collectors.toList());
