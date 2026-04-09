@@ -4,6 +4,7 @@ import com.trinity.hermes.indicators.train.entity.TrainStationData;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -11,19 +12,28 @@ public interface TrainStationDataRepository extends JpaRepository<TrainStationDa
 
   /**
    * Latest station-data record per (station_code, train_code) — one row per currently-expected
-   * train at each station.
+   * train at each station. Restricted to Dublin area stations (lat/lon bounding box).
    */
   @Query(
-      """
-            SELECT sd FROM TrainStationData sd
-            WHERE sd.fetchedAt = (
-                SELECT MAX(sd2.fetchedAt) FROM TrainStationData sd2
-                WHERE sd2.stationCode = sd.stationCode
-                  AND sd2.trainCode  = sd.trainCode
-            )
-            ORDER BY sd.stationCode, sd.dueInMinutes
-            """)
-  List<TrainStationData> findLatestPerStationTrain();
+      value =
+          """
+          SELECT sd.* FROM external_data.irish_rail_station_data sd
+          JOIN external_data.irish_rail_stations s ON s.station_code = sd.station_code
+          WHERE sd.fetched_at = (
+              SELECT MAX(sd2.fetched_at) FROM external_data.irish_rail_station_data sd2
+              WHERE sd2.station_code = sd.station_code
+                AND sd2.train_code   = sd.train_code
+          )
+          AND s.lat BETWEEN :latMin AND :latMax
+          AND s.lon BETWEEN :lonMin AND :lonMax
+          ORDER BY sd.station_code, sd.due_in_minutes
+          """,
+      nativeQuery = true)
+  List<TrainStationData> findLatestPerStationTrain(
+      @Param("latMin") double latMin,
+      @Param("latMax") double latMax,
+      @Param("lonMin") double lonMin,
+      @Param("lonMax") double lonMax);
 
   /** Average delay in minutes across all recent station-data records. */
   @Query(

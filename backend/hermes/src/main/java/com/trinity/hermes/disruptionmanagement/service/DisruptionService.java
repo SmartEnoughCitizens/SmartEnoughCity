@@ -106,6 +106,9 @@ public class DisruptionService {
                 .collect(Collectors.toList())
             : List.of();
 
+    Double disruptionLat = disruption.getLatitude();
+    Double disruptionLon = disruption.getLongitude();
+
     List<AlternativeDTO> alternatives =
         disruption.getId() != null
             ? disruptionAlternativeRepository.findByDisruptionId(disruption.getId()).stream()
@@ -120,6 +123,9 @@ public class DisruptionService {
                             .availabilityCount(a.getAvailabilityCount())
                             .lat(a.getLat())
                             .lon(a.getLon())
+                            .googleMapsWalkingUrl(
+                                buildGoogleMapsWalkingUrl(
+                                    disruptionLat, disruptionLon, a.getLat(), a.getLon()))
                             .build())
                 .collect(Collectors.toList())
             : List.of();
@@ -145,5 +151,13 @@ public class DisruptionService {
         .causes(causes)
         .alternatives(alternatives)
         .build();
+  }
+
+  private String buildGoogleMapsWalkingUrl(
+      Double fromLat, Double fromLon, Double toLat, Double toLon) {
+    if (fromLat == null || fromLon == null || toLat == null || toLon == null) return null;
+    return String.format(
+        "https://www.google.com/maps/dir/?api=1&origin=%s,%s&destination=%s,%s&travelmode=walking",
+        fromLat, fromLon, toLat, toLon);
   }
 }

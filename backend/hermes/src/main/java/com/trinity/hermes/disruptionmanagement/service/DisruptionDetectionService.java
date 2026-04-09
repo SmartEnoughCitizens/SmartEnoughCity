@@ -52,6 +52,12 @@ public class DisruptionDetectionService {
 
   private static final ZoneId DUBLIN = ZoneId.of("Europe/Dublin");
 
+  // Dublin bounding box — filters out bus/train stops from the rest of Ireland
+  private static final double DUBLIN_LAT_MIN = 53.20;
+  private static final double DUBLIN_LAT_MAX = 53.50;
+  private static final double DUBLIN_LON_MIN = -6.55;
+  private static final double DUBLIN_LON_MAX = -6.00;
+
   // Bus: only fire when a stop has ≥ 30 min arrival delay
   private static final int BUS_STOP_DELAY_THRESHOLD_SECONDS = 1800;
 
@@ -131,7 +137,11 @@ public class DisruptionDetectionService {
       // Returns [route_id, stop_id, stop_name, lat, lon, max_arrival_delay_seconds]
       List<Object[]> rows =
           busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(
-              BUS_STOP_DELAY_THRESHOLD_SECONDS);
+              BUS_STOP_DELAY_THRESHOLD_SECONDS,
+              DUBLIN_LAT_MIN,
+              DUBLIN_LAT_MAX,
+              DUBLIN_LON_MIN,
+              DUBLIN_LON_MAX);
 
       for (Object[] row : rows) {
         if (row.length < 6) continue;
@@ -234,7 +244,9 @@ public class DisruptionDetectionService {
   private int detectTrainDisruptions() {
     int count = 0;
     try {
-      List<TrainStationData> latest = trainStationDataRepository.findLatestPerStationTrain();
+      List<TrainStationData> latest =
+          trainStationDataRepository.findLatestPerStationTrain(
+              DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
 
       Map<String, List<TrainStationData>> byStation =
           latest.stream()
@@ -485,7 +497,7 @@ public class DisruptionDetectionService {
     req.setDescription(
         description != null
             ? description
-            : buildDescription(disruptionType, severity, affectedArea, delayMinutes));
+            : buildDescription(disruptionType, affectedArea, delayMinutes));
     req.setDelayMinutes(delayMinutes > 0 ? delayMinutes : null);
     req.setLatitude(lat);
     req.setLongitude(lon);
@@ -511,19 +523,28 @@ public class DisruptionDetectionService {
   // Description builders
   // ---------------------------------------------------------------------------
 
-  private String buildDescription(String type, String severity, String area, int delayMinutes) {
+  private String buildDescription(String type, String area, int delayMinutes) {
     return switch (type) {
       case "DELAY" ->
-          String.format(
-              "%s delay detected at %s%s.",
-              severity,
-              area,
-              delayMinutes > 0 ? " — approximately " + delayMinutes + " min delay" : "");
+          delayMinutes > 0
+              ? String.format(
+                  "Service delays of approximately %d minutes reported at %s. "
+                      + "Passengers should allow extra travel time or consider alternatives.",
+                  delayMinutes, area)
+              : String.format(
+                  "Service delays reported at %s. "
+                      + "Passengers should allow extra travel time or consider alternatives.",
+                  area);
       case "TRAM_DISRUPTION" ->
           String.format(
-              "Tram service disruption at %s — expected tram overdue by %d min.",
+              "Luas service at %s is running approximately %d minutes behind schedule. "
+                  + "Passengers should check real-time displays or allow additional journey time.",
               area, delayMinutes);
-      default -> String.format("%s disruption detected at %s.", severity, area);
+      default ->
+          String.format(
+              "A transport disruption has been detected at %s. "
+                  + "Passengers should check for service updates.",
+              area);
     };
   }
 

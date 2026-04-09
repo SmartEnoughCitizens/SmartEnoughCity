@@ -37,10 +37,18 @@ public interface BusLiveStopTimeUpdateRepository
               + " JOIN external_data.bus_trips bt ON tu.trip_id = bt.id"
               + " JOIN external_data.bus_stops bs ON stu.stop_id = bs.id"
               + " WHERE stu.arrival_delay > :thresholdSeconds"
+              + "   AND tu.timestamp >= NOW() - INTERVAL '15 minutes'"
+              + "   AND bs.lat BETWEEN :latMin AND :latMax"
+              + "   AND bs.lon BETWEEN :lonMin AND :lonMax"
               + " GROUP BY bt.route_id, bs.id, bs.name, bs.lat, bs.lon"
               + " ORDER BY max_delay DESC",
       nativeQuery = true)
-  List<Object[]> findWorstDelayedStopPerRoute(@Param("thresholdSeconds") int thresholdSeconds);
+  List<Object[]> findWorstDelayedStopPerRoute(
+      @Param("thresholdSeconds") int thresholdSeconds,
+      @Param("latMin") double latMin,
+      @Param("latMax") double latMax,
+      @Param("lonMin") double lonMin,
+      @Param("lonMax") double lonMax);
 
   @Query(
       value =

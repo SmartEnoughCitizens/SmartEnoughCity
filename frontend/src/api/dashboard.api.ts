@@ -10,6 +10,8 @@ import type {
   BusNewStopRecommendation,
   BusRouteDetail,
   DisruptionItem,
+  DisruptionAlternative,
+  EventItem,
   BusDashboardResponse,
   StationProposalSummary,
   BusKpis,
@@ -517,6 +519,17 @@ export const dashboardApi = {
   },
 
   /**
+   * Get upcoming city events within the next N days (default 7).
+   */
+  getUpcomingEvents: async (days = 7): Promise<EventItem[]> => {
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS_UPCOMING,
+      { params: { days } },
+    );
+    return data;
+  },
+
+  /**
    * Get active disruptions (construction, congestion, incidents)
    */
   getActiveDisruptions: async (): Promise<DisruptionItem[]> => {
@@ -566,6 +579,17 @@ export const dashboardApi = {
   getPublicDisruption: async (id: number): Promise<DisruptionItem> => {
     const { data } = await axiosInstance.get<DisruptionItem>(
       API_ENDPOINTS.PUBLIC_DISRUPTION(id),
+    );
+    return data;
+  },
+
+  getNearbyAlternatives: async (
+    lat: number,
+    lon: number,
+  ): Promise<DisruptionAlternative[]> => {
+    const { data } = await axiosInstance.get<DisruptionAlternative[]>(
+      API_ENDPOINTS.PUBLIC_NEARBY_ALTERNATIVES,
+      { params: { lat, lon } },
     );
     return data;
   },

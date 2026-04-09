@@ -124,6 +124,9 @@ export const API_ENDPOINTS = {
   // Pedestrians
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 
+  // Events
+  EVENTS_UPCOMING: "/api/v1/events",
+
   // Disruptions
   DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
   DISRUPTIONS_ALL: "/api/v1/disruptions",
@@ -132,6 +135,7 @@ export const API_ENDPOINTS = {
   DISRUPTIONS_BY_MODE: (mode: string) =>
     `/api/v1/disruptions/transport/${mode}`,
   PUBLIC_DISRUPTION: (id: number) => `/api/public/disruptions/${id}`,
+  PUBLIC_NEARBY_ALTERNATIVES: "/api/public/disruptions/alternatives",
 
   // EV Charging Indicators
   EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",

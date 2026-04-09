@@ -1,6 +1,7 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
@@ -34,28 +35,30 @@ class AlternativeTransportServiceTest {
     disruption.setId(1L);
     disruption.setLatitude(53.3498);
     disruption.setLongitude(-6.2603);
+    disruption.setAffectedTransportModes(List.of("BUS"));
+    disruption.setDisruptionType("DELAY");
   }
 
   // ── getAlternatives ────────────────────────────────────────────────
 
   @Test
   void getAlternatives_returnsAlternativesForDisruptionWithCoords() {
-    AlternativeTransportResult busResult =
-        new AlternativeTransportResult(
-            "bus", "stop_1", "College Green", 53.34, -6.26, null, null, 120);
+    AlternativeTransportResult railResult =
+        new AlternativeTransportResult("rail", "CNLY", "Connolly", 53.35, -6.25, null, null, 400);
     AlternativeTransportResult bikeResult =
         new AlternativeTransportResult(
             "bike", "db_12", "Earlsfort Terrace", 53.33, -6.25, 5, 20, 300);
 
-    when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
-        .thenReturn(List.of(busResult, bikeResult));
+    when(alternativeTransportRepository.findNearbyExcluding(
+            anyDouble(), anyDouble(), anyInt(), any()))
+        .thenReturn(List.of(railResult, bikeResult));
 
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
 
     assertThat(alts).hasSize(2);
     assertThat(alts)
         .extracting(DisruptionAlternative::getMode)
-        .containsExactlyInAnyOrder("bus", "bike");
+        .containsExactlyInAnyOrder("rail", "bike");
   }
 
   @Test
@@ -65,7 +68,8 @@ class AlternativeTransportServiceTest {
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
 
     assertThat(alts).isEmpty();
-    verify(alternativeTransportRepository, never()).findNearby(anyDouble(), anyDouble(), anyInt());
+    verify(alternativeTransportRepository, never())
+        .findNearbyExcluding(anyDouble(), anyDouble(), anyInt(), any());
   }
 
   @Test
@@ -75,12 +79,14 @@ class AlternativeTransportServiceTest {
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
 
     assertThat(alts).isEmpty();
-    verify(alternativeTransportRepository, never()).findNearby(anyDouble(), anyDouble(), anyInt());
+    verify(alternativeTransportRepository, never())
+        .findNearbyExcluding(anyDouble(), anyDouble(), anyInt(), any());
   }
 
   @Test
   void getAlternatives_noNearbyOptions_returnsEmpty() {
-    when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
+    when(alternativeTransportRepository.findNearbyExcluding(
+            anyDouble(), anyDouble(), anyInt(), any()))
         .thenReturn(List.of());
 
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
@@ -95,7 +101,8 @@ class AlternativeTransportServiceTest {
     AlternativeTransportResult busResult =
         new AlternativeTransportResult(
             "bus", "stop_1", "Westmoreland St", 53.34, -6.26, null, null, 80);
-    when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
+    when(alternativeTransportRepository.findNearbyExcluding(
+            anyDouble(), anyDouble(), anyInt(), any()))
         .thenReturn(List.of(busResult));
 
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
@@ -107,7 +114,8 @@ class AlternativeTransportServiceTest {
   void getAlternatives_bikeResult_descriptionContainsAvailableBikes() {
     AlternativeTransportResult bikeResult =
         new AlternativeTransportResult("bike", "db_5", "Merrion Square", 53.33, -6.25, 8, 30, 200);
-    when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
+    when(alternativeTransportRepository.findNearbyExcluding(
+            anyDouble(), anyDouble(), anyInt(), any()))
         .thenReturn(List.of(bikeResult));
 
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
@@ -119,7 +127,8 @@ class AlternativeTransportServiceTest {
   void getAlternatives_railResult_descriptionContainsIrishRail() {
     AlternativeTransportResult railResult =
         new AlternativeTransportResult("rail", "CNLY", "Connolly", 53.35, -6.25, null, null, 450);
-    when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
+    when(alternativeTransportRepository.findNearbyExcluding(
+            anyDouble(), anyDouble(), anyInt(), any()))
         .thenReturn(List.of(railResult));
 
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
@@ -130,8 +139,9 @@ class AlternativeTransportServiceTest {
   @Test
   void getAlternatives_disruptionLinkedOnAllAlternatives() {
     AlternativeTransportResult r =
-        new AlternativeTransportResult("bus", "stop_1", "Stop A", 53.34, -6.26, null, null, 100);
-    when(alternativeTransportRepository.findNearby(anyDouble(), anyDouble(), anyInt()))
+        new AlternativeTransportResult("rail", "TARA", "Tara St", 53.34, -6.26, null, null, 100);
+    when(alternativeTransportRepository.findNearbyExcluding(
+            anyDouble(), anyDouble(), anyInt(), any()))
         .thenReturn(List.of(r));
 
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);

@@ -140,8 +140,7 @@ public class ServicePressureService {
   private String scoreSeverity(int capacity) {
     if (capacity >= 15000) return "CRITICAL"; // stadium-scale: Aviva, 3Arena, Croke Park
     if (capacity >= 5000) return "HIGH"; // large: RDS, Marlay Park
-    if (capacity >= 2500) return "MEDIUM"; // mid-size: Bord Gáis, Gaiety
-    return "LOW"; // smaller venues (still ≥ MIN_VENUE_CAPACITY)
+    return "MEDIUM"; // 1000–4999: Bord Gáis, 3Olympia, Ambassador, Gaiety, Vicar Street
   }
 
   private List<String> buildModes(List<String> busRoutes, List<String> tramLines) {

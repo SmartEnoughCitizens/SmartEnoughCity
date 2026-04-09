@@ -9,6 +9,7 @@ import com.trinity.hermes.disruptionmanagement.dto.AlternativeDTO;
 import com.trinity.hermes.disruptionmanagement.dto.CauseDTO;
 import com.trinity.hermes.disruptionmanagement.dto.DisruptionResponse;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
+import com.trinity.hermes.disruptionmanagement.service.AlternativeTransportService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,11 @@ class DisruptionControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private DisruptionFacade disruptionFacade;
+
+  // Required by PublicDisruptionController — not directly used in assertions
+  @SuppressWarnings("UnusedVariable")
+  @MockitoBean
+  private AlternativeTransportService alternativeTransportService;
 
   // ── GET /api/v1/disruptions/{id} ────────────────────────────────────
 
