@@ -450,12 +450,12 @@ export const dashboardApi = {
     );
     return data;
   },
-
-
-
-
-  
-
+    getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
+    const { data } = await axiosInstance.get<StationRiskScoreDTO[]>(
+      API_ENDPOINTS.CYCLE_RISK_SCORES,
+    );
+    return data;
+  },
   /**
    * Get live pedestrian counts per site
    */
