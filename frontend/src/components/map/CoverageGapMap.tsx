@@ -1,5 +1,5 @@
 /**
- * Coverage gap map — shows CircleMarker points coloured by coverage category,
+ * Coverage gap map — shows filled GeoJSON polygons coloured by coverage category,
  * with a simulation mode to place proposed stations and see instant impact.
  */
 
@@ -8,10 +8,13 @@ import {
   MapContainer,
   TileLayer,
   CircleMarker,
+  GeoJSON,
   Popup,
   useMap,
   useMapEvents,
 } from "react-leaflet";
+import type { GeoJsonObject } from "geojson";
+import type { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
 import {
   Box,
   Paper,
@@ -71,12 +74,19 @@ function haversineM(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function categorize(flatCount: number, distM: number | null): string {
+function categorize(
+  flatCount: number,
+  houseCount: number,
+  distM: number | null,
+): string {
   if (distM === null) return "NO_COVERAGE";
   if (distM > 5000) return "NO_COVERAGE";
   if (flatCount > 50 && distM > 3000) return "NO_COVERAGE";
+  if (houseCount > 200 && distM > 3000) return "NO_COVERAGE";
   if (flatCount > 50 && distM > 1000) return "POOR_COVERAGE";
+  if (houseCount > 200 && distM > 2000) return "POOR_COVERAGE";
   if (flatCount > 50 && distM > 500) return "PARTIAL_COVERAGE";
+  if (houseCount > 200 && distM > 1000) return "PARTIAL_COVERAGE";
   return "ADEQUATE";
 }
 
@@ -158,6 +168,16 @@ export const CoverageGapMap = ({
   const { mutate: submitProposal, isPending: isSubmitting } =
     useSubmitStationProposal();
 
+  // Refs so GeoJSON onEachFeature handlers (registered once on mount) always
+  // read the latest simulate state without needing the layer to re-create.
+  const simulateModeRef = useRef(simulateMode);
+  const isReviewModeRef = useRef(!!reviewProposal);
+  useEffect(() => { simulateModeRef.current = simulateMode; }, [simulateMode]);
+  useEffect(() => { isReviewModeRef.current = !!reviewProposal; }, [reviewProposal]);
+  const placeStationRef = useRef((lat: number, lon: number) => {
+    setProposedStations((prev) => [...prev, [lat, lon]]);
+  });
+
   const isReviewMode = !!reviewProposal;
 
   // Sync pre-loaded stations when reviewProposal changes.
@@ -217,7 +237,7 @@ export const CoverageGapMap = ({
     return {
       ...g,
       simDistM,
-      simCategory: categorize(g.flatApartmentCount, simDistM),
+      simCategory: categorize(g.flatApartmentCount, g.houseBungalowCount, simDistM),
     };
   });
 
@@ -812,7 +832,7 @@ export const CoverageGapMap = ({
           }
         />
 
-        {/* Gap circles */}
+        {/* Gap polygons — GeoJSON fill, fallback to CircleMarker if geomGeoJson is absent */}
         {filtered.map((g) => {
           const displayCat = simulateMode ? g.simCategory : g.coverageCategory;
           const improved = simulateMode && g.simCategory !== g.coverageCategory;
@@ -826,99 +846,153 @@ export const CoverageGapMap = ({
               ? `${(g.simDistM / 1000).toFixed(2)} km`
               : null;
 
-          return (
-            <Fragment key={g.electoralDivision}>
-              {/* Halo — decorative only, must not absorb clicks */}
-              <CircleMarker
-                center={[g.centroidLat, g.centroidLon]}
-                radius={improved ? 32 : 26}
-                interactive={false}
-                pathOptions={{
-                  fillColor: color,
-                  fillOpacity: improved ? 0.3 : 0.2,
-                  color: improved ? color : "transparent",
-                  weight: improved ? 2 : 0,
-                  dashArray: improved ? "6 4" : undefined,
+          const popupContent = (
+            <div
+              style={{ minWidth: 210, fontFamily: "sans-serif", fontSize: 13 }}
+            >
+              <strong>{g.electoralDivision}</strong>
+              <br />
+              {improved ? (
+                <span style={{ fontSize: 12 }}>
+                  <span
+                    style={{
+                      color: COVERAGE_FILL[g.coverageCategory],
+                      fontWeight: 600,
+                      textDecoration: "line-through",
+                    }}
+                  >
+                    {CAT_LABEL[g.coverageCategory] ?? g.coverageCategory}
+                  </span>
+                  {" → "}
+                  <span style={{ color, fontWeight: 700 }}>
+                    {CAT_LABEL[displayCat] ?? displayCat}
+                  </span>
+                </span>
+              ) : (
+                <span style={{ color, fontWeight: 600 }}>
+                  {CAT_LABEL[displayCat] ?? displayCat}
+                </span>
+              )}
+              <hr
+                style={{
+                  margin: "6px 0",
+                  border: "none",
+                  borderTop: "1px solid #ccc",
                 }}
               />
-              {/* Main circle */}
+              <b>Apartments / Flats:</b>{" "}
+              {Number(g.flatApartmentCount).toLocaleString()}
+              <br />
+              <b>Houses / Bungalows:</b>{" "}
+              {Number(g.houseBungalowCount).toLocaleString()}
+              <br />
+              <b>Total Dwellings:</b>{" "}
+              {Number(g.totalDwellings).toLocaleString()}
+              <br />
+              <b>Nearest station:</b> {distText}
+              {simDistText && (
+                <>
+                  <br />
+                  <span style={{ color: "#22c55e" }}>
+                    <b>With proposed:</b> {simDistText}
+                  </span>
+                </>
+              )}
+              {g.processedForImplementation && (
+                <>
+                  <br />
+                  <span style={{ color: "#22c55e" }}>
+                    ✓ Planned for implementation
+                  </span>
+                </>
+              )}
+            </div>
+          );
+
+          if (g.geomGeoJson) {
+            const geomData = JSON.parse(g.geomGeoJson) as GeoJsonObject;
+            const baseStyle: PathOptions = {
+              fillColor: color,
+              fillOpacity: improved ? 0.65 : 0.45,
+              color: improved ? "#fff" : color,
+              weight: improved ? 2 : 1,
+              dashArray: improved ? "6 4" : undefined,
+            };
+            return (
+              <GeoJSON
+                key={`${g.electoralDivision}-${displayCat}`}
+                data={geomData}
+                style={baseStyle}
+                onEachFeature={(_feature, layer: Layer) => {
+                  layer.bindPopup(
+                    () => {
+                      const div = document.createElement("div");
+                      // Render popup via a temporary React root isn't feasible here,
+                      // so we replicate the content as HTML string.
+                      div.innerHTML = `
+                        <div style="min-width:210px;font-family:sans-serif;font-size:13px">
+                          <strong>${g.electoralDivision}</strong><br/>
+                          ${
+                            improved
+                              ? `<span style="font-size:12px">
+                                  <span style="color:${COVERAGE_FILL[g.coverageCategory]};font-weight:600;text-decoration:line-through">
+                                    ${CAT_LABEL[g.coverageCategory] ?? g.coverageCategory}
+                                  </span>
+                                  &rarr;
+                                  <span style="color:${color};font-weight:700">
+                                    ${CAT_LABEL[displayCat] ?? displayCat}
+                                  </span>
+                                </span>`
+                              : `<span style="color:${color};font-weight:600">${CAT_LABEL[displayCat] ?? displayCat}</span>`
+                          }
+                          <hr style="margin:6px 0;border:none;border-top:1px solid #ccc"/>
+                          <b>Apartments / Flats:</b> ${Number(g.flatApartmentCount).toLocaleString()}<br/>
+                          <b>Houses / Bungalows:</b> ${Number(g.houseBungalowCount).toLocaleString()}<br/>
+                          <b>Total Dwellings:</b> ${Number(g.totalDwellings).toLocaleString()}<br/>
+                          <b>Nearest station:</b> ${distText}
+                          ${simDistText ? `<br/><span style="color:#22c55e"><b>With proposed:</b> ${simDistText}</span>` : ""}
+                          ${g.processedForImplementation ? `<br/><span style="color:#22c55e">✓ Planned for implementation</span>` : ""}
+                        </div>`;
+                      return div;
+                    },
+                    { maxWidth: 280 },
+                  );
+                  layer.on({
+                    click(e: LeafletMouseEvent) {
+                      if (simulateModeRef.current && !isReviewModeRef.current) {
+                        L.DomEvent.stopPropagation(e);
+                        placeStationRef.current(e.latlng.lat, e.latlng.lng);
+                      }
+                    },
+                    mouseover(e: LeafletMouseEvent) {
+                      (e.target as L.Path).setStyle({ fillOpacity: 0.75 });
+                    },
+                    mouseout(e: LeafletMouseEvent) {
+                      (e.target as L.Path).setStyle({
+                        fillOpacity: improved ? 0.65 : 0.45,
+                      });
+                    },
+                  });
+                }}
+              />
+            );
+          }
+
+          // Fallback for missing geometry
+          return (
+            <Fragment key={g.electoralDivision}>
               <CircleMarker
                 center={[g.centroidLat, g.centroidLon]}
                 radius={14}
                 pathOptions={{
                   fillColor: color,
                   fillOpacity: 0.65,
-                  color: improved ? "#fff" : "#fff",
+                  color: "#fff",
                   weight: improved ? 3 : 2,
                   dashArray: improved ? "5 3" : undefined,
                 }}
               >
-                <Popup>
-                  <div
-                    style={{
-                      minWidth: 210,
-                      fontFamily: "sans-serif",
-                      fontSize: 13,
-                    }}
-                  >
-                    <strong>{g.electoralDivision}</strong>
-                    <br />
-                    {improved ? (
-                      <span style={{ fontSize: 12 }}>
-                        <span
-                          style={{
-                            color: COVERAGE_FILL[g.coverageCategory],
-                            fontWeight: 600,
-                            textDecoration: "line-through",
-                          }}
-                        >
-                          {CAT_LABEL[g.coverageCategory] ?? g.coverageCategory}
-                        </span>
-                        {" → "}
-                        <span style={{ color, fontWeight: 700 }}>
-                          {CAT_LABEL[displayCat] ?? displayCat}
-                        </span>
-                      </span>
-                    ) : (
-                      <span style={{ color, fontWeight: 600 }}>
-                        {CAT_LABEL[displayCat] ?? displayCat}
-                      </span>
-                    )}
-                    <hr
-                      style={{
-                        margin: "6px 0",
-                        border: "none",
-                        borderTop: "1px solid #ccc",
-                      }}
-                    />
-                    <b>Apartments / Flats:</b>{" "}
-                    {Number(g.flatApartmentCount).toLocaleString()}
-                    <br />
-                    <b>Houses / Bungalows:</b>{" "}
-                    {Number(g.houseBungalowCount).toLocaleString()}
-                    <br />
-                    <b>Total Dwellings:</b>{" "}
-                    {Number(g.totalDwellings).toLocaleString()}
-                    <br />
-                    <b>Nearest station:</b> {distText}
-                    {simDistText && (
-                      <>
-                        <br />
-                        <span style={{ color: "#22c55e" }}>
-                          <b>With proposed:</b> {simDistText}
-                        </span>
-                      </>
-                    )}
-                    {g.processedForImplementation && (
-                      <>
-                        <br />
-                        <span style={{ color: "#22c55e" }}>
-                          ✓ Planned for implementation
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </Popup>
+                <Popup>{popupContent}</Popup>
               </CircleMarker>
             </Fragment>
           );
@@ -1010,8 +1084,9 @@ export const CoverageGapMap = ({
               sx={{
                 width: 12,
                 height: 12,
-                borderRadius: "50%",
+                borderRadius: 0.5,
                 bgcolor: COVERAGE_FILL[cat],
+                opacity: 0.75,
                 flexShrink: 0,
               }}
             />
@@ -1032,11 +1107,12 @@ export const CoverageGapMap = ({
           >
             <Box
               sx={{
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 borderRadius: "50%",
                 bgcolor: "#3b82f6",
                 flexShrink: 0,
+                border: "2px solid #fff",
               }}
             />
             <Typography
