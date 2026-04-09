@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ─────────────────────────────────────────────────────
 
-TRAM_CAPACITY = {"red": 200, "green": 300}
+TRAM_CAPACITY = {"red": 180, "green": 300}
 _FALLBACK_DAILY_PASSENGERS = {"red": 86_000.0, "green": 84_000.0}
 MIN_STOPS_PER_TRIP = 10  # trips with fewer stops are depot moves, not real services
 
@@ -319,7 +319,7 @@ def compute_stop_metrics(luas_stops, gtfs_stops, stop_times, hourly_dist,
         est_out = (out_trips / max(1, lt)) * pct * daily
         est_total = est_in + est_out
 
-        cap = TRAM_CAPACITY.get(line, 200)
+        cap = TRAM_CAPACITY.get(line, 180)
         capacity = total_trips * cap
         util = est_total / capacity if capacity > 0 else 0.0
 
@@ -376,11 +376,10 @@ def _detect_frequency_change(metrics, line, period):
             description=(
                 f"[{sev.upper()} PRIORITY] {line.capitalize()} Line is overcrowded during "
                 f"{period['label']}. Current load: {avg_util:.0%} of capacity "
-                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
                 f"passengers per tram). {over_count} out of {len(stops)} stops are above 75% capacity. "
                 f"Average delay: {avg_delay:.1f} minutes. "
                 f"Action: Increase service by {extra} additional tram(s) per hour to bring "
-                f"utilisation down to 65%."
+                f"utilisation down to 60%."
             ),
             details={
                 "avg_utilisation": round(avg_util, 4), "max_utilisation": round(max_util, 4),
@@ -399,7 +398,6 @@ def _detect_frequency_change(metrics, line, period):
             description=(
                 f"{line.capitalize()} Line is approaching capacity during "
                 f"{period['label']}. Current load: {avg_util:.0%} of capacity "
-                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
                 f"passengers per tram). {monitor_count} out of {len(stops)} stops are between "
                 f"50-75% capacity. Average delay: {avg_delay:.1f} minutes. "
                 f"No immediate change needed. Continue monitoring — if demand increases, "
@@ -418,7 +416,6 @@ def _detect_frequency_change(metrics, line, period):
         avg_tph = sum(m.total_trips for m in stops) / len(stops) / hrs
         headway = 60 / avg_tph if avg_tph > 0 else 15
         new_headway = min(20, headway * (0.40 / max(0.01, avg_util)))
-
         recs.append(Recommendation(
             type="reduce_frequency", line=line,
             time_period=period["key"], time_label=period["label"],
@@ -426,7 +423,7 @@ def _detect_frequency_change(metrics, line, period):
             description=(
                 f"[LOW PRIORITY] {line.capitalize()} Line is underutilised during "
                 f"{period['label']}. Current load: only {avg_util:.0%} of capacity "
-                f"({int(avg_util * TRAM_CAPACITY.get(line, 200))}/{TRAM_CAPACITY.get(line, 200)} "
+
                 f"passengers per tram). {under_count} out of {len(stops)} stops are below 25% capacity. "
                 f"Current frequency: every ~{headway:.0f} minutes. "
                 f"Action: Reduce frequency to every ~{new_headway:.0f} minutes to optimise "
@@ -532,7 +529,7 @@ def _detect_direction_imbalance(metrics, line, period):
 
     hd = "Inbound" if ti > to else "Outbound"
     ld = "Outbound" if ti > to else "Inbound"
-    cap = TRAM_CAPACITY.get(line, 200)
+    cap = TRAM_CAPACITY.get(line, 180)
     ht = sum(m.inbound_trips for m in stops) if ti > to else sum(m.outbound_trips for m in stops)
     hc = ht * cap
     hu = max(ti, to) / hc if hc > 0 else 0.0

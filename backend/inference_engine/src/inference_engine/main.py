@@ -383,7 +383,7 @@ def start_scheduler() -> None:
     scheduler.add_job(
         scheduled_recommendation_task,
         ##trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),
-        trigger=IntervalTrigger(hours=24),
+        trigger=IntervalTrigger(minutes=1),  # For testing, run every 1 minute
         id="fetch_recommendations",
         name="Fetch and generate recommendations",
         replace_existing=True,
