@@ -23,6 +23,7 @@ export interface DisruptionAlternative {
   availabilityCount: number | null;
   lat: number | null;
   lon: number | null;
+  googleMapsWalkingUrl: string | null;
 }
 
 export type DisruptionSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";

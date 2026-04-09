@@ -18,4 +18,7 @@ public class AlternativeDTO {
   private Integer availabilityCount;
   private Double lat;
   private Double lon;
+
+  /** Google Maps walking directions URL from the disruption point to this alternative. */
+  private String googleMapsWalkingUrl;
 }

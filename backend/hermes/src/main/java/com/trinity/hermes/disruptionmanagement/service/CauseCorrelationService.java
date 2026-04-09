@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CauseCorrelationService {
 
-  private static final int LARGE_EVENT_THRESHOLD = 5000;
+  private static final int LARGE_EVENT_THRESHOLD = 1000;
   private static final long HIGH_TRAFFIC_THRESHOLD = 1500L;
   private static final int CONCURRENT_WINDOW_MINUTES = 15;
   private static final ZoneId DUBLIN = ZoneId.of("Europe/Dublin");
@@ -72,26 +72,27 @@ public class CauseCorrelationService {
   // ── Large event today ──────────────────────────────────────────────
 
   private void checkEventCause(Disruption disruption, List<DisruptionCause> causes) {
-    var events = eventsRepository.findUpcomingEvents(PageRequest.of(0, 10));
+    var events =
+        eventsRepository.findUpcomingEventsAtLargeVenues(
+            LARGE_EVENT_THRESHOLD, PageRequest.of(0, 10));
     events.stream()
-        .filter(
-            e ->
-                e.getEstimatedAttendance() != null
-                    && e.getEstimatedAttendance() >= LARGE_EVENT_THRESHOLD)
         .findFirst()
         .ifPresent(
             e -> {
               String venue = e.getVenueName() != null ? e.getVenueName() : "nearby venue";
+              int capacity = e.getVenue() != null ? e.getVenue().getCapacity() : 0;
               causes.add(
                   DisruptionCause.builder()
                       .disruption(disruption)
                       .causeType("EVENT")
                       .causeDescription(
-                          "Large event at "
+                          "Large event '"
+                              + (e.getEventName() != null ? e.getEventName() : "event")
+                              + "' at "
                               + venue
-                              + " (~"
-                              + e.getEstimatedAttendance()
-                              + " attendees)")
+                              + " (venue capacity: "
+                              + capacity
+                              + ")")
                       .confidence("HIGH")
                       .build());
             });

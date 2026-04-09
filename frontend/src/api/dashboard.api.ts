@@ -10,6 +10,7 @@ import type {
   BusNewStopRecommendation,
   BusRouteDetail,
   DisruptionItem,
+  DisruptionAlternative,
   BusDashboardResponse,
   StationProposalSummary,
   BusKpis,
@@ -542,6 +543,17 @@ export const dashboardApi = {
   getPublicDisruption: async (id: number): Promise<DisruptionItem> => {
     const { data } = await axiosInstance.get<DisruptionItem>(
       API_ENDPOINTS.PUBLIC_DISRUPTION(id),
+    );
+    return data;
+  },
+
+  getNearbyAlternatives: async (
+    lat: number,
+    lon: number,
+  ): Promise<DisruptionAlternative[]> => {
+    const { data } = await axiosInstance.get<DisruptionAlternative[]>(
+      API_ENDPOINTS.PUBLIC_NEARBY_ALTERNATIVES,
+      { params: { lat, lon } },
     );
     return data;
   },
