@@ -4,6 +4,9 @@ server:
 spring:
   liquibase:
     enabled: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   security:
     oauth2:
       resourceserver:

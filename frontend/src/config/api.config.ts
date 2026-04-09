@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   USER_DELETE: "/api/usermanagement/delete",
   USER_PROFILE: "/api/usermanagement/profile",
   USER_PASSWORD: "/api/usermanagement/password",
+  USER_COUNTS: "/api/usermanagement/user-counts",
   TRAINS: "/api/trains",
   BUSES: "/api/buses",
 
@@ -45,6 +46,8 @@ export const API_ENDPOINTS = {
   CAR_HIGH_TRAFFIC_POINTS: "/api/v1/car/high-traffic-points",
   CAR_JUNCTION_EMISSIONS: "/api/v1/car/junction-emissions",
   CAR_TRAFFIC_RECOMMENDATIONS: "/api/v1/car/traffic-recommendations",
+  CAR_TRAFFIC_RECOMMENDATION_NOTIFY: (id: string) =>
+    `/api/v1/car/traffic-recommendations/${encodeURIComponent(id)}/notify`,
 
   // Bus Indicators
   BUS_KPIS: "/api/v1/bus/kpis",
@@ -53,16 +56,23 @@ export const API_ENDPOINTS = {
   BUS_SYSTEM_PERFORMANCE: "/api/v1/bus/system-performance",
   BUS_METRICS_REFRESH: "/api/v1/bus/metrics/refresh",
   BUS_COMMON_DELAYS: "/api/v1/bus/common-delays",
+  BUS_NEW_STOPS_RECOMMENDATIONS: "/api/v1/bus/new-stops-recommendations",
+  /** GET `${BUS_ROUTES}/${routeId}` — route detail, shape, stops */
+  BUS_ROUTES: "/api/v1/bus/routes",
 
   // Train Indicators
   TRAIN_KPIS: "/api/v1/train/kpis",
   TRAIN_LIVE_TRAINS: "/api/v1/train/live-trains",
   TRAIN_SERVICE_STATS: "/api/v1/train/service-stats",
   TRAIN_FREQUENT_DELAYS: "/api/v1/train/frequent-delays",
+  TRAIN_ROUTES: "/api/v1/train/routes",
+  TRAIN_DEMAND: "/api/v1/train/demand",
+  TRAIN_DEMAND_SIMULATE: "/api/v1/train/demand/simulate",
 
   // Tram Indicators
   TRAM_KPIS: "/api/v1/tram/kpis",
   TRAM_LIVE_FORECASTS: "/api/v1/tram/live-forecasts",
+  TRAM_ALTERNATIVE_ROUTES: "/api/v1/tram/alternative-routes",
   TRAM_DELAYS: "/api/v1/tram/delays",
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
   TRAM_STOP_USAGE: "/api/v1/tram/stop-usage",
@@ -82,23 +92,51 @@ export const API_ENDPOINTS = {
   CYCLE_DEMAND_OD_PAIRS: "/api/v1/cycle/demand/od-pairs",
   CYCLE_DEMAND_STATION_HOURLY: "/api/v1/cycle/demand/station-hourly",
 
+  // Cycle ML Risk Scores
+  CYCLE_RISK_SCORES: "/api/v1/cycle/risk-scores",
+
+  // Cycle Coverage Gap Analysis
+  CYCLE_COVERAGE_GAPS: "/api/v1/cycle/coverage-gaps",
+  CYCLE_COVERAGE_GAP_PROCESS: (ed: string) =>
+    `/api/v1/cycle/coverage-gaps/${encodeURIComponent(ed)}/process`,
+  CYCLE_STATION_PROPOSALS: "/api/v1/cycle/coverage-gaps/proposals",
+  CYCLE_ACCEPTED_PROPOSALS: "/api/v1/cycle/coverage-gaps/proposals/accepted",
+  CYCLE_PROPOSAL_IMPL_STATUS: (id: number) =>
+    `/api/v1/cycle/coverage-gaps/proposals/${id}/implementation-status`,
+  CYCLE_PROPOSAL_REVIEW: (id: number) =>
+    `/api/v1/cycle/coverage-gaps/proposals/${id}/review`,
+
   // Recommendation Engine
   RECOMMENDATION_QUERY: "/api/v1/recommendation-engine/indicators/query",
   RECOMMENDATION_GET: (type: string) =>
     `/api/v1/recommendation-engine/indicators/${type}`,
+  RECOMMENDATION_BY_INDICATOR: (indicator: string) =>
+    `/api/v1/recommendation-engine/by-indicator/${indicator}`,
+
+  // Approvals (generic — used by any indicator)
+  APPROVALS: "/api/v1/approvals",
+  APPROVAL_REVIEW: (id: number) => `/api/v1/approvals/${id}/review`,
 
   // Notifications
   NOTIFICATIONS: (userId: string) => `/api/notification/v1/${userId}`,
+  NOTIFICATIONS_BIN: (userId: string) => `/api/notification/v1/${userId}/bin`,
   NOTIFICATIONS_STREAM: "/api/notification/v1/notifications/stream",
 
-  // Misc (Events + Pedestrians)
-  EVENTS: "/api/v1/events",
+  // Pedestrians
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
+
+  // Events
+  EVENTS_UPCOMING: "/api/v1/events",
 
   // Disruptions
   DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
   DISRUPTIONS_ALL: "/api/v1/disruptions",
   DISRUPTION_RESOLVE: (id: number) => `/api/v1/disruptions/${id}/resolve`,
+  DISRUPTION_DETAIL: (id: number) => `/api/v1/disruptions/${id}`,
+  DISRUPTIONS_BY_MODE: (mode: string) =>
+    `/api/v1/disruptions/transport/${mode}`,
+  PUBLIC_DISRUPTION: (id: number) => `/api/public/disruptions/${id}`,
+  PUBLIC_NEARBY_ALTERNATIVES: "/api/public/disruptions/alternatives",
 
   // EV Charging Indicators
   EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",

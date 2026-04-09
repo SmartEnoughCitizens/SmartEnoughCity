@@ -7,18 +7,22 @@ dependencies = [
     "apscheduler>=3.11.1",
     "fastapi[standard]>=0.121.2",
     "httpx>=0.25.1",
+    "numpy>=2.4.4",
+    "pandas>=3.0.1",
+    "psycopg[binary]>=3.1.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.12.0",
     "pytest-cov>=7.0.0",
-
-  # Data Science
+    "scikit-learn>=1.8.0",
+    "sqlalchemy>=2.0.48",
+    # Data Science
     "pandas>=2.2.0",
     "numpy>=1.26.0",
     "scikit-learn>=1.4.0",
     "psycopg2-binary>=2.9.0",
-
-
-
+    "psycopg>=3.3.3",
+    "sqlalchemy>=2.0.0",
+    "google-generativeai>=0.8.0",
 ]
 
 [build-system]

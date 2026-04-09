@@ -87,6 +87,22 @@ export const TRANSPORT_ACCESS: Record<string, string[]> = {
 };
 
 /**
+ * Roles that can access misc (Events & Pedestrians) and disruptions tabs.
+ * Government_Admin is intentionally excluded — they see the overview instead.
+ */
+export const MISC_ACCESS = [
+  "City_Manager",
+  "Bus_Admin",
+  "Bus_Provider",
+  "Cycle_Admin",
+  "Cycle_Provider",
+  "Train_Admin",
+  "Train_Provider",
+  "Tram_Admin",
+  "Tram_Provider",
+];
+
+/**
  * Returns true if the user has access to the given transport mode.
  */
 export function canAccessTransport(
@@ -100,6 +116,7 @@ export function canAccessTransport(
  * Returns the appropriate landing page path based on the user's roles.
  */
 export function getLandingPage(userRoles: string[]): string {
+  if (userRoles.includes("Government_Admin")) return "/dashboard";
   if (userRoles.includes("City_Manager")) return "/dashboard";
   if (userRoles.some((r) => ["Bus_Admin", "Bus_Provider"].includes(r)))
     return "/dashboard/bus";

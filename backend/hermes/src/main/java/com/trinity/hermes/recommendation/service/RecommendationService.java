@@ -47,6 +47,12 @@ public class RecommendationService {
     }
   }
 
+  public List<RecommendationResponse> getActiveByIndicator(String indicator) {
+    return recommendationRepository.findActiveByIndicator(indicator).stream()
+        .map(this::mapToResponse)
+        .collect(Collectors.toList());
+  }
+
   public boolean deleteRecommendation(Integer id) {
     if (recommendationRepository.existsById(id)) {
       recommendationRepository.deleteById(id);

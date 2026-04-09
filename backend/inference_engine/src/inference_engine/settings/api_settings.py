@@ -1,9 +1,8 @@
+import os
 from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from inference_engine.settings.app_settings import is_dev
 
 
 class APISettings(BaseSettings):
@@ -16,6 +15,10 @@ class APISettings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
     )
+
+
+def is_dev() -> bool:
+    return os.getenv("APP_ENV", "dev") == "dev"
 
 
 @lru_cache(maxsize=1)

@@ -2,7 +2,7 @@
  * Live cycle station map — uses StationLiveDTO with status-coloured circle markers
  */
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -34,9 +34,13 @@ interface LiveCycleStationMapProps {
 
 const FitBounds = ({ stations }: { stations: StationLiveDTO[] }) => {
   const map = useMap();
+  // Only fit bounds once on initial mount — stations refetch every 60 s and
+  // the old [stations, map] dependency caused the map to snap back on every poll.
+  const hasFit = useRef(false);
 
   const fitBounds = useCallback(() => {
-    if (stations.length > 0) {
+    if (!hasFit.current && stations.length > 0) {
+      hasFit.current = true;
       const bounds = L.latLngBounds(
         stations.map((s) => [s.latitude, s.longitude]),
       );

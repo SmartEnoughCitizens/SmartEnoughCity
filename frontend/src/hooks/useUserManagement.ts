@@ -91,3 +91,13 @@ export const useChangePassword = () => {
       userManagementApi.changePassword(request),
   });
 };
+
+/**
+ * Fetch user counts per role (Government_Admin only)
+ */
+export const useGetUserCounts = () => {
+  return useQuery({
+    queryKey: ["user-counts"],
+    queryFn: () => userManagementApi.getUserCounts(),
+  });
+};

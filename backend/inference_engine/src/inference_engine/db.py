@@ -12,5 +12,4 @@ engine = create_engine(
     str(get_db_settings().dsn),
     pool_pre_ping=True,
 )
-
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

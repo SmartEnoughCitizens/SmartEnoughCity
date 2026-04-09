@@ -19,6 +19,7 @@ class SmallArea(Base):
     )
 
     sa_code: Mapped[str] = mapped_column(String(50), primary_key=True)
+    ed_name: Mapped[str] = mapped_column(String(150), nullable=False, default="")
     county_name: Mapped[str] = mapped_column(String(100), nullable=False)
     population: Mapped[int] = mapped_column(Integer, nullable=False)
 

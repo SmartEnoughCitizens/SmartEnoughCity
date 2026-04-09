@@ -1,5 +1,6 @@
 package com.trinity.hermes.mv.controller;
 
+import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.mv.dto.MvRefreshResult;
 import com.trinity.hermes.mv.dto.MvRegistryDTO;
 import com.trinity.hermes.mv.dto.UpsertMvRequest;
@@ -27,7 +28,7 @@ public class MaterializedViewController {
   /** Register a new MV or update an existing one (upsert by name). */
   @PostMapping
   public ResponseEntity<MvRegistryDTO> upsert(@RequestBody @Valid UpsertMvRequest request) {
-    log.info("POST /api/v1/mv — upsert '{}'", request.getName());
+    log.info("POST /api/v1/mv — upsert '{}'", LogSanitizer.sanitizeLog(request.getName()));
     return ResponseEntity.ok(materializedViewService.upsert(request));
   }
 
@@ -41,14 +42,14 @@ public class MaterializedViewController {
   /** Get metadata and stored query for a single MV. */
   @GetMapping("/{name}")
   public ResponseEntity<MvRegistryDTO> getByName(@PathVariable String name) {
-    log.info("GET /api/v1/mv/{}", name);
+    log.info("GET /api/v1/mv/{}", LogSanitizer.sanitizeLog(name));
     return ResponseEntity.ok(materializedViewService.findByName(name));
   }
 
   /** Manually trigger a refresh for a named MV. */
   @PostMapping("/{name}/refresh")
   public ResponseEntity<MvRefreshResult> refresh(@PathVariable String name) {
-    log.info("POST /api/v1/mv/{}/refresh", name);
+    log.info("POST /api/v1/mv/{}/refresh", LogSanitizer.sanitizeLog(name));
     return ResponseEntity.ok(materializedViewService.refresh(name));
   }
 
@@ -62,7 +63,7 @@ public class MaterializedViewController {
   /** Drop a MV and remove it from the registry. */
   @DeleteMapping("/{name}")
   public ResponseEntity<Void> drop(@PathVariable String name) {
-    log.info("DELETE /api/v1/mv/{}", name);
+    log.info("DELETE /api/v1/mv/{}", LogSanitizer.sanitizeLog(name));
     materializedViewService.drop(name);
     return ResponseEntity.noContent().build();
   }
@@ -70,7 +71,7 @@ public class MaterializedViewController {
   /** Toggle the enabled flag for a MV (pauses/resumes scheduled refresh). */
   @PatchMapping("/{name}/toggle")
   public ResponseEntity<MvRegistryDTO> toggle(@PathVariable String name) {
-    log.info("PATCH /api/v1/mv/{}/toggle", name);
+    log.info("PATCH /api/v1/mv/{}/toggle", LogSanitizer.sanitizeLog(name));
     return ResponseEntity.ok(materializedViewService.toggle(name));
   }
 
@@ -80,7 +81,7 @@ public class MaterializedViewController {
    */
   @GetMapping("/{name}/history")
   public ResponseEntity<List<MvRefreshResult>> history(@PathVariable String name) {
-    log.info("GET /api/v1/mv/{}/history", name);
+    log.info("GET /api/v1/mv/{}/history", LogSanitizer.sanitizeLog(name));
     return ResponseEntity.ok(materializedViewService.findByName(name).getRefreshHistory());
   }
 

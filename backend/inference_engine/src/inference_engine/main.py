@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import threading
 from collections.abc import Generator
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -11,8 +12,22 @@ from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
 
+from inference_engine.db import engine as db_engine
 from inference_engine.ev_router import router as ev_router
+from inference_engine.indicators.cycle.risk_engine import run as run_cycle_risk
+from inference_engine.indicators.train.train_utilisation import (
+    build_utilisation_json,
+    compute_utilisation,
+    distribute_ridership_weighted,
+    load_stop_times_with_stops,
+    load_train_station_ridership,
+    predict_ridership_2025,
+    process_stop_times,
+    save_recommendation_to_db,
+)
 from inference_engine.settings.api_settings import get_api_settings
+from inference_engine.train_router import router as train_router
+from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
 
 # app = FastAPI()
 
@@ -28,6 +43,17 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
     # Startup
     logger.info("🚀 Application starting up...")
     start_scheduler()
+
+    cycle_risk_thread = threading.Thread(
+        target=run_cycle_risk,
+        args=(db_engine,),
+        name="cycle-risk-engine",
+        daemon=True,
+    )
+    cycle_risk_thread.start()
+    logger.info("✅ Cycle risk engine started in background thread")
+    warm_demand_cache()
+    warm_utilisation_cache()
     logger.info("✅ Application ready!")
 
     yield
@@ -46,6 +72,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(ev_router)
+app.include_router(train_router)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -371,6 +398,26 @@ def run_tram_utilisation() -> None:
             logger.info("🚋 Tram recommendations unchanged — skipped duplicate.")
     except Exception:
         logger.exception("❌ Tram utilisation analysis failed")
+async def scheduled_train_utilisation_task() -> None:
+    """
+    Runs the full train utilisation pipeline daily at 8 AM and saves
+    the recommendation to the DB.
+    """
+    logger.info("⏰ Daily train utilisation recommendation job triggered.")
+    try:
+        stop_times_df = load_stop_times_with_stops()
+        ridership_df = load_train_station_ridership()
+        _, unique_combinations_df = process_stop_times(stop_times_df)
+        predicted_df = predict_ridership_2025(ridership_df)
+        result_df = distribute_ridership_weighted(
+            unique_combinations_df, ridership_df, predicted_df
+        )
+        utilisation_df = compute_utilisation(result_df)
+        utilisation_json = build_utilisation_json(utilisation_df)
+        save_recommendation_to_db(utilisation_json)
+        logger.info("✅ Train utilisation recommendation saved to DB.")
+    except Exception:
+        logger.exception("❌ Daily train utilisation job failed.")
 
 
 def start_scheduler() -> None:
@@ -389,11 +436,21 @@ def start_scheduler() -> None:
         replace_existing=True,
     )
 
+    # Daily 8 AM job: run train utilisation pipeline and save recommendation
+    scheduler.add_job(
+        scheduled_train_utilisation_task,
+        trigger=IntervalTrigger(minutes=2),
+        id="train_utilisation_daily",
+        name="Daily train utilisation recommendation",
+        replace_existing=True,
+    )
+
     # Start the scheduler
     scheduler.start()
     logger.info(
         "✅ Scheduler started! Task will run every %s hour(s)", FETCH_INTERVAL_HOURS
     )
+    logger.info("✅ Train utilisation job scheduled daily at 08:00 Europe/Dublin.")
     logger.info("🚗 Data indicators: %s", DATA_INDICATORS)
 
 

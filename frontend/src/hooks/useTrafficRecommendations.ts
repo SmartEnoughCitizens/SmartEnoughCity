@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "@/api";
 
 export const TRAFFIC_RECOMMENDATION_KEYS = {
@@ -13,5 +13,12 @@ export const useTrafficRecommendations = (enabled = true) => {
     refetchInterval: 300_000,
     refetchIntervalInBackground: true,
     enabled,
+  });
+};
+
+export const useNotifyTrafficRecommendation = () => {
+  return useMutation({
+    mutationFn: (recommendationId: string) =>
+      dashboardApi.notifyTrafficRecommendation(recommendationId),
   });
 };

@@ -51,6 +51,7 @@ def process_population_static_data(data_dir: Path) -> None:
             [
                 {
                     "sa_code": feature["properties"]["SA_PUB2022"],
+                    "ed_name": feature["properties"].get("ED_ENGLISH", ""),
                     "county_name": feature["properties"]["COUNTY_ENGLISH"],
                     "geometry": feature["geometry"],
                 }
@@ -70,6 +71,7 @@ def process_population_static_data(data_dir: Path) -> None:
         small_areas = [
             SmallArea(
                 sa_code=row["sa_code"],
+                ed_name=row["ed_name"],
                 county_name=row["county_name"],
                 population=int(row["total_population"]),
                 geom=to_wkt_geom(row["geometry"]),

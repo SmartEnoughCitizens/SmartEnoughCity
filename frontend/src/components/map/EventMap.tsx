@@ -1,368 +1,306 @@
 /**
- * Event map — displays events and disruptions on an interactive Leaflet map
- * Icons: 🚧 construction · 🎉 public · 🚨 emergency
+ * EventMap — Leaflet map for the Events tab on the disruption dashboard.
+ * Shows upcoming city events as venue markers coloured by risk level (derived
+ * from venue capacity).  Clicking a marker fires onEventClick so the panel
+ * can show detail + nearby transport alternatives.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import { useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Box } from "@mui/material";
+import { Box, Typography, Chip } from "@mui/material";
+import type { EventItem } from "@/types";
 import "leaflet/dist/leaflet.css";
-import type { DisruptionItem, EventItem, PedestrianLive } from "@/types";
-import {
-  type EventCategory,
-  type EventSeverity,
-  type SelectedMapItem,
-  CATEGORY_EMOJI,
-  getDisruptionCategory,
-  getDisruptionSeverity,
-  getEventCategory,
-  getEventSeverity,
-  getPedestrianSeverity,
-  SEVERITY_COLORS,
-} from "./eventMapUtils";
-
-export type {
-  EventCategory,
-  EventSeverity,
-  SelectedMapItem,
-} from "./eventMapUtils";
 
 const DUBLIN_CENTER: [number, number] = [53.3498, -6.2603];
 
-function createEventIcon(
-  category: EventCategory,
-  selected: boolean,
-): L.DivIcon {
-  const emoji = CATEGORY_EMOJI[category];
-  const scale = selected ? "1.4" : "1";
-  return L.divIcon({
-    html: `<div style="font-size:24px;line-height:1;transform:scale(${scale});transform-origin:center;transition:transform 0.15s;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45));">${emoji}</div>`,
-    className: "",
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-  });
+export interface SelectedMapItem {
+  kind: "event" | "disruption" | "pedestrian";
+  item: EventItem;
 }
 
-function createPedestrianIcon(
-  pedestrian: PedestrianLive,
-  selected: boolean,
-): L.DivIcon {
-  const severity = getPedestrianSeverity(pedestrian);
-  const color = SEVERITY_COLORS[severity];
-  const scale = selected ? 1.2 : 1;
-  const ringOpacity = selected ? 0.68 : 0.54;
-  const fillOpacity = selected ? 0.98 : 0.94;
-  const label = pedestrian.totalCount > 999 ? "999+" : pedestrian.totalCount;
+const RISK_COLORS: Record<string, string> = {
+  CRITICAL: "#7C3AED",
+  HIGH: "#EF4444",
+  MEDIUM: "#F59E0B",
+  LOW: "#10B981",
+};
+
+const RISK_SIZE: Record<string, number> = {
+  CRITICAL: 30,
+  HIGH: 26,
+  MEDIUM: 22,
+  LOW: 18,
+};
+
+const STYLE_ID = "event-marker-styles";
+function ensureStyles() {
+  if (document.querySelector(`#${STYLE_ID}`)) return;
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = `
+    @keyframes event-pulse {
+      0%   { transform: scale(1);   opacity: 0.8; }
+      70%  { transform: scale(2.2); opacity: 0;   }
+      100% { transform: scale(2.2); opacity: 0;   }
+    }
+    .event-marker-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      animation: event-pulse 2.4s ease-out infinite;
+    }
+  `;
+  document.head.append(style);
+}
+
+function makeEventIcon(riskLevel: string, selected: boolean): L.DivIcon {
+  ensureStyles();
+  const color = RISK_COLORS[riskLevel] ?? "#6366F1";
+  const size = RISK_SIZE[riskLevel] ?? 22;
+
+  // Star-shaped inner icon to distinguish from disruption dots
+  const starPath =
+    "M12 2l2.9 6.26L22 9.27l-5 5.14 1.18 7.09L12 18.77l-6.18 2.73L7 14.41 2 9.27l7.1-1.01L12 2z";
+
+  const ring = selected
+    ? `<span class="event-marker-ring" style="border: 3px solid ${color};"></span>`
+    : `<span class="event-marker-ring" style="border: 2px solid ${color}88;"></span>`;
 
   return L.divIcon({
+    className: "",
     html: `
-      <div style="position:relative;width:34px;height:34px;transform:scale(${scale});transform-origin:center;transition:transform 0.15s ease;">
-        <div style="position:absolute;inset:0;border-radius:999px;background:${color};opacity:${ringOpacity};"></div>
-        <div style="position:absolute;left:4px;top:4px;width:26px;height:26px;border-radius:999px;background:${color};opacity:${fillOpacity};border:1.5px solid rgba(255,255,255,0.94);box-shadow:0 8px 18px rgba(8,145,178,0.22);display:flex;align-items:center;justify-content:center;color:#ffffff;font-size:10px;font-weight:800;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.28);">
-          ${label}
+      <div style="position:relative;width:${size}px;height:${size}px;">
+        ${ring}
+        <div style="
+          position:absolute;inset:0;border-radius:50%;
+          background:${color};opacity:${selected ? 1 : 0.8};
+          border:2px solid ${selected ? "#fff" : color + "cc"};
+          box-shadow:0 0 ${selected ? 10 : 6}px ${color}99;
+          display:flex;align-items:center;justify-content:center;
+        ">
+          <svg width="${size * 0.55}" height="${size * 0.55}" viewBox="0 0 24 24" fill="white">
+            <path d="${starPath}"/>
+          </svg>
         </div>
       </div>
     `,
-    className: "",
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-  });
-}
-
-function createPedestrianClusterIcon(
-  count: number,
-  maxCount: number,
-  selected: boolean,
-): L.DivIcon {
-  const size = count >= 10 ? 40 : count >= 5 ? 34 : 30;
-  const severityColor =
-    SEVERITY_COLORS[
-      maxCount >= 140 ? "high" : maxCount >= 70 ? "medium" : "low"
-    ];
-
-  return L.divIcon({
-    html: `
-      <div style="width:${size}px;height:${size}px;border-radius:999px;background:${severityColor};opacity:${selected ? 0.66 : 0.54};border:1px solid rgba(255,255,255,0.76);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(15,23,42,0.16);">
-        <div style="width:${size - 10}px;height:${size - 10}px;border-radius:999px;background:rgba(255,255,255,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0f172a;line-height:1;">
-          <span style="font-size:12px;font-weight:800;">${count}</span>
-          <span style="font-size:8px;font-weight:700;opacity:0.66;margin-top:2px;">max ${maxCount}</span>
-        </div>
-      </div>
-    `,
-    className: "",
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2) - 4],
   });
 }
 
-// Fit bounds across all visible points (events + disruptions combined)
-const FitBounds = ({ points }: { points: Array<[number, number]> }) => {
+function formatTime(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleTimeString("en-IE", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function FlyToSelected({
+  events,
+  selectedItem,
+}: {
+  events: EventItem[];
+  selectedItem: SelectedMapItem | null;
+}) {
   const map = useMap();
-  const lastSignatureRef = useRef<string | null>(null);
+  const prevId = useRef<number | null>(null);
 
   useEffect(() => {
-    const signature = JSON.stringify(points);
-    if (lastSignatureRef.current === signature) return;
-    lastSignatureRef.current = signature;
-
-    if (points.length > 1) {
-      map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 14 });
-    } else if (points.length === 1) {
-      map.setView(points[0], 14);
+    if (!selectedItem || selectedItem.kind !== "event") return;
+    const e = selectedItem.item;
+    if (e.id === prevId.current) return;
+    if (e.latitude != null && e.longitude != null) {
+      map.flyTo([e.latitude, e.longitude], 15, { duration: 1.1 });
     }
-  }, [points, map]);
+    prevId.current = e.id;
+  }, [selectedItem, events, map]);
+
   return null;
-};
+}
 
 interface EventMapProps {
   events: EventItem[];
-  disruptions: DisruptionItem[];
-  pedestrians: PedestrianLive[];
-  selectedTypes: Set<EventCategory>;
-  selectedSeverities: Set<EventSeverity>;
+  disruptions: unknown[];
+  pedestrians: unknown[];
+  selectedTypes: Set<string>;
+  selectedSeverities: Set<string>;
   selectedItem: SelectedMapItem | null;
   onEventClick: (event: EventItem) => void;
-  onDisruptionClick: (disruption: DisruptionItem) => void;
-  onPedestrianClick: (pedestrian: PedestrianLive) => void;
-}
-
-type PedestrianCluster =
-  | {
-      kind: "single";
-      site: PedestrianLive;
-      position: [number, number];
-    }
-  | {
-      kind: "cluster";
-      sites: PedestrianLive[];
-      position: [number, number];
-      maxCount: number;
-    };
-
-function PedestrianMarkers({
-  pedestrians,
-  selectedId,
-  onPedestrianClick,
-}: {
-  pedestrians: PedestrianLive[];
-  selectedId: string | null;
-  onPedestrianClick: (pedestrian: PedestrianLive) => void;
-}) {
-  const map = useMap();
-  const [zoom, setZoom] = useState(() => map.getZoom());
-
-  useMapEvents({
-    zoomend: () => setZoom(map.getZoom()),
-  });
-
-  const clusters = useMemo<PedestrianCluster[]>(() => {
-    const gridSize =
-      zoom >= 16 ? 1 : zoom >= 15 ? 28 : zoom >= 14 ? 36 : zoom >= 13 ? 46 : 58;
-    if (gridSize === 1) {
-      return pedestrians.map((site) => ({
-        kind: "single",
-        site,
-        position: [site.lat, site.lon],
-      }));
-    }
-
-    const buckets = new Map<string, PedestrianLive[]>();
-    for (const site of pedestrians) {
-      const point = map.project(L.latLng(site.lat, site.lon), zoom);
-      const key = `${Math.floor(point.x / gridSize)}:${Math.floor(point.y / gridSize)}`;
-      const sites = buckets.get(key);
-      if (sites) sites.push(site);
-      else buckets.set(key, [site]);
-    }
-
-    return [...buckets.values()].map((sites) => {
-      if (sites.length === 1) {
-        return {
-          kind: "single",
-          site: sites[0],
-          position: [sites[0].lat, sites[0].lon] as [number, number],
-        };
-      }
-
-      const lat =
-        sites.reduce((sum, site) => sum + site.lat, 0) /
-        Math.max(sites.length, 1);
-      const lon =
-        sites.reduce((sum, site) => sum + site.lon, 0) /
-        Math.max(sites.length, 1);
-
-      return {
-        kind: "cluster",
-        sites,
-        position: [lat, lon] as [number, number],
-        maxCount: Math.max(...sites.map((site) => site.totalCount)),
-      };
-    });
-  }, [map, pedestrians, zoom]);
-
-  return (
-    <>
-      {clusters.map((cluster, index) => {
-        if (cluster.kind === "single") {
-          const key = `pedestrian-${cluster.site.siteId}`;
-          return (
-            <Marker
-              key={key}
-              position={cluster.position}
-              icon={createPedestrianIcon(cluster.site, selectedId === key)}
-              opacity={selectedId !== null && selectedId !== key ? 0.78 : 0.99}
-              zIndexOffset={selectedId === key ? 450 : 260}
-              eventHandlers={{
-                click: () => onPedestrianClick(cluster.site),
-              }}
-            />
-          );
-        }
-
-        const key = `pedestrian-cluster-${index}`;
-        return (
-          <Marker
-            key={key}
-            position={cluster.position}
-            icon={createPedestrianClusterIcon(
-              cluster.sites.length,
-              cluster.maxCount,
-              false,
-            )}
-            opacity={selectedId?.startsWith("pedestrian-") ? 0.9 : 0.99}
-            zIndexOffset={180}
-            eventHandlers={{
-              click: () => {
-                const bounds = L.latLngBounds(
-                  cluster.sites.map(
-                    (site) => [site.lat, site.lon] as [number, number],
-                  ),
-                );
-                map.fitBounds(bounds, {
-                  padding: [48, 48],
-                  maxZoom: Math.max(zoom + 2, 16),
-                });
-              },
-            }}
-          />
-        );
-      })}
-    </>
-  );
+  onDisruptionClick: () => void;
+  onPedestrianClick: () => void;
 }
 
 export const EventMap = ({
   events,
-  disruptions,
-  pedestrians,
-  selectedTypes,
-  selectedSeverities,
   selectedItem,
   onEventClick,
-  onDisruptionClick,
-  onPedestrianClick,
 }: EventMapProps) => {
-  const filteredEvents = events.filter((e) => {
-    if (!e.latitude || !e.longitude) return false;
-    return (
-      selectedTypes.has(getEventCategory(e.eventType)) &&
-      selectedSeverities.has(getEventSeverity(e))
-    );
-  });
-
-  const filteredDisruptions = disruptions.filter((d) => {
-    if (!d.latitude || !d.longitude) return false;
-    return (
-      selectedTypes.has(getDisruptionCategory(d.disruptionType)) &&
-      selectedSeverities.has(getDisruptionSeverity(d.severity))
-    );
-  });
-
-  const allPoints = useMemo<Array<[number, number]>>(
-    () => [
-      ...filteredEvents.map(
-        (e) => [e.latitude, e.longitude] as [number, number],
-      ),
-      ...filteredDisruptions.map(
-        (d) => [d.latitude!, d.longitude!] as [number, number],
-      ),
-      ...pedestrians
-        .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon))
-        .map((p) => [p.lat, p.lon] as [number, number]),
-    ],
-    [filteredDisruptions, filteredEvents, pedestrians],
+  const mappable = events.filter(
+    (e) => e.latitude != null && e.longitude != null,
   );
 
-  const selectedId =
-    selectedItem?.kind === "event"
-      ? `event-${selectedItem.item.id}`
-      : selectedItem?.kind === "disruption"
-        ? `disruption-${selectedItem.item.id}`
-        : selectedItem?.kind === "pedestrian"
-          ? `pedestrian-${selectedItem.item.siteId}`
-          : null;
+  const selectedEventId =
+    selectedItem?.kind === "event" ? selectedItem.item.id : null;
 
   return (
-    <Box sx={{ height: "100%", width: "100%", position: "relative" }}>
+    <Box
+      sx={{
+        width: "100%",
+        height: "100%",
+        borderRadius: 2,
+        overflow: "hidden",
+        position: "relative",
+        "& .leaflet-container": { height: "100%", width: "100%" },
+      }}
+    >
       <MapContainer
         center={DUBLIN_CENTER}
-        zoom={13}
+        zoom={12}
         style={{ height: "100%", width: "100%" }}
-        zoomControl={true}
+        zoomControl={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds points={allPoints} />
 
-        {filteredEvents.map((event) => {
-          const key = `event-${event.id}`;
+        <FlyToSelected events={mappable} selectedItem={selectedItem} />
+
+        {mappable.map((e) => {
+          const color = RISK_COLORS[e.riskLevel] ?? "#6366F1";
+          const isSelected = e.id === selectedEventId;
           return (
             <Marker
-              key={key}
-              position={[event.latitude, event.longitude]}
-              icon={createEventIcon(
-                getEventCategory(event.eventType),
-                selectedId === key,
-              )}
-              opacity={selectedId !== null && selectedId !== key ? 0.78 : 1}
-              eventHandlers={{ click: () => onEventClick(event) }}
-            />
+              key={e.id}
+              position={[e.latitude!, e.longitude!]}
+              icon={makeEventIcon(e.riskLevel, isSelected)}
+              eventHandlers={{ click: () => onEventClick(e) }}
+            >
+              <Popup>
+                <Box sx={{ minWidth: 190 }}>
+                  <Typography
+                    sx={{ fontWeight: 700, fontSize: "0.85rem", mb: 0.5 }}
+                  >
+                    {e.eventName}
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 0.5, mb: 0.5 }}>
+                    <Chip
+                      size="small"
+                      label={e.riskLevel}
+                      sx={{
+                        fontSize: "0.6rem",
+                        height: 16,
+                        bgcolor: color + "22",
+                        color,
+                        border: `1px solid ${color}44`,
+                      }}
+                    />
+                    {e.eventType && (
+                      <Chip
+                        size="small"
+                        label={e.eventType}
+                        sx={{ fontSize: "0.6rem", height: 16 }}
+                      />
+                    )}
+                  </Box>
+                  <Typography sx={{ fontSize: "0.75rem", color: "#6B7280" }}>
+                    {e.venueName}
+                  </Typography>
+                  {e.venueCapacity != null && (
+                    <Typography sx={{ fontSize: "0.72rem" }}>
+                      Capacity: {e.venueCapacity.toLocaleString()}
+                    </Typography>
+                  )}
+                  <Typography sx={{ fontSize: "0.72rem" }}>
+                    {formatTime(e.startTime)}
+                    {e.endTime ? ` – ${formatTime(e.endTime)}` : ""}
+                  </Typography>
+                </Box>
+              </Popup>
+            </Marker>
           );
         })}
-
-        {filteredDisruptions.map((disruption) => {
-          const key = `disruption-${disruption.id}`;
-          return (
-            <Marker
-              key={key}
-              position={[disruption.latitude!, disruption.longitude!]}
-              icon={createEventIcon(
-                getDisruptionCategory(disruption.disruptionType),
-                selectedId === key,
-              )}
-              opacity={selectedId !== null && selectedId !== key ? 0.78 : 1}
-              eventHandlers={{ click: () => onDisruptionClick(disruption) }}
-            />
-          );
-        })}
-
-        <PedestrianMarkers
-          pedestrians={pedestrians.filter(
-            (site) => Number.isFinite(site.lat) && Number.isFinite(site.lon),
-          )}
-          selectedId={selectedId}
-          onPedestrianClick={onPedestrianClick}
-        />
       </MapContainer>
+
+      {/* Risk legend */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 12,
+          left: 12,
+          zIndex: 1000,
+          bgcolor: "rgba(255,255,255,0.92)",
+          borderRadius: 1.5,
+          px: 1.25,
+          py: 0.75,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.4,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: "0.58rem",
+            fontWeight: 700,
+            color: "#374151",
+            mb: 0.2,
+          }}
+        >
+          VENUE RISK
+        </Typography>
+        {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const).map((r) => (
+          <Box key={r} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                bgcolor: RISK_COLORS[r],
+              }}
+            />
+            <Typography sx={{ fontSize: "0.62rem", color: "#374151" }}>
+              {r}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {mappable.length === 0 && (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            pointerEvents: "none",
+          }}
+        >
+          <Box
+            sx={{
+              bgcolor: "rgba(255,255,255,0.85)",
+              px: 2,
+              py: 1.5,
+              borderRadius: 2,
+              textAlign: "center",
+            }}
+          >
+            <Typography sx={{ fontSize: "0.8rem", color: "#6B7280" }}>
+              No geo-located events today
+            </Typography>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };
