@@ -415,7 +415,7 @@ def _detect_frequency_change(
     if over_pct > 0.50:
         hrs = max(1, period["end"] - period["start"])
         avg_tph = sum(m.total_trips for m in stops) / len(stops) / hrs
-        target = 0.65
+        target = 0.70
         extra = (
             max(1, round((avg_util / target - 1.0) * avg_tph))
             if avg_util > target
@@ -437,7 +437,7 @@ def _detect_frequency_change(
                     f"passengers per tram). {over_count} out of {len(stops)} stops are above 75% capacity. "
                     f"Average delay: {avg_delay:.1f} minutes. "
                     f"Action: Increase service by {extra} additional tram(s) per hour to bring "
-                    f"utilisation down to 65%."
+                    f"utilisation down to 60%."
                 ),
                 details={
                     "avg_utilisation": round(avg_util, 4),

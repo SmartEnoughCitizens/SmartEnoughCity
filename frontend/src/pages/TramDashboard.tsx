@@ -46,8 +46,10 @@ import {
   useTramRecommendations,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import { safeJsonParse } from "@/utils/safeJsonParse";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { z } from "zod";
 
 import type {
   TramLiveForecast,
@@ -59,6 +61,20 @@ import type {
 
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 type LineFilter = "" | "red" | "green";
+
+const tramRecommendationItemsSchema = z.array(
+  z.object({
+    Name: z.string(),
+    Attributes: z.object({
+      type: z.string(),
+      line: z.string(),
+      time_period: z.string(),
+      time_label: z.string(),
+      severity: z.string(),
+      description: z.string(),
+    }).passthrough(),
+  }),
+);
 
 const LINE_COLORS: Record<string, string> = {
   red: "#DC2626",
@@ -315,7 +331,7 @@ export const TramDashboard = () => {
     const items: TramRecommendationItem[] = [];
     for (const rec of rawRecommendations) {
       try {
-        const parsed = JSON.parse(rec.recommendation) as TramRecommendationItem[];
+        const parsed = safeJsonParse(rec.recommendation, tramRecommendationItemsSchema);
         items.push(...parsed);
       } catch {
         // skip malformed entries
