@@ -111,7 +111,7 @@ export interface TramRecommendationItem {
     [key: string]: unknown; // extra detail fields vary by type
   };
 }
- 
+
 export interface TramAlternativeRoute {
   transportType: "bus" | "rail" | "bike";
   stopId: string;

@@ -10,8 +10,7 @@ export const MISC_KEYS = {
   pedestriansLive: (limit?: number) =>
     ["misc", "pedestrians", "live", { limit }] as const,
   disruptionsActive: ["misc", "disruptions", "active"] as const,
-  events: (limit?: number) =>
-    ["misc", "events", { limit }] as const,
+  events: (limit?: number) => ["misc", "events", { limit }] as const,
 };
 
 export const DASHBOARD_KEYS = {

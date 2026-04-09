@@ -324,7 +324,10 @@ export const TramDashboard = () => {
     const items: TramRecommendationItem[] = [];
     for (const rec of rawRecommendations) {
       try {
-        const parsed = safeJsonParse(rec.recommendation, tramRecommendationItemsSchema);
+        const parsed = safeJsonParse(
+          rec.recommendation,
+          tramRecommendationItemsSchema,
+        );
         items.push(...parsed);
       } catch {
         // skip malformed entries
@@ -455,9 +458,9 @@ export const TramDashboard = () => {
     [],
   );
 
-  const activeTab = (["live", "delays", "usage", "commonDelays", "recommendations"] as const)[
-    tabValue
-  ];
+  const activeTab = (
+    ["live", "delays", "usage", "commonDelays", "recommendations"] as const
+  )[tabValue];
   const panelWidth = 400;
 
   if (isLoading) {
@@ -1359,10 +1362,9 @@ export const TramDashboard = () => {
                         sx={{
                           fontSize: "0.6rem",
                           height: 18,
-                          bgcolor:
-                            LINE_COLORS[a.line]
-                              ? LINE_COLORS[a.line] + "22"
-                              : "action.hover",
+                          bgcolor: LINE_COLORS[a.line]
+                            ? LINE_COLORS[a.line] + "22"
+                            : "action.hover",
                           color: LINE_COLORS[a.line] ?? "text.primary",
                           border: `1px solid ${(LINE_COLORS[a.line] ?? "#607D8B") + "44"}`,
                         }}
@@ -1402,7 +1404,6 @@ export const TramDashboard = () => {
                 </Typography>
               </Box>
             )}
-
           </Box>
         </Paper>
       )}
