@@ -220,6 +220,34 @@ public class UserManagementController {
     }
   }
 
+  @GetMapping("/user-counts")
+  public ResponseEntity<?> getUserCounts(@AuthenticationPrincipal Jwt jwt) {
+    if (!userManagementService.hasRole(jwt, "Government_Admin")) {
+      return ResponseEntity.status(403).body(Map.of("message", "Access denied."));
+    }
+    List<String> allRoles =
+        List.of(
+            "City_Manager",
+            "Bus_Admin",
+            "Bus_Provider",
+            "Cycle_Admin",
+            "Cycle_Provider",
+            "Train_Admin",
+            "Train_Provider",
+            "Tram_Admin",
+            "Tram_Provider");
+    java.util.LinkedHashMap<String, Integer> counts = new java.util.LinkedHashMap<>();
+    for (String role : allRoles) {
+      try {
+        counts.put(role, userManagementService.getUsersByRole(role).size());
+      } catch (RuntimeException e) {
+        log.error("Could not fetch count for role {}: {}", role, e.getMessage());
+        counts.put(role, 0);
+      }
+    }
+    return ResponseEntity.ok(counts);
+  }
+
   @GetMapping("/users")
   public ResponseEntity<?> getManageableUsers(@AuthenticationPrincipal Jwt jwt) {
 

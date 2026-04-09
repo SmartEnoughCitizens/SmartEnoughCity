@@ -65,4 +65,11 @@ export const userManagementApi = {
     );
     return data;
   },
+
+  getUserCounts: async (): Promise<Record<string, number>> => {
+    const { data } = await axiosInstance.get<Record<string, number>>(
+      API_ENDPOINTS.USER_COUNTS,
+    );
+    return data;
+  },
 };
