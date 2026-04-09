@@ -588,7 +588,6 @@ export const DashboardLayout = () => {
             </Box>
           )}
 
-
           {/* Notifications Page — all authenticated users */}
           <Box sx={panelSx("notifications")}>
             <NotificationsPage />
