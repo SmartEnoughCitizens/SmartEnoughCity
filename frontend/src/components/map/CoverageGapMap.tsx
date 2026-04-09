@@ -171,8 +171,12 @@ export const CoverageGapMap = ({
   // read the latest simulate state without needing the layer to re-create.
   const simulateModeRef = useRef(simulateMode);
   const isReviewModeRef = useRef(!!reviewProposal);
-  useEffect(() => { simulateModeRef.current = simulateMode; }, [simulateMode]);
-  useEffect(() => { isReviewModeRef.current = !!reviewProposal; }, [reviewProposal]);
+  useEffect(() => {
+    simulateModeRef.current = simulateMode;
+  }, [simulateMode]);
+  useEffect(() => {
+    isReviewModeRef.current = !!reviewProposal;
+  }, [reviewProposal]);
   const placeStationRef = useRef((lat: number, lon: number) => {
     setProposedStations((prev) => [...prev, [lat, lon]]);
   });
@@ -236,7 +240,11 @@ export const CoverageGapMap = ({
     return {
       ...g,
       simDistM,
-      simCategory: categorize(g.flatApartmentCount, g.houseBungalowCount, simDistM),
+      simCategory: categorize(
+        g.flatApartmentCount,
+        g.houseBungalowCount,
+        simDistM,
+      ),
     };
   });
 
@@ -909,7 +917,22 @@ export const CoverageGapMap = ({
           );
 
           if (g.geomGeoJson) {
-            const geomData = JSON.parse(g.geomGeoJson) as Exclude<NonNullable<Parameters<typeof L.geoJSON>[0]>, unknown[]>;
+            type GeoJsonData = Exclude<
+              NonNullable<Parameters<typeof L.geoJSON>[0]>,
+              unknown[]
+            >;
+            const geomData = safeJsonParse<GeoJsonData>(g.geomGeoJson, {
+              parse: (data) => {
+                if (
+                  typeof data !== "object" ||
+                  data === null ||
+                  !("type" in data)
+                ) {
+                  throw new Error("Invalid GeoJSON: missing type field");
+                }
+                return data as GeoJsonData;
+              },
+            });
             const baseStyle: PathOptions = {
               fillColor: color,
               fillOpacity: improved ? 0.65 : 0.45,
