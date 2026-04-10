@@ -1,6 +1,5 @@
 package com.trinity.hermes.common;
 
-
 public final class Constants {
 
   // Live data freshness window in minutes — data older than this is considered stale

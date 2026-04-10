@@ -58,8 +58,7 @@ public class BusDashboardService {
     log.info("Fetching dashboard KPIs");
 
     Long totalBuses = busLiveVehicleRepository.countActiveVehicles();
-    Long activeDelays =
-        busLiveStopTimeUpdateRepository.countActiveDelays(DELAY_THRESHOLD_SECONDS);
+    Long activeDelays = busLiveStopTimeUpdateRepository.countActiveDelays(DELAY_THRESHOLD_SECONDS);
     Double avgUtilization = busRouteMetricsRepository.findFleetUtilization();
     Double avgReliability = busRouteMetricsRepository.findAverageReliability();
 
