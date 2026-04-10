@@ -1081,11 +1081,11 @@ export const CoverageGapMap = ({
         elevation={0}
         sx={{
           position: "absolute",
-          ...(legendTopOffset != null
-            ? { top: legendTopOffset, left: 16 }
-            : simulateMode && proposedStations.length > 0 && improvedCount > 0
+          ...(legendTopOffset == null
+            ? simulateMode && proposedStations.length > 0 && improvedCount > 0
               ? { top: 60, left: 16 }
-              : { bottom: 24, left: 16 }),
+              : { bottom: 24, left: 16 }
+            : { top: legendTopOffset, left: 16 }),
           zIndex: 1000,
           px: 1.5,
           py: 1,
