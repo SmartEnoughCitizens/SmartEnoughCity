@@ -88,7 +88,9 @@ DATA_INDICATORS = ["bus", "car", "train"]
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
     """
-    Handle startup and shutdown events
+    Manage application startup and shutdown lifecycle for the FastAPI app.
+    
+    On startup: start the scheduler, launch the cycle-risk background thread, warm demand and utilisation caches, and log readiness. Yields control to run the application. On shutdown: stop the scheduler and shut down the tracer provider.
     """
     # Startup
     logger.info("Application starting up...")

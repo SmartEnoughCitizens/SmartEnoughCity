@@ -6,6 +6,11 @@ import logging_loki
 
 
 def configure_logging() -> None:
+    """
+    Configure the root logger with a console handler and a Grafana Loki handler.
+    
+    If the root logger already has handlers, this function does nothing. Otherwise it sets up a console handler and adds a Loki handler that sends logs to the endpoint specified by the LOKI_URL environment variable (default "http://localhost:3100/loki/api/v1/push") and tags logs with app="data-handler" and pod from POD_NAME (default "local"). Both handlers are configured at the INFO level.
+    """
     root = logging.getLogger()
     if root.handlers:
         return
