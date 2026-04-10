@@ -49,6 +49,12 @@ public class SecurityConfig {
     return source;
   }
 
+  /**
+   * Configures HTTP security including CORS, CSRF exclusions for API and documentation endpoints, a custom access-denied response, request authorization rules (public endpoints and role-based restrictions), OAuth2 JWT authentication conversion, and stateless session management.
+   *
+   * @return the configured SecurityFilterChain
+   * @throws Exception if an error occurs while building the security chain
+   */
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
