@@ -22,7 +22,22 @@ public interface BusLiveStopTimeUpdateRepository
               + " OR stu.departure_delay > :thresholdSeconds)"
               + " AND tu.timestamp >= NOW() - INTERVAL '"
               + Constants.LIVE_DATA_WINDOW_MINUTES
-              + " minutes'",
+              + " minutes'"
+              + " AND tu.vehicle_id IN ("
+              + "   SELECT DISTINCT vehicle_id"
+              + "   FROM external_data.bus_live_vehicles"
+              + "   WHERE timestamp >= NOW() - INTERVAL '"
+              + Constants.LIVE_DATA_WINDOW_MINUTES
+              + " minutes'"
+              + "   AND lat BETWEEN "
+              + Constants.DUBLIN_LAT_MIN
+              + " AND "
+              + Constants.DUBLIN_LAT_MAX
+              + "   AND lon BETWEEN "
+              + Constants.DUBLIN_LON_MIN
+              + " AND "
+              + Constants.DUBLIN_LON_MAX
+              + " )",
       nativeQuery = true)
   Long countActiveDelays(@Param("thresholdSeconds") Integer thresholdSeconds);
 
