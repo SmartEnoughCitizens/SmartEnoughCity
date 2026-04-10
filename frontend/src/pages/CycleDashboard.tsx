@@ -7,13 +7,13 @@ import { useState } from "react";
 import {
   Box,
   Chip,
+  CircularProgress,
   Divider,
   IconButton,
   Paper,
   Tab,
   Tabs,
   Typography,
-  CircularProgress,
   Alert,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -29,6 +29,9 @@ import {
   useCycleODPairs,
   useCycleRiskScores,
   useCycleCoverageGaps,
+  useCycleNetworkHourlyProfile,
+  useCycleStationClassification,
+  useCycleStationHourlyUsage,
   useODRoutes,
   usePendingProposals,
   useAcceptedProposals,
@@ -158,27 +161,10 @@ export const CycleDashboard = () => {
   const { data: coverageGaps, isLoading: coverageLoading } =
     useCycleCoverageGaps();
 
-  const isLoading =
-    stationsLoading ||
-    busiestLoading ||
-    underusedLoading ||
-    rebalancingLoading ||
-    odLoading;
-
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100%",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // Prefetch demand analysis data so the panel loads instantly when opened
+  useCycleNetworkHourlyProfile(30);
+  useCycleStationClassification(30);
+  useCycleStationHourlyUsage(30, 30);
 
   const allOdPairs = odPairs ?? [];
 
@@ -395,16 +381,22 @@ export const CycleDashboard = () => {
                   <Tab label="Underused" />
                 </Tabs>
                 {rankingSubTab === 0 && (
-                  <CycleRankingTable stations={busiest ?? []} />
+                  busiestLoading
+                    ? <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}><CircularProgress size={24} /></Box>
+                    : <CycleRankingTable stations={busiest ?? []} />
                 )}
                 {rankingSubTab === 1 && (
-                  <CycleRankingTable stations={underused ?? []} />
+                  underusedLoading
+                    ? <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}><CircularProgress size={24} /></Box>
+                    : <CycleRankingTable stations={underused ?? []} />
                 )}
               </>
             )}
 
             {tabValue === TAB_REBALANCING && (
-              <RebalancingTable suggestions={rebalancing ?? []} />
+              rebalancingLoading
+                ? <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}><CircularProgress size={24} /></Box>
+                : <RebalancingTable suggestions={rebalancing ?? []} />
             )}
 
             {tabValue === TAB_OD_FLOW && (
