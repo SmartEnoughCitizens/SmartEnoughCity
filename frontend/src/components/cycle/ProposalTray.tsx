@@ -61,7 +61,9 @@ export const ProposalTray = ({
           "&:hover": { bgcolor: "rgba(251,191,36,0.08)" },
         }}
       >
-        <AssignmentIcon sx={{ fontSize: "0.95rem", color: "#fbbf24", flexShrink: 0 }} />
+        <AssignmentIcon
+          sx={{ fontSize: "0.95rem", color: "#fbbf24", flexShrink: 0 }}
+        />
         {/* Count badge — always visible */}
         <Chip
           label={proposals.length}
@@ -79,7 +81,12 @@ export const ProposalTray = ({
         <Typography
           variant="caption"
           fontWeight={700}
-          sx={{ color: "#fbbf24", fontSize: "0.7rem", flex: 1, whiteSpace: "nowrap" }}
+          sx={{
+            color: "#fbbf24",
+            fontSize: "0.7rem",
+            flex: 1,
+            whiteSpace: "nowrap",
+          }}
         >
           Pending Proposals
         </Typography>
