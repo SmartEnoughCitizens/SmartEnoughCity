@@ -16,6 +16,7 @@ from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -80,6 +81,8 @@ trace.set_tracer_provider(tracer_provider)
 SQLAlchemyInstrumentor().instrument(engine=db_engine)
 # Instrument outbound httpx calls so downstream trace context is propagated
 HTTPXClientInstrumentor().instrument()
+# Patch logging so traceId/spanId are injected into every log record
+LoggingInstrumentor().instrument(set_logging_format=False)
 
 FETCH_INTERVAL_HOURS = 1
 DATA_INDICATORS = ["bus", "car", "train"]

@@ -70,6 +70,10 @@ spec:
               value: "inference-engine"
             - name: DEPLOYMENT_ENV
               value: {{ .Values.observability.environment | default "prod" | quote }}
+            - name: LOKI_URL
+              value: {{ .Values.observability.loki.url | quote }}
+            - name: LOKI_TIMEOUTMS
+              value: {{ .Values.observability.loki.timeoutMs | default "5000" | quote }}
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.livenessProbe }}

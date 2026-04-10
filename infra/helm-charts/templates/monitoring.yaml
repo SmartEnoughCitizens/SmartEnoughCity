@@ -339,6 +339,10 @@ spec:
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+        runAsGroup: 472
       containers:
         - name: grafana
           image: grafana/grafana:12.0.0
@@ -387,8 +391,18 @@ spec:
     app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - name: http
-      port: 3001
+      port: 80
       targetPort: 3001
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ .Release.Name }}-grafana-dr
+spec:
+  host: {{ .Release.Name }}-grafana.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -417,5 +431,5 @@ spec:
               service:
                 name: {{ .Release.Name }}-grafana
                 port:
-                  number: 3001
+                  number: 80
 {{- end }}
