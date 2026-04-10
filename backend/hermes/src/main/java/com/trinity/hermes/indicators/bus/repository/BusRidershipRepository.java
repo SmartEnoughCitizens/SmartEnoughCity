@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.bus.repository;
 
+import com.trinity.hermes.common.Constants;
 import com.trinity.hermes.indicators.bus.entity.BusRidership;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,7 +21,9 @@ public interface BusRidershipRepository extends JpaRepository<BusRidership, Inte
   @Query(
       value =
           "SELECT DISTINCT ON (vehicle_id) * FROM external_data.bus_ridership"
-              + " WHERE timestamp >= NOW() - INTERVAL '5 minutes'"
+              + " WHERE timestamp >= NOW() - INTERVAL '"
+              + Constants.LIVE_DATA_WINDOW_MINUTES
+              + " minutes'"
               + " ORDER BY vehicle_id, timestamp DESC",
       nativeQuery = true)
   List<BusRidership> findLatestPerVehicle();
