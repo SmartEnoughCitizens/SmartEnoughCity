@@ -12,14 +12,17 @@ import {
   Typography,
   Chip,
   Box,
+  InputAdornment,
+  TextField,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
+import SearchIcon from "@mui/icons-material/Search";
+import { useState } from "react";
 import type { StationLiveDTO } from "@/types";
 
 interface LiveCycleStationTableProps {
   stations: StationLiveDTO[];
-  maxRows?: number;
   compact?: boolean;
 }
 
@@ -38,15 +41,39 @@ const STATUS_CHIP_COLOR: Record<string, "success" | "warning" | "error"> = {
 
 export const LiveCycleStationTable = ({
   stations,
-  maxRows = 10,
   compact = false,
 }: LiveCycleStationTableProps) => {
-  const displayStations = stations.slice(0, maxRows);
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const displayStations = q
+    ? stations.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.address.toLowerCase().includes(q),
+      )
+    : stations;
 
   return (
     <>
-      <TableContainer sx={{ maxHeight: compact ? 300 : undefined }}>
-        <Table size="small" stickyHeader={compact}>
+      <Box sx={{ px: 1, pt: 1, pb: 0.5 }}>
+        <TextField
+          size="small"
+          fullWidth
+          placeholder="Search stations…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ fontSize: "1rem", color: "text.disabled" }} />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ "& .MuiInputBase-input": { fontSize: "0.78rem", py: 0.75 } }}
+        />
+      </Box>
+      <TableContainer>
+        <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell>Station</TableCell>
@@ -67,7 +94,7 @@ export const LiveCycleStationTable = ({
                     color="text.secondary"
                     sx={{ py: 2 }}
                   >
-                    No station data available
+                    {q ? `No stations match "${search}"` : "No station data available"}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -160,15 +187,6 @@ export const LiveCycleStationTable = ({
           </TableBody>
         </Table>
       </TableContainer>
-      {stations.length > maxRows && (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ p: 1, display: "block", textAlign: "center" }}
-        >
-          Showing {maxRows} of {stations.length} stations
-        </Typography>
-      )}
     </>
   );
 };
