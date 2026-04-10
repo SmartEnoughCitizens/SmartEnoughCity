@@ -831,7 +831,9 @@ export const CoverageGapMap = ({
                       "&:hover": { bgcolor: "#2563eb" },
                     }}
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Proposal to Cycle Admin"}
+                    {isSubmitting
+                      ? "Submitting..."
+                      : "Submit Proposal to Cycle Admin"}
                   </Button>
                 ) : null}
               </Box>
