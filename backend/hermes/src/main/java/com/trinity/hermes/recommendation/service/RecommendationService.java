@@ -61,6 +61,12 @@ public class RecommendationService {
     return false;
   }
 
+  public List<RecommendationResponse> getRecommendationsByIndicator(String indicator) {
+    return recommendationRepository.findActiveByIndicator(indicator).stream()
+        .map(this::mapToResponse)
+        .collect(Collectors.toList());
+  }
+
   private RecommendationResponse mapToResponse(Recommendation rec) {
     return RecommendationResponse.builder()
         .id(rec.getId())
