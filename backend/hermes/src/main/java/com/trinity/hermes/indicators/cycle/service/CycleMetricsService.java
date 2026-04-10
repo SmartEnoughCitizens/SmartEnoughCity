@@ -380,7 +380,7 @@ public class CycleMetricsService {
                 notification.setSubject(subject);
                 notification.setBody(body);
                 notification.setChannel(Channel.NOTIFICATION);
-              notification.setActionUrl(cycleCoverageUrl());
+                notification.setActionUrl(cycleCoverageUrl());
                 notificationFacade.handleBackendNotification(notification);
               } catch (Exception e) {
                 log.error(
@@ -391,7 +391,8 @@ public class CycleMetricsService {
               }
             });
       } catch (Exception e) {
-        log.error("Failed to fetch City_Manager users for forward notification: {}", e.getMessage(), e);
+        log.error(
+            "Failed to fetch City_Manager users for forward notification: {}", e.getMessage(), e);
       }
       return true;
 
@@ -417,7 +418,9 @@ public class CycleMetricsService {
         return false;
       }
       log.info("Proposal id={} rejected by Cycle_Admin {}", id, reviewerUsername);
-      notifySubmitter(id, "Your station proposal was rejected",
+      notifySubmitter(
+          id,
+          "Your station proposal was rejected",
           "Your proposed station(s) were rejected by Cycle Admin. Reason: " + review.getReason());
       return true;
     } else {
@@ -429,7 +432,8 @@ public class CycleMetricsService {
   /** City_Manager can ACCEPT or REJECT a FORWARDED proposal. */
   private boolean reviewAsCityManager(Long id, ProposalReviewDTO review, String reviewerUsername) {
     if (!"ACCEPTED".equals(review.getAction()) && !"REJECTED".equals(review.getAction())) {
-      log.warn("City_Manager sent unsupported action={} for proposal id={}", review.getAction(), id);
+      log.warn(
+          "City_Manager sent unsupported action={} for proposal id={}", review.getAction(), id);
       return false;
     }
 
@@ -454,20 +458,24 @@ public class CycleMetricsService {
           LogSanitizer.sanitizeLog(id));
       return false;
     }
-    log.info(
-        "Proposal id={} {} by City_Manager {}",
-        id,
-        review.getAction(),
-        reviewerUsername);
+    log.info("Proposal id={} {} by City_Manager {}", id, review.getAction(), reviewerUsername);
 
     if ("ACCEPTED".equals(review.getAction())) {
-      notifySubmitter(id, "Your station proposal was approved",
+      notifySubmitter(
+          id,
+          "Your station proposal was approved",
           "Your proposed station(s) have been approved by City Manager.");
-      notifyCycleAdmins(reviewerUsername + " (City Manager) approved a station proposal you forwarded.");
+      notifyCycleAdmins(
+          reviewerUsername + " (City Manager) approved a station proposal you forwarded.");
     } else {
-      notifySubmitter(id, "Your station proposal was rejected",
+      notifySubmitter(
+          id,
+          "Your station proposal was rejected",
           "Your proposed station(s) were rejected by City Manager. Reason: " + review.getReason());
-      notifyCycleAdmins(reviewerUsername + " (City Manager) rejected a station proposal you forwarded. Reason: " + review.getReason());
+      notifyCycleAdmins(
+          reviewerUsername
+              + " (City Manager) rejected a station proposal you forwarded. Reason: "
+              + review.getReason());
     }
     return true;
   }
@@ -486,7 +494,11 @@ public class CycleMetricsService {
               notification.setActionUrl(cycleCoverageUrl());
               notificationFacade.handleBackendNotification(notification);
             } catch (Exception e) {
-              log.error("Failed to notify Cycle_Admin username={}: {}", user.getUsername(), e.getMessage(), e);
+              log.error(
+                  "Failed to notify Cycle_Admin username={}: {}",
+                  user.getUsername(),
+                  e.getMessage(),
+                  e);
             }
           });
     } catch (Exception e) {
