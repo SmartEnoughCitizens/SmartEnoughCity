@@ -296,7 +296,8 @@ public class CycleMetricsController {
           (review.getReviewedBy() != null && !review.getReviewedBy().isBlank())
               ? review.getReviewedBy()
               : resolveUsername(jwt);
-      boolean updated = cycleMetricsService.reviewProposal(id, review, reviewerUsername, reviewerRole);
+      boolean updated =
+          cycleMetricsService.reviewProposal(id, review, reviewerUsername, reviewerRole);
       if (!updated) {
         return ResponseEntity.status(HttpStatus.CONFLICT).build();
       }
