@@ -1,6 +1,7 @@
 package com.trinity.hermes.indicators.bus.repository;
 
 import com.trinity.hermes.indicators.bus.entity.BusLiveStopTimeUpdate;
+
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,7 +19,8 @@ public interface BusLiveStopTimeUpdateRepository
               + " INNER JOIN external_data.bus_live_trip_updates tu"
               + " ON stu.trip_update_entry_id = tu.entry_id"
               + " WHERE (stu.arrival_delay > :thresholdSeconds"
-              + " OR stu.departure_delay > :thresholdSeconds)",
+              + " OR stu.departure_delay > :thresholdSeconds)"
+              + " AND tu.timestamp >= NOW() - INTERVAL '5 minutes'",
       nativeQuery = true)
   Long countActiveDelays(@Param("thresholdSeconds") Integer thresholdSeconds);
 
