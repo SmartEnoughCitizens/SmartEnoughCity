@@ -94,7 +94,9 @@ export const LiveCycleStationTable = ({
                     color="text.secondary"
                     sx={{ py: 2 }}
                   >
-                    {q ? `No stations match "${search}"` : "No station data available"}
+                    {q
+                      ? `No stations match "${search}"`
+                      : "No station data available"}
                   </Typography>
                 </TableCell>
               </TableRow>
