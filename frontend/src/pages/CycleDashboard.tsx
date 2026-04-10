@@ -158,7 +158,6 @@ export const CycleDashboard = () => {
 
   const {
     data: stations,
-    isLoading: stationsLoading,
     error,
   } = useCycleStationsLive();
   const { data: summary } = useCycleNetworkSummary();
@@ -168,7 +167,7 @@ export const CycleDashboard = () => {
     useCycleUnderusedStations(10);
   const { data: rebalancing, isLoading: rebalancingLoading } =
     useCycleRebalancing(30);
-  const { data: odPairs, isLoading: odLoading } = useCycleODPairs(30, 50);
+  const { data: odPairs } = useCycleODPairs(30, 50);
   const { routeCache, progress: routeProgress } = useODRoutes(odPairs ?? []);
   const { data: riskScores, isLoading: riskLoading } = useCycleRiskScores();
   const { data: coverageGaps, isLoading: coverageLoading } =
