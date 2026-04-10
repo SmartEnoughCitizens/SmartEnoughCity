@@ -52,6 +52,7 @@ import type {
   TramHourlyDistribution,
   TramStopUsage,
   TramCommonDelay,
+  TramRecommendation,
   TramAlternativeRoute,
 } from "@/types";
 
@@ -500,13 +501,34 @@ export const dashboardApi = {
     return data;
   },
 
+  /**
+   * Get tram service change recommendations
+   */
+  getTramRecommendations: async (): Promise<TramRecommendation[]> => {
+    const { data } = await axiosInstance.get<TramRecommendation[]>(
+      API_ENDPOINTS.TRAM_RECOMMENDATIONS,
+    );
+    return data;
+  },
+
+  /**
+   * Get upcoming events
+   */
+  getEvents: async (limit = 10): Promise<EventItem[]> => {
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS,
+      {
+        params: { limit },
+      },
+    );
+    return data;
+  },
   getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
     const { data } = await axiosInstance.get<StationRiskScoreDTO[]>(
       API_ENDPOINTS.CYCLE_RISK_SCORES,
     );
     return data;
   },
-
   /**
    * Get live pedestrian counts per site
    */

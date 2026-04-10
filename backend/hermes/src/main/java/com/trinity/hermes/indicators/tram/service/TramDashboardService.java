@@ -115,9 +115,12 @@ public class TramDashboardService {
     Map<String, List<String>> nameToGtfsIds = buildNameToGtfsIdsMap();
     Map<String, String> luasToGtfs = buildLuasToGtfsNameMap(luasStopsById, nameToGtfsIds);
     Map<String, Double> hourlyPct = getHourlyPctForHours(List.of(currentHour));
-    Map<String, int[]> stopDirTrips = countTripsForHours(List.of(currentHour), nameToGtfsIds);
+    List<TramStopTime> allStopTimes = tramStopTimeRepository.findAll();
+    Map<String, int[]> stopDirTrips =
+        countTripsForHours(List.of(currentHour), nameToGtfsIds, allStopTimes);
     Map<String, Integer> lineTotals =
-        countLineTotalsForHours(List.of(currentHour), luasStopsById, nameToGtfsIds, luasToGtfs);
+        countLineTotalsForHours(
+            List.of(currentHour), luasStopsById, nameToGtfsIds, luasToGtfs, allStopTimes);
     Map<String, TramLuasForecast> soonest = findSoonestPerStopDirection(forecasts);
     List<TramDelayDTO> delays = new ArrayList<>();
     for (TramLuasForecast forecast : soonest.values()) {
@@ -145,9 +148,10 @@ public class TramDashboardService {
     Map<String, List<String>> nameToGtfsIds = buildNameToGtfsIdsMap();
     Map<String, String> luasToGtfs = buildLuasToGtfsNameMap(luasStopsById, nameToGtfsIds);
     Map<String, Double> hourlyPctByLine = getHourlyPctForHours(hours);
-    Map<String, int[]> stopDirTrips = countTripsForHours(hours, nameToGtfsIds);
+    List<TramStopTime> allStopTimes = tramStopTimeRepository.findAll();
+    Map<String, int[]> stopDirTrips = countTripsForHours(hours, nameToGtfsIds, allStopTimes);
     Map<String, Integer> lineTotals =
-        countLineTotalsForHours(hours, luasStopsById, nameToGtfsIds, luasToGtfs);
+        countLineTotalsForHours(hours, luasStopsById, nameToGtfsIds, luasToGtfs, allStopTimes);
 
     List<TramStopUsageDTO> usageList = new ArrayList<>();
     for (TramStop luasStop : luasStopsById.values()) {
@@ -299,14 +303,16 @@ public class TramDashboardService {
   }
 
   private Map<String, int[]> countTripsForHours(
-      List<Integer> hours, Map<String, List<String>> nameToGtfsIds) {
+      List<Integer> hours,
+      Map<String, List<String>> nameToGtfsIds,
+      List<TramStopTime> allStopTimes) {
     Map<String, String> gtfsIdToName = new HashMap<>();
     for (Map.Entry<String, List<String>> entry : nameToGtfsIds.entrySet()) {
       for (String gid : entry.getValue()) gtfsIdToName.put(gid, entry.getKey());
     }
     Set<Integer> hourSet = new HashSet<>(hours);
     Map<String, int[]> result = new HashMap<>();
-    for (TramStopTime st : tramStopTimeRepository.findAll()) {
+    for (TramStopTime st : allStopTimes) {
       if (st.getArrivalTime() == null) continue;
       if (!hourSet.contains(st.getArrivalTime().toLocalTime().getHour())) continue;
       String stopName = gtfsIdToName.get(st.getStopId());
@@ -322,7 +328,8 @@ public class TramDashboardService {
       List<Integer> hours,
       Map<String, TramStop> luasStopsById,
       Map<String, List<String>> nameToGtfsIds,
-      Map<String, String> luasToGtfs) {
+      Map<String, String> luasToGtfs,
+      List<TramStopTime> allStopTimes) {
     Map<String, String> gtfsStopToLine = new HashMap<>();
     for (TramStop luasStop : luasStopsById.values()) {
       String gtfsName = luasToGtfs.get(luasStop.getStopId());
@@ -338,7 +345,7 @@ public class TramDashboardService {
     }
     Set<Integer> hourSet = new HashSet<>(hours);
     Map<String, Integer> totals = new HashMap<>();
-    for (TramStopTime st : tramStopTimeRepository.findAll()) {
+    for (TramStopTime st : allStopTimes) {
       if (st.getArrivalTime() == null) continue;
       if (!hourSet.contains(st.getArrivalTime().toLocalTime().getHour())) continue;
       totals.merge(gtfsStopToLine.getOrDefault(st.getStopId(), "unknown"), 1, Integer::sum);
@@ -408,18 +415,12 @@ public class TramDashboardService {
   private LocalTime findNextScheduledArrival(List<String> gtfsStopIds, LocalTime now) {
     Time sqlNow = Time.valueOf(now);
     Time sqlEnd = Time.valueOf(now.plusMinutes(90));
-    LocalTime nearest = null;
-    for (String gtfsStopId : gtfsStopIds) {
-      for (TramStopTime st : tramStopTimeRepository.findByStopIdOrderByArrivalTime(gtfsStopId)) {
-        Time arr = st.getArrivalTime();
-        if (arr.compareTo(sqlNow) >= 0 && arr.compareTo(sqlEnd) <= 0) {
-          LocalTime al = arr.toLocalTime();
-          if (nearest == null || al.isBefore(nearest)) nearest = al;
-          break;
-        }
-      }
-    }
-    return nearest;
+    return tramStopTimeRepository
+        .findByStopIdInAndArrivalTimeBetween(gtfsStopIds, sqlNow, sqlEnd)
+        .stream()
+        .map(st -> st.getArrivalTime().toLocalTime())
+        .min(Comparator.naturalOrder())
+        .orElse(null);
   }
 
   private List<String> findGtfsStopIdsByPartialName(

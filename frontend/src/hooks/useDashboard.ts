@@ -10,6 +10,7 @@ export const MISC_KEYS = {
   pedestriansLive: (limit?: number) =>
     ["misc", "pedestrians", "live", { limit }] as const,
   disruptionsActive: ["misc", "disruptions", "active"] as const,
+  events: (limit?: number) => ["misc", "events", { limit }] as const,
 };
 
 export const DASHBOARD_KEYS = {
@@ -69,6 +70,7 @@ export const DASHBOARD_KEYS = {
   tramStopUsage: (startHour: number, endHour: number) =>
     ["tram", "stop-usage", { startHour, endHour }] as const,
   tramCommonDelays: ["tram", "common-delays"] as const,
+  tramRecommendations: ["tram", "recommendations"] as const,
 };
 
 /**
@@ -551,6 +553,32 @@ export const useTramCommonDelays = () => {
 };
 
 /**
+ * Get tram service change recommendations
+ */
+export const useTramRecommendations = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.tramRecommendations,
+    queryFn: () => dashboardApi.getTramRecommendations(),
+    staleTime: 120_000, // 2 minutes
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
+ * Get upcoming events (default 10, show 5 initially)
+ */
+export const useEvents = (limit = 10) => {
+  return useQuery({
+    queryKey: MISC_KEYS.events(limit),
+    queryFn: () => dashboardApi.getEvents(limit),
+    staleTime: 300_000, // 5 minutes — events don't change often
+    refetchInterval: 300_000,
+    refetchIntervalInBackground: true,
+  });
+};
+
+/**
  * Get live pedestrian counts per site
  */
 export const usePedestriansLive = (limit = 20) => {
@@ -663,7 +691,7 @@ export const useReviewProposal = () => {
  * Get upcoming city events for the next N days (default 7).
  * Refreshed every 5 minutes; stale data shown while refetching.
  */
-export const useEvents = (days = 7) => {
+export const useUpcomingEvents = (days = 7) => {
   return useQuery<EventItem[]>({
     queryKey: ["events", days],
     queryFn: () => dashboardApi.getUpcomingEvents(days),
