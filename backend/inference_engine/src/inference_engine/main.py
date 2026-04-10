@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 
 import httpx
+import logging_loki
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -40,7 +41,6 @@ from inference_engine.train_router import router as train_router
 from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
 
 # ── Logging ──────────────────────────────────────────────────────────────────
-import logging_loki  # noqa: E402
 
 _LOKI_URL = os.getenv("LOKI_URL", "http://localhost:3100/loki/api/v1/push")
 
