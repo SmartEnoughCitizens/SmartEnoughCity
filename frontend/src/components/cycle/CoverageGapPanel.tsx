@@ -201,7 +201,11 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
 
 // ── Planned proposal card ──────────────────────────────────────────────────────
 
-function PlannedProposalCard({ proposal }: { proposal: StationProposalSummary }) {
+function PlannedProposalCard({
+  proposal,
+}: {
+  proposal: StationProposalSummary;
+}) {
   const acceptedDate = proposal.reviewedAt
     ? new Date(proposal.reviewedAt).toLocaleDateString()
     : proposal.submittedAt
@@ -226,7 +230,9 @@ function PlannedProposalCard({ proposal }: { proposal: StationProposalSummary })
           mb: 0.5,
         }}
       >
-        <AddLocationAltIcon sx={{ fontSize: "0.85rem", color: "#16a34a", flexShrink: 0 }} />
+        <AddLocationAltIcon
+          sx={{ fontSize: "0.85rem", color: "#16a34a", flexShrink: 0 }}
+        />
         <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
           {proposal.stationCount} proposed station
           {proposal.stationCount === 1 ? "" : "s"}
@@ -337,7 +343,11 @@ interface Props {
   isLoading: boolean;
 }
 
-export function CoverageGapPanel({ gaps, acceptedProposals, isLoading }: Props) {
+export function CoverageGapPanel({
+  gaps,
+  acceptedProposals,
+  isLoading,
+}: Props) {
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
