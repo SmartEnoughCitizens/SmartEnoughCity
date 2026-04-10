@@ -54,16 +54,9 @@ management:
   tracing:
     sampling:
       probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
-
-otel:
-  exporter:
-    otlp:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:}
-      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
-  resource:
-    attributes:
-      service.name: hermes
-      deployment.environment: ${DEPLOYMENT_ENV:prod}
+  otlp:
+    tracing:
+      endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces"
 
 loki:
   url: ${LOKI_URL:}
