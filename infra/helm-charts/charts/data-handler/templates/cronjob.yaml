@@ -133,4 +133,11 @@ spec:
                   value: {{ $.Values.carGdriveFolderId | default "" | quote }}
                 - name: BASE_STATIC_DATA_DIR
                   value: "/tmp/static_data"
+                # ── Observability ────────────────────────────────────────────
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: LOKI_URL
+                  value: {{ $.Values.observability.loki.url | quote }}
 {{- end }}

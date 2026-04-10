@@ -33,6 +33,10 @@ containerSecurityContext: {}
 
 carGdriveFolderId: ""
 
+observability:
+  loki:
+    url: ""
+
 # Data source toggles — set to "false" to disable a specific source across all CronJobs.
 dataToggles:
   enableCycleData: true
