@@ -3,7 +3,7 @@
  * and a separate bottom demand-analysis panel.
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Box,
   Chip,
@@ -87,6 +87,19 @@ export const CycleDashboard = () => {
   const [reviewedProposalIds, setReviewedProposalIds] = useState<Set<number>>(
     new Set(),
   );
+
+  // Measure ProposalTray height so the map legend can sit below it
+  const proposalTrayRef = useRef<HTMLDivElement>(null);
+  const [proposalTrayHeight, setProposalTrayHeight] = useState(0);
+  useEffect(() => {
+    const el = proposalTrayRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      setProposalTrayHeight(entry.contentRect.height);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const isCycleProvider = roles.includes("Cycle_Provider");
   const isCycleAdmin = roles.includes("Cycle_Admin");
@@ -228,6 +241,11 @@ export const CycleDashboard = () => {
           isReviewing={isReviewing}
           canSubmit={isCycleProvider}
           reviewerRole={reviewerRole ?? undefined}
+          legendTopOffset={
+            canReviewProposals && visiblePendingProposals.length > 0 && proposalTrayHeight > 0
+              ? proposalTrayHeight + GAP * 2
+              : undefined
+          }
         />
       ) : (
         <LiveCycleStationMap
@@ -254,16 +272,15 @@ export const CycleDashboard = () => {
         </Alert>
       )}
 
-      {/* ── Proposal review tray — left middle, visible on all tabs ── */}
+      {/* ── Proposal review tray — top-left compact badge ── */}
       {canReviewProposals && visiblePendingProposals.length > 0 && (
         <Box
+          ref={proposalTrayRef}
           sx={{
             position: "absolute",
             left: GAP,
-            top: "50%",
-            transform: "translateY(-50%)",
+            top: GAP,
             zIndex: 1000,
-            width: 260,
           }}
         >
           <ProposalTray
