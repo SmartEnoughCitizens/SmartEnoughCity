@@ -85,7 +85,7 @@ export const CycleDashboard = () => {
   const [reviewingProposal, setReviewingProposal] =
     useState<StationProposalSummary | null>(null);
   const [reviewedProposalIds, setReviewedProposalIds] = useState<Set<number>>(
-    new Set(),
+    () => new Set(),
   );
 
   // Measure ProposalTray height so the map legend can sit below it
