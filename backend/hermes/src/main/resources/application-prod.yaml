@@ -47,6 +47,27 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+  metrics:
+    tags:
+      application: hermes
+      environment: ${DEPLOYMENT_ENV:prod}
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+  resource:
+    attributes:
+      service.name: hermes
+      deployment.environment: ${DEPLOYMENT_ENV:prod}
+
+loki:
+  url: ${LOKI_URL:}
+  timeoutMs: ${LOKI_TIMEOUTMS:5000}
 
 springdoc:
   api-docs:

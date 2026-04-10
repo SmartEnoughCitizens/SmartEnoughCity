@@ -155,6 +155,20 @@ keycloak:
     podAnnotations:
       sidecar.istio.io/inject: "false"
 
+observability:
+  environment: dev
+  jaeger:
+    enabled: true
+    otlpHttpEndpoint: "http://sec-jaeger:4318"
+  loki:
+    url: "http://sec-loki:3100/loki/api/v1/push"
+    timeoutMs: "5000"
+  tracing:
+    samplingProbability: "1.0"   # 100% in dev
+  grafana:
+    host: "grafana.citycontrol.me"
+    adminPassword: ""            # auto-generated and persisted in sec-grafana-secret
+
 ingress:
   enabled: true
   className: nginx
