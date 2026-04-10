@@ -25,10 +25,16 @@ public interface BusLiveVehicleRepository extends JpaRepository<BusLiveVehicle, 
               + " WHERE timestamp >= NOW() - INTERVAL '5 minutes'"
               + " ORDER BY vehicle_id, timestamp DESC",
       nativeQuery = true)
-  List<BusLiveVehicle> findRecentVehicles();
+  List<BusLiveVehicle> findRecentVehicles(
+      @Param("latMin") double latMin,
+      @Param("latMax") double latMax,
+      @Param("lonMin") double lonMin,
+      @Param("lonMax") double lonMax);
 
   @Query(
-      value = "SELECT COUNT(DISTINCT vehicle_id) FROM external_data.bus_live_vehicles",
+      value =
+          "SELECT COUNT(DISTINCT vehicle_id) FROM external_data.bus_live_vehicles"
+              + " WHERE timestamp >= NOW() - INTERVAL '5 minutes'",
       nativeQuery = true)
   Long countActiveVehicles();
 

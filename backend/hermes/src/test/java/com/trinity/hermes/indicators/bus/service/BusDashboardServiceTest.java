@@ -2,6 +2,7 @@ package com.trinity.hermes.indicators.bus.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.when;
 
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
@@ -104,7 +105,9 @@ class BusDashboardServiceTest {
         new com.trinity.hermes.indicators.bus.entity.BusRoute(
             "route_1", 1, "42", "City Center - Sandyford");
 
-    when(busLiveVehicleRepository.findLatestPositionPerVehicle()).thenReturn(List.of(vehicle));
+    when(busLiveVehicleRepository.findRecentVehicles(
+            anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+        .thenReturn(List.of(vehicle));
     when(busTripRepository.findAllById(java.util.Set.of("trip_1"))).thenReturn(List.of(trip));
     when(busRouteRepository.findAllById(java.util.Set.of("route_1"))).thenReturn(List.of(route));
     when(busRidershipRepository.findLatestPerVehicle()).thenReturn(List.of(ridership));
