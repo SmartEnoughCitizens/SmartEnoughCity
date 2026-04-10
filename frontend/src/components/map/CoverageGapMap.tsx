@@ -147,6 +147,8 @@ interface CoverageGapMapProps {
   canSubmit?: boolean;
   /** Role of the current reviewer — controls the primary action button label. */
   reviewerRole?: string;
+  /** Top offset (px) to push the legend below a floating tray above it. */
+  legendTopOffset?: number;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -161,6 +163,7 @@ export const CoverageGapMap = ({
   isReviewing = false,
   canSubmit = false,
   reviewerRole,
+  legendTopOffset,
 }: CoverageGapMapProps) => {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [simulateMode, setSimulateMode] = useState(false);
@@ -1073,14 +1076,16 @@ export const CoverageGapMap = ({
         ))}
       </MapContainer>
 
-      {/* Legend — moves to top-left when impact panel occupies bottom-left */}
+      {/* Legend — positioned below the proposal tray when present, otherwise bottom-left */}
       <Paper
         elevation={0}
         sx={{
           position: "absolute",
-          ...(simulateMode && proposedStations.length > 0 && improvedCount > 0
-            ? { top: 60, left: 16 }
-            : { bottom: 24, left: 16 }),
+          ...(legendTopOffset != null
+            ? { top: legendTopOffset, left: 16 }
+            : simulateMode && proposedStations.length > 0 && improvedCount > 0
+              ? { top: 60, left: 16 }
+              : { bottom: 24, left: 16 }),
           zIndex: 1000,
           px: 1.5,
           py: 1,
