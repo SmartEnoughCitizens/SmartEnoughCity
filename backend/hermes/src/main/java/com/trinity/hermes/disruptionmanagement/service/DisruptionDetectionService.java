@@ -1,5 +1,6 @@
 package com.trinity.hermes.disruptionmanagement.service;
 
+import com.trinity.hermes.common.Constants;
 import com.trinity.hermes.disruptionmanagement.dto.DisruptionDetectionRequest;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
@@ -51,12 +52,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DisruptionDetectionService {
 
   private static final ZoneId DUBLIN = ZoneId.of("Europe/Dublin");
-
-  // Dublin bounding box — filters out bus/train stops from the rest of Ireland
-  private static final double DUBLIN_LAT_MIN = 53.20;
-  private static final double DUBLIN_LAT_MAX = 53.50;
-  private static final double DUBLIN_LON_MIN = -6.55;
-  private static final double DUBLIN_LON_MAX = -6.00;
 
   // Bus: only fire when a stop has ≥ 30 min arrival delay
   private static final int BUS_STOP_DELAY_THRESHOLD_SECONDS = 1800;
@@ -138,10 +133,10 @@ public class DisruptionDetectionService {
       List<Object[]> rows =
           busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(
               BUS_STOP_DELAY_THRESHOLD_SECONDS,
-              DUBLIN_LAT_MIN,
-              DUBLIN_LAT_MAX,
-              DUBLIN_LON_MIN,
-              DUBLIN_LON_MAX);
+              Constants.DUBLIN_LAT_MIN,
+              Constants.DUBLIN_LAT_MAX,
+              Constants.DUBLIN_LON_MIN,
+              Constants.DUBLIN_LON_MAX);
 
       for (Object[] row : rows) {
         if (row.length < 6) continue;
@@ -246,7 +241,10 @@ public class DisruptionDetectionService {
     try {
       List<TrainStationData> latest =
           trainStationDataRepository.findLatestPerStationTrain(
-              DUBLIN_LAT_MIN, DUBLIN_LAT_MAX, DUBLIN_LON_MIN, DUBLIN_LON_MAX);
+              Constants.DUBLIN_LAT_MIN,
+              Constants.DUBLIN_LAT_MAX,
+              Constants.DUBLIN_LON_MIN,
+              Constants.DUBLIN_LON_MAX);
 
       Map<String, List<TrainStationData>> byStation =
           latest.stream()

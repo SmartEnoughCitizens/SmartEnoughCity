@@ -1,6 +1,5 @@
 package com.trinity.hermes.indicators.bus.service;
 
-import com.trinity.hermes.common.Constants;
 import com.trinity.hermes.common.logging.LogSanitizer;
 import com.trinity.hermes.indicators.bus.dto.BusCommonDelayDTO;
 import com.trinity.hermes.indicators.bus.dto.BusDashboardKpiDTO;
@@ -77,12 +76,7 @@ public class BusDashboardService {
   public List<BusLiveVehicleDTO> getLiveVehiclePositions() {
     log.info("Fetching live vehicle positions");
 
-    List<BusLiveVehicle> vehicles =
-        busLiveVehicleRepository.findRecentVehicles(
-            Constants.DUBLIN_LAT_MIN,
-            Constants.DUBLIN_LAT_MAX,
-            Constants.DUBLIN_LON_MIN,
-            Constants.DUBLIN_LON_MAX);
+    List<BusLiveVehicle> vehicles = busLiveVehicleRepository.findRecentVehicles();
     if (vehicles.isEmpty()) {
       return List.of();
     }
