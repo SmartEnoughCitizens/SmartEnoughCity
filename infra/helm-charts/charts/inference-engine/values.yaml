@@ -33,3 +33,13 @@ imagePullSecrets: []
 securityContext: {}
 
 containerSecurityContext: {}
+
+observability:
+  environment: prod
+  jaeger:
+    otlpHttpEndpoint: ""
+  loki:
+    url: ""
+    timeoutMs: "5000"
+  tracing:
+    samplingProbability: "0.1"

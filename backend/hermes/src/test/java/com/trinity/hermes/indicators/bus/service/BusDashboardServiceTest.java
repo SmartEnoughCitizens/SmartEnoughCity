@@ -104,7 +104,7 @@ class BusDashboardServiceTest {
         new com.trinity.hermes.indicators.bus.entity.BusRoute(
             "route_1", 1, "42", "City Center - Sandyford");
 
-    when(busLiveVehicleRepository.findLatestPositionPerVehicle()).thenReturn(List.of(vehicle));
+    when(busLiveVehicleRepository.findRecentVehicles()).thenReturn(List.of(vehicle));
     when(busTripRepository.findAllById(java.util.Set.of("trip_1"))).thenReturn(List.of(trip));
     when(busRouteRepository.findAllById(java.util.Set.of("route_1"))).thenReturn(List.of(route));
     when(busRidershipRepository.findLatestPerVehicle()).thenReturn(List.of(ridership));

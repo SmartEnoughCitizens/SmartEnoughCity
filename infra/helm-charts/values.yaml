@@ -120,6 +120,20 @@ inference-engine:
 frontend:
   enabled: true
 
+observability:
+  environment: prod
+  jaeger:
+    enabled: false
+    otlpHttpEndpoint: ""
+  loki:
+    url: ""
+    timeoutMs: "5000"
+  tracing:
+    samplingProbability: "0.1"
+  grafana:
+    host: ""
+    adminPassword: ""      # auto-generated if empty
+
 ingress:
   enabled: true
   className: "nginx"

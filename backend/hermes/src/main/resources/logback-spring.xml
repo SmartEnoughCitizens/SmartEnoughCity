@@ -1,64 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true">
 
-    <!-- Spring Boot defaults + CONSOLE -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
-    <!-- Read Spring properties -->
     <springProperty scope="context" name="APP"        source="spring.application.name" defaultValue="hermes"/>
-<!--    <springProperty scope="context" name="LOKI_URL"   source="loki.url"                defaultValue="http://localhost:3100/loki/api/v1/push"/>-->
-<!--    <springProperty scope="context" name="LOKI_TO_MS" source="loki.timeoutMs"          defaultValue="5000"/>-->
+    <springProperty scope="context" name="LOKI_URL"   source="loki.url"                defaultValue="http://localhost:3100/loki/api/v1/push"/>
+    <springProperty scope="context" name="LOKI_TO_MS" source="loki.timeoutMs"          defaultValue="5000"/>
     <springProperty scope="context" name="ROOT_LVL"   source="logging.level.root"      defaultValue="INFO"/>
+    <property name="POD_NAME" value="${POD_NAME:-local}"/>
 
-    <!-- Loki appender -->
-<!--    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">-->
-<!--        <http>-->
-<!--            <url>${LOKI_URL}</url>-->
-<!--            &lt;!&ndash; timeouts from Spring properties &ndash;&gt;-->
-<!--            <connectTimeoutMs>${LOKI_TO_MS}</connectTimeoutMs>-->
-<!--            <readTimeoutMs>${LOKI_TO_MS}</readTimeoutMs>-->
-<!--        </http>-->
-<!--        <format>-->
-<!--            &lt;!&ndash; key=value pairs for Loki labels &ndash;&gt;-->
-<!--            <label>-->
-<!--                <pattern>app=${APP},level=%level,logger=%logger{20}</pattern>-->
-<!--            </label>-->
-<!--            &lt;!&ndash; log line content sent to Loki (safe if traceId/spanId are missing) &ndash;&gt;-->
-<!--            <message>-->
-<!--                <pattern>-->
-<!--                    %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread]-->
-<!--                    [traceId=%X{traceId} spanId=%X{spanId}]-->
-<!--                    %logger{36} - %msg%ex{full}-->
-<!--                </pattern>-->
-<!--            </message>-->
-<!--            &lt;!&ndash; static labels &ndash;&gt;-->
-<!--            <staticLabels>service=${APP}</staticLabels>-->
-<!--        </format>-->
-<!--        <batch>-->
-<!--            <bufferSize>250</bufferSize>-->
-<!--            <maxRetries>2</maxRetries>-->
-<!--        </batch>-->
-<!--        <sender class="com.github.loki4j.logback.JavaHttpSender"/>-->
-<!--    </appender>-->
+    <!-- Loki appender — pushes structured logs with traceId/spanId labels -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${LOKI_URL}</url>
+            <connectTimeoutMs>${LOKI_TO_MS}</connectTimeoutMs>
+            <readTimeoutMs>${LOKI_TO_MS}</readTimeoutMs>
+        </http>
+        <format>
+            <label>
+                <!-- Loki stream labels — keep low cardinality -->
+                <pattern>app=${APP},pod=${POD_NAME},level=%level,logger=%logger{20}</pattern>
+            </label>
+            <message>
+                <!-- Full log line including traceId + spanId from OTel MDC -->
+                <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [traceId=%X{traceId:-} spanId=%X{spanId:-}] %logger{36} - %msg%ex{full}</pattern>
+            </message>
+        </format>
+        <batch>
+            <bufferSize>500</bufferSize>
+            <maxRetries>2</maxRetries>
+        </batch>
+        <sender class="com.github.loki4j.logback.JavaHttpSender"/>
+    </appender>
 
-    <!-- Async wrapper so logging never blocks -->
-<!--    <appender name="ASYNC_LOKI" class="ch.qos.logback.classic.AsyncAppender">-->
-<!--        <queueSize>8192</queueSize>-->
-<!--        <discardingThreshold>0</discardingThreshold>-->
-<!--        <neverBlock>true</neverBlock>-->
-<!--        <appender-ref ref="LOKI"/>-->
-<!--    </appender>-->
+    <!-- Async wrapper — logging never blocks request threads -->
+    <appender name="ASYNC_LOKI" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>8192</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="LOKI"/>
+    </appender>
 
-    <!-- Root logger -->
+    <!-- Root: console always, Loki for non-local profiles -->
     <root level="${ROOT_LVL}">
         <appender-ref ref="CONSOLE"/>
-<!--        <appender-ref ref="ASYNC_LOKI"/>-->
     </root>
+
+    <springProfile name="dev,prod">
+        <root level="${ROOT_LVL}">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_LOKI"/>
+        </root>
+    </springProfile>
 
     <!-- Local profile: add rolling file appender -->
     <springProfile name="local">
-
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>logs/hermes.log</file>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -68,26 +65,19 @@
                 <totalSizeCap>200MB</totalSizeCap>
             </rollingPolicy>
             <encoder>
-                <pattern>
-                    %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread]
-                    [traceId=%X{traceId} spanId=%X{spanId}]
-                    %logger{36} - %msg%ex{full}
-                </pattern>
+                <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [traceId=%X{traceId:-} spanId=%X{spanId:-}] %logger{36} - %msg%ex{full}</pattern>
             </encoder>
         </appender>
-
-        <!-- only extend the root in this profile -->
         <logger name="com.trinity.hermes" level="${ROOT_LVL}"/>
         <root level="${ROOT_LVL}">
             <appender-ref ref="CONSOLE"/>
-<!--            <appender-ref ref="ASYNC_LOKI"/>-->
             <appender-ref ref="FILE"/>
         </root>
     </springProfile>
 
     <!-- Quiet noisy libs -->
     <logger name="org.springframework" level="WARN"/>
-    <logger name="org.hibernate" level="WARN"/>
-    <logger name="com.zaxxer" level="WARN"/>
+    <logger name="org.hibernate"       level="WARN"/>
+    <logger name="com.zaxxer"          level="WARN"/>
 
 </configuration>

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import threading
 from collections.abc import Generator
 from contextlib import asynccontextmanager
@@ -7,9 +8,20 @@ from datetime import datetime
 from typing import Any
 
 import httpx
+import logging_loki
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 from inference_engine.db import engine as db_engine
@@ -33,10 +45,51 @@ from inference_engine.settings.api_settings import get_api_settings
 from inference_engine.train_router import router as train_router
 from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
 
-# app = FastAPI()
+# ── Logging ──────────────────────────────────────────────────────────────────
 
-FETCH_INTERVAL_HOURS = 1  # Fetch data every 1 hour (change to 24 for daily)
-DATA_INDICATORS = ["bus", "car", "train", "tram"]  # Transport types to process
+_LOKI_URL = os.getenv("LOKI_URL", "http://localhost:3100/loki/api/v1/push")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-5s [%(name)s] [traceId=%(otelTraceID)s spanId=%(otelSpanID)s] %(message)s",
+)
+
+_loki_handler = logging_loki.LokiHandler(
+    url=_LOKI_URL,
+    tags={
+        "app": "inference-engine",
+        "pod": os.getenv("POD_NAME", "local"),
+    },
+    version="1",
+)
+logging.getLogger().addHandler(_loki_handler)
+
+logger = logging.getLogger(__name__)
+
+# ── OpenTelemetry tracing ─────────────────────────────────────────────────────
+_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+
+resource = Resource.create(
+    {
+        "service.name": os.getenv("OTEL_SERVICE_NAME", "inference-engine"),
+        "deployment.environment": os.getenv("DEPLOYMENT_ENV", "dev"),
+    }
+)
+tracer_provider = TracerProvider(resource=resource)
+tracer_provider.add_span_processor(
+    BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{_OTLP_ENDPOINT}/v1/traces"))
+)
+trace.set_tracer_provider(tracer_provider)
+
+# Instrument SQLAlchemy before the engine is used
+SQLAlchemyInstrumentor().instrument(engine=db_engine)
+# Instrument outbound httpx calls so downstream trace context is propagated
+HTTPXClientInstrumentor().instrument()
+# Patch logging so traceId/spanId are injected into every log record
+LoggingInstrumentor().instrument(set_logging_format=False)
+
+FETCH_INTERVAL_HOURS = 1
+DATA_INDICATORS = ["bus", "car", "train", "tram"]
 
 
 @asynccontextmanager
@@ -45,7 +98,7 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
     Handle startup and shutdown events
     """
     # Startup
-    logger.info("🚀 Application starting up...")
+    logger.info("Application starting up...")
     start_scheduler()
 
     cycle_risk_thread = threading.Thread(
@@ -55,17 +108,18 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
         daemon=True,
     )
     cycle_risk_thread.start()
-    logger.info("✅ Cycle risk engine started in background thread")
+    logger.info("Cycle risk engine started in background thread")
     warm_demand_cache()
     warm_utilisation_cache()
-    logger.info("✅ Application ready!")
+    logger.info("Application ready!")
 
     yield
 
     # Shutdown
-    logger.info("🛑 Application shutting down...")
+    logger.info("Application shutting down...")
     shutdown_scheduler()
-    logger.info("✅ Application stopped!")
+    tracer_provider.shutdown()
+    logger.info("Application stopped!")
 
 
 # Initialize scheduler
@@ -78,9 +132,11 @@ app = FastAPI(
 app.include_router(ev_router)
 app.include_router(train_router)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ── Prometheus metrics — exposes /metrics ─────────────────────────────────────
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+# ── FastAPI OTel instrumentation (must be after app is created) ───────────────
+FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
 
 
 # Load Settings
