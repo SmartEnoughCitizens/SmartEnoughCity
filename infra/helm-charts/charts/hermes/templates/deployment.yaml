@@ -75,6 +75,23 @@ spec:
               value: {{ .Values.frontendUrl | quote }}
             - name: INFERENCE_ENGINE_BASE_URL
               value: {{ .Values.inferenceEngineUrl | quote }}
+            # ── Observability ────────────────────────────────────────────
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
+              value: {{ .Values.observability.tracing.samplingProbability | default "0.1" | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.jaeger.otlpHttpEndpoint | quote }}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "http/protobuf"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=hermes,deployment.environment={{ .Values.observability.environment | default "prod" }}"
+            - name: LOKI_URL
+              value: {{ .Values.observability.loki.url | quote }}
+            - name: LOKI_TIMEOUTMS
+              value: {{ .Values.observability.loki.timeoutMs | default "5000" | quote }}
             - name: AWS_REGION
               value: {{ .Values.aws.region | quote }}
             - name: AWS_ACCESS_KEY_ID

@@ -59,6 +59,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.db.secret.name }}
                   key: {{ .Values.db.secret.passwordKey }}
+            # ── Observability ────────────────────────────────────────────
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.jaeger.otlpHttpEndpoint | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: "inference-engine"
+            - name: DEPLOYMENT_ENV
+              value: {{ .Values.observability.environment | default "prod" | quote }}
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.livenessProbe }}
