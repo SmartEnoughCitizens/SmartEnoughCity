@@ -1,24 +1,50 @@
 /**
  * PublicDisruptionPage — No-auth public page, accessible via QR code.
- * Displays disruption details in a large-format, screen-displayable layout.
+ * Shows the disruption on a map alongside a list of nearby alternatives
+ * with walking links, so passengers can immediately navigate.
  */
 
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Chip, CircularProgress, Typography } from "@mui/material";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import {
+  Box,
+  Chip,
+  CircularProgress,
+  Divider,
+  IconButton,
+  Link,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import TrainIcon from "@mui/icons-material/Train";
+import TramIcon from "@mui/icons-material/Tram";
 import PedalBikeIcon from "@mui/icons-material/PedalBike";
 import EventIcon from "@mui/icons-material/Event";
 import TrafficIcon from "@mui/icons-material/Traffic";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { dashboardApi } from "@/api";
 import type {
   DisruptionAlternative,
   DisruptionCause,
   DisruptionSeverity,
 } from "@/types";
+
+// Fix Leaflet default icon paths in bundled apps
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)
+  ._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 const SEVERITY_COLORS: Record<DisruptionSeverity, string> = {
   LOW: "#10B981",
@@ -27,10 +53,17 @@ const SEVERITY_COLORS: Record<DisruptionSeverity, string> = {
   CRITICAL: "#7C3AED",
 };
 
+const MODE_COLORS: Record<string, string> = {
+  bus: "#3B82F6",
+  rail: "#8B5CF6",
+  tram: "#10B981",
+  bike: "#F59E0B",
+};
+
 const CAUSE_ICONS: Record<string, React.ReactNode> = {
-  EVENT: <EventIcon sx={{ fontSize: 20 }} />,
-  CONGESTION: <TrafficIcon sx={{ fontSize: 20 }} />,
-  CROSS_MODE: <CompareArrowsIcon sx={{ fontSize: 20 }} />,
+  EVENT: <EventIcon sx={{ fontSize: 18 }} />,
+  CONGESTION: <TrafficIcon sx={{ fontSize: 18 }} />,
+  CROSS_MODE: <CompareArrowsIcon sx={{ fontSize: 18 }} />,
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {
@@ -39,12 +72,51 @@ const CONFIDENCE_COLORS: Record<string, string> = {
   LOW: "#10B981",
 };
 
-function altIcon(mode: string): React.ReactNode {
-  const m = mode.toUpperCase();
-  if (m.includes("BUS")) return <DirectionsBusIcon sx={{ fontSize: 20 }} />;
-  if (m.includes("BIKE") || m.includes("CYCLE"))
-    return <PedalBikeIcon sx={{ fontSize: 20 }} />;
-  return <TrainIcon sx={{ fontSize: 20 }} />;
+function modeIcon(mode: string): React.ReactNode {
+  const m = mode.toLowerCase();
+  if (m.includes("bus")) return <DirectionsBusIcon sx={{ fontSize: 18 }} />;
+  if (m.includes("bike") || m.includes("cycle"))
+    return <PedalBikeIcon sx={{ fontSize: 18 }} />;
+  if (m.includes("tram")) return <TramIcon sx={{ fontSize: 18 }} />;
+  return <TrainIcon sx={{ fontSize: 18 }} />;
+}
+
+function modeColor(mode: string): string {
+  return MODE_COLORS[mode.toLowerCase()] ?? "#6B7280";
+}
+
+function makeDisruptionIcon(color: string): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      width:20px;height:20px;border-radius:50%;
+      background:${color};border:3px solid white;
+      box-shadow:0 0 0 2px ${color};
+    "></div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+}
+
+function makeAltIcon(color: string): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      width:14px;height:14px;border-radius:50%;
+      background:${color};border:2px solid white;
+      box-shadow:0 1px 4px rgba(0,0,0,0.35);
+    "></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
+
+function FitBounds({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  if (points.length > 1) {
+    map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
+  }
+  return null;
 }
 
 function formatTime(iso: string | null): string {
@@ -61,26 +133,31 @@ function formatTime(iso: string | null): string {
 
 function CauseRow({ cause }: { cause: DisruptionCause }) {
   return (
-    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, py: 0.75 }}>
-      <Box sx={{ color: CONFIDENCE_COLORS[cause.confidence], mt: 0.1 }}>
+    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, py: 0.5 }}>
+      <Box
+        sx={{
+          color: CONFIDENCE_COLORS[cause.confidence],
+          mt: 0.2,
+          flexShrink: 0,
+        }}
+      >
         {CAUSE_ICONS[cause.causeType] ?? (
-          <WarningAmberIcon sx={{ fontSize: 20 }} />
+          <WarningAmberIcon sx={{ fontSize: 18 }} />
         )}
       </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography sx={{ fontSize: "1rem", color: "#1F2937" }}>
-          {cause.causeDescription}
-        </Typography>
-      </Box>
+      <Typography sx={{ fontSize: "0.9rem", color: "#374151", flex: 1 }}>
+        {cause.causeDescription}
+      </Typography>
       <Chip
         label={cause.confidence}
         size="small"
         sx={{
-          fontSize: "0.7rem",
+          fontSize: "0.65rem",
           bgcolor: CONFIDENCE_COLORS[cause.confidence] + "18",
           color: CONFIDENCE_COLORS[cause.confidence],
           border: `1px solid ${CONFIDENCE_COLORS[cause.confidence]}44`,
-          fontWeight: 600,
+          fontWeight: 700,
+          flexShrink: 0,
         }}
       />
     </Box>
@@ -88,25 +165,71 @@ function CauseRow({ cause }: { cause: DisruptionCause }) {
 }
 
 function AlternativeRow({ alt }: { alt: DisruptionAlternative }) {
+  const color = modeColor(alt.mode);
   return (
-    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, py: 0.75 }}>
-      <Box sx={{ color: "#6B7280", mt: 0.1 }}>{altIcon(alt.mode)}</Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography sx={{ fontSize: "1rem", color: "#1F2937" }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        py: 0.75,
+        px: 1,
+        borderRadius: 1.5,
+        "&:hover": { bgcolor: "#F9FAFB" },
+      }}
+    >
+      <Box
+        sx={{
+          color,
+          flexShrink: 0,
+          width: 32,
+          height: 32,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: color + "18",
+          borderRadius: "50%",
+        }}
+      >
+        {modeIcon(alt.mode)}
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          sx={{
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            color: "#111827",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {alt.stopName ?? alt.description}
+        </Typography>
+        <Typography sx={{ fontSize: "0.78rem", color: "#6B7280" }}>
           {alt.description}
         </Typography>
-        {alt.etaMinutes != null && (
-          <Typography sx={{ fontSize: "0.82rem", color: "#6B7280" }}>
-            ~{alt.etaMinutes} min away
-          </Typography>
+        {alt.availabilityCount != null && (
+          <Chip
+            label={`${alt.availabilityCount} bikes`}
+            size="small"
+            sx={{ fontSize: "0.65rem", mt: 0.25 }}
+          />
         )}
       </Box>
-      {alt.availabilityCount != null && (
-        <Chip
-          label={`${alt.availabilityCount} avail.`}
-          size="small"
-          sx={{ fontSize: "0.7rem" }}
-        />
+      {alt.googleMapsWalkingUrl && (
+        <Tooltip title="Get walking directions">
+          <IconButton
+            component={Link}
+            href={alt.googleMapsWalkingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            size="small"
+            sx={{ color: "#3B82F6", flexShrink: 0 }}
+          >
+            <DirectionsWalkIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        </Tooltip>
       )}
     </Box>
   );
@@ -166,188 +289,268 @@ export const PublicDisruptionPage = () => {
 
   const severityColor = SEVERITY_COLORS[disruption.severity] ?? "#6B7280";
   const causes = disruption.causes ?? [];
-  const alternatives = disruption.alternatives ?? [];
+  const alternatives = (disruption.alternatives ?? []).filter(
+    (a) => a.lat != null && a.lon != null,
+  );
+  const hasMap = disruption.latitude != null && disruption.longitude != null;
+
+  // All points for map bounds: disruption + all alternatives
+  const mapPoints: [number, number][] = [];
+  if (hasMap) mapPoints.push([disruption.latitude!, disruption.longitude!]);
+  for (const a of alternatives) {
+    if (a.lat != null && a.lon != null) mapPoints.push([a.lat, a.lon]);
+  }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "#F9FAFB",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        p: { xs: 2, md: 4 },
-      }}
-    >
+    <Box sx={{ minHeight: "100vh", bgcolor: "#F3F4F6" }}>
+      {/* Severity header */}
       <Box
         sx={{
-          width: "100%",
-          maxWidth: 680,
-          bgcolor: "#fff",
-          borderRadius: 3,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
-          overflow: "hidden",
+          bgcolor: severityColor,
+          px: { xs: 2, md: 4 },
+          py: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
         }}
       >
-        {/* Header bar */}
-        <Box
-          sx={{
-            bgcolor: severityColor,
-            px: 3,
-            py: 2.5,
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-          }}
-        >
-          <WarningAmberIcon sx={{ color: "#fff", fontSize: 28 }} />
+        <WarningAmberIcon sx={{ color: "#fff", fontSize: 26 }} />
+        <Box sx={{ flex: 1 }}>
           <Typography
             sx={{
               color: "#fff",
               fontWeight: 800,
-              fontSize: "1.15rem",
-              letterSpacing: -0.3,
+              fontSize: "1rem",
+              letterSpacing: -0.2,
             }}
           >
             SERVICE DISRUPTION
           </Typography>
-          <Box sx={{ ml: "auto" }}>
-            <Chip
-              label={disruption.severity}
-              sx={{
-                bgcolor: "rgba(255,255,255,0.25)",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: "0.75rem",
-                border: "1px solid rgba(255,255,255,0.4)",
-              }}
-            />
-          </Box>
-        </Box>
-
-        <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
-          {/* Title */}
           <Typography
-            sx={{
-              fontSize: "1.4rem",
-              fontWeight: 800,
-              color: "#111827",
-              lineHeight: 1.2,
-            }}
+            sx={{ color: "rgba(255,255,255,0.85)", fontSize: "0.82rem" }}
           >
-            {disruption.name ?? disruption.disruptionType}
+            {disruption.affectedArea}
+            {disruption.detectedAt
+              ? ` · Detected ${formatTime(disruption.detectedAt)}`
+              : ""}
           </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              mt: 0.75,
-              flexWrap: "wrap",
-            }}
-          >
-            {disruption.affectedArea && (
-              <Typography sx={{ fontSize: "0.9rem", color: "#6B7280" }}>
-                {disruption.affectedArea}
-              </Typography>
-            )}
-            {disruption.detectedAt && (
-              <Typography sx={{ fontSize: "0.9rem", color: "#9CA3AF" }}>
-                · Detected {formatTime(disruption.detectedAt)}
-              </Typography>
-            )}
-          </Box>
-          {disruption.description && (
-            <Typography
+        </Box>
+        <Chip
+          label={disruption.severity}
+          sx={{
+            bgcolor: "rgba(255,255,255,0.22)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: "0.72rem",
+            border: "1px solid rgba(255,255,255,0.4)",
+          }}
+        />
+      </Box>
+
+      {/* Two-column layout: map left (or top on mobile), info right */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "1fr 380px" },
+          minHeight: "calc(100vh - 72px)",
+        }}
+      >
+        {/* MAP */}
+        <Box sx={{ position: "relative", minHeight: { xs: 280, md: "100%" } }}>
+          {hasMap ? (
+            <MapContainer
+              center={[disruption.latitude!, disruption.longitude!]}
+              zoom={15}
+              style={{ height: "100%", minHeight: 280, width: "100%" }}
+              zoomControl={false}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {mapPoints.length > 1 && <FitBounds points={mapPoints} />}
+
+              {/* Disruption marker */}
+              <Marker
+                position={[disruption.latitude!, disruption.longitude!]}
+                icon={makeDisruptionIcon(severityColor)}
+              >
+                <Popup>
+                  <strong>{disruption.affectedArea}</strong>
+                  <br />
+                  {disruption.disruptionType} — {disruption.severity}
+                </Popup>
+              </Marker>
+
+              {/* Alternative markers */}
+              {alternatives.map((a) => (
+                <Marker
+                  key={a.id}
+                  position={[a.lat!, a.lon!]}
+                  icon={makeAltIcon(modeColor(a.mode))}
+                >
+                  <Popup>
+                    <strong>{a.stopName}</strong>
+                    <br />
+                    {a.description}
+                    {a.googleMapsWalkingUrl && (
+                      <>
+                        <br />
+                        <a
+                          href={a.googleMapsWalkingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Walk here ↗
+                        </a>
+                      </>
+                    )}
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          ) : (
+            <Box
               sx={{
-                mt: 1.25,
-                fontSize: "0.95rem",
-                color: "#374151",
-                lineHeight: 1.5,
+                height: "100%",
+                minHeight: 280,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "#E5E7EB",
               }}
             >
-              {disruption.description}
-            </Typography>
+              <Typography sx={{ color: "#9CA3AF", fontSize: "0.9rem" }}>
+                Location not available
+              </Typography>
+            </Box>
           )}
         </Box>
 
-        {/* Divider */}
-        <Box sx={{ mx: 3, borderTop: "1px solid #E5E7EB", my: 1.5 }} />
-
-        {/* Causes */}
-        {causes.length > 0 && (
-          <Box sx={{ px: 3, pb: 1 }}>
-            <Typography
-              sx={{
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                color: "#9CA3AF",
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                mb: 0.75,
-              }}
-            >
-              Why is this happening?
-            </Typography>
-            {causes.map((c) => (
-              <CauseRow key={c.id} cause={c} />
-            ))}
-          </Box>
-        )}
-
-        {causes.length > 0 && alternatives.length > 0 && (
-          <Box sx={{ mx: 3, borderTop: "1px solid #E5E7EB", my: 1.5 }} />
-        )}
-
-        {/* Alternatives */}
-        {alternatives.length > 0 && (
-          <Box sx={{ px: 3, pb: 1 }}>
-            <Typography
-              sx={{
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                color: "#9CA3AF",
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                mb: 0.75,
-              }}
-            >
-              What to do
-            </Typography>
-            {alternatives.map((a) => (
-              <AlternativeRow key={a.id} alt={a} />
-            ))}
-          </Box>
-        )}
-
-        {/* Footer */}
+        {/* INFO PANEL */}
         <Box
           sx={{
-            mx: 3,
-            borderTop: "1px solid #E5E7EB",
-            mt: 1.5,
-            py: 2,
+            bgcolor: "#fff",
+            overflowY: "auto",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            flexDirection: "column",
+            boxShadow: { md: "-2px 0 12px rgba(0,0,0,0.06)" },
           }}
         >
-          <Typography sx={{ fontSize: "0.78rem", color: "#9CA3AF" }}>
-            This disruption is being actively managed
-          </Typography>
+          {/* Description */}
+          <Box sx={{ px: 3, pt: 2.5, pb: 1.5 }}>
+            <Typography
+              sx={{
+                fontSize: "1.2rem",
+                fontWeight: 800,
+                color: "#111827",
+                lineHeight: 1.25,
+                mb: 0.75,
+              }}
+            >
+              {disruption.name ?? disruption.disruptionType}
+            </Typography>
+            {disruption.description && (
+              <Typography
+                sx={{ fontSize: "0.9rem", color: "#374151", lineHeight: 1.55 }}
+              >
+                {disruption.description}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Causes */}
+          {causes.length > 0 && (
+            <>
+              <Divider sx={{ mx: 3 }} />
+              <Box sx={{ px: 3, py: 1.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#9CA3AF",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.8,
+                    mb: 0.75,
+                  }}
+                >
+                  Why is this happening?
+                </Typography>
+                <Stack spacing={0.25}>
+                  {causes.map((c) => (
+                    <CauseRow key={c.id} cause={c} />
+                  ))}
+                </Stack>
+              </Box>
+            </>
+          )}
+
+          {/* Alternatives */}
+          {alternatives.length > 0 && (
+            <>
+              <Divider sx={{ mx: 3 }} />
+              <Box sx={{ px: 2, py: 1.5, flex: 1 }}>
+                <Typography
+                  sx={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#9CA3AF",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.8,
+                    mb: 0.5,
+                    px: 1,
+                  }}
+                >
+                  Nearby alternatives
+                </Typography>
+                <Stack spacing={0}>
+                  {alternatives.map((a) => (
+                    <AlternativeRow key={a.id} alt={a} />
+                  ))}
+                </Stack>
+              </Box>
+            </>
+          )}
+
+          {alternatives.length === 0 && (
+            <Box sx={{ px: 3, py: 2 }}>
+              <Typography sx={{ fontSize: "0.88rem", color: "#6B7280" }}>
+                Check real-time displays at the stop or use the TFI Live app for
+                service updates.
+              </Typography>
+            </Box>
+          )}
+
+          {/* Footer */}
           <Box
             sx={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              bgcolor: severityColor,
-              animation: "pulse 1.5s ease-in-out infinite",
-              "@keyframes pulse": {
-                "0%, 100%": { opacity: 1 },
-                "50%": { opacity: 0.3 },
-              },
+              mx: 3,
+              borderTop: "1px solid #E5E7EB",
+              mt: "auto",
+              py: 1.5,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
             }}
-          />
+          >
+            <Box
+              sx={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                bgcolor: severityColor,
+                flexShrink: 0,
+                animation: "pulse 1.5s ease-in-out infinite",
+                "@keyframes pulse": {
+                  "0%, 100%": { opacity: 1 },
+                  "50%": { opacity: 0.3 },
+                },
+              }}
+            />
+            <Typography sx={{ fontSize: "0.75rem", color: "#9CA3AF" }}>
+              Actively managed · updates every minute
+            </Typography>
+          </Box>
         </Box>
       </Box>
     </Box>

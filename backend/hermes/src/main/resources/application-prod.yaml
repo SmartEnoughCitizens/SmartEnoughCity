@@ -47,6 +47,20 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+  metrics:
+    tags:
+      application: hermes
+      environment: ${DEPLOYMENT_ENV:prod}
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
+  otlp:
+    tracing:
+      endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces"
+
+loki:
+  url: ${LOKI_URL:}
+  timeoutMs: ${LOKI_TIMEOUTMS:5000}
 
 springdoc:
   api-docs:

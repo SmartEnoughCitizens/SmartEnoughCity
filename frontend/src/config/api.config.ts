@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   USER_DELETE: "/api/usermanagement/delete",
   USER_PROFILE: "/api/usermanagement/profile",
   USER_PASSWORD: "/api/usermanagement/password",
+  USER_COUNTS: "/api/usermanagement/user-counts",
   TRAINS: "/api/trains",
   BUSES: "/api/buses",
 
@@ -78,6 +79,7 @@ export const API_ENDPOINTS = {
   TRAM_COMMON_DELAYS: "/api/v1/tram/common-delays",
   TRAM_STOP_DEMAND: "/api/v1/tram/stop-demand",
   TRAM_DEMAND_SIMULATE: "/api/v1/tram/stop-demand/simulate",
+  TRAM_RECOMMENDATIONS: "/api/v1/tram/recommendations",
 
   // Cycle Metrics (CycleMetricsController)
   CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
@@ -125,6 +127,10 @@ export const API_ENDPOINTS = {
   // Pedestrians
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 
+  // Events
+  EVENTS: "/api/v1/events",
+  EVENTS_UPCOMING: "/api/v1/events",
+
   // Disruptions
   DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
   DISRUPTIONS_ALL: "/api/v1/disruptions",
@@ -133,6 +139,7 @@ export const API_ENDPOINTS = {
   DISRUPTIONS_BY_MODE: (mode: string) =>
     `/api/v1/disruptions/transport/${mode}`,
   PUBLIC_DISRUPTION: (id: number) => `/api/public/disruptions/${id}`,
+  PUBLIC_NEARBY_ALTERNATIVES: "/api/public/disruptions/alternatives",
 
   // EV Charging Indicators
   EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",

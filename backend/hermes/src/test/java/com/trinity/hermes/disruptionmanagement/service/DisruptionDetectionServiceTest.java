@@ -54,10 +54,13 @@ class DisruptionDetectionServiceTest {
 
   @BeforeEach
   void stubCommonRepos() {
-    when(busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(anyInt()))
+    when(busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(
+            anyInt(), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of());
     when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation()).thenReturn(List.of());
-    when(trainStationDataRepository.findLatestPerStationTrain()).thenReturn(List.of());
+    when(trainStationDataRepository.findLatestPerStationTrain(
+            anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+        .thenReturn(List.of());
     when(tramLuasForecastRepository.findAll()).thenReturn(List.of());
     when(tramStopRepository.findAll()).thenReturn(List.of());
     when(busStopRepository.findRouteShortNamesNear(anyDouble(), anyDouble(), anyInt()))
@@ -79,7 +82,8 @@ class DisruptionDetectionServiceTest {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 22);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
-    when(trainStationDataRepository.findLatestPerStationTrain())
+    when(trainStationDataRepository.findLatestPerStationTrain(
+            anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(late1, late2, late3));
 
     TrainStation station = new TrainStation(1, "CNLY", "Connolly", null, 53.3504, -6.2496, null);
@@ -99,7 +103,9 @@ class DisruptionDetectionServiceTest {
   void detectDisruptions_fewerThanThreeLateTrams_noTrainDisruption() {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 18);
-    when(trainStationDataRepository.findLatestPerStationTrain()).thenReturn(List.of(late1, late2));
+    when(trainStationDataRepository.findLatestPerStationTrain(
+            anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+        .thenReturn(List.of(late1, late2));
 
     service.detectDisruptions();
 
@@ -111,7 +117,8 @@ class DisruptionDetectionServiceTest {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 5);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 5);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 5);
-    when(trainStationDataRepository.findLatestPerStationTrain())
+    when(trainStationDataRepository.findLatestPerStationTrain(
+            anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(late1, late2, late3));
 
     service.detectDisruptions();
@@ -126,7 +133,8 @@ class DisruptionDetectionServiceTest {
     TrainStationData cnly3 = lateTrainAt("CNLY", "E803", 12);
     TrainStationData pear1 = lateTrainAt("PEAR", "E901", 11);
 
-    when(trainStationDataRepository.findLatestPerStationTrain())
+    when(trainStationDataRepository.findLatestPerStationTrain(
+            anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(cnly1, cnly2, cnly3, pear1));
     TrainStation cnlyStation = new TrainStation(1, "CNLY", "Connolly", null, 53.35, -6.25, null);
     when(trainStationRepository.findByStationCode("CNLY")).thenReturn(cnlyStation);
@@ -189,7 +197,8 @@ class DisruptionDetectionServiceTest {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 22);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
-    when(trainStationDataRepository.findLatestPerStationTrain())
+    when(trainStationDataRepository.findLatestPerStationTrain(
+            anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(late1, late2, late3));
 
     Disruption existing = new Disruption();

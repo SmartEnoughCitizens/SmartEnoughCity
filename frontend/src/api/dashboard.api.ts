@@ -10,6 +10,8 @@ import type {
   BusNewStopRecommendation,
   BusRouteDetail,
   DisruptionItem,
+  DisruptionAlternative,
+  EventItem,
   BusDashboardResponse,
   StationProposalSummary,
   BusKpis,
@@ -50,6 +52,7 @@ import type {
   TramHourlyDistribution,
   TramStopUsage,
   TramCommonDelay,
+  TramRecommendation,
   TramAlternativeRoute,
   TramStopDemand,
   TramDemandSimulateRequest,
@@ -520,13 +523,34 @@ export const dashboardApi = {
     return data;
   },
 
+  /**
+   * Get tram service change recommendations
+   */
+  getTramRecommendations: async (): Promise<TramRecommendation[]> => {
+    const { data } = await axiosInstance.get<TramRecommendation[]>(
+      API_ENDPOINTS.TRAM_RECOMMENDATIONS,
+    );
+    return data;
+  },
+
+  /**
+   * Get upcoming events
+   */
+  getEvents: async (limit = 10): Promise<EventItem[]> => {
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS,
+      {
+        params: { limit },
+      },
+    );
+    return data;
+  },
   getCycleRiskScores: async (): Promise<StationRiskScoreDTO[]> => {
     const { data } = await axiosInstance.get<StationRiskScoreDTO[]>(
       API_ENDPOINTS.CYCLE_RISK_SCORES,
     );
     return data;
   },
-
   /**
    * Get live pedestrian counts per site
    */
@@ -534,6 +558,17 @@ export const dashboardApi = {
     const { data } = await axiosInstance.get<PedestrianLive[]>(
       API_ENDPOINTS.PEDESTRIANS_LIVE,
       { params: { limit } },
+    );
+    return data;
+  },
+
+  /**
+   * Get upcoming city events within the next N days (default 7).
+   */
+  getUpcomingEvents: async (days = 7): Promise<EventItem[]> => {
+    const { data } = await axiosInstance.get<EventItem[]>(
+      API_ENDPOINTS.EVENTS_UPCOMING,
+      { params: { days } },
     );
     return data;
   },
@@ -588,6 +623,17 @@ export const dashboardApi = {
   getPublicDisruption: async (id: number): Promise<DisruptionItem> => {
     const { data } = await axiosInstance.get<DisruptionItem>(
       API_ENDPOINTS.PUBLIC_DISRUPTION(id),
+    );
+    return data;
+  },
+
+  getNearbyAlternatives: async (
+    lat: number,
+    lon: number,
+  ): Promise<DisruptionAlternative[]> => {
+    const { data } = await axiosInstance.get<DisruptionAlternative[]>(
+      API_ENDPOINTS.PUBLIC_NEARBY_ALTERNATIVES,
+      { params: { lat, lon } },
     );
     return data;
   },

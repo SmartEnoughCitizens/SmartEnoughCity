@@ -29,4 +29,15 @@ public interface EventsRepository extends JpaRepository<Events, Integer> {
           """)
   List<Events> findUpcomingEventsAtLargeVenues(
       @Param("minCapacity") int minCapacity, Pageable pageable);
+
+  @Query(
+      """
+          SELECT e FROM Events e
+          LEFT JOIN FETCH e.venue v
+          WHERE e.eventDate >= CURRENT_DATE
+            AND e.eventDate < :endDate
+          ORDER BY e.eventDate ASC, e.startTime ASC
+          """)
+  List<Events> findUpcomingEventsDays(
+      @Param("endDate") java.time.LocalDate endDate, Pageable pageable);
 }

@@ -192,20 +192,21 @@ public class DisruptionFacade {
       solution.setPrimaryRecommendation(altDescriptions.get(0));
     } else {
       solution.setPrimaryRecommendation(
-          "Take Luas Green Line from Stephen's Green to Sandyford (15 mins)");
+          "Check real-time information boards or the Transport for Ireland app for the next"
+              + " available service.");
       solution.setAlternativeRoutes(
           List.of(
-              "Option A: Dublin Bus Route 46A - Departs in 5 mins from Stop 792",
-              "Option B: Dublin Bikes - Station 12 (Earlsfort Terrace) has 5 bikes available",
-              "Option C: Walk - 25 mins via Ranelagh Road"));
+              "Check nearby bus stops for alternative routes serving your destination.",
+              "DublinBikes docking stations may be available nearby for short journeys.",
+              "Taxi or ride-hailing services are available across Dublin."));
     }
-    solution.setSecondaryRecommendations(List.of("Check Uber availability (approx €15)"));
+    solution.setSecondaryRecommendations(
+        List.of("Monitor the Transport for Ireland (TFI) Live app for real-time updates."));
     solution.setStepByStepInstructions(
         List.of(
-            "1. Leave the disrupted stop immediately.",
-            "2. Walk to the nearest alternative stop.",
-            "3. Board the alternative service.",
-            "4. Alight at your destination."));
+            "1. Check real-time displays at the affected stop for service updates.",
+            "2. Consider nearby alternative stops or transport modes.",
+            "3. Allow additional journey time until the disruption is resolved."));
 
     // Populate affected user groups from Keycloak roles
     List<String> roles = getRolesToNotify(disruption);

@@ -2,6 +2,8 @@ package com.trinity.hermes.indicators.tram.facade;
 
 import com.trinity.hermes.indicators.tram.dto.*;
 import com.trinity.hermes.indicators.tram.service.TramDashboardService;
+import com.trinity.hermes.recommendation.dto.RecommendationResponse;
+import com.trinity.hermes.recommendation.service.RecommendationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class TramFacade {
 
   private final TramDashboardService tramDashboardService;
+  private final RecommendationService recommendationService;
 
   public List<TramStopDTO> getStops(int limit) {
     return tramDashboardService.getStops(limit);
@@ -52,5 +55,9 @@ public class TramFacade {
 
   public TramDemandSimulateResponseDTO simulateDemand(TramDemandSimulateRequestDTO request) {
     return tramDashboardService.simulateDemand(request);
+  }
+
+  public List<RecommendationResponse> getRecommendations() {
+    return recommendationService.getRecommendationsByIndicator("Tram");
   }
 }

@@ -277,22 +277,8 @@ public class CycleMetricsController {
           HttpStatus.BAD_REQUEST, "action must be ACCEPTED or REJECTED");
     }
     try {
-      String reviewerUsername = "unknown";
-      if (jwt != null) {
-        for (String candidate : new String[] {"preferred_username", "email"}) {
-          String claim = jwt.getClaimAsString(candidate);
-          if (claim != null && !claim.isBlank()) {
-            reviewerUsername = claim;
-            break;
-          }
-        }
-        if ("unknown".equals(reviewerUsername)) {
-          String sub = jwt.getSubject();
-          if (sub != null && !sub.isBlank()) reviewerUsername = sub;
-        }
-      }
       String reviewerRole = resolveSubmitterRole(jwt);
-      cycleMetricsService.reviewProposal(id, review, reviewerUsername, reviewerRole);
+      cycleMetricsService.reviewProposal(id, review, reviewerRole, reviewerRole);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
       log.error("Error reviewing proposal id={}", id, e);
@@ -316,13 +302,7 @@ public class CycleMetricsController {
           HttpStatus.BAD_REQUEST, "status must be PLANNED, IN_PROGRESS or COMPLETED");
     }
     try {
-      String updaterUsername = "unknown";
-      if (jwt != null) {
-        String claim = jwt.getClaimAsString("preferred_username");
-        if (claim == null || claim.isBlank()) claim = jwt.getClaimAsString("email");
-        if (claim == null || claim.isBlank()) claim = jwt.getSubject();
-        if (claim != null && !claim.isBlank()) updaterUsername = claim;
-      }
+      String updaterUsername = resolveSubmitterRole(jwt);
       cycleMetricsService.updateImplementationStatus(id, body.getStatus(), updaterUsername);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {

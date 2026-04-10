@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.bus.repository;
 
+import com.trinity.hermes.common.Constants;
 import com.trinity.hermes.indicators.bus.entity.BusLiveStopTimeUpdate;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,7 +19,25 @@ public interface BusLiveStopTimeUpdateRepository
               + " INNER JOIN external_data.bus_live_trip_updates tu"
               + " ON stu.trip_update_entry_id = tu.entry_id"
               + " WHERE (stu.arrival_delay > :thresholdSeconds"
-              + " OR stu.departure_delay > :thresholdSeconds)",
+              + " OR stu.departure_delay > :thresholdSeconds)"
+              + " AND tu.timestamp >= NOW() - INTERVAL '"
+              + Constants.LIVE_DATA_WINDOW_MINUTES
+              + " minutes'"
+              + " AND tu.vehicle_id IN ("
+              + "   SELECT DISTINCT vehicle_id"
+              + "   FROM external_data.bus_live_vehicles"
+              + "   WHERE timestamp >= NOW() - INTERVAL '"
+              + Constants.LIVE_DATA_WINDOW_MINUTES
+              + " minutes'"
+              + "   AND lat BETWEEN "
+              + Constants.DUBLIN_LAT_MIN
+              + " AND "
+              + Constants.DUBLIN_LAT_MAX
+              + "   AND lon BETWEEN "
+              + Constants.DUBLIN_LON_MIN
+              + " AND "
+              + Constants.DUBLIN_LON_MAX
+              + " )",
       nativeQuery = true)
   Long countActiveDelays(@Param("thresholdSeconds") Integer thresholdSeconds);
 
@@ -37,10 +56,18 @@ public interface BusLiveStopTimeUpdateRepository
               + " JOIN external_data.bus_trips bt ON tu.trip_id = bt.id"
               + " JOIN external_data.bus_stops bs ON stu.stop_id = bs.id"
               + " WHERE stu.arrival_delay > :thresholdSeconds"
+              + "   AND tu.timestamp >= NOW() - INTERVAL '15 minutes'"
+              + "   AND bs.lat BETWEEN :latMin AND :latMax"
+              + "   AND bs.lon BETWEEN :lonMin AND :lonMax"
               + " GROUP BY bt.route_id, bs.id, bs.name, bs.lat, bs.lon"
               + " ORDER BY max_delay DESC",
       nativeQuery = true)
-  List<Object[]> findWorstDelayedStopPerRoute(@Param("thresholdSeconds") int thresholdSeconds);
+  List<Object[]> findWorstDelayedStopPerRoute(
+      @Param("thresholdSeconds") int thresholdSeconds,
+      @Param("latMin") double latMin,
+      @Param("latMax") double latMax,
+      @Param("lonMin") double lonMin,
+      @Param("lonMax") double lonMax);
 
   @Query(
       value =

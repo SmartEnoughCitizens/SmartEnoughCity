@@ -5,13 +5,17 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 /**
  * Unified parameterized alternative-transport query. Works for any disruption type — pass the
- * disruption's lat/lon and a search radius. Returns nearby bus stops, Irish Rail stations, and
- * DublinBikes stations (with available bikes) sorted by distance.
+ * disruption's lat/lon and a search radius. Returns nearby bus stops, Irish Rail stations, Luas
+ * tram stops, and DublinBikes stations (with available bikes) sorted by distance.
+ *
+ * <p>Use {@link #findNearbyExcluding} to omit the disrupted mode (e.g. exclude "bus" when a bus
+ * stop is delayed, so passengers are only shown genuinely alternative modes).
  */
 @Repository
 @Slf4j
@@ -57,6 +61,25 @@ public class AlternativeTransportRepository {
               public.LL_TO_EARTH(rs.lat, rs.lon)
           ) <= :radius_m
       ),
+      tram AS (
+          SELECT
+              'tram'               AS transport_type,
+              ts.stop_id           AS stop_id,
+              ts.name              AS stop_name,
+              ts.lat,
+              ts.lon,
+              NULL::integer        AS available_bikes,
+              NULL::integer        AS capacity,
+              public.EARTH_DISTANCE(
+                  public.LL_TO_EARTH(:lat, :lon),
+                  public.LL_TO_EARTH(ts.lat, ts.lon)
+              )::integer           AS distance_m
+          FROM external_data.tram_luas_stops ts
+          WHERE public.EARTH_DISTANCE(
+              public.LL_TO_EARTH(:lat, :lon),
+              public.LL_TO_EARTH(ts.lat, ts.lon)
+          ) <= :radius_m
+      ),
       bikes AS (
           SELECT
               'bike'                             AS transport_type,
@@ -92,6 +115,7 @@ public class AlternativeTransportRepository {
       )
       SELECT * FROM bus
       UNION ALL SELECT * FROM rail
+      UNION ALL SELECT * FROM tram
       UNION ALL SELECT * FROM bikes
       ORDER BY distance_m
       LIMIT 10
@@ -100,15 +124,27 @@ public class AlternativeTransportRepository {
   @PersistenceContext private EntityManager em;
 
   /**
-   * Find nearby alternative transport options within {@code radiusMetres} of (lat, lon).
+   * Find all nearby alternative transport within {@code radiusMetres} of (lat, lon). Includes bus,
+   * rail, tram, and bike. Use {@link #findNearbyExcluding} when the disrupted mode should be
+   * omitted.
+   */
+  public List<AlternativeTransportResult> findNearby(double lat, double lon, int radiusMetres) {
+    return findNearbyExcluding(lat, lon, radiusMetres, Set.of());
+  }
+
+  /**
+   * Find nearby alternatives excluding the given transport types. {@code excludedTypes} uses the
+   * query's own type names: {@code "bus"}, {@code "rail"}, {@code "tram"}, {@code "bike"}.
    *
    * @param lat latitude of the disruption
    * @param lon longitude of the disruption
-   * @param radiusMetres search radius in metres (e.g. 500)
-   * @return up to 10 alternatives sorted by walking distance
+   * @param radiusMetres search radius in metres
+   * @param excludedTypes transport types to omit (e.g. {@code Set.of("bus")} for a bus disruption)
+   * @return up to 10 alternatives sorted by walking distance, excluding the disrupted mode(s)
    */
   @SuppressWarnings("unchecked")
-  public List<AlternativeTransportResult> findNearby(double lat, double lon, int radiusMetres) {
+  public List<AlternativeTransportResult> findNearbyExcluding(
+      double lat, double lon, int radiusMetres, Set<String> excludedTypes) {
     try {
       List<Object[]> rows =
           em.createNativeQuery(NEARBY_SQL)
@@ -119,9 +155,11 @@ public class AlternativeTransportRepository {
 
       List<AlternativeTransportResult> results = new ArrayList<>(rows.size());
       for (Object[] r : rows) {
+        String type = str(r[0]);
+        if (excludedTypes.contains(type)) continue;
         results.add(
             new AlternativeTransportResult(
-                str(r[0]), // transport_type
+                type, // transport_type
                 str(r[1]), // stop_id
                 str(r[2]), // stop_name
                 toDouble(r[3]), // lat
