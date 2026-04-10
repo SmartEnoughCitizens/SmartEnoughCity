@@ -108,7 +108,11 @@ export const CycleDashboard = () => {
   const canReviewProposals = isCityManager || isCycleAdmin;
 
   // City_Manager takes priority over Cycle_Admin (matches backend resolveSubmitterRole order)
-  const reviewerRole = isCityManager ? "City_Manager" : isCycleAdmin ? "Cycle_Admin" : null;
+  const reviewerRole = isCityManager
+    ? "City_Manager"
+    : isCycleAdmin
+      ? "Cycle_Admin"
+      : null;
 
   const { data: pendingProposals } = usePendingProposals();
   const { data: acceptedProposals } = useAcceptedProposals();
@@ -156,10 +160,7 @@ export const CycleDashboard = () => {
     setSelectedPairKey(null);
   };
 
-  const {
-    data: stations,
-    error,
-  } = useCycleStationsLive();
+  const { data: stations, error } = useCycleStationsLive();
   const { data: summary } = useCycleNetworkSummary();
   const { data: busiest, isLoading: busiestLoading } =
     useCycleBusiestStations(10);
@@ -241,7 +242,9 @@ export const CycleDashboard = () => {
           canSubmit={isCycleProvider}
           reviewerRole={reviewerRole ?? undefined}
           legendTopOffset={
-            canReviewProposals && visiblePendingProposals.length > 0 && proposalTrayHeight > 0
+            canReviewProposals &&
+            visiblePendingProposals.length > 0 &&
+            proposalTrayHeight > 0
               ? proposalTrayHeight + GAP * 2
               : undefined
           }
@@ -396,24 +399,37 @@ export const CycleDashboard = () => {
                   <Tab label="Busiest" />
                   <Tab label="Underused" />
                 </Tabs>
-                {rankingSubTab === 0 && (
-                  busiestLoading
-                    ? <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}><CircularProgress size={24} /></Box>
-                    : <CycleRankingTable stations={busiest ?? []} />
-                )}
-                {rankingSubTab === 1 && (
-                  underusedLoading
-                    ? <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}><CircularProgress size={24} /></Box>
-                    : <CycleRankingTable stations={underused ?? []} />
-                )}
+                {rankingSubTab === 0 &&
+                  (busiestLoading ? (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", pt: 4 }}
+                    >
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <CycleRankingTable stations={busiest ?? []} />
+                  ))}
+                {rankingSubTab === 1 &&
+                  (underusedLoading ? (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", pt: 4 }}
+                    >
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <CycleRankingTable stations={underused ?? []} />
+                  ))}
               </>
             )}
 
-            {tabValue === TAB_REBALANCING && (
-              rebalancingLoading
-                ? <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}><CircularProgress size={24} /></Box>
-                : <RebalancingTable suggestions={rebalancing ?? []} />
-            )}
+            {tabValue === TAB_REBALANCING &&
+              (rebalancingLoading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : (
+                <RebalancingTable suggestions={rebalancing ?? []} />
+              ))}
 
             {tabValue === TAB_OD_FLOW && (
               <ODFlowTable
