@@ -661,19 +661,6 @@ export const useAcceptedProposals = () => {
   });
 };
 
-export const useUpdateImplementationStatus = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      dashboardApi.updateImplementationStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: DASHBOARD_KEYS.cycleAcceptedProposals,
-      });
-    },
-  });
-};
-
 /**
  * Accept or reject a station proposal
  */

@@ -3,8 +3,6 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  MenuItem,
-  Select,
   Stack,
   Tooltip,
   Typography,
@@ -21,8 +19,6 @@ import type {
   CoverageGapDTO,
   StationProposalSummary,
 } from "@/types";
-import { useUpdateImplementationStatus } from "@/hooks";
-
 function gapPriority(g: CoverageGapDTO): number {
   const order: Record<CoverageCategory, number> = {
     NO_COVERAGE: 0,
@@ -203,26 +199,13 @@ function GapCard({ gap }: { gap: CoverageGapDTO }) {
   );
 }
 
-// ── Implementation status config ──────────────────────────────────────────────
-
-const IMPL_STATUS_META = {
-  PLANNED: { label: "Planned", color: "#64748b", bg: "#f1f5f9" },
-  IN_PROGRESS: { label: "In Progress", color: "#3b82f6", bg: "#eff6ff" },
-  COMPLETED: { label: "Completed", color: "#16a34a", bg: "#dcfce7" },
-} as const;
-
 // ── Planned proposal card ──────────────────────────────────────────────────────
 
 function PlannedProposalCard({
   proposal,
-  isCycleAdmin,
 }: {
   proposal: StationProposalSummary;
-  isCycleAdmin: boolean;
 }) {
-  const { mutate: updateStatus, isPending } = useUpdateImplementationStatus();
-  const status = proposal.implementationStatus ?? "PLANNED";
-  const meta = IMPL_STATUS_META[status] ?? IMPL_STATUS_META.PLANNED;
   const acceptedDate = proposal.reviewedAt
     ? new Date(proposal.reviewedAt).toLocaleDateString()
     : proposal.submittedAt
@@ -234,79 +217,28 @@ function PlannedProposalCard({
       sx={{
         px: 1.5,
         py: 1.25,
-        borderLeft: `3px solid ${meta.color}`,
+        borderLeft: "3px solid #16a34a",
         bgcolor: "background.paper",
         "&:hover": { bgcolor: "action.hover" },
       }}
     >
-      {/* Header row */}
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 0.5,
           mb: 0.5,
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            flex: 1,
-            mr: 1,
-          }}
-        >
-          <AddLocationAltIcon
-            sx={{ fontSize: "0.85rem", color: meta.color, flexShrink: 0 }}
-          />
-          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
-            {proposal.stationCount} proposed station
-            {proposal.stationCount === 1 ? "" : "s"}
-          </Typography>
-        </Box>
-
-        {isCycleAdmin ? (
-          <Select
-            size="small"
-            value={status}
-            disabled={isPending}
-            onChange={(e) =>
-              updateStatus({ id: proposal.id, status: e.target.value })
-            }
-            sx={{
-              fontSize: "0.65rem",
-              height: 22,
-              color: meta.color,
-              bgcolor: meta.bg,
-              ".MuiOutlinedInput-notchedOutline": {
-                borderColor: `${meta.color}55`,
-              },
-              ".MuiSelect-select": { py: 0, px: 1 },
-              ".MuiSvgIcon-root": { fontSize: "0.85rem", color: meta.color },
-            }}
-          >
-            {Object.entries(IMPL_STATUS_META).map(([val, m]) => (
-              <MenuItem key={val} value={val} sx={{ fontSize: "0.7rem" }}>
-                {m.label}
-              </MenuItem>
-            ))}
-          </Select>
-        ) : (
-          <Chip
-            size="small"
-            label={meta.label}
-            sx={{
-              fontSize: "0.65rem",
-              height: 20,
-              color: meta.color,
-              bgcolor: meta.bg,
-            }}
-          />
-        )}
+        <AddLocationAltIcon
+          sx={{ fontSize: "0.85rem", color: "#16a34a", flexShrink: 0 }}
+        />
+        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+          {proposal.stationCount} proposed station
+          {proposal.stationCount === 1 ? "" : "s"}
+        </Typography>
       </Box>
 
-      {/* Details */}
       <Typography
         variant="caption"
         color="text.secondary"
@@ -409,14 +341,12 @@ interface Props {
   gaps: CoverageGapDTO[];
   acceptedProposals: StationProposalSummary[];
   isLoading: boolean;
-  isCycleAdmin: boolean;
 }
 
 export function CoverageGapPanel({
   gaps,
   acceptedProposals,
   isLoading,
-  isCycleAdmin,
 }: Props) {
   if (isLoading) {
     return (
@@ -474,7 +404,7 @@ export function CoverageGapPanel({
             {acceptedProposals.map((p, i) => (
               <Box key={p.id}>
                 {i > 0 && <Divider />}
-                <PlannedProposalCard proposal={p} isCycleAdmin={isCycleAdmin} />
+                <PlannedProposalCard proposal={p} />
               </Box>
             ))}
             <Divider />
