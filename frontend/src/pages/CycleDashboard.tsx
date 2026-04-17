@@ -3,17 +3,17 @@
  * and a separate bottom demand-analysis panel.
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Box,
   Chip,
+  CircularProgress,
   Divider,
   IconButton,
   Paper,
   Tab,
   Tabs,
   Typography,
-  CircularProgress,
   Alert,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -29,6 +29,9 @@ import {
   useCycleODPairs,
   useCycleRiskScores,
   useCycleCoverageGaps,
+  useCycleNetworkHourlyProfile,
+  useCycleStationClassification,
+  useCycleStationHourlyUsage,
   useODRoutes,
   usePendingProposals,
   useAcceptedProposals,
@@ -81,20 +84,56 @@ export const CycleDashboard = () => {
 
   const [reviewingProposal, setReviewingProposal] =
     useState<StationProposalSummary | null>(null);
+  const [reviewedProposalIds, setReviewedProposalIds] = useState<Set<number>>(
+    () => new Set(),
+  );
 
-  const canReviewProposals =
-    roles.includes("City_Manager") || roles.includes("Cycle_Admin");
+  // Measure ProposalTray height so the map legend can sit below it
+  const proposalTrayRef = useRef<HTMLDivElement>(null);
+  const [proposalTrayHeight, setProposalTrayHeight] = useState(0);
+  useEffect(() => {
+    const el = proposalTrayRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      setProposalTrayHeight(entry.contentRect.height);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const isCycleProvider = roles.includes("Cycle_Provider");
+  const isCycleAdmin = roles.includes("Cycle_Admin");
+  const isCityManager = roles.includes("City_Manager");
+
+  const canReviewProposals = isCityManager || isCycleAdmin;
+
+  // City_Manager takes priority over Cycle_Admin (matches backend resolveSubmitterRole order)
+  const reviewerRole = isCityManager
+    ? "City_Manager"
+    : isCycleAdmin
+      ? "Cycle_Admin"
+      : null;
 
   const { data: pendingProposals } = usePendingProposals();
   const { data: acceptedProposals } = useAcceptedProposals();
   const { mutate: reviewProposal, isPending: isReviewing } =
     useReviewProposal();
 
+  // Filter out proposals that have already been acted on locally (before server refetch)
+  const visiblePendingProposals = (pendingProposals ?? []).filter(
+    (p) => !reviewedProposalIds.has(p.id),
+  );
+
   const handleAcceptProposal = (proposalId: number) => {
+    // Cycle_Admin forwards; City_Manager approves — use reviewerRole (priority-aware)
+    const action = reviewerRole === "Cycle_Admin" ? "FORWARD" : "ACCEPTED";
     reviewProposal(
-      { id: proposalId, action: "ACCEPTED", reason: "" },
+      { id: proposalId, action, reason: "" },
       {
-        onSuccess: () => setReviewingProposal(null),
+        onSuccess: () => {
+          setReviewingProposal(null);
+          setReviewedProposalIds((prev) => new Set(prev).add(proposalId));
+        },
       },
     );
   };
@@ -103,7 +142,10 @@ export const CycleDashboard = () => {
     reviewProposal(
       { id: proposalId, action: "REJECTED", reason },
       {
-        onSuccess: () => setReviewingProposal(null),
+        onSuccess: () => {
+          setReviewingProposal(null);
+          setReviewedProposalIds((prev) => new Set(prev).add(proposalId));
+        },
       },
     );
   };
@@ -118,11 +160,7 @@ export const CycleDashboard = () => {
     setSelectedPairKey(null);
   };
 
-  const {
-    data: stations,
-    isLoading: stationsLoading,
-    error,
-  } = useCycleStationsLive();
+  const { data: stations, error } = useCycleStationsLive();
   const { data: summary } = useCycleNetworkSummary();
   const { data: busiest, isLoading: busiestLoading } =
     useCycleBusiestStations(10);
@@ -130,33 +168,16 @@ export const CycleDashboard = () => {
     useCycleUnderusedStations(10);
   const { data: rebalancing, isLoading: rebalancingLoading } =
     useCycleRebalancing(30);
-  const { data: odPairs, isLoading: odLoading } = useCycleODPairs(30, 50);
+  const { data: odPairs } = useCycleODPairs(30, 50);
   const { routeCache, progress: routeProgress } = useODRoutes(odPairs ?? []);
   const { data: riskScores, isLoading: riskLoading } = useCycleRiskScores();
   const { data: coverageGaps, isLoading: coverageLoading } =
     useCycleCoverageGaps();
 
-  const isLoading =
-    stationsLoading ||
-    busiestLoading ||
-    underusedLoading ||
-    rebalancingLoading ||
-    odLoading;
-
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100%",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // Prefetch demand analysis data so the panel loads instantly when opened
+  useCycleNetworkHourlyProfile(30);
+  useCycleStationClassification(30);
+  useCycleStationHourlyUsage(30, 30);
 
   const allOdPairs = odPairs ?? [];
 
@@ -218,6 +239,15 @@ export const CycleDashboard = () => {
           onAccept={handleAcceptProposal}
           onReject={handleRejectProposal}
           isReviewing={isReviewing}
+          canSubmit={isCycleProvider}
+          reviewerRole={reviewerRole ?? undefined}
+          legendTopOffset={
+            canReviewProposals &&
+            visiblePendingProposals.length > 0 &&
+            proposalTrayHeight > 0
+              ? proposalTrayHeight + GAP * 2
+              : undefined
+          }
         />
       ) : (
         <LiveCycleStationMap
@@ -244,20 +274,19 @@ export const CycleDashboard = () => {
         </Alert>
       )}
 
-      {/* ── Proposal review tray — left middle, visible on all tabs ── */}
-      {canReviewProposals && (pendingProposals?.length ?? 0) > 0 && (
+      {/* ── Proposal review tray — top-left compact badge ── */}
+      {canReviewProposals && visiblePendingProposals.length > 0 && (
         <Box
+          ref={proposalTrayRef}
           sx={{
             position: "absolute",
             left: GAP,
-            top: "50%",
-            transform: "translateY(-50%)",
+            top: GAP,
             zIndex: 1000,
-            width: 260,
           }}
         >
           <ProposalTray
-            proposals={pendingProposals ?? []}
+            proposals={visiblePendingProposals}
             onSelect={(p) => {
               setReviewingProposal(p.id === reviewingProposal?.id ? null : p);
               if (p.id !== reviewingProposal?.id) setTabValue(TAB_COVERAGE);
@@ -370,18 +399,37 @@ export const CycleDashboard = () => {
                   <Tab label="Busiest" />
                   <Tab label="Underused" />
                 </Tabs>
-                {rankingSubTab === 0 && (
-                  <CycleRankingTable stations={busiest ?? []} />
-                )}
-                {rankingSubTab === 1 && (
-                  <CycleRankingTable stations={underused ?? []} />
-                )}
+                {rankingSubTab === 0 &&
+                  (busiestLoading ? (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", pt: 4 }}
+                    >
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <CycleRankingTable stations={busiest ?? []} />
+                  ))}
+                {rankingSubTab === 1 &&
+                  (underusedLoading ? (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", pt: 4 }}
+                    >
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <CycleRankingTable stations={underused ?? []} />
+                  ))}
               </>
             )}
 
-            {tabValue === TAB_REBALANCING && (
-              <RebalancingTable suggestions={rebalancing ?? []} />
-            )}
+            {tabValue === TAB_REBALANCING &&
+              (rebalancingLoading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : (
+                <RebalancingTable suggestions={rebalancing ?? []} />
+              ))}
 
             {tabValue === TAB_OD_FLOW && (
               <ODFlowTable
@@ -409,10 +457,6 @@ export const CycleDashboard = () => {
                 gaps={coverageGaps ?? []}
                 acceptedProposals={acceptedProposals ?? []}
                 isLoading={coverageLoading}
-                isCycleAdmin={
-                  roles.includes("Cycle_Admin") &&
-                  !roles.includes("City_Manager")
-                }
               />
             )}
           </Box>

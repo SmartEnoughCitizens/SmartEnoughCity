@@ -382,11 +382,17 @@ public class UserManagementService {
             + "<td style='padding: 8px;'>"
             + username
             + "</td></tr>"
-            + "<tr><td style='padding: 8px; font-weight: bold;'>Temporary Password:</td>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Password:</td>"
             + "<td style='padding: 8px; font-family: monospace;'>"
             + tempPassword
             + "</td></tr>"
             + "</table>"
+            + "<p>You can change your password at any time from your profile settings.</p>"
+            + "<a href='"
+            + frontendUrl
+            + "' style='display: inline-block; margin: 16px 0; padding: 12px 24px;"
+            + " background-color: #1a73e8; color: #ffffff; text-decoration: none;"
+            + " border-radius: 4px; font-weight: bold;'>Go to Dashboard</a>"
             + "<p style='color: #888; font-size: 12px;'>If you did not expect this email, "
             + "please ignore it.</p>"
             + "</div>";

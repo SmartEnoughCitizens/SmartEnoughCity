@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,13 @@ public class CycleMetricsService {
   private final JdbcTemplate jdbcTemplate;
   private final NotificationFacade notificationFacade;
   private final UserManagementService userManagementService;
+
+  @Value("${app.frontend-url:http://localhost:3000}")
+  private String frontendUrl;
+
+  private String cycleCoverageUrl() {
+    return frontendUrl + "/dashboard/?view=cycle";
+  }
 
   // -------------------------------------------------------------------------
   // Proposals table initialisation
@@ -71,9 +79,6 @@ public class CycleMetricsService {
       jdbcTemplate.execute(
           "ALTER TABLE backend.cycle_station_proposals "
               + "ADD COLUMN IF NOT EXISTS review_reason TEXT");
-      jdbcTemplate.execute(
-          "ALTER TABLE backend.cycle_station_proposals "
-              + "ADD COLUMN IF NOT EXISTS implementation_status VARCHAR(30) NOT NULL DEFAULT 'PLANNED'");
     } catch (Exception e) {
       log.warn(
           "initProposalsTable skipped — insufficient privileges or table already managed externally: {}",
@@ -249,13 +254,14 @@ public class CycleMetricsService {
 
   @Transactional(readOnly = true)
   public List<StationProposalSummaryDTO> getPendingProposals(String requesterRole) {
-    // City_Manager reviews proposals from Cycle_Admin, and vice versa
-    String submitterRole =
-        "City_Manager".equals(requesterRole)
-            ? "Cycle_Admin"
-            : "Cycle_Admin".equals(requesterRole) ? "City_Manager" : null;
+    // Cycle_Admin sees proposals submitted by Cycle_Provider (status = PENDING)
+    // City_Manager sees proposals forwarded by Cycle_Admin (status = FORWARDED)
+    String statusFilter =
+        "Cycle_Admin".equals(requesterRole)
+            ? "PENDING"
+            : "City_Manager".equals(requesterRole) ? "FORWARDED" : null;
 
-    if (submitterRole == null) {
+    if (statusFilter == null) {
       return List.of();
     }
 
@@ -265,8 +271,7 @@ public class CycleMetricsService {
                station_count, improved_area_count, status, notes,
                stations_json, impacts_json
           FROM backend.cycle_station_proposals
-         WHERE status = 'PENDING'
-           AND submitted_by_role = ?
+         WHERE status = ?
          ORDER BY submitted_at DESC
         """,
         (rs, rn) -> {
@@ -283,7 +288,7 @@ public class CycleMetricsService {
           dto.setImpactsJson(rs.getString("impacts_json"));
           return dto;
         },
-        submitterRole);
+        statusFilter);
   }
 
   public List<StationProposalSummaryDTO> getAcceptedProposals() {
@@ -291,8 +296,7 @@ public class CycleMetricsService {
         """
         SELECT id, submitted_at, submitted_by, submitted_by_role,
                station_count, improved_area_count, status, notes,
-               stations_json, impacts_json, reviewed_by, reviewed_at,
-               implementation_status
+               stations_json, impacts_json, reviewed_by, reviewed_at
           FROM backend.cycle_station_proposals
          WHERE status = 'ACCEPTED'
          ORDER BY reviewed_at DESC
@@ -312,67 +316,8 @@ public class CycleMetricsService {
           dto.setReviewedBy(rs.getString("reviewed_by"));
           var reviewedAt = rs.getTimestamp("reviewed_at");
           if (reviewedAt != null) dto.setReviewedAt(reviewedAt.toInstant().toString());
-          dto.setImplementationStatus(rs.getString("implementation_status"));
           return dto;
         });
-  }
-
-  public void updateImplementationStatus(Long id, String newStatus, String updaterUsername) {
-    int updated =
-        jdbcTemplate.update(
-            """
-            UPDATE backend.cycle_station_proposals
-               SET implementation_status = ?
-             WHERE id = ? AND status = 'ACCEPTED'
-            """,
-            newStatus,
-            id);
-
-    if (updated == 0) {
-      log.warn(
-          "Implementation status update failed — proposal id={} not found or not accepted",
-          LogSanitizer.sanitizeLog(id));
-      return;
-    }
-
-    log.info(
-        "Proposal id={} implementation_status set to {} by {}",
-        LogSanitizer.sanitizeLog(id),
-        LogSanitizer.sanitizeLog(newStatus),
-        LogSanitizer.sanitizeLog(updaterUsername));
-
-    String label =
-        "IN_PROGRESS".equals(newStatus)
-            ? "In Progress"
-            : "COMPLETED".equals(newStatus) ? "Completed" : "Planned";
-
-    String subject = "Station proposal status updated: " + label;
-    String body =
-        updaterUsername
-            + " has updated the implementation status of a station proposal to \""
-            + label
-            + "\".";
-
-    try {
-      var cityManagers = userManagementService.getUsersByRole("City_Manager");
-      cityManagers.forEach(
-          user -> {
-            try {
-              BackendNotificationRequestDTO notification = new BackendNotificationRequestDTO();
-              notification.setUserId(user.getUsername());
-              notification.setSubject(subject);
-              notification.setBody(body);
-              notification.setChannel(Channel.NOTIFICATION);
-              notificationFacade.handleBackendNotification(notification);
-              log.info(
-                  "Implementation status notification sent to username={}", user.getUsername());
-            } catch (Exception e) {
-              log.error("Failed to notify username={}: {}", user.getUsername(), e.getMessage(), e);
-            }
-          });
-    } catch (Exception e) {
-      log.error("Failed to fetch City_Manager users for notification: {}", e.getMessage(), e);
-    }
   }
 
   // -------------------------------------------------------------------------
@@ -380,63 +325,206 @@ public class CycleMetricsService {
   // -------------------------------------------------------------------------
 
   @Transactional
-  public void reviewProposal(
+  public boolean reviewProposal(
       Long id, ProposalReviewDTO review, String reviewerUsername, String reviewerRole) {
+
+    if ("Cycle_Admin".equals(reviewerRole)) {
+      return reviewAsCycleAdmin(id, review, reviewerUsername);
+    } else if ("City_Manager".equals(reviewerRole)) {
+      return reviewAsCityManager(id, review, reviewerUsername);
+    } else {
+      log.warn(
+          "reviewProposal called with unrecognised role={} for proposal id={}",
+          LogSanitizer.sanitizeLog(reviewerRole),
+          LogSanitizer.sanitizeLog(id));
+      return false;
+    }
+  }
+
+  /** Cycle_Admin can FORWARD a PENDING proposal to City_Manager, or REJECT it. */
+  private boolean reviewAsCycleAdmin(Long id, ProposalReviewDTO review, String reviewerUsername) {
+    if ("FORWARD".equals(review.getAction())) {
+      int updated =
+          jdbcTemplate.update(
+              """
+              UPDATE backend.cycle_station_proposals
+                 SET status      = 'FORWARDED',
+                     reviewed_at = NOW(),
+                     reviewed_by = ?
+               WHERE id = ? AND status = 'PENDING'
+              """,
+              reviewerUsername,
+              id);
+
+      if (updated == 0) {
+        log.warn(
+            "Forward failed — proposal id={} not found or not PENDING",
+            LogSanitizer.sanitizeLog(id));
+        return false;
+      }
+      log.info("Proposal id={} forwarded to City_Manager by {}", id, reviewerUsername);
+
+      // Notify all City_Manager users
+      try {
+        String subject = "Station proposal forwarded for your review";
+        String body =
+            reviewerUsername
+                + " has reviewed a station proposal and forwarded it for your approval."
+                + " Please review it in the Cycle Coverage map.";
+        var cityManagers = userManagementService.getUsersByRole("City_Manager");
+        cityManagers.forEach(
+            user -> {
+              try {
+                BackendNotificationRequestDTO notification = new BackendNotificationRequestDTO();
+                notification.setUserId(user.getUsername());
+                notification.setSubject(subject);
+                notification.setBody(body);
+                notification.setChannel(Channel.NOTIFICATION);
+                notification.setActionUrl(cycleCoverageUrl());
+                notificationFacade.handleBackendNotification(notification);
+              } catch (Exception e) {
+                log.error(
+                    "Failed to notify City_Manager username={}: {}",
+                    user.getUsername(),
+                    e.getMessage(),
+                    e);
+              }
+            });
+      } catch (Exception e) {
+        log.error(
+            "Failed to fetch City_Manager users for forward notification: {}", e.getMessage(), e);
+      }
+      return true;
+
+    } else if ("REJECTED".equals(review.getAction())) {
+      int updated =
+          jdbcTemplate.update(
+              """
+              UPDATE backend.cycle_station_proposals
+                 SET status        = 'REJECTED',
+                     reviewed_at   = NOW(),
+                     reviewed_by   = ?,
+                     review_reason = ?
+               WHERE id = ? AND status = 'PENDING'
+              """,
+              reviewerUsername,
+              review.getReason(),
+              id);
+
+      if (updated == 0) {
+        log.warn(
+            "Reject failed — proposal id={} not found or not PENDING",
+            LogSanitizer.sanitizeLog(id));
+        return false;
+      }
+      log.info("Proposal id={} rejected by Cycle_Admin {}", id, reviewerUsername);
+      notifySubmitter(
+          id,
+          "Your station proposal was rejected",
+          "Your proposed station(s) were rejected by Cycle Admin. Reason: " + review.getReason());
+      return true;
+    } else {
+      log.warn("Cycle_Admin sent unsupported action={} for proposal id={}", review.getAction(), id);
+      return false;
+    }
+  }
+
+  /** City_Manager can ACCEPT or REJECT a FORWARDED proposal. */
+  private boolean reviewAsCityManager(Long id, ProposalReviewDTO review, String reviewerUsername) {
+    if (!"ACCEPTED".equals(review.getAction()) && !"REJECTED".equals(review.getAction())) {
+      log.warn(
+          "City_Manager sent unsupported action={} for proposal id={}", review.getAction(), id);
+      return false;
+    }
+
     int updated =
         jdbcTemplate.update(
             """
-        UPDATE backend.cycle_station_proposals
-           SET status        = ?,
-               reviewed_at   = NOW(),
-               reviewed_by   = ?,
-               review_reason = ?
-         WHERE id = ? AND status = 'PENDING'
-        """,
+            UPDATE backend.cycle_station_proposals
+               SET status        = ?,
+                   reviewed_at   = NOW(),
+                   reviewed_by   = ?,
+                   review_reason = ?
+             WHERE id = ? AND status = 'FORWARDED'
+            """,
             review.getAction(),
             reviewerUsername,
             review.getReason(),
             id);
 
     if (updated == 0) {
-      log.warn("Proposal id={} not found or already reviewed", LogSanitizer.sanitizeLog(id));
-      return;
+      log.warn(
+          "City_Manager review failed — proposal id={} not found or not FORWARDED",
+          LogSanitizer.sanitizeLog(id));
+      return false;
     }
+    log.info("Proposal id={} {} by City_Manager {}", id, review.getAction(), reviewerUsername);
 
-    // Notify the original submitter
-    String submittedBy =
-        jdbcTemplate.queryForObject(
-            "SELECT submitted_by FROM backend.cycle_station_proposals WHERE id = ?",
-            String.class,
-            id);
+    if ("ACCEPTED".equals(review.getAction())) {
+      notifySubmitter(
+          id,
+          "Your station proposal was approved",
+          "Your proposed station(s) have been approved by City Manager.");
+      notifyCycleAdmins(
+          reviewerUsername + " (City Manager) approved a station proposal you forwarded.");
+    } else {
+      notifySubmitter(
+          id,
+          "Your station proposal was rejected",
+          "Your proposed station(s) were rejected by City Manager. Reason: " + review.getReason());
+      notifyCycleAdmins(
+          reviewerUsername
+              + " (City Manager) rejected a station proposal you forwarded. Reason: "
+              + review.getReason());
+    }
+    return true;
+  }
 
-    if (submittedBy == null) return;
-
-    String subject =
-        "ACCEPTED".equals(review.getAction())
-            ? "Your station proposal was accepted"
-            : "Your station proposal was rejected";
-    String roleLabel =
-        "City_Manager".equals(reviewerRole)
-            ? "City Manager"
-            : "Cycle_Admin".equals(reviewerRole) ? "Cycle Admin" : reviewerRole;
-    String body =
-        "ACCEPTED".equals(review.getAction())
-            ? "Your proposed station(s) have been accepted by " + roleLabel + "."
-            : "Your proposed station(s) were rejected by "
-                + roleLabel
-                + ". Reason: "
-                + review.getReason();
-
+  private void notifyCycleAdmins(String body) {
     try {
+      var cycleAdmins = userManagementService.getUsersByRole("Cycle_Admin");
+      cycleAdmins.forEach(
+          user -> {
+            try {
+              BackendNotificationRequestDTO notification = new BackendNotificationRequestDTO();
+              notification.setUserId(user.getUsername());
+              notification.setSubject("City Manager reviewed a forwarded proposal");
+              notification.setBody(body);
+              notification.setChannel(Channel.NOTIFICATION);
+              notification.setActionUrl(cycleCoverageUrl());
+              notificationFacade.handleBackendNotification(notification);
+            } catch (Exception e) {
+              log.error(
+                  "Failed to notify Cycle_Admin username={}: {}",
+                  user.getUsername(),
+                  e.getMessage(),
+                  e);
+            }
+          });
+    } catch (Exception e) {
+      log.error("Failed to fetch Cycle_Admin users for notification: {}", e.getMessage(), e);
+    }
+  }
+
+  private void notifySubmitter(Long id, String subject, String body) {
+    try {
+      String submittedBy =
+          jdbcTemplate.queryForObject(
+              "SELECT submitted_by FROM backend.cycle_station_proposals WHERE id = ?",
+              String.class,
+              id);
+      if (submittedBy == null) return;
+
       BackendNotificationRequestDTO notification = new BackendNotificationRequestDTO();
       notification.setUserId(submittedBy);
       notification.setSubject(subject);
       notification.setBody(body);
       notification.setChannel(Channel.NOTIFICATION);
+      notification.setActionUrl(cycleCoverageUrl());
       notificationFacade.handleBackendNotification(notification);
-      log.info("Review notification sent to submitter username={}", submittedBy);
+      log.info("Notification sent to submitter username={}", submittedBy);
     } catch (Exception e) {
-      log.error("Failed to notify submitter username={}: {}", submittedBy, e.getMessage(), e);
+      log.error("Failed to notify submitter for proposal id={}: {}", id, e.getMessage(), e);
     }
   }
 
@@ -501,15 +589,12 @@ public class CycleMetricsService {
    * NOT @Transactional so Keycloak/SSE failures don't affect the saved proposal.
    */
   public void notifyProposalRecipients(StationProposalDTO proposal, String submitterRole) {
-    String targetRole =
-        "City_Manager".equals(submitterRole)
-            ? "Cycle_Admin"
-            : "Cycle_Admin".equals(submitterRole) ? "City_Manager" : null;
-
-    if (targetRole == null) {
+    // Only Cycle_Provider can submit — proposals always go to Cycle_Admin first
+    if (!"Cycle_Provider".equals(submitterRole)) {
       log.warn("Cannot determine notification target for submitterRole='{}'", submitterRole);
       return;
     }
+    String targetRole = "Cycle_Admin";
 
     String submittedBy =
         proposal.getSubmittedBy() != null ? proposal.getSubmittedBy() : submitterRole;
@@ -539,6 +624,7 @@ public class CycleMetricsService {
               notification.setSubject(subject);
               notification.setBody(body);
               notification.setChannel(Channel.NOTIFICATION);
+              notification.setActionUrl(cycleCoverageUrl());
               notificationFacade.handleBackendNotification(notification);
               log.info("Station proposal notification sent to username={}", user.getUsername());
             } catch (Exception e) {

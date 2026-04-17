@@ -240,6 +240,9 @@ def predict_ridership_2025(ridership_df: pd.DataFrame) -> pd.DataFrame:
 
     Fits a line through the 10 available year columns (2014-2024, no 2020)
     and extrapolates to 2025. Negative predictions are clipped to 0.
+    Stations with a NaN in any of the fit-window years are skipped; they
+    will appear as NaN after the downstream left join and pandas' groupby
+    sum will drop them cleanly.
 
     Args:
         ridership_df: Ridership dataframe from load_train_station_ridership()
@@ -251,9 +254,18 @@ def predict_ridership_2025(ridership_df: pd.DataFrame) -> pd.DataFrame:
     x = np.array(_RIDERSHIP_YEARS, dtype=float).reshape(-1, 1)
     x_2025 = np.array([[2025.0]])
 
+    usable_df = ridership_df.dropna(subset=year_cols)
+    skipped = len(ridership_df) - len(usable_df)
+    if skipped:
+        logger.info(
+            "  Skipping %d station(s) with missing ridership in %s.",
+            skipped,
+            year_cols,
+        )
+
     model = LinearRegression()
     predictions = []
-    for _, row in ridership_df.iterrows():
+    for _, row in usable_df.iterrows():
         y = np.array([row[col] for col in year_cols], dtype=float)
         model.fit(x, y)
         predicted = model.predict(x_2025)[0]
