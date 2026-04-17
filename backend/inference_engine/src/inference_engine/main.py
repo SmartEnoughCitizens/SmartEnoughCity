@@ -399,7 +399,7 @@ def start_scheduler() -> None:
     # Daily 8 AM job: run train utilisation pipeline and save recommendation
     scheduler.add_job(
         scheduled_train_utilisation_task,
-        trigger=IntervalTrigger(minutes=2),
+        trigger=IntervalTrigger(hours=24),
         id="train_utilisation_daily",
         name="Daily train utilisation recommendation",
         replace_existing=True,
