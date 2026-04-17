@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import threading
 from collections.abc import Generator
 from contextlib import asynccontextmanager
@@ -7,9 +8,20 @@ from datetime import datetime
 from typing import Any
 
 import httpx
+import logging_loki
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 from inference_engine.db import engine as db_engine
@@ -23,16 +35,61 @@ from inference_engine.indicators.train.train_utilisation import (
     load_train_station_ridership,
     predict_ridership_2025,
     process_stop_times,
+)
+from inference_engine.indicators.tram.tram_utilisation import (
+    analyse_all_periods,
+    build_recommendation_json,
     save_recommendation_to_db,
 )
 from inference_engine.settings.api_settings import get_api_settings
 from inference_engine.train_router import router as train_router
 from inference_engine.train_router import warm_demand_cache, warm_utilisation_cache
 
-# app = FastAPI()
+# ── Logging ──────────────────────────────────────────────────────────────────
 
-FETCH_INTERVAL_HOURS = 1  # Fetch data every 1 hour (change to 24 for daily)
-DATA_INDICATORS = ["bus", "car", "train"]  # Transport types to process
+_LOKI_URL = os.getenv("LOKI_URL", "http://localhost:3100/loki/api/v1/push")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-5s [%(name)s] [traceId=%(otelTraceID)s spanId=%(otelSpanID)s] %(message)s",
+)
+
+_loki_handler = logging_loki.LokiHandler(
+    url=_LOKI_URL,
+    tags={
+        "app": "inference-engine",
+        "pod": os.getenv("POD_NAME", "local"),
+    },
+    version="1",
+)
+logging.getLogger().addHandler(_loki_handler)
+
+logger = logging.getLogger(__name__)
+
+# ── OpenTelemetry tracing ─────────────────────────────────────────────────────
+_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+
+resource = Resource.create(
+    {
+        "service.name": os.getenv("OTEL_SERVICE_NAME", "inference-engine"),
+        "deployment.environment": os.getenv("DEPLOYMENT_ENV", "dev"),
+    }
+)
+tracer_provider = TracerProvider(resource=resource)
+tracer_provider.add_span_processor(
+    BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{_OTLP_ENDPOINT}/v1/traces"))
+)
+trace.set_tracer_provider(tracer_provider)
+
+# Instrument SQLAlchemy before the engine is used
+SQLAlchemyInstrumentor().instrument(engine=db_engine)
+# Instrument outbound httpx calls so downstream trace context is propagated
+HTTPXClientInstrumentor().instrument()
+# Patch logging so traceId/spanId are injected into every log record
+LoggingInstrumentor().instrument(set_logging_format=False)
+
+FETCH_INTERVAL_HOURS = 1
+DATA_INDICATORS = ["bus", "car", "train", "tram"]
 
 
 @asynccontextmanager
@@ -41,7 +98,7 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
     Handle startup and shutdown events
     """
     # Startup
-    logger.info("🚀 Application starting up...")
+    logger.info("Application starting up...")
     start_scheduler()
 
     cycle_risk_thread = threading.Thread(
@@ -51,21 +108,22 @@ async def lifespan(app: FastAPI) -> Generator[None, Any, None]:
         daemon=True,
     )
     cycle_risk_thread.start()
-    logger.info("✅ Cycle risk engine started in background thread")
+    logger.info("Cycle risk engine started in background thread")
     warm_demand_cache()
     warm_utilisation_cache()
-    logger.info("✅ Application ready!")
+    logger.info("Application ready!")
 
     yield
 
     # Shutdown
-    logger.info("🛑 Application shutting down...")
+    logger.info("Application shutting down...")
     shutdown_scheduler()
-    logger.info("✅ Application stopped!")
+    tracer_provider.shutdown()
+    logger.info("Application stopped!")
 
 
 # Initialize scheduler
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(job_defaults={"misfire_grace_time": 3600})
 recommendations_store = {}  # In-memory storage
 app = FastAPI(
     title="Recommendation Engine API",
@@ -74,9 +132,11 @@ app = FastAPI(
 app.include_router(ev_router)
 app.include_router(train_router)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ── Prometheus metrics — exposes /metrics ─────────────────────────────────────
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+# ── FastAPI OTel instrumentation (must be after app is created) ───────────────
+FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
 
 
 # Load Settings
@@ -299,21 +359,34 @@ class RecommendationService:
         for data_indicator in DATA_INDICATORS:
             try:
                 logger.info("🔄 Processing: %s", data_indicator)
-                rec_id = await self.process_recommendation(
-                    data_indicator=data_indicator,
-                    context={
-                        "source": "scheduled_task",
-                        "scheduled_at": datetime.utcnow().isoformat(),
-                    },
-                )
-                results["successful"] += 1
-                results["details"].append(
-                    {
-                        "data_indicator": data_indicator,
-                        "status": "success",
-                        "recommendation_id": rec_id,
-                    }
-                )
+
+                # Tram uses its own DB-direct analysis, not the Hermes API
+                if data_indicator == "tram":
+                    run_tram_utilisation()
+                    results["successful"] += 1
+                    results["details"].append(
+                        {
+                            "data_indicator": data_indicator,
+                            "status": "success",
+                            "recommendation_id": "tram_utilisation",
+                        }
+                    )
+                else:
+                    rec_id = await self.process_recommendation(
+                        data_indicator=data_indicator,
+                        context={
+                            "source": "scheduled_task",
+                            "scheduled_at": datetime.utcnow().isoformat(),
+                        },
+                    )
+                    results["successful"] += 1
+                    results["details"].append(
+                        {
+                            "data_indicator": data_indicator,
+                            "status": "success",
+                            "recommendation_id": rec_id,
+                        }
+                    )
             except Exception as e:
                 logger.exception("❌ Failed for %s", data_indicator)
                 results["failed"] += 1
@@ -358,6 +431,29 @@ async def scheduled_recommendation_task() -> None:
         logger.exception("❌ Scheduled task failed")
 
 
+def run_tram_utilisation() -> None:
+    """
+    Run tram utilisation analysis and save recommendations to DB.
+    Called by the scheduler once every 24 hours.
+    """
+    try:
+        logger.info("🚋 Running scheduled tram utilisation analysis...")
+        recs = analyse_all_periods()
+
+        if not recs:
+            logger.info("🚋 No tram recommendations generated.")
+            return
+
+        rec_json = build_recommendation_json(recs)
+        inserted = save_recommendation_to_db(rec_json)
+        if inserted:
+            logger.info("🚋 Saved %d tram recommendations to DB.", len(recs))
+        else:
+            logger.info("🚋 Tram recommendations unchanged — skipped duplicate.")
+    except Exception:
+        logger.exception("❌ Tram utilisation analysis failed")
+
+
 async def scheduled_train_utilisation_task() -> None:
     """
     Runs the full train utilisation pipeline daily at 8 AM and saves
@@ -386,7 +482,7 @@ def start_scheduler() -> None:
     """
     logger.info("🕐 Initializing scheduler...")
 
-    # Add the scheduled job
+    # Add the scheduled job — processes all indicators including tram
     scheduler.add_job(
         scheduled_recommendation_task,
         ##trigger=IntervalTrigger(hours=FETCH_INTERVAL_HOURS),

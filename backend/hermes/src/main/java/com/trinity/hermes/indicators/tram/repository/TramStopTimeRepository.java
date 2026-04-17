@@ -31,4 +31,17 @@ public interface TramStopTimeRepository extends JpaRepository<TramStopTime, Inte
               + " ORDER BY st.arrival_time",
       nativeQuery = true)
   List<TramStopTime> findByStopIdOrderByArrivalTime(@Param("stopId") String stopId);
+
+  @Query(
+      value =
+          "SELECT st.* FROM external_data.tram_stop_times st"
+              + " WHERE st.stop_id IN :stopIds"
+              + " AND st.arrival_time >= :from"
+              + " AND st.arrival_time <= :to"
+              + " ORDER BY st.arrival_time",
+      nativeQuery = true)
+  List<TramStopTime> findByStopIdInAndArrivalTimeBetween(
+      @Param("stopIds") List<String> stopIds,
+      @Param("from") java.sql.Time from,
+      @Param("to") java.sql.Time to);
 }

@@ -1,0 +1,435 @@
+{{- if .Values.observability.jaeger.enabled }}
+---
+# ── Jaeger all-in-one ────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-jaeger
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jaeger
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jaeger
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.65.0
+          env:
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+          ports:
+            - name: ui
+              containerPort: 16686
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-jaeger
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: ui
+      port: 16686
+      targetPort: 16686
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+---
+# ── Loki ─────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-loki-data
+  labels:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-loki
+  labels:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: loki
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: loki
+          image: grafana/loki:3.4.2
+          args:
+            - -config.file=/etc/loki/loki-config.yaml
+          ports:
+            - name: http
+              containerPort: 3100
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: data
+              mountPath: /loki
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-loki-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-loki-data
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-loki-config
+data:
+  loki-config.yaml: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+    common:
+      instance_addr: 127.0.0.1
+      path_prefix: /loki
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      max_line_size: 256KB
+      retention_period: 720h
+    compactor:
+      working_directory: /loki/compactor
+      compaction_interval: 10m
+      retention_enabled: true
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+      delete_request_store: filesystem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-loki
+  labels:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 3100
+      targetPort: 3100
+---
+# ── Prometheus ────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        environment: {{ .Values.observability.environment | default "prod" }}
+    scrape_configs:
+      - job_name: hermes
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["{{ .Release.Name }}-hermes:8080"]
+            labels:
+              app: hermes
+              service: backend
+      - job_name: inference-engine
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["{{ .Release.Name }}-inference-engine:8000"]
+            labels:
+              app: inference-engine
+              service: backend
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3.3.1
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.retention.time=7d
+            - --web.enable-lifecycle
+          ports:
+            - name: http
+              containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+---
+# ── Grafana ───────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-datasources
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        url: http://{{ .Release.Name }}-prometheus:9090
+        isDefault: true
+        jsonData:
+          timeInterval: "15s"
+          exemplarTraceIdDestinations:
+            - name: traceID
+              datasourceUid: jaeger
+      - name: Loki
+        type: loki
+        uid: loki
+        url: http://{{ .Release.Name }}-loki:3100
+        jsonData:
+          derivedFields:
+            - name: traceID
+              matcherRegex: "traceId=([a-f0-9]+)"
+              url: "$${__value.raw}"
+              datasourceUid: jaeger
+      - name: Jaeger
+        type: jaeger
+        uid: jaeger
+        url: http://{{ .Release.Name }}-jaeger:16686
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-grafana
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+        runAsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:12.0.0
+          env:
+            - name: GF_SERVER_HTTP_PORT
+              value: "3001"
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-grafana-secret
+                  key: admin-password
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_FEATURE_TOGGLES_ENABLE
+              value: traceToLogs
+          ports:
+            - name: http
+              containerPort: 3001
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      volumes:
+        - name: datasources
+          configMap:
+            name: {{ .Release.Name }}-grafana-datasources
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-grafana
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ .Release.Name }}-grafana-dr
+spec:
+  host: {{ .Release.Name }}-grafana.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-grafana-ingress
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ .Values.observability.grafana.host | quote }}
+      secretName: {{ .Release.Name }}-grafana-tls
+  rules:
+    - host: {{ .Values.observability.grafana.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-grafana
+                port:
+                  number: 80
+{{- end }}

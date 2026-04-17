@@ -79,6 +79,8 @@ public class SecurityConfig {
                 auth.requestMatchers(
                         "/v3/api-docs/**", "/swagger/**", "/swagger-ui/**", "/api-docs/**")
                     .permitAll()
+                    .requestMatchers("/actuator/health", "/actuator/prometheus", "/actuator/info")
+                    .permitAll()
                     .requestMatchers("/api/public/**")
                     .permitAll()
                     .requestMatchers("/api/auth/**")

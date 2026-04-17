@@ -9,6 +9,9 @@ data-handler:
     repository: ghcr.io/smartenoughcitizens/smartenoughcity/data-handler
     tag: latest
     pullPolicy: Always
+  observability:
+    loki:
+      url: "http://sec-loki:3100/loki/api/v1/push"
   #  cronjob:
   #    suspend: true
   appEnv: "prod"
@@ -83,6 +86,15 @@ hermes:
         - ALL
     readOnlyRootFilesystem: false
     runAsNonRoot: true
+  observability:
+    environment: dev
+    jaeger:
+      otlpHttpEndpoint: "http://sec-jaeger:4318"
+    loki:
+      url: "http://sec-loki:3100/loki/api/v1/push"
+      timeoutMs: "5000"
+    tracing:
+      samplingProbability: "1.0"
 
 inference-engine:
   imagePullSecrets:
@@ -119,6 +131,15 @@ inference-engine:
         - ALL
     readOnlyRootFilesystem: false
     runAsNonRoot: true
+  observability:
+    environment: dev
+    jaeger:
+      otlpHttpEndpoint: "http://sec-jaeger:4318"
+    loki:
+      url: "http://sec-loki:3100/loki/api/v1/push"
+      timeoutMs: "5000"
+    tracing:
+      samplingProbability: "1.0"
 
 # Exclude PostgreSQL from Istio injection - databases need direct network access
 postgres:
@@ -154,6 +175,20 @@ keycloak:
     existingConfigmap: keycloak-realm-import
     podAnnotations:
       sidecar.istio.io/inject: "false"
+
+observability:
+  environment: dev
+  jaeger:
+    enabled: true
+    otlpHttpEndpoint: "http://sec-jaeger:4318"
+  loki:
+    url: "http://sec-loki:3100/loki/api/v1/push"
+    timeoutMs: "5000"
+  tracing:
+    samplingProbability: "1.0"   # 100% in dev
+  grafana:
+    host: "grafana.citycontrol.me"
+    adminPassword: ""            # auto-generated and persisted in sec-grafana-secret
 
 ingress:
   enabled: true

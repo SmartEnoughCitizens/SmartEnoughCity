@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: dev
+
+scrape_configs:
+
+  # Hermes (Spring Boot) — /actuator/prometheus
+  # Runs on host machine, accessible via host.docker.internal from within Docker
+  - job_name: hermes
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels:
+          app: hermes
+          service: backend
+
+  # Inference Engine (FastAPI) — /metrics
+  - job_name: inference-engine
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+        labels:
+          app: inference-engine
+          service: backend
+
+  # Prometheus self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
