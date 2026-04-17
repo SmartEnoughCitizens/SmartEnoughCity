@@ -77,6 +77,7 @@ export const API_ENDPOINTS = {
   TRAM_HOURLY_DISTRIBUTION: "/api/v1/tram/hourly-distribution",
   TRAM_STOP_USAGE: "/api/v1/tram/stop-usage",
   TRAM_COMMON_DELAYS: "/api/v1/tram/common-delays",
+  TRAM_RECOMMENDATIONS: "/api/v1/tram/recommendations",
 
   // Cycle Metrics (CycleMetricsController)
   CYCLE_STATIONS_LIVE: "/api/v1/cycle/stations/live",
@@ -100,8 +101,6 @@ export const API_ENDPOINTS = {
     `/api/v1/cycle/coverage-gaps/${encodeURIComponent(ed)}/process`,
   CYCLE_STATION_PROPOSALS: "/api/v1/cycle/coverage-gaps/proposals",
   CYCLE_ACCEPTED_PROPOSALS: "/api/v1/cycle/coverage-gaps/proposals/accepted",
-  CYCLE_PROPOSAL_IMPL_STATUS: (id: number) =>
-    `/api/v1/cycle/coverage-gaps/proposals/${id}/implementation-status`,
   CYCLE_PROPOSAL_REVIEW: (id: number) =>
     `/api/v1/cycle/coverage-gaps/proposals/${id}/review`,
 
@@ -125,6 +124,7 @@ export const API_ENDPOINTS = {
   PEDESTRIANS_LIVE: "/api/v1/pedestrians/live",
 
   // Events
+  EVENTS: "/api/v1/events",
   EVENTS_UPCOMING: "/api/v1/events",
 
   // Disruptions

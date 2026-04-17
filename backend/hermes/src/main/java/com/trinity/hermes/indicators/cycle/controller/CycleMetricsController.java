@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -215,6 +214,10 @@ public class CycleMetricsController {
         proposal.getTotalImprovedAreas());
     try {
       String submitterRole = resolveSubmitterRole(jwt);
+      if (!"Cycle_Provider".equals(submitterRole)) {
+        log.warn("Proposal submission rejected — role={} is not Cycle_Provider", submitterRole);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      }
       cycleMetricsService.submitStationProposal(proposal, submitterRole);
       cycleMetricsService.notifyProposalRecipients(proposal, submitterRole);
       return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -222,6 +225,15 @@ public class CycleMetricsController {
       log.error("Error submitting station proposal: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
+  }
+
+  /** Returns the preferred_username claim from the JWT, falling back to the subject. */
+  private String resolveUsername(Jwt jwt) {
+    if (jwt == null) return "unknown";
+    String preferred = jwt.getClaimAsString("preferred_username");
+    if (preferred != null && !preferred.isBlank()) return preferred;
+    String subject = jwt.getSubject();
+    return subject != null ? subject : "unknown";
   }
 
   /** Returns the highest-priority cycle-related role the caller holds. */
@@ -232,6 +244,7 @@ public class CycleMetricsController {
     @SuppressWarnings("unchecked")
     var roles = (java.util.List<String>) realmAccess.get("roles");
     if (roles == null) return "unknown";
+    if (roles.contains("Cycle_Provider")) return "Cycle_Provider";
     if (roles.contains("City_Manager")) return "City_Manager";
     if (roles.contains("Cycle_Admin")) return "Cycle_Admin";
     return "unknown";
@@ -272,41 +285,25 @@ public class CycleMetricsController {
       @AuthenticationPrincipal Jwt jwt) {
     log.info(
         "PATCH /api/v1/cycle/coverage-gaps/proposals/{}/review action={}", id, review.getAction());
-    if (!"ACCEPTED".equals(review.getAction()) && !"REJECTED".equals(review.getAction())) {
+    var validActions = java.util.Set.of("ACCEPTED", "REJECTED", "FORWARD");
+    if (!validActions.contains(review.getAction())) {
       throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "action must be ACCEPTED or REJECTED");
+          HttpStatus.BAD_REQUEST, "action must be ACCEPTED, REJECTED or FORWARD");
     }
     try {
       String reviewerRole = resolveSubmitterRole(jwt);
-      cycleMetricsService.reviewProposal(id, review, reviewerRole, reviewerRole);
+      String reviewerUsername =
+          (review.getReviewedBy() != null && !review.getReviewedBy().isBlank())
+              ? review.getReviewedBy()
+              : resolveUsername(jwt);
+      boolean updated =
+          cycleMetricsService.reviewProposal(id, review, reviewerUsername, reviewerRole);
+      if (!updated) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).build();
+      }
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
       log.error("Error reviewing proposal id={}", id, e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  @PatchMapping("/coverage-gaps/proposals/{id}/implementation-status")
-  @PreAuthorize("hasRole('Cycle_Admin')")
-  public ResponseEntity<Void> updateImplementationStatus(
-      @PathVariable Long id,
-      @RequestBody ProposalImplementationStatusDTO body,
-      @AuthenticationPrincipal Jwt jwt) {
-    log.info(
-        "PATCH /api/v1/cycle/coverage-gaps/proposals/{}/implementation-status status={}",
-        id,
-        body.getStatus());
-    var allowed = java.util.Set.of("PLANNED", "IN_PROGRESS", "COMPLETED");
-    if (!allowed.contains(body.getStatus())) {
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "status must be PLANNED, IN_PROGRESS or COMPLETED");
-    }
-    try {
-      String updaterUsername = resolveSubmitterRole(jwt);
-      cycleMetricsService.updateImplementationStatus(id, body.getStatus(), updaterUsername);
-      return ResponseEntity.noContent().build();
-    } catch (Exception e) {
-      log.error("Error updating implementation status for proposal id={}", id, e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }

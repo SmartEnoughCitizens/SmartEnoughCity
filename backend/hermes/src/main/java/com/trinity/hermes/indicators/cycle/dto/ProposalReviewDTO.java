@@ -6,9 +6,12 @@ import lombok.Data;
 @Data
 public class ProposalReviewDTO {
 
-  /** Either "ACCEPTED" or "REJECTED". */
+  /** Either "ACCEPTED", "REJECTED", or "FORWARD". */
   private String action;
 
-  /** Mandatory reason when rejecting; optional when accepting. */
+  /** Mandatory reason when rejecting; optional otherwise. */
   private String reason;
+
+  /** Username of the reviewer, sourced from the frontend localStorage. */
+  private String reviewedBy;
 }

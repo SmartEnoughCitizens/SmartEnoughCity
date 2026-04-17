@@ -143,6 +143,12 @@ interface CoverageGapMapProps {
   onAccept?: (proposalId: number) => void;
   onReject?: (proposalId: number, reason: string) => void;
   isReviewing?: boolean;
+  /** Only Cycle_Provider may submit proposals. */
+  canSubmit?: boolean;
+  /** Role of the current reviewer — controls the primary action button label. */
+  reviewerRole?: string;
+  /** Top offset (px) to push the legend below a floating tray above it. */
+  legendTopOffset?: number;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -155,6 +161,9 @@ export const CoverageGapMap = ({
   onAccept,
   onReject,
   isReviewing = false,
+  canSubmit = false,
+  reviewerRole,
+  legendTopOffset,
 }: CoverageGapMapProps) => {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [simulateMode, setSimulateMode] = useState(false);
@@ -486,10 +495,10 @@ export const CoverageGapMap = ({
         />
       )}
 
-      {/* Improvement panel */}
+      {/* Improvement panel — always shown in review mode; otherwise requires at least one improvement */}
       {simulateMode &&
         proposedStations.length > 0 &&
-        improvedCount > 0 &&
+        (improvedCount > 0 || isReviewMode) &&
         (() => {
           // Group improvements by "from → to" transition
           const groups: Record<
@@ -557,9 +566,9 @@ export const CoverageGapMap = ({
                     fontSize: "0.65rem",
                   }}
                 >
-                  {improvedCount} area{improvedCount > 1 ? "s" : ""} improve
-                  with {proposedStations.length} proposed station
-                  {proposedStations.length > 1 ? "s" : ""}
+                  {improvedCount > 0
+                    ? `${improvedCount} area${improvedCount > 1 ? "s" : ""} improved with ${proposedStations.length} proposed station${proposedStations.length > 1 ? "s" : ""}`
+                    : `${proposedStations.length} proposed station${proposedStations.length > 1 ? "s" : ""} — no coverage change detected`}
                 </Typography>
               </Box>
 
@@ -753,7 +762,11 @@ export const CoverageGapMap = ({
                         variant="contained"
                         fullWidth
                         startIcon={
-                          <CheckCircleIcon sx={{ fontSize: "0.85rem" }} />
+                          reviewerRole === "Cycle_Admin" ? (
+                            <SendIcon sx={{ fontSize: "0.85rem" }} />
+                          ) : (
+                            <CheckCircleIcon sx={{ fontSize: "0.85rem" }} />
+                          )
                         }
                         disabled={isReviewing}
                         onClick={() => onAccept?.(reviewProposal?.id ?? 0)}
@@ -765,7 +778,9 @@ export const CoverageGapMap = ({
                           "&:hover": { bgcolor: "#16a34a" },
                         }}
                       >
-                        Accept
+                        {reviewerRole === "Cycle_Admin"
+                          ? "Forward to City Manager"
+                          : "Approve"}
                       </Button>
                       <Button
                         size="small"
@@ -798,9 +813,9 @@ export const CoverageGapMap = ({
                       fontSize: "0.7rem",
                     }}
                   >
-                    ✓ Proposal sent for review
+                    ✓ Proposal sent to Cycle Admin
                   </Typography>
-                ) : (
+                ) : canSubmit ? (
                   <Button
                     fullWidth
                     size="small"
@@ -816,9 +831,11 @@ export const CoverageGapMap = ({
                       "&:hover": { bgcolor: "#2563eb" },
                     }}
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Station Proposal"}
+                    {isSubmitting
+                      ? "Submitting..."
+                      : "Submit Proposal to Cycle Admin"}
                   </Button>
-                )}
+                ) : null}
               </Box>
             </Paper>
           );
@@ -1061,14 +1078,16 @@ export const CoverageGapMap = ({
         ))}
       </MapContainer>
 
-      {/* Legend — moves to top-left when impact panel occupies bottom-left */}
+      {/* Legend — positioned below the proposal tray when present, otherwise bottom-left */}
       <Paper
         elevation={0}
         sx={{
           position: "absolute",
-          ...(simulateMode && proposedStations.length > 0 && improvedCount > 0
-            ? { top: 60, left: 16 }
-            : { bottom: 24, left: 16 }),
+          ...(legendTopOffset == null
+            ? simulateMode && proposedStations.length > 0 && improvedCount > 0
+              ? { top: 60, left: 16 }
+              : { bottom: 24, left: 16 }
+            : { top: legendTopOffset, left: 16 }),
           zIndex: 1000,
           px: 1.5,
           py: 1,

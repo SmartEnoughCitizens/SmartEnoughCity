@@ -1,6 +1,7 @@
 /**
- * ProposalTray — shows pending station proposals to City_Manager / Cycle_Admin.
- * Renders inside the Coverage side-panel. Clicking a proposal loads it for review.
+ * ProposalTray — compact floating widget for City_Manager / Cycle_Admin.
+ * Collapsed: shows only the pending proposal count badge.
+ * Expanded: shows the full proposal list for selection/review.
  */
 
 import { useState } from "react";
@@ -13,6 +14,7 @@ import {
   ListItemButton,
   ListItemText,
   ListItemIcon,
+  Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -30,53 +32,64 @@ export const ProposalTray = ({
   onSelect,
   activeProposalId,
 }: ProposalTrayProps) => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   if (proposals.length === 0) return null;
 
   return (
-    <Box
+    <Paper
+      elevation={0}
       sx={{
-        mx: 1,
-        mb: 1,
         borderRadius: 2,
-        border: "1px solid rgba(251,191,36,0.6)",
+        border: "1px solid rgba(251,191,36,0.5)",
         bgcolor: "background.paper",
         overflow: "hidden",
+        width: open ? 240 : "fit-content",
+        transition: "width 0.2s ease",
       }}
     >
-      {/* Header */}
+      {/* Collapsed / header row */}
       <Box
         onClick={() => setOpen((v) => !v)}
         sx={{
           display: "flex",
           alignItems: "center",
           gap: 1,
-          px: 1.5,
+          px: 1.25,
           py: 0.75,
           cursor: "pointer",
           "&:hover": { bgcolor: "rgba(251,191,36,0.08)" },
         }}
       >
-        <AssignmentIcon sx={{ fontSize: "0.9rem", color: "#fbbf24" }} />
-        <Typography
-          variant="caption"
-          fontWeight={700}
-          sx={{ color: "#fbbf24", fontSize: "0.72rem", flex: 1 }}
-        >
-          Pending Proposals
-        </Typography>
+        <AssignmentIcon
+          sx={{ fontSize: "0.95rem", color: "#fbbf24", flexShrink: 0 }}
+        />
+        {/* Count badge — always visible */}
         <Chip
           label={proposals.length}
           size="small"
           sx={{
-            height: 18,
-            fontSize: "0.62rem",
+            height: 20,
+            minWidth: 20,
+            fontSize: "0.65rem",
             fontWeight: 700,
             bgcolor: "#fbbf24",
             color: "#000",
+            flexShrink: 0,
           }}
         />
+        <Typography
+          variant="caption"
+          fontWeight={700}
+          sx={{
+            color: "#fbbf24",
+            fontSize: "0.7rem",
+            flex: 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Pending Proposals
+        </Typography>
         {open ? (
           <ExpandLessIcon sx={{ fontSize: "0.9rem", color: "#fbbf24" }} />
         ) : (
@@ -84,7 +97,7 @@ export const ProposalTray = ({
         )}
       </Box>
 
-      {/* List */}
+      {/* Expanded list */}
       <Collapse in={open}>
         <List disablePadding dense>
           {proposals.map((p) => {
@@ -102,17 +115,17 @@ export const ProposalTray = ({
                 selected={isActive}
                 sx={{
                   py: 0.5,
-                  px: 1.5,
+                  px: 1.25,
                   borderTop: "1px solid rgba(255,255,255,0.05)",
                   "&.Mui-selected": { bgcolor: "rgba(251,191,36,0.15)" },
                   "&:hover": { bgcolor: "rgba(251,191,36,0.1)" },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 28 }}>
+                <ListItemIcon sx={{ minWidth: 24 }}>
                   <Box
                     sx={{
-                      width: 8,
-                      height: 8,
+                      width: 7,
+                      height: 7,
                       borderRadius: "50%",
                       bgcolor: isActive ? "#fbbf24" : "#94a3b8",
                     }}
@@ -126,20 +139,6 @@ export const ProposalTray = ({
                       sx={{ fontSize: "0.68rem" }}
                     >
                       {p.submittedBy}
-                      <Typography
-                        component="span"
-                        variant="caption"
-                        sx={{
-                          ml: 0.5,
-                          fontSize: "0.62rem",
-                          color: "text.secondary",
-                        }}
-                      >
-                        · {p.stationCount} station
-                        {p.stationCount === 1 ? "" : "s"} ·{" "}
-                        {p.improvedAreaCount} area
-                        {p.improvedAreaCount === 1 ? "" : "s"}
-                      </Typography>
                     </Typography>
                   }
                   secondary={
@@ -147,17 +146,17 @@ export const ProposalTray = ({
                       variant="caption"
                       sx={{ fontSize: "0.6rem", color: "text.disabled" }}
                     >
-                      {date}
+                      {p.stationCount} stn · {p.improvedAreaCount} area · {date}
                     </Typography>
                   }
                 />
                 {isActive && (
                   <Chip
-                    label="Reviewing"
+                    label="Active"
                     size="small"
                     sx={{
-                      height: 16,
-                      fontSize: "0.58rem",
+                      height: 14,
+                      fontSize: "0.55rem",
                       bgcolor: "rgba(251,191,36,0.25)",
                       color: "#fbbf24",
                     }}
@@ -168,6 +167,6 @@ export const ProposalTray = ({
           })}
         </List>
       </Collapse>
-    </Box>
+    </Paper>
   );
 };

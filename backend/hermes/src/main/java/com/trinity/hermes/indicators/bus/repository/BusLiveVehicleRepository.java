@@ -1,5 +1,6 @@
 package com.trinity.hermes.indicators.bus.repository;
 
+import com.trinity.hermes.common.Constants;
 import com.trinity.hermes.indicators.bus.entity.BusLiveVehicle;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,13 +23,36 @@ public interface BusLiveVehicleRepository extends JpaRepository<BusLiveVehicle, 
       value =
           "SELECT DISTINCT ON (vehicle_id) *"
               + " FROM external_data.bus_live_vehicles"
-              + " WHERE timestamp >= NOW() - INTERVAL '5 minutes'"
+              + " WHERE timestamp >= NOW() - INTERVAL '"
+              + Constants.LIVE_DATA_WINDOW_MINUTES
+              + " minutes'"
+              + " AND lat BETWEEN "
+              + Constants.DUBLIN_LAT_MIN
+              + " AND "
+              + Constants.DUBLIN_LAT_MAX
+              + " AND lon BETWEEN "
+              + Constants.DUBLIN_LON_MIN
+              + " AND "
+              + Constants.DUBLIN_LON_MAX
               + " ORDER BY vehicle_id, timestamp DESC",
       nativeQuery = true)
   List<BusLiveVehicle> findRecentVehicles();
 
   @Query(
-      value = "SELECT COUNT(DISTINCT vehicle_id) FROM external_data.bus_live_vehicles",
+      value =
+          "SELECT COUNT(DISTINCT vehicle_id)"
+              + " FROM external_data.bus_live_vehicles"
+              + " WHERE timestamp >= NOW() - INTERVAL '"
+              + Constants.LIVE_DATA_WINDOW_MINUTES
+              + " minutes'"
+              + " AND lat BETWEEN "
+              + Constants.DUBLIN_LAT_MIN
+              + " AND "
+              + Constants.DUBLIN_LAT_MAX
+              + " AND lon BETWEEN "
+              + Constants.DUBLIN_LON_MIN
+              + " AND "
+              + Constants.DUBLIN_LON_MAX,
       nativeQuery = true)
   Long countActiveVehicles();
 
