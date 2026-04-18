@@ -2,7 +2,7 @@
  * Tram dashboard — matches CycleDashboard design
  * Right-side floating panel, MUI Tabs, theme-aware
  *
- * 6 tabs: Live | Delays | Usage | Common Delays | Simulation | Recommendations
+ * 7 tabs: Live | Delays | Usage | Common Delays | Simulation | Approvals | Recommendations
  * Map: Live/Delays=standard, Usage=sized markers, CommonDelays=delay-sized markers,
  *      Simulation=demand-coloured markers
  */
@@ -60,8 +60,12 @@ import {
   useTramRecommendations,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { approvalApi, type CreateApprovalDTO } from "@/api/approval.api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  approvalApi,
+  type ApprovalRequestDTO,
+  type CreateApprovalDTO,
+} from "@/api/approval.api";
 import { safeJsonParse } from "@/utils/safeJsonParse";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -358,8 +362,43 @@ export const TramDashboard = () => {
   const roles = useAppSelector((state) => state.auth.roles);
   const isTramAdmin =
     roles.includes("Tram_Admin") && !roles.includes("City_Manager");
+  const isCityManager = roles.includes("City_Manager");
 
+  // ── Approvals ───────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<
+    "APPROVED" | "DENIED" | null
+  >(null);
+
+  const { data: tramApprovals = [], isLoading: approvalsLoading } = useQuery<
+    ApprovalRequestDTO[]
+  >({
+    queryKey: ["approvals", "tram"],
+    queryFn: () => approvalApi.list("tram"),
+    enabled: tabValue === 5,
+    refetchInterval: 30_000,
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: number;
+      status: "APPROVED" | "DENIED";
+    }) =>
+      approvalApi.review(id, { status, reviewNote: reviewNote || undefined }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
+      setReviewingId(null);
+      setReviewNote("");
+      setPendingStatus(null);
+    },
+  });
+
+  // ── Rec approval ────────────────────────────────────────────────────────
   const [selectedRecs, setSelectedRecs] = useState<Set<string>>(new Set());
   const [tramConfirmOpen, setTramConfirmOpen] = useState(false);
   const [tramSnackbar, setTramSnackbar] = useState(false);
@@ -370,6 +409,7 @@ export const TramDashboard = () => {
       setSelectedRecs(new Set());
       setTramConfirmOpen(false);
       setTramSnackbar(true);
+      setTabValue(5);
       queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
       queryClient.invalidateQueries({ queryKey: ["tram", "recommendations"] });
     },
@@ -587,6 +627,7 @@ export const TramDashboard = () => {
       "usage",
       "commonDelays",
       "simulation",
+      "approvals",
       "recommendations",
     ] as const
   )[tabValue];
@@ -1061,13 +1102,18 @@ export const TramDashboard = () => {
             <Tab label={`Live (${filteredForecasts.length})`} />
             <Tab label={`Delays (${filteredDelays.length})`} />
             <Tab label={`Usage (${filteredUsage.length})`} />
-            <Tab label={`Delays H. (${filteredCommonDelays.length})`} />
+            <Tab label={`Common Delays (${filteredCommonDelays.length})`} />
             <Tab label="Simulation" />
-            <Tab label={`Recs (${filteredRecommendations.length})`} />
+            <Tab
+              label={`Approvals${tramApprovals.some((a) => a.status === "PENDING") ? ` (${tramApprovals.filter((a) => a.status === "PENDING").length})` : ""}`}
+            />
+            <Tab
+              label={`Recommendations (${filteredRecommendations.length})`}
+            />
           </Tabs>
 
-          {/* Line filter + Search — hidden on simulation tab */}
-          {tabValue !== 4 && (
+          {/* Line filter + Search — hidden on simulation and approvals tabs */}
+          {tabValue !== 4 && tabValue !== 5 && (
             <>
               <Box
                 sx={{
@@ -1791,8 +1837,291 @@ export const TramDashboard = () => {
               </Box>
             )}
 
+            {/* ── Tab 5: Approvals ─────────────────────────────────── */}
+            {tabValue === 5 && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={700}
+                  sx={{
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    color: "text.secondary",
+                  }}
+                >
+                  {isCityManager
+                    ? "All approval requests"
+                    : "My approval requests"}
+                </Typography>
+
+                {isCityManager && (
+                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                    {(["ALL", "PENDING", "APPROVED", "DENIED"] as const).map(
+                      (s) => {
+                        const count =
+                          s === "ALL"
+                            ? tramApprovals.length
+                            : tramApprovals.filter((a) => a.status === s)
+                                .length;
+                        return (
+                          <Chip
+                            key={s}
+                            size="small"
+                            label={`${s} (${count})`}
+                            sx={{
+                              fontSize: "0.62rem",
+                              height: 20,
+                              bgcolor:
+                                s === "PENDING"
+                                  ? "#fef3c7"
+                                  : s === "APPROVED"
+                                    ? "#dcfce7"
+                                    : s === "DENIED"
+                                      ? "#fee2e2"
+                                      : undefined,
+                              color:
+                                s === "PENDING"
+                                  ? "#92400e"
+                                  : s === "APPROVED"
+                                    ? "#166534"
+                                    : s === "DENIED"
+                                      ? "#991b1b"
+                                      : undefined,
+                            }}
+                          />
+                        );
+                      },
+                    )}
+                  </Box>
+                )}
+
+                {approvalsLoading && (
+                  <CircularProgress size={20} sx={{ alignSelf: "center" }} />
+                )}
+
+                {!approvalsLoading && tramApprovals.length === 0 && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      textAlign: "center",
+                      py: 2,
+                      display: "block",
+                    }}
+                  >
+                    No approval requests yet.
+                  </Typography>
+                )}
+
+                {tramApprovals
+                  .toSorted((a, b) => {
+                    if (a.status === "PENDING" && b.status !== "PENDING")
+                      return -1;
+                    if (b.status === "PENDING" && a.status !== "PENDING")
+                      return 1;
+                    return (
+                      new Date(b.createdAt).getTime() -
+                      new Date(a.createdAt).getTime()
+                    );
+                  })
+                  .map((req) => (
+                    <Box
+                      key={req.id}
+                      sx={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 2,
+                        p: 1.25,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.75,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.75,
+                        }}
+                      >
+                        <Chip
+                          size="small"
+                          label={req.status}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            fontWeight: 700,
+                            bgcolor:
+                              req.status === "PENDING"
+                                ? "#fef3c7"
+                                : req.status === "APPROVED"
+                                  ? "#dcfce7"
+                                  : "#fee2e2",
+                            color:
+                              req.status === "PENDING"
+                                ? "#92400e"
+                                : req.status === "APPROVED"
+                                  ? "#166534"
+                                  : "#991b1b",
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: "0.6rem",
+                            color: "text.secondary",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          APR-{String(req.id).padStart(6, "0")}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: "text.secondary",
+                            ml: "auto",
+                          }}
+                        >
+                          {new Date(req.createdAt).toLocaleDateString("en-IE", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </Typography>
+                      </Box>
+
+                      <Typography
+                        sx={{ fontSize: "0.72rem", color: "#374151" }}
+                      >
+                        {req.summary ?? "No summary provided."}
+                      </Typography>
+
+                      {isCityManager && (
+                        <Typography
+                          sx={{ fontSize: "0.62rem", color: "text.secondary" }}
+                        >
+                          Requested by: <strong>{req.requestedBy}</strong>
+                        </Typography>
+                      )}
+
+                      {req.reviewNote && (
+                        <Typography
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: "text.secondary",
+                            fontStyle: "italic",
+                          }}
+                        >
+                          Note: {req.reviewNote}
+                        </Typography>
+                      )}
+
+                      {isCityManager && req.status === "PENDING" && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.75,
+                            mt: 0.5,
+                          }}
+                        >
+                          {reviewingId === req.id ? (
+                            <>
+                              <TextField
+                                size="small"
+                                placeholder="Optional review note…"
+                                value={reviewNote}
+                                onChange={(e) => setReviewNote(e.target.value)}
+                                multiline
+                                rows={2}
+                                sx={{
+                                  "& .MuiInputBase-input": {
+                                    fontSize: "0.72rem",
+                                  },
+                                }}
+                              />
+                              <Box sx={{ display: "flex", gap: 0.75 }}>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color={
+                                    pendingStatus === "APPROVED"
+                                      ? "primary"
+                                      : "error"
+                                  }
+                                  sx={{ flex: 1, fontSize: "0.68rem" }}
+                                  disabled={reviewMutation.isPending}
+                                  onClick={() =>
+                                    reviewMutation.mutate({
+                                      id: req.id,
+                                      status: pendingStatus!,
+                                    })
+                                  }
+                                >
+                                  {reviewMutation.isPending
+                                    ? "Saving…"
+                                    : `Confirm ${pendingStatus === "APPROVED" ? "Approve" : "Deny"}`}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  sx={{
+                                    fontSize: "0.68rem",
+                                    color: "text.secondary",
+                                  }}
+                                  disabled={reviewMutation.isPending}
+                                  onClick={() => {
+                                    setReviewingId(null);
+                                    setReviewNote("");
+                                    setPendingStatus(null);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </Box>
+                            </>
+                          ) : (
+                            <Box sx={{ display: "flex", gap: 0.75 }}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
+                                sx={{ flex: 1, fontSize: "0.68rem" }}
+                                onClick={() => {
+                                  setReviewingId(req.id);
+                                  setPendingStatus("APPROVED");
+                                }}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                sx={{ flex: 1, fontSize: "0.68rem" }}
+                                onClick={() => {
+                                  setReviewingId(req.id);
+                                  setPendingStatus("DENIED");
+                                }}
+                              >
+                                Deny
+                              </Button>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+              </Box>
+            )}
+
             {/* RECOMMENDATIONS */}
-            {tabValue === 5 &&
+            {tabValue === 6 &&
               filteredRecommendations.map((r) => {
                 const a = r.Attributes;
                 const recKey = `${r.Name}||${a.type}||${a.line}||${a.time_period}`;
@@ -1924,7 +2253,7 @@ export const TramDashboard = () => {
                   </Box>
                 );
               })}
-            {tabValue === 5 && filteredRecommendations.length === 0 && (
+            {tabValue === 6 && filteredRecommendations.length === 0 && (
               <Box sx={{ py: 4, textAlign: "center" }}>
                 <LightbulbIcon
                   sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
@@ -1944,7 +2273,7 @@ export const TramDashboard = () => {
             )}
 
             {/* ── Rec approval footer ── */}
-            {tabValue === 5 && isTramAdmin && (
+            {tabValue === 6 && isTramAdmin && (
               <Box
                 sx={{
                   position: "sticky",
