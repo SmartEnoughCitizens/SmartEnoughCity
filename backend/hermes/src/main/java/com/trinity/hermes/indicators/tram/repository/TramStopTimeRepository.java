@@ -72,4 +72,27 @@ public interface TramStopTimeRepository extends JpaRepository<TramStopTime, Inte
       @Param("stopIds") List<String> stopIds,
       @Param("from") java.sql.Time from,
       @Param("to") java.sql.Time to);
+
+  /**
+   * Load weekday stop times for real passenger services only.
+   * Filters out short depot/shunting trips with fewer than 10 stops,
+   * matching the inference engine's MIN_STOPS_PER_TRIP filter.
+   * Only includes weekday (Monday) services.
+   */
+  @Query(
+      value =
+          "WITH trip_stop_counts AS ("
+              + "  SELECT trip_id, COUNT(*) as stop_count"
+              + "  FROM external_data.tram_stop_times"
+              + "  GROUP BY trip_id"
+              + ")"
+              + " SELECT st.* FROM external_data.tram_stop_times st"
+              + " JOIN external_data.tram_trips t ON st.trip_id = t.id"
+              + " JOIN external_data.tram_calendar_schedule cs ON t.service_id = cs.service_id"
+              + " JOIN trip_stop_counts tsc ON st.trip_id = tsc.trip_id"
+              + " WHERE st.arrival_time IS NOT NULL"
+              + " AND cs.monday = true"
+              + " AND tsc.stop_count >= 10",
+      nativeQuery = true)
+  List<TramStopTime> findWeekdayRealServiceStopTimes();
 }

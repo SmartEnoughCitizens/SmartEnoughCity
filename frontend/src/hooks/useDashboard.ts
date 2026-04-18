@@ -553,13 +553,13 @@ export const useTramCommonDelays = () => {
   });
 };
 
-/** Trip-frequency demand scores per tram stop (GTFS-derived, static — cache 24 h). */
-export const useTramStopDemand = () => {
+/** Utilisation-based demand scores per tram stop for a time period. */
+export const useTramStopDemand = (startHour = 7, endHour = 10) => {
   return useQuery({
-    queryKey: DASHBOARD_KEYS.tramStopDemand,
-    queryFn: () => dashboardApi.getTramStopDemand(),
-    staleTime: 24 * 60 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
+    queryKey: [...DASHBOARD_KEYS.tramStopDemand, startHour, endHour],
+    queryFn: () => dashboardApi.getTramStopDemand(startHour, endHour),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 };
 

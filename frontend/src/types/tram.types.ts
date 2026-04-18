@@ -137,6 +137,10 @@ export interface TramStopDemand {
 export interface TramDemandSimulateRequest {
   line: "red" | "green";
   extraTrams: number;
+  originStopId?: string;
+  destinationStopId?: string;
+  startHour?: number;
+  endHour?: number;
 }
 
 export interface TramDemandSimulateResponse {

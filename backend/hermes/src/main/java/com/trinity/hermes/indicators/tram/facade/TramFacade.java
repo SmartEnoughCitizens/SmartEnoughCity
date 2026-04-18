@@ -49,8 +49,8 @@ public class TramFacade {
     return tramDashboardService.getCommonDelays();
   }
 
-  public List<TramStopDemandDTO> getStopDemand() {
-    return tramDashboardService.getStopDemand();
+  public List<TramStopDemandDTO> getStopDemand(int startHour, int endHour) {
+    return tramDashboardService.getStopDemand(startHour, endHour);
   }
 
   public TramDemandSimulateResponseDTO simulateDemand(TramDemandSimulateRequestDTO request) {

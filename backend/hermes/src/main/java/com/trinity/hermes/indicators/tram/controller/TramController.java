@@ -86,26 +86,30 @@ public class TramController {
     return ResponseEntity.ok(tramFacade.getCommonDelays());
   }
 
-  /** Demand score per stop derived from GTFS trip frequency. */
+  /** Demand score per stop — utilisation for a given time period. */
   @GetMapping("/api/v1/tram/stop-demand")
-  public ResponseEntity<List<TramStopDemandDTO>> getStopDemand() {
-    log.info("GET /api/v1/tram/stop-demand");
+  public ResponseEntity<List<TramStopDemandDTO>> getStopDemand(
+      @RequestParam(defaultValue = "7") int startHour,
+      @RequestParam(defaultValue = "10") int endHour) {
+    log.info("GET /api/v1/tram/stop-demand?startHour={}&endHour={}", startHour, endHour);
     try {
-      return ResponseEntity.ok(tramFacade.getStopDemand());
+      return ResponseEntity.ok(tramFacade.getStopDemand(startHour, endHour));
     } catch (Exception e) {
       log.error("Error fetching tram stop demand: {}", e.getMessage(), e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
-  /** Simulate adding extra trams to a line and return updated demand scores. */
+  /** Simulate adding/removing trams and return updated demand scores. */
   @PostMapping("/api/v1/tram/stop-demand/simulate")
   public ResponseEntity<TramDemandSimulateResponseDTO> simulateDemand(
       @RequestBody TramDemandSimulateRequestDTO request) {
     log.info(
-        "POST /api/v1/tram/stop-demand/simulate line={} extraTrams={}",
+        "POST /api/v1/tram/stop-demand/simulate line={} extraTrams={} startHour={} endHour={}",
         request.getLine(),
-        request.getExtraTrams());
+        request.getExtraTrams(),
+        request.getStartHour(),
+        request.getEndHour());
     try {
       return ResponseEntity.ok(tramFacade.simulateDemand(request));
     } catch (Exception e) {
