@@ -30,6 +30,18 @@ public class ApprovalController {
   }
 
   /**
+   * Submit multiple approval requests (one per recommendation) with a single summary email to City
+   * Managers.
+   */
+  @PostMapping("/batch")
+  public ResponseEntity<List<ApprovalRequestDTO>> createBatch(
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestBody List<CreateApprovalRequestDTO> dtos) {
+    String userId = jwt.getClaimAsString("preferred_username");
+    return ResponseEntity.ok(approvalService.createBatch(userId, dtos));
+  }
+
+  /**
    * List approval requests — filtered by the caller's role automatically. Optional ?indicator=train
    * query param further narrows results.
    */

@@ -19,23 +19,16 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/smart_enough_city
     username: backend_user
-    password: 97r3nUbI6hbuHZhsargSM3GF0Wfhk8Rl
+    password: dev_backend_password
 
   jpa:
     properties:
       hibernate:
         default_schema: backend
         hbm2ddl.schema_filter_provider: com.trinity.hermes.config.BackendSchemaFilterProvider
-        show_sql: true
-        format_sql: true
     hibernate:
       ddl-auto: update
     open-in-view: false
-
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
 
 inference-engine:
   base-url: http://localhost:8000

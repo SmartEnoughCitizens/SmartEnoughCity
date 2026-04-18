@@ -27,6 +27,12 @@ import {
   Slider,
   FormControl,
   InputLabel,
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -54,6 +60,8 @@ import {
   useTramRecommendations,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { approvalApi, type CreateApprovalDTO } from "@/api/approval.api";
 import { safeJsonParse } from "@/utils/safeJsonParse";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -347,6 +355,24 @@ export const TramDashboard = () => {
   } | null>(null);
 
   const theme = useAppSelector((state) => state.ui.theme);
+  const roles = useAppSelector((state) => state.auth.roles);
+  const isTramAdmin = roles.includes("Tram_Admin") && !roles.includes("City_Manager");
+
+  const queryClient = useQueryClient();
+  const [selectedRecs, setSelectedRecs] = useState<Set<number>>(new Set());
+  const [tramConfirmOpen, setTramConfirmOpen] = useState(false);
+  const [tramSnackbar, setTramSnackbar] = useState(false);
+
+  const submitTramApprovalMutation = useMutation({
+    mutationFn: (dtos: CreateApprovalDTO[]) => approvalApi.createBatch(dtos),
+    onSuccess: () => {
+      setSelectedRecs(new Set());
+      setTramConfirmOpen(false);
+      setTramSnackbar(true);
+      queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
+      queryClient.invalidateQueries({ queryKey: ["recommendations", "tram"] });
+    },
+  });
   const { data: kpis } = useTramKpis();
   const { data: liveForecasts, isLoading, error } = useTramLiveForecasts();
   const { data: delays } = useTramDelays();
@@ -1807,6 +1833,7 @@ export const TramDashboard = () => {
                       bgcolor: "background.paper",
                     }}
                   >
+                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
                     <Box
                       sx={{
                         display: "flex",
@@ -1814,6 +1841,7 @@ export const TramDashboard = () => {
                         alignItems: "center",
                         mb: 0.75,
                         flexWrap: "wrap",
+                        flex: 1,
                       }}
                     >
                       <Chip
@@ -1862,6 +1890,22 @@ export const TramDashboard = () => {
                         }}
                       />
                     </Box>
+                    {isTramAdmin && (
+                      <Checkbox
+                        size="small"
+                        sx={{ p: 0, mt: "-2px" }}
+                        checked={selectedRecs.has(idx)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          setSelectedRecs((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(idx);
+                            else next.delete(idx);
+                            return next;
+                          });
+                        }}
+                      />
+                    )}
+                    </Box>
                     <Typography sx={{ fontSize: "0.78rem", lineHeight: 1.5 }}>
                       {a.description}
                     </Typography>
@@ -1886,9 +1930,101 @@ export const TramDashboard = () => {
                 </Typography>
               </Box>
             )}
+
+            {/* ── Rec approval footer ── */}
+            {tabValue === 4 && isTramAdmin && (
+              <Box
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  p: 1,
+                  borderTop: 1,
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="small"
+                  color="primary"
+                  disabled={
+                    selectedRecs.size === 0 ||
+                    submitTramApprovalMutation.isPending ||
+                    submitTramApprovalMutation.isSuccess
+                  }
+                  onClick={() => setTramConfirmOpen(true)}
+                  sx={{ fontSize: "0.72rem" }}
+                >
+                  {submitTramApprovalMutation.isSuccess
+                    ? "Sent for approval ✓"
+                    : submitTramApprovalMutation.isPending
+                      ? "Sending…"
+                      : selectedRecs.size > 0
+                        ? `Send ${selectedRecs.size} for Approval`
+                        : "Send for Approval"}
+                </Button>
+              </Box>
+            )}
           </Box>
         </Paper>
       )}
+
+      {/* ── Tram rec approval confirm dialog ── */}
+      <Dialog
+        open={tramConfirmOpen}
+        onClose={() => setTramConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontSize: "0.95rem", fontWeight: 600 }}>
+          Send for Approval
+        </DialogTitle>
+        <DialogContent>
+          <Typography fontSize="0.85rem">
+            Send {selectedRecs.size} recommendation
+            {selectedRecs.size !== 1 ? "s" : ""} for City Manager approval?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            size="small"
+            onClick={() => setTramConfirmOpen(false)}
+            disabled={submitTramApprovalMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={submitTramApprovalMutation.isPending}
+            onClick={() => {
+              const selectedData = filteredRecommendations.filter((_, i) =>
+                selectedRecs.has(i),
+              );
+              submitTramApprovalMutation.mutate(
+                selectedData.map((item) => ({
+                  indicator: "tram",
+                  payloadJson: JSON.stringify(item),
+                  summary: `${item.Name}: ${item.Attributes.description}`,
+                  actionUrl: "/dashboard?view=tram&tab=recommendations",
+                })),
+              );
+              setTramConfirmOpen(false);
+            }}
+          >
+            {submitTramApprovalMutation.isPending ? "Sending…" : "Confirm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={tramSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setTramSnackbar(false)}
+        message="Recommendations sent for approval"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Box>
   );
 };
