@@ -1919,7 +1919,7 @@ export const TramDashboard = () => {
 
             {/* RECOMMENDATIONS */}
             {tabValue === 5 &&
-              filteredRecommendations.map((r, idx) => {
+              filteredRecommendations.map((r) => {
                 const a = r.Attributes;
                 const recKey = `${r.Name}||${a.type}||${a.line}||${a.time_period}`;
                 const sevColor =
