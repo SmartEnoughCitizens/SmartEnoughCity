@@ -74,10 +74,9 @@ public interface TramStopTimeRepository extends JpaRepository<TramStopTime, Inte
       @Param("to") java.sql.Time to);
 
   /**
-   * Load weekday stop times for real passenger services only.
-   * Filters out short depot/shunting trips with fewer than 10 stops,
-   * matching the inference engine's MIN_STOPS_PER_TRIP filter.
-   * Only includes weekday (Monday) services.
+   * Load weekday stop times for real passenger services only. Filters out short depot/shunting
+   * trips with fewer than 10 stops, matching the inference engine's MIN_STOPS_PER_TRIP filter. Only
+   * includes weekday (Monday) services.
    */
   @Query(
       value =

@@ -260,9 +260,11 @@ public class TramDashboardService {
     // Load stop times and hourly distribution for the requested time period
     // Uses weekday-only, real-service trips (>=10 stops) matching inference engine
     List<Integer> hours = expandHourRange(startHour, endHour);
-    List<TramStopTime> realServiceStopTimes = tramStopTimeRepository.findWeekdayRealServiceStopTimes();
+    List<TramStopTime> realServiceStopTimes =
+        tramStopTimeRepository.findWeekdayRealServiceStopTimes();
     log.info("Loaded {} weekday real-service stop time records", realServiceStopTimes.size());
-    Map<String, int[]> stopDirTrips = countTripsForHours(hours, nameToGtfsIds, realServiceStopTimes);
+    Map<String, int[]> stopDirTrips =
+        countTripsForHours(hours, nameToGtfsIds, realServiceStopTimes);
     Map<String, Integer> lineTotals =
         countLineTotalsForHours(hours, luasStops, nameToGtfsIds, luasToGtfs, realServiceStopTimes);
     Map<String, Double> hourlyPctByLine = getHourlyPctForHours(hours);
@@ -281,7 +283,8 @@ public class TramDashboardService {
       // Estimate passengers: same formula as inference engine
       // hourlyPctByLine is keyed by "red" / "green" matching the recommendation engine
       double hourlyPct = hourlyPctByLine.getOrDefault(stop.getLine(), 0.0) / 100.0;
-      double dailyPax = "red".equals(stop.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
+      double dailyPax =
+          "red".equals(stop.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
       double estIn = (double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
       double estOut = (double) dt[0] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
       double estTotal = estIn + estOut;
@@ -292,8 +295,18 @@ public class TramDashboardService {
       double utilisation = capacity > 0 ? Math.min(1.0, estTotal / capacity) : 0.0;
 
       if (!logged && "red".equals(stop.getLine()) && totalTrips > 0) {
-        log.info("Sample stop [{}]: dt=[{},{}] totalTrips={} lineTotal={} hourlyPct={} dailyPax={} estTotal={} capacity={} util={}",
-            stop.getName(), dt[0], dt[1], totalTrips, lineTotal, hourlyPct, dailyPax, estTotal, capacity, utilisation);
+        log.info(
+            "Sample stop [{}]: dt=[{},{}] totalTrips={} lineTotal={} hourlyPct={} dailyPax={} estTotal={} capacity={} util={}",
+            stop.getName(),
+            dt[0],
+            dt[1],
+            totalTrips,
+            lineTotal,
+            hourlyPct,
+            dailyPax,
+            estTotal,
+            capacity,
+            utilisation);
         logged = true;
       }
 
@@ -328,9 +341,12 @@ public class TramDashboardService {
     // based on their geographic position along the line (ordered by lat for green,
     // lon for red which runs more east-west).
     Set<String> corridorStopIds = null;
-    if (originStopId != null && destinationStopId != null
-        && !originStopId.isBlank() && !destinationStopId.isBlank()) {
-      corridorStopIds = computeCorridorStops(baseDemand, targetLine, originStopId, destinationStopId);
+    if (originStopId != null
+        && destinationStopId != null
+        && !originStopId.isBlank()
+        && !destinationStopId.isBlank()) {
+      corridorStopIds =
+          computeCorridorStops(baseDemand, targetLine, originStopId, destinationStopId);
     }
 
     List<TramStopDemandDTO> simulated = new ArrayList<>();
@@ -342,8 +358,8 @@ public class TramDashboardService {
               && stop.getLine().toLowerCase(Locale.ROOT).equals(targetLine)
               && stop.getTripCount() > 0;
 
-      boolean isAffected = onTargetLine
-          && (corridorStopIds == null || corridorStopIds.contains(stop.getStopId()));
+      boolean isAffected =
+          onTargetLine && (corridorStopIds == null || corridorStopIds.contains(stop.getStopId()));
 
       if (!isAffected) {
         simulated.add(stop);
@@ -385,8 +401,8 @@ public class TramDashboardService {
   }
 
   /**
-   * Given a line and two endpoint stop IDs, determine all stops on that line
-   * that lie between the two endpoints. Uses geographic ordering along the line.
+   * Given a line and two endpoint stop IDs, determine all stops on that line that lie between the
+   * two endpoints. Uses geographic ordering along the line.
    */
   private Set<String> computeCorridorStops(
       List<TramStopDemandDTO> allDemand,
@@ -395,11 +411,15 @@ public class TramDashboardService {
       String destinationStopId) {
 
     // Get all stops on the target line with valid coordinates
-    List<TramStopDemandDTO> lineStops = allDemand.stream()
-        .filter(s -> s.getLine() != null
-            && s.getLine().toLowerCase(Locale.ROOT).equals(line)
-            && s.getLat() != null && s.getLon() != null)
-        .collect(Collectors.toList());
+    List<TramStopDemandDTO> lineStops =
+        allDemand.stream()
+            .filter(
+                s ->
+                    s.getLine() != null
+                        && s.getLine().toLowerCase(Locale.ROOT).equals(line)
+                        && s.getLat() != null
+                        && s.getLon() != null)
+            .collect(Collectors.toList());
 
     // Sort stops geographically along the line.
     // Green line runs roughly north-south → sort by latitude (descending = north to south).
@@ -539,7 +559,8 @@ public class TramDashboardService {
       List<String> ids = nameToGtfsIds.get(stopName);
       int dirIdx = (ids != null && ids.size() > 1 && !st.getStopId().equals(ids.get(0))) ? 1 : 0;
       @SuppressWarnings("unchecked")
-      Set<String>[] sets = tripSets.computeIfAbsent(stopName, k -> new Set[] {new HashSet<>(), new HashSet<>()});
+      Set<String>[] sets =
+          tripSets.computeIfAbsent(stopName, k -> new Set[] {new HashSet<>(), new HashSet<>()});
       sets[dirIdx].add(st.getTripId());
     }
     Map<String, int[]> result = new HashMap<>();
@@ -569,7 +590,8 @@ public class TramDashboardService {
       }
     }
     Set<Integer> hourSet = new HashSet<>(hours);
-    // Count UNIQUE trips per line (matching inference engine's groupby("line")["trip_id"].nunique())
+    // Count UNIQUE trips per line (matching inference engine's
+    // groupby("line")["trip_id"].nunique())
     Map<String, Set<String>> lineTrips = new HashMap<>();
     for (TramStopTime st : allStopTimes) {
       if (st.getArrivalTime() == null) continue;
