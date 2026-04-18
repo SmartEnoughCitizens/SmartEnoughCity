@@ -198,10 +198,7 @@ export const BusDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const [selectedRoute, setSelectedRoute] = useState<string>("");
 
-  const [flyTarget, setFlyTarget] = useState<{
-    center: [number, number];
-    id: number;
-  } | null>(null);
+  const flyTarget: { center: [number, number]; id: number } | null = null;
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<BusNewStopRecommendation | null>(null);
   const theme = useAppSelector((state) => state.ui.theme);
@@ -546,8 +543,6 @@ export const BusDashboard = () => {
                 <DelayLeaderboard />
               </>
             )}
-
-
 
             {/* Tab 4: Recommendations */}
             {tabValue === 3 && (
