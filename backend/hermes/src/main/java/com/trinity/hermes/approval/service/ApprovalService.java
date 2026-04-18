@@ -10,6 +10,7 @@ import com.trinity.hermes.approval.repository.ApprovalRequestRepository;
 import com.trinity.hermes.notification.dto.BackendNotificationRequestDTO;
 import com.trinity.hermes.notification.model.enums.Channel;
 import com.trinity.hermes.notification.services.NotificationFacade;
+import com.trinity.hermes.recommendation.repository.RecommendationRepository;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
 import java.util.List;
 import java.util.Locale;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -31,6 +33,7 @@ public class ApprovalService {
   private final NotificationFacade notificationFacade;
   private final UserManagementService userManagementService;
   private final ObjectMapper objectMapper;
+  private final RecommendationRepository recommendationRepository;
 
   /**
    * Any indicator admin can call this to raise an approval request. Notifies all City_Managers via
@@ -53,6 +56,42 @@ public class ApprovalService {
         requestedBy);
     notifyCityManagers(entity, requestedBy);
     return toDTO(entity);
+  }
+
+  /**
+   * Creates one ApprovalRequest per DTO, then sends a single summary email to all City_Managers
+   * covering all items. Use this when the user selects multiple recommendations at once.
+   */
+  @Transactional
+  public List<ApprovalRequestDTO> createBatch(
+      String requestedBy, List<CreateApprovalRequestDTO> dtos) {
+    if (dtos.isEmpty()) return List.of();
+
+    List<ApprovalRequest> saved =
+        dtos.stream()
+            .map(
+                dto ->
+                    repository.save(
+                        ApprovalRequest.builder()
+                            .indicator(dto.getIndicator())
+                            .requestedBy(requestedBy)
+                            .payloadJson(dto.getPayloadJson())
+                            .summary(dto.getSummary())
+                            .actionUrl(dto.getActionUrl())
+                            .build()))
+            .toList();
+
+    log.info(
+        "Batch approval: {} request(s) created for indicator={} by={}",
+        saved.size(),
+        saved.get(0).getIndicator(),
+        requestedBy);
+
+    // Mark source recommendations as submitted so they no longer appear in the Recommendations tab
+    recommendationRepository.markSubmittedByIndicator(dtos.get(0).getIndicator());
+
+    notifyBatchCityManagers(saved, requestedBy);
+    return saved.stream().map(this::toDTO).toList();
   }
 
   /**
@@ -129,6 +168,49 @@ public class ApprovalService {
   }
 
   // ── Private helpers ──────────────────────────────────────────────────
+
+  private void notifyBatchCityManagers(List<ApprovalRequest> requests, String requestedBy) {
+    if (requests.isEmpty()) return;
+    try {
+      String indicator = requests.get(0).getIndicator().toUpperCase(Locale.ROOT);
+      String subject =
+          String.format(
+              "[%s] %d approval request(s) from %s", indicator, requests.size(), requestedBy);
+
+      StringBuilder body = new StringBuilder();
+      body.append(requests.size())
+          .append(" approval request(s) submitted by ")
+          .append(requestedBy)
+          .append(".\n\n");
+      for (int i = 0; i < requests.size(); i++) {
+        ApprovalRequest req = requests.get(i);
+        body.append("**Request ").append(i + 1).append("**  \n");
+        body.append("ID: ").append(req.getId()).append("  \n");
+        if (req.getSummary() != null && !req.getSummary().isBlank()) {
+          body.append(req.getSummary()).append("\n");
+        }
+        body.append("\n");
+      }
+      body.append("---\nLog in to CityControl to review.");
+
+      String actionUrl = requests.get(0).getActionUrl();
+      userManagementService
+          .getUsersByRole("City_Manager")
+          .forEach(
+              u -> {
+                BackendNotificationRequestDTO n = new BackendNotificationRequestDTO();
+                n.setUserId(u.getUsername());
+                n.setUserName(u.getUsername());
+                n.setSubject(subject);
+                n.setBody(body.toString());
+                n.setChannel(Channel.EMAIL_AND_NOTIFICATION);
+                n.setActionUrl(actionUrl);
+                notificationFacade.handleBackendNotification(n);
+              });
+    } catch (Exception e) {
+      log.warn("Failed to send batch notification: {}", e.getMessage());
+    }
+  }
 
   private void notifyCityManagers(ApprovalRequest req, String requestedBy) {
     try {
