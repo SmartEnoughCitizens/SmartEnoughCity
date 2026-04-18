@@ -368,7 +368,7 @@ export const TramDashboard = () => {
     roles.includes("Tram_Admin") && !roles.includes("City_Manager");
 
   const queryClient = useQueryClient();
-  const [selectedRecs, setSelectedRecs] = useState<Set<number>>(new Set());
+  const [selectedRecs, setSelectedRecs] = useState<Set<string>>(new Set());
   const [tramConfirmOpen, setTramConfirmOpen] = useState(false);
   const [tramSnackbar, setTramSnackbar] = useState(false);
 
@@ -1921,6 +1921,7 @@ export const TramDashboard = () => {
             {tabValue === 5 &&
               filteredRecommendations.map((r, idx) => {
                 const a = r.Attributes;
+                const recKey = `${r.Name}||${a.type}||${a.line}||${a.time_period}`;
                 const sevColor =
                   a.severity === "high"
                     ? "error.main"
@@ -1949,7 +1950,7 @@ export const TramDashboard = () => {
                           : "Rebalance";
                 return (
                   <Box
-                    key={idx}
+                    key={recKey}
                     sx={{
                       mx: 1,
                       mb: 1,
@@ -2029,14 +2030,14 @@ export const TramDashboard = () => {
                         <Checkbox
                           size="small"
                           sx={{ p: 0, mt: "-2px" }}
-                          checked={selectedRecs.has(idx)}
+                          checked={selectedRecs.has(recKey)}
                           onChange={(
                             e: React.ChangeEvent<HTMLInputElement>,
                           ) => {
                             setSelectedRecs((prev) => {
                               const next = new Set(prev);
-                              if (e.target.checked) next.add(idx);
-                              else next.delete(idx);
+                              if (e.target.checked) next.add(recKey);
+                              else next.delete(recKey);
                               return next;
                             });
                           }}
@@ -2069,7 +2070,7 @@ export const TramDashboard = () => {
             )}
 
             {/* ── Rec approval footer ── */}
-            {tabValue === 4 && isTramAdmin && (
+            {tabValue === 5 && isTramAdmin && (
               <Box
                 sx={{
                   position: "sticky",
@@ -2135,9 +2136,10 @@ export const TramDashboard = () => {
             variant="contained"
             disabled={submitTramApprovalMutation.isPending}
             onClick={() => {
-              const selectedData = filteredRecommendations.filter((_, i) =>
-                selectedRecs.has(i),
-              );
+              const selectedData = filteredRecommendations.filter((item) => {
+                const k = `${item.Name}||${item.Attributes.type}||${item.Attributes.line}||${item.Attributes.time_period}`;
+                return selectedRecs.has(k);
+              });
               submitTramApprovalMutation.mutate(
                 selectedData.map((item) => ({
                   indicator: "tram",
