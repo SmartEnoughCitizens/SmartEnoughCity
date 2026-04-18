@@ -48,7 +48,7 @@ public class RecommendationService {
   }
 
   public List<RecommendationResponse> getActiveByIndicator(String indicator) {
-    return recommendationRepository.findActiveByIndicator(indicator).stream()
+    return recommendationRepository.findPendingByIndicator(indicator).stream()
         .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
@@ -62,7 +62,7 @@ public class RecommendationService {
   }
 
   public List<RecommendationResponse> getRecommendationsByIndicator(String indicator) {
-    return recommendationRepository.findActiveByIndicator(indicator).stream()
+    return recommendationRepository.findPendingByIndicator(indicator).stream()
         .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
