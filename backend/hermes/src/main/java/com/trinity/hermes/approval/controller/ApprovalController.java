@@ -35,8 +35,7 @@ public class ApprovalController {
    */
   @PostMapping("/batch")
   public ResponseEntity<List<ApprovalRequestDTO>> createBatch(
-      @AuthenticationPrincipal Jwt jwt,
-      @RequestBody List<CreateApprovalRequestDTO> dtos) {
+      @AuthenticationPrincipal Jwt jwt, @RequestBody List<CreateApprovalRequestDTO> dtos) {
     String userId = jwt.getClaimAsString("preferred_username");
     return ResponseEntity.ok(approvalService.createBatch(userId, dtos));
   }

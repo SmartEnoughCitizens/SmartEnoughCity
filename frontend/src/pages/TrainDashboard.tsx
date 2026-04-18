@@ -2213,7 +2213,7 @@ export const TrainDashboard = () => {
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 if (e.target.checked) {
                                   const all = new Set<string>();
-                                  trainRecommendations.forEach((rec) => {
+                                  for (const rec of trainRecommendations) {
                                     let rows: Array<unknown> = [];
                                     try {
                                       rows = safeJsonParse(rec.recommendation, {
@@ -2223,10 +2223,10 @@ export const TrainDashboard = () => {
                                     } catch {
                                       rows = [];
                                     }
-                                    rows.forEach((_, i) =>
-                                      all.add(`${rec.id}-${i}`),
-                                    );
-                                  });
+                                    for (const [i] of rows.entries()) {
+                                      all.add(`${rec.id}-${i}`);
+                                    }
+                                  }
                                   setSelectedRecRows(all);
                                 } else {
                                   setSelectedRecRows(new Set());
@@ -2606,7 +2606,7 @@ export const TrainDashboard = () => {
         <DialogContent>
           <Typography fontSize="0.85rem">
             Send {selectedRecRows.size} recommendation
-            {selectedRecRows.size !== 1 ? "s" : ""} for City Manager approval?
+            {selectedRecRows.size === 1 ? "" : "s"} for City Manager approval?
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -2629,7 +2629,7 @@ export const TrainDashboard = () => {
                 predictedCount: number;
                 recommendation: string;
               }> = [];
-              trainRecommendations.forEach((rec) => {
+              for (const rec of trainRecommendations) {
                 let rows: Array<{
                   trainName: string;
                   status: string;
@@ -2662,11 +2662,11 @@ export const TrainDashboard = () => {
                 } catch {
                   rows = [];
                 }
-                rows.forEach((row, idx) => {
+                for (const [idx, row] of rows.entries()) {
                   if (selectedRecRows.has(`${rec.id}-${idx}`))
                     selectedData.push(row);
-                });
-              });
+                }
+              }
               submitRecApprovalMutation.mutate(
                 selectedData.map((row) => ({
                   indicator: "train",

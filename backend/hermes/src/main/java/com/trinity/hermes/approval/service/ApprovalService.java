@@ -172,7 +172,8 @@ public class ApprovalService {
     try {
       String indicator = requests.get(0).getIndicator().toUpperCase(Locale.ROOT);
       String subject =
-          String.format("[%s] %d approval request(s) from %s", indicator, requests.size(), requestedBy);
+          String.format(
+              "[%s] %d approval request(s) from %s", indicator, requests.size(), requestedBy);
 
       StringBuilder body = new StringBuilder();
       body.append(requests.size())

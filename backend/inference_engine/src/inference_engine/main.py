@@ -11,7 +11,6 @@ import httpx
 import logging_loki
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -494,7 +493,7 @@ def start_scheduler() -> None:
 
     # Daily 2 AM: run tram utilisation analysis and save recommendation to DB
     scheduler.add_job(
-        lambda: run_tram_utilisation(),
+        run_tram_utilisation,
         trigger=CronTrigger(hour=2, minute=0, timezone="Europe/Dublin"),
         id="tram_utilisation_daily",
         name="Daily tram utilisation recommendation",

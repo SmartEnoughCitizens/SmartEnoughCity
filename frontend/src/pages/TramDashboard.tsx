@@ -1983,7 +1983,7 @@ export const TramDashboard = () => {
         <DialogContent>
           <Typography fontSize="0.85rem">
             Send {selectedRecs.size} recommendation
-            {selectedRecs.size !== 1 ? "s" : ""} for City Manager approval?
+            {selectedRecs.size === 1 ? "" : "s"} for City Manager approval?
           </Typography>
         </DialogContent>
         <DialogActions>
