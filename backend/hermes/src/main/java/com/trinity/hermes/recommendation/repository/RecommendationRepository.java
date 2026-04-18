@@ -15,7 +15,7 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
 
   @Query(
       "SELECT r FROM Recommendation r WHERE LOWER(r.indicator) = LOWER(:indicator) AND (r.deleted IS NULL OR r.deleted = false) AND r.status = 'pending'")
-  List<Recommendation> findActiveByIndicator(@Param("indicator") String indicator);
+  List<Recommendation> findPendingByIndicator(@Param("indicator") String indicator);
 
   @Modifying
   @Transactional
