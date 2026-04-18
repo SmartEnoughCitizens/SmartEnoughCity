@@ -942,7 +942,12 @@ export const TramDashboard = () => {
                     <Box sx={{ minWidth: 200 }}>
                       <Typography
                         fontWeight={700}
-                        sx={{ fontSize: "1rem", color: "#ffffff !important", mb: 0.5, display: "block" }}
+                        sx={{
+                          fontSize: "1rem",
+                          color: "#ffffff !important",
+                          mb: 0.5,
+                          display: "block",
+                        }}
                       >
                         {s.stopName}
                       </Typography>
@@ -1099,7 +1104,9 @@ export const TramDashboard = () => {
             <Tab label={`Usage (${filteredUsage.length})`} />
             <Tab label={`Common Delays (${filteredCommonDelays.length})`} />
             <Tab label="Simulation" />
-            <Tab label={`Recommendations (${filteredRecommendations.length})`} />
+            <Tab
+              label={`Recommendations (${filteredRecommendations.length})`}
+            />
           </Tabs>
 
           {/* Line filter + Search — hidden on simulation tab */}
@@ -1626,7 +1633,11 @@ export const TramDashboard = () => {
                     sx={{ fontSize: "0.75rem", color: "text.secondary" }}
                   >
                     {simExtraTrams >= 0 ? "Add" : "Remove"} trams:{" "}
-                    <strong style={{ color: simExtraTrams >= 0 ? "inherit" : "#DC2626" }}>
+                    <strong
+                      style={{
+                        color: simExtraTrams >= 0 ? "inherit" : "#DC2626",
+                      }}
+                    >
                       {simExtraTrams >= 0 ? `+${simExtraTrams}` : simExtraTrams}
                     </strong>
                   </Typography>
@@ -1650,10 +1661,12 @@ export const TramDashboard = () => {
                       mt: 0.5,
                       mb: 1,
                       "& .MuiSlider-track": {
-                        bgcolor: simExtraTrams >= 0 ? "primary.main" : "error.main",
+                        bgcolor:
+                          simExtraTrams >= 0 ? "primary.main" : "error.main",
                       },
                       "& .MuiSlider-thumb": {
-                        bgcolor: simExtraTrams >= 0 ? "primary.main" : "error.main",
+                        bgcolor:
+                          simExtraTrams >= 0 ? "primary.main" : "error.main",
                       },
                     }}
                   />
