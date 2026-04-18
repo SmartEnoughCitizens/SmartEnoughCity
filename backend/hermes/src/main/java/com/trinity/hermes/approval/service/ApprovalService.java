@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -61,6 +62,7 @@ public class ApprovalService {
    * Creates one ApprovalRequest per DTO, then sends a single summary email to all City_Managers
    * covering all items. Use this when the user selects multiple recommendations at once.
    */
+  @Transactional
   public List<ApprovalRequestDTO> createBatch(
       String requestedBy, List<CreateApprovalRequestDTO> dtos) {
     if (dtos.isEmpty()) return List.of();

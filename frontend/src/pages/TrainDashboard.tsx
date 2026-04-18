@@ -55,6 +55,7 @@ import {
   useTrainDemand,
   useSimulateTrainDemand,
   useTrainRecommendations,
+  RECOMMENDATION_KEYS,
 } from "@/hooks";
 import type { StationDemand } from "@/types";
 import { safeJsonParse } from "@/utils/safeJsonParse";
@@ -347,7 +348,9 @@ export const TrainDashboard = () => {
       setRecSnackbar(true);
       setTabValue(4);
       queryClient.invalidateQueries({ queryKey: ["approvals", "train"] });
-      queryClient.invalidateQueries({ queryKey: ["recommendations", "train"] });
+      queryClient.invalidateQueries({
+        queryKey: RECOMMENDATION_KEYS.byIndicator("train"),
+      });
     },
   });
 
@@ -2449,18 +2452,17 @@ export const TrainDashboard = () => {
                   color="primary"
                   disabled={
                     selectedRecRows.size === 0 ||
-                    submitRecApprovalMutation.isPending ||
-                    submitRecApprovalMutation.isSuccess
+                    submitRecApprovalMutation.isPending
                   }
                   onClick={() => setRecConfirmOpen(true)}
                   sx={{ fontSize: "0.72rem" }}
                 >
-                  {submitRecApprovalMutation.isSuccess
-                    ? "Sent for approval ✓"
-                    : submitRecApprovalMutation.isPending
-                      ? "Sending…"
-                      : selectedRecRows.size > 0
-                        ? `Send ${selectedRecRows.size} for Approval`
+                  {submitRecApprovalMutation.isPending
+                    ? "Sending…"
+                    : selectedRecRows.size > 0
+                      ? `Send ${selectedRecRows.size} for Approval`
+                      : submitRecApprovalMutation.isSuccess
+                        ? "Sent for approval ✓"
                         : "Send for Approval"}
                 </Button>
               </Box>
@@ -2675,7 +2677,7 @@ export const TrainDashboard = () => {
                   indicator: "train",
                   payloadJson: JSON.stringify(row),
                   summary: `${row.trainName} (${row.status}): ${row.recommendation}`,
-                  actionUrl: "/dashboard?view=train&tab=recommendations",
+                  actionUrl: "/dashboard?view=train&tab=approvals",
                 })),
               );
               setRecConfirmOpen(false);

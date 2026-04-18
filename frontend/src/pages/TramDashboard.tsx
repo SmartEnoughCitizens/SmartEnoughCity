@@ -371,7 +371,7 @@ export const TramDashboard = () => {
       setTramConfirmOpen(false);
       setTramSnackbar(true);
       queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
-      queryClient.invalidateQueries({ queryKey: ["recommendations", "tram"] });
+      queryClient.invalidateQueries({ queryKey: ["tram", "recommendations"] });
     },
   });
   const { data: kpis } = useTramKpis();
@@ -1961,18 +1961,17 @@ export const TramDashboard = () => {
                   color="primary"
                   disabled={
                     selectedRecs.size === 0 ||
-                    submitTramApprovalMutation.isPending ||
-                    submitTramApprovalMutation.isSuccess
+                    submitTramApprovalMutation.isPending
                   }
                   onClick={() => setTramConfirmOpen(true)}
                   sx={{ fontSize: "0.72rem" }}
                 >
-                  {submitTramApprovalMutation.isSuccess
-                    ? "Sent for approval ✓"
-                    : submitTramApprovalMutation.isPending
-                      ? "Sending…"
-                      : selectedRecs.size > 0
-                        ? `Send ${selectedRecs.size} for Approval`
+                  {submitTramApprovalMutation.isPending
+                    ? "Sending…"
+                    : selectedRecs.size > 0
+                      ? `Send ${selectedRecs.size} for Approval`
+                      : submitTramApprovalMutation.isSuccess
+                        ? "Sent for approval ✓"
                         : "Send for Approval"}
                 </Button>
               </Box>
@@ -2018,7 +2017,7 @@ export const TramDashboard = () => {
                   indicator: "tram",
                   payloadJson: JSON.stringify(item),
                   summary: `${item.Name}: ${item.Attributes.description}`,
-                  actionUrl: "/dashboard?view=tram&tab=recommendations",
+                  actionUrl: "/dashboard?view=tram&tab=approvals",
                 })),
               );
               setTramConfirmOpen(false);
