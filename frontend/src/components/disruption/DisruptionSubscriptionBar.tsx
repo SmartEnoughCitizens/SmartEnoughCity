@@ -34,9 +34,12 @@ export function DisruptionSubscriptionBar() {
   const unsubscribeMutation = useUnsubscribeFromMode();
 
   const [confirmMode, setConfirmMode] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"subscribe" | "unsubscribe">("subscribe");
+  const [confirmAction, setConfirmAction] = useState<
+    "subscribe" | "unsubscribe"
+  >("subscribe");
 
-  const isPending = subscribeMutation.isPending || unsubscribeMutation.isPending;
+  const isPending =
+    subscribeMutation.isPending || unsubscribeMutation.isPending;
 
   const handleChipClick = (mode: string) => {
     if (isPending) return;
@@ -50,11 +53,13 @@ export function DisruptionSubscriptionBar() {
 
   const handleConfirm = () => {
     if (!confirmMode) return;
-    const mutation = confirmAction === "subscribe" ? subscribeMutation : unsubscribeMutation;
+    const mutation =
+      confirmAction === "subscribe" ? subscribeMutation : unsubscribeMutation;
     mutation.mutate(confirmMode, { onSettled: () => setConfirmMode(null) });
   };
 
-  const confirmLabel = SUBSCRIPTION_MODES.find((m) => m.key === confirmMode)?.label ?? confirmMode;
+  const confirmLabel =
+    SUBSCRIPTION_MODES.find((m) => m.key === confirmMode)?.label ?? confirmMode;
 
   return (
     <>
@@ -87,9 +92,13 @@ export function DisruptionSubscriptionBar() {
                 label={label}
                 icon={
                   subscribed ? (
-                    <NotificationsActiveIcon sx={{ fontSize: "0.85rem !important" }} />
+                    <NotificationsActiveIcon
+                      sx={{ fontSize: "0.85rem !important" }}
+                    />
                   ) : (
-                    <NotificationsOffIcon sx={{ fontSize: "0.85rem !important" }} />
+                    <NotificationsOffIcon
+                      sx={{ fontSize: "0.85rem !important" }}
+                    />
                   )
                 }
                 onClick={() => handleChipClick(key)}
@@ -121,7 +130,9 @@ export function DisruptionSubscriptionBar() {
         fullWidth
       >
         <DialogTitle sx={{ pb: 1 }}>
-          {confirmAction === "subscribe" ? "Subscribe to alerts?" : "Unsubscribe from alerts?"}
+          {confirmAction === "subscribe"
+            ? "Subscribe to alerts?"
+            : "Unsubscribe from alerts?"}
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2">
@@ -138,13 +149,15 @@ export function DisruptionSubscriptionBar() {
             variant="contained"
             size="small"
             onClick={handleConfirm}
-            disabled={subscribeMutation.isPending || unsubscribeMutation.isPending}
+            disabled={
+              subscribeMutation.isPending || unsubscribeMutation.isPending
+            }
             sx={{
               backgroundColor: BLUE,
               "&:hover": { backgroundColor: BLUE, opacity: 0.85 },
             }}
           >
-            {(subscribeMutation.isPending || unsubscribeMutation.isPending) ? (
+            {subscribeMutation.isPending || unsubscribeMutation.isPending ? (
               <CircularProgress size={14} sx={{ color: "inherit" }} />
             ) : confirmAction === "subscribe" ? (
               "Subscribe"

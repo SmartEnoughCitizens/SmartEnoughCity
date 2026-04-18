@@ -356,7 +356,8 @@ export const TramDashboard = () => {
 
   const theme = useAppSelector((state) => state.ui.theme);
   const roles = useAppSelector((state) => state.auth.roles);
-  const isTramAdmin = roles.includes("Tram_Admin") && !roles.includes("City_Manager");
+  const isTramAdmin =
+    roles.includes("Tram_Admin") && !roles.includes("City_Manager");
 
   const queryClient = useQueryClient();
   const [selectedRecs, setSelectedRecs] = useState<Set<number>>(new Set());
@@ -1833,78 +1834,88 @@ export const TramDashboard = () => {
                       bgcolor: "background.paper",
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
                     <Box
                       sx={{
                         display: "flex",
-                        gap: 0.75,
-                        alignItems: "center",
-                        mb: 0.75,
-                        flexWrap: "wrap",
-                        flex: 1,
+                        alignItems: "flex-start",
+                        gap: 0.5,
                       }}
                     >
-                      <Chip
-                        size="small"
-                        label={sevLabel}
+                      <Box
                         sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          fontWeight: 700,
-                          bgcolor: sevColor,
-                          color: "#fff",
+                          display: "flex",
+                          gap: 0.75,
+                          alignItems: "center",
+                          mb: 0.75,
+                          flexWrap: "wrap",
+                          flex: 1,
                         }}
-                      />
-                      <Chip
-                        size="small"
-                        label={typeLabel}
-                        sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          fontWeight: 600,
-                          bgcolor: "action.selected",
-                          color: "text.primary",
-                        }}
-                      />
-                      <Chip
-                        size="small"
-                        label={a.line.charAt(0).toUpperCase() + a.line.slice(1)}
-                        sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          bgcolor: LINE_COLORS[a.line]
-                            ? LINE_COLORS[a.line] + "22"
-                            : "action.hover",
-                          color: LINE_COLORS[a.line] ?? "text.primary",
-                          border: `1px solid ${(LINE_COLORS[a.line] ?? "#607D8B") + "44"}`,
-                        }}
-                      />
-                      <Chip
-                        size="small"
-                        label={a.time_label}
-                        sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          bgcolor: "action.hover",
-                          color: "text.secondary",
-                        }}
-                      />
-                    </Box>
-                    {isTramAdmin && (
-                      <Checkbox
-                        size="small"
-                        sx={{ p: 0, mt: "-2px" }}
-                        checked={selectedRecs.has(idx)}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          setSelectedRecs((prev) => {
-                            const next = new Set(prev);
-                            if (e.target.checked) next.add(idx);
-                            else next.delete(idx);
-                            return next;
-                          });
-                        }}
-                      />
-                    )}
+                      >
+                        <Chip
+                          size="small"
+                          label={sevLabel}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            fontWeight: 700,
+                            bgcolor: sevColor,
+                            color: "#fff",
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={typeLabel}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            fontWeight: 600,
+                            bgcolor: "action.selected",
+                            color: "text.primary",
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={
+                            a.line.charAt(0).toUpperCase() + a.line.slice(1)
+                          }
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            bgcolor: LINE_COLORS[a.line]
+                              ? LINE_COLORS[a.line] + "22"
+                              : "action.hover",
+                            color: LINE_COLORS[a.line] ?? "text.primary",
+                            border: `1px solid ${(LINE_COLORS[a.line] ?? "#607D8B") + "44"}`,
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={a.time_label}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            bgcolor: "action.hover",
+                            color: "text.secondary",
+                          }}
+                        />
+                      </Box>
+                      {isTramAdmin && (
+                        <Checkbox
+                          size="small"
+                          sx={{ p: 0, mt: "-2px" }}
+                          checked={selectedRecs.has(idx)}
+                          onChange={(
+                            e: React.ChangeEvent<HTMLInputElement>,
+                          ) => {
+                            setSelectedRecs((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(idx);
+                              else next.delete(idx);
+                              return next;
+                            });
+                          }}
+                        />
+                      )}
                     </Box>
                     <Typography sx={{ fontSize: "0.78rem", lineHeight: 1.5 }}>
                       {a.description}

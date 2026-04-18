@@ -2210,7 +2210,9 @@ export const TrainDashboard = () => {
                                   );
                                 })
                               }
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>,
+                              ) => {
                                 if (e.target.checked) {
                                   const all = new Set<string>();
                                   for (const rec of trainRecommendations) {
@@ -2326,7 +2328,9 @@ export const TrainDashboard = () => {
                                   checked={selectedRecRows.has(
                                     `${rec.id}-${idx}`,
                                   )}
-                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                  onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>,
+                                  ) => {
                                     setSelectedRecRows((prev) => {
                                       const next = new Set(prev);
                                       if (e.target.checked)
@@ -2461,7 +2465,6 @@ export const TrainDashboard = () => {
                 </Button>
               </Box>
             )}
-
           </Box>
         </Paper>
       )}
