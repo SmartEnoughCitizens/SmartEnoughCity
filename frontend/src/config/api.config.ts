@@ -138,6 +138,9 @@ export const API_ENDPOINTS = {
     `/api/v1/disruptions/transport/${mode}`,
   PUBLIC_DISRUPTION: (id: number) => `/api/public/disruptions/${id}`,
   PUBLIC_NEARBY_ALTERNATIVES: "/api/public/disruptions/alternatives",
+  DISRUPTION_SUBSCRIPTIONS: "/api/v1/disruptions/subscriptions",
+  DISRUPTION_SUBSCRIPTION_MODE: (mode: string) =>
+    `/api/v1/disruptions/subscriptions/${mode}`,
 
   // EV Charging Indicators
   EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",

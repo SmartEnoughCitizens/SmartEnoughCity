@@ -35,6 +35,16 @@ export const approvalApi = {
     return data;
   },
 
+  createBatch: async (
+    dtos: CreateApprovalDTO[],
+  ): Promise<ApprovalRequestDTO[]> => {
+    const { data } = await axiosInstance.post<ApprovalRequestDTO[]>(
+      API_ENDPOINTS.APPROVALS + "/batch",
+      dtos,
+    );
+    return data;
+  },
+
   list: async (indicator?: string): Promise<ApprovalRequestDTO[]> => {
     const { data } = await axiosInstance.get<ApprovalRequestDTO[]>(
       API_ENDPOINTS.APPROVALS,
