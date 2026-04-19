@@ -16,7 +16,7 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
+
 import CommuteIcon from "@mui/icons-material/Commute";
 import WarningIcon from "@mui/icons-material/Warning";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
@@ -197,13 +197,8 @@ export const BusDashboard = () => {
   const [panelOpen, setPanelOpen] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   const [selectedRoute, setSelectedRoute] = useState<string>("");
-  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
-    number | null
-  >(null);
-  const [flyTarget, setFlyTarget] = useState<{
-    center: [number, number];
-    id: number;
-  } | null>(null);
+
+  const flyTarget: { center: [number, number]; id: number } | null = null;
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<BusNewStopRecommendation | null>(null);
   const theme = useAppSelector((state) => state.ui.theme);
@@ -414,7 +409,6 @@ export const BusDashboard = () => {
             <Tab label="Overview" />
             <Tab label="Utilization" />
             <Tab label="Delays" />
-            <Tab label="Disruptions" />
             <Tab label="Recommendations" />
           </Tabs>
 
@@ -550,25 +544,8 @@ export const BusDashboard = () => {
               </>
             )}
 
-            {/* Tab 3: Disruptions */}
-            {tabValue === 3 && (
-              <DisruptionsTabContent
-                mode="BUS"
-                selectedId={selectedDisruptionId}
-                onSelect={(d) => {
-                  setSelectedDisruptionId(d.id);
-                  if (d.latitude != null && d.longitude != null) {
-                    setFlyTarget({
-                      center: [d.latitude, d.longitude],
-                      id: Date.now(),
-                    });
-                  }
-                }}
-              />
-            )}
-
             {/* Tab 4: Recommendations */}
-            {tabValue === 4 && (
+            {tabValue === 3 && (
               <>
                 <Typography
                   variant="subtitle2"

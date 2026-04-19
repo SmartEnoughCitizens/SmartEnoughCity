@@ -9,9 +9,12 @@ import type { NotificationResponse } from "@/types";
 export const notificationApi = {
   getUserNotifications: async (
     userId: string,
+    page = 0,
+    size = 25,
   ): Promise<NotificationResponse> => {
     const { data } = await axiosInstance.get<NotificationResponse>(
       API_ENDPOINTS.NOTIFICATIONS(userId),
+      { params: { page, size } },
     );
     return data;
   },

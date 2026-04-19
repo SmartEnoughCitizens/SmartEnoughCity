@@ -19,6 +19,8 @@ export interface CreateApprovalDTO {
   payloadJson: string;
   summary: string;
   actionUrl?: string;
+  /** Row ID of the source recommendation. Set for tram; omitted for train (marks all pending). */
+  recommendationId?: number;
 }
 
 export interface ReviewApprovalDTO {
