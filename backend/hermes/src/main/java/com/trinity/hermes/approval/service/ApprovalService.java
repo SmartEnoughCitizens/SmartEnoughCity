@@ -14,6 +14,7 @@ import com.trinity.hermes.recommendation.repository.RecommendationRepository;
 import com.trinity.hermes.usermanagement.service.UserManagementService;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,8 +88,19 @@ public class ApprovalService {
         saved.get(0).getIndicator(),
         requestedBy);
 
-    // Mark source recommendations as submitted so they no longer appear in the Recommendations tab
-    recommendationRepository.markSubmittedByIndicator(dtos.get(0).getIndicator());
+    // Mark source recommendations as submitted so they no longer appear in the Recommendations tab.
+    // If DTOs carry specific row IDs (e.g. tram), mark only those rows; otherwise mark all pending
+    // for the indicator (e.g. train, which always submits all at once).
+    List<Integer> recIds =
+        dtos.stream()
+            .map(CreateApprovalRequestDTO::getRecommendationId)
+            .filter(Objects::nonNull)
+            .toList();
+    if (!recIds.isEmpty()) {
+      recommendationRepository.markSubmittedByIds(recIds);
+    } else {
+      recommendationRepository.markSubmittedByIndicator(dtos.get(0).getIndicator());
+    }
 
     notifyBatchCityManagers(saved, requestedBy);
     return saved.stream().map(this::toDTO).toList();

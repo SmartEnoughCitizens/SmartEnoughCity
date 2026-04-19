@@ -82,11 +82,21 @@ import type {
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 type LineFilter = "" | "red" | "green";
 
-/** Simple schema that validates parsed JSON is an array of recommendation items. */
-const tramRecommendationItemsSchema = {
-  parse(data: unknown): TramRecommendationItem[] {
-    if (!Array.isArray(data)) return [];
-    return data as TramRecommendationItem[];
+/** Each tram recommendation row is now stored as a single item (not an array). */
+type TramRecItem = TramRecommendationItem & { rowId: number };
+
+/** Schema that accepts a single recommendation object (new per-row format). */
+const tramRecommendationItemSchema = {
+  parse(data: unknown): TramRecommendationItem | null {
+    if (
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      "Name" in data
+    ) {
+      return data as TramRecommendationItem;
+    }
+    return null;
   },
 };
 
@@ -399,7 +409,7 @@ export const TramDashboard = () => {
   });
 
   // ── Rec approval ────────────────────────────────────────────────────────
-  const [selectedRecs, setSelectedRecs] = useState<Set<string>>(new Set());
+  const [selectedRecs, setSelectedRecs] = useState<Set<number>>(new Set());
   const [tramConfirmOpen, setTramConfirmOpen] = useState(false);
   const [tramSnackbar, setTramSnackbar] = useState(false);
 
@@ -428,17 +438,17 @@ export const TramDashboard = () => {
   const simulateMutation = useSimulateTramDemand();
   const { data: rawRecommendations } = useTramRecommendations();
 
-  // Parse the recommendation JSON strings into typed items
-  const recommendations = useMemo(() => {
+  // Parse each recommendation row (one item per row) into typed items with rowId
+  const recommendations = useMemo((): TramRecItem[] => {
     if (!rawRecommendations || rawRecommendations.length === 0) return [];
-    const items: TramRecommendationItem[] = [];
+    const items: TramRecItem[] = [];
     for (const rec of rawRecommendations) {
       try {
         const parsed = safeJsonParse(
           rec.recommendation,
-          tramRecommendationItemsSchema,
+          tramRecommendationItemSchema,
         );
-        items.push(...parsed);
+        if (parsed) items.push({ ...parsed, rowId: rec.id });
       } catch {
         // skip malformed entries
       }
@@ -2124,7 +2134,7 @@ export const TramDashboard = () => {
             {tabValue === 6 &&
               filteredRecommendations.map((r) => {
                 const a = r.Attributes;
-                const recKey = `${r.Name}||${a.type}||${a.line}||${a.time_period}`;
+                const recKey = r.rowId;
                 const sevColor =
                   a.severity === "high"
                     ? "error.main"
@@ -2339,16 +2349,16 @@ export const TramDashboard = () => {
             variant="contained"
             disabled={submitTramApprovalMutation.isPending}
             onClick={() => {
-              const selectedData = filteredRecommendations.filter((item) => {
-                const k = `${item.Name}||${item.Attributes.type}||${item.Attributes.line}||${item.Attributes.time_period}`;
-                return selectedRecs.has(k);
-              });
+              const selectedData = filteredRecommendations.filter((item) =>
+                selectedRecs.has(item.rowId),
+              );
               submitTramApprovalMutation.mutate(
                 selectedData.map((item) => ({
                   indicator: "tram",
                   payloadJson: JSON.stringify(item),
                   summary: `${item.Name}: ${item.Attributes.description}`,
                   actionUrl: "/dashboard?view=tram&tab=approvals",
+                  recommendationId: item.rowId,
                 })),
               );
               setTramConfirmOpen(false);

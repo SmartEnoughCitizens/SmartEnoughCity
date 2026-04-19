@@ -406,22 +406,18 @@ def build_utilisation_json(utilisation_df: pd.DataFrame) -> list[dict]:
 
 def save_recommendation_to_db(utilisation_json: list[dict]) -> None:
     """
-    Insert the recommendation JSON into the recommendations table.
-
-    Skips the insert if an identical recommendation already exists in the table
-    for the same indicator and usecase.
+    Save each train recommendation as its own DB row (one row per item).
+    Deletes all pending rows for the indicator before inserting fresh ones.
 
     Args:
         utilisation_json: Output of build_utilisation_json()
     """
-    recommendation_str = json.dumps(utilisation_json)
+    if not utilisation_json:
+        return
 
-    check_query = text("""
-        SELECT 1 FROM backend.recommendations
-        WHERE indicator = :indicator
-          AND usecase = :usecase
-          AND CAST(recommendation AS text) = CAST(CAST(:recommendation AS jsonb) AS text)
-        LIMIT 1
+    delete_query = text("""
+        DELETE FROM backend.recommendations
+        WHERE indicator = :indicator AND usecase = :usecase AND status = 'pending'
     """)
 
     insert_query = text("""
@@ -429,22 +425,21 @@ def save_recommendation_to_db(utilisation_json: list[dict]) -> None:
         VALUES (:indicator, CAST(:recommendation AS jsonb), :usecase, :simulation, :deleted, :status, NOW())
     """)
 
-    params = {
-        "indicator": "Train",
-        "usecase": "utilisation_train",
-        "recommendation": recommendation_str,
-        "simulation": "",
-        "deleted": False,
-        "status": "pending",
-    }
-
     with engine.begin() as conn:
-        exists = conn.execute(check_query, params).fetchone()
-        if exists:
-            logger.info("  Recommendation already exists in DB — skipping insert.")
-        else:
-            conn.execute(insert_query, params)
-            logger.info("  Recommendation inserted into DB successfully.")
+        conn.execute(delete_query, {"indicator": "Train", "usecase": "utilisation_train"})
+        for item in utilisation_json:
+            conn.execute(
+                insert_query,
+                {
+                    "indicator": "Train",
+                    "usecase": "utilisation_train",
+                    "recommendation": json.dumps(item),
+                    "simulation": "",
+                    "deleted": False,
+                    "status": "pending",
+                },
+            )
+    logger.info("  Saved %d train recommendations as individual rows.", len(utilisation_json))
 
 
 def save_distribution_to_csv(result_df: pd.DataFrame) -> None:

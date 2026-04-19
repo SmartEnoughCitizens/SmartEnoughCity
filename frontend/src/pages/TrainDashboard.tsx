@@ -334,7 +334,7 @@ export const TrainDashboard = () => {
   });
 
   // ── Rec approval ─────────────────────────────────────────────────────
-  const [selectedRecRows, setSelectedRecRows] = useState<Set<string>>(
+  const [selectedRecRows, setSelectedRecRows] = useState<Set<number>>(
     new Set(),
   );
   const [recConfirmOpen, setRecConfirmOpen] = useState(false);
@@ -2181,58 +2181,25 @@ export const TrainDashboard = () => {
                               size="small"
                               checked={
                                 selectedRecRows.size > 0 &&
-                                trainRecommendations.every((rec) => {
-                                  let rows: Array<unknown> = [];
-                                  try {
-                                    rows = safeJsonParse(rec.recommendation, {
-                                      parse: (d: unknown) =>
-                                        Array.isArray(d) ? d : [],
-                                    });
-                                  } catch {
-                                    rows = [];
-                                  }
-                                  return rows.every((_, i) =>
-                                    selectedRecRows.has(`${rec.id}-${i}`),
-                                  );
-                                })
+                                trainRecommendations.every((rec) =>
+                                  selectedRecRows.has(rec.id),
+                                )
                               }
                               indeterminate={
                                 selectedRecRows.size > 0 &&
-                                !trainRecommendations.every((rec) => {
-                                  let rows: Array<unknown> = [];
-                                  try {
-                                    rows = safeJsonParse(rec.recommendation, {
-                                      parse: (d: unknown) =>
-                                        Array.isArray(d) ? d : [],
-                                    });
-                                  } catch {
-                                    rows = [];
-                                  }
-                                  return rows.every((_, i) =>
-                                    selectedRecRows.has(`${rec.id}-${i}`),
-                                  );
-                                })
+                                !trainRecommendations.every((rec) =>
+                                  selectedRecRows.has(rec.id),
+                                )
                               }
                               onChange={(
                                 e: React.ChangeEvent<HTMLInputElement>,
                               ) => {
                                 if (e.target.checked) {
-                                  const all = new Set<string>();
-                                  for (const rec of trainRecommendations) {
-                                    let rows: Array<unknown> = [];
-                                    try {
-                                      rows = safeJsonParse(rec.recommendation, {
-                                        parse: (d: unknown) =>
-                                          Array.isArray(d) ? d : [],
-                                      });
-                                    } catch {
-                                      rows = [];
-                                    }
-                                    for (const [i] of rows.entries()) {
-                                      all.add(`${rec.id}-${i}`);
-                                    }
-                                  }
-                                  setSelectedRecRows(all);
+                                  setSelectedRecRows(
+                                    new Set(
+                                      trainRecommendations.map((r) => r.id),
+                                    ),
+                                  );
                                 } else {
                                   setSelectedRecRows(new Set());
                                 }
@@ -2273,46 +2240,44 @@ export const TrainDashboard = () => {
                     </Box>
                     <Box component="tbody">
                       {trainRecommendations.map((rec) => {
-                        const recommendationSchema = {
-                          parse: (data: unknown) => {
-                            const arr = data as Array<{
-                              "Train Name": string;
-                              Attributes: {
-                                status: string;
-                                Current_count: number;
-                                Predicted_count: number;
-                                Recommendation: string;
-                              };
-                            }>;
-                            if (!Array.isArray(arr)) return [];
-                            return arr.map((item) => ({
-                              trainName: item["Train Name"],
-                              status: item.Attributes.status,
-                              currentCount: item.Attributes.Current_count,
-                              predictedCount: item.Attributes.Predicted_count,
-                              recommendation: item.Attributes.Recommendation,
-                            }));
-                          },
-                        };
-                        let rows: Array<{
+                        type TrainRecRow = {
                           trainName: string;
                           status: string;
                           currentCount: number;
                           predictedCount: number;
                           recommendation: string;
-                        }> = [];
+                        };
+                        let row: TrainRecRow | null = null;
                         try {
-                          rows = safeJsonParse(
-                            rec.recommendation,
-                            recommendationSchema,
-                          );
+                          row = safeJsonParse(rec.recommendation, {
+                            parse: (data: unknown): TrainRecRow | null => {
+                              const item = data as {
+                                "Train Name": string;
+                                Attributes: {
+                                  status: string;
+                                  Current_count: number;
+                                  Predicted_count: number;
+                                  Recommendation: string;
+                                };
+                              };
+                              if (!item || !item["Train Name"]) return null;
+                              return {
+                                trainName: item["Train Name"],
+                                status: item.Attributes.status,
+                                currentCount: item.Attributes.Current_count,
+                                predictedCount: item.Attributes.Predicted_count,
+                                recommendation: item.Attributes.Recommendation,
+                              };
+                            },
+                          });
                         } catch {
-                          rows = [];
+                          row = null;
                         }
-                        return rows.map((row, idx) => (
+                        if (!row) return null;
+                        return (
                           <Box
                             component="tr"
-                            key={`${rec.id}-${idx}`}
+                            key={rec.id}
                             sx={{ "&:hover td": { bgcolor: "action.hover" } }}
                           >
                             {isTrainAdmin && (
@@ -2328,17 +2293,14 @@ export const TrainDashboard = () => {
                               >
                                 <Checkbox
                                   size="small"
-                                  checked={selectedRecRows.has(
-                                    `${rec.id}-${idx}`,
-                                  )}
+                                  checked={selectedRecRows.has(rec.id)}
                                   onChange={(
                                     e: React.ChangeEvent<HTMLInputElement>,
                                   ) => {
                                     setSelectedRecRows((prev) => {
                                       const next = new Set(prev);
-                                      if (e.target.checked)
-                                        next.add(`${rec.id}-${idx}`);
-                                      else next.delete(`${rec.id}-${idx}`);
+                                      if (e.target.checked) next.add(rec.id);
+                                      else next.delete(rec.id);
                                       return next;
                                     });
                                   }}
@@ -2425,7 +2387,7 @@ export const TrainDashboard = () => {
                               {row.recommendation}
                             </Box>
                           </Box>
-                        ));
+                        );
                       })}
                     </Box>
                   </Box>
@@ -2627,25 +2589,21 @@ export const TrainDashboard = () => {
             variant="contained"
             disabled={submitRecApprovalMutation.isPending}
             onClick={() => {
-              const selectedData: Array<{
+              type SelRow = {
                 trainName: string;
                 status: string;
                 currentCount: number;
                 predictedCount: number;
                 recommendation: string;
-              }> = [];
+                rowId: number;
+              };
+              const selectedData: SelRow[] = [];
               for (const rec of trainRecommendations) {
-                let rows: Array<{
-                  trainName: string;
-                  status: string;
-                  currentCount: number;
-                  predictedCount: number;
-                  recommendation: string;
-                }> = [];
+                if (!selectedRecRows.has(rec.id)) continue;
                 try {
-                  rows = safeJsonParse(rec.recommendation, {
-                    parse: (d: unknown) => {
-                      const arr = d as Array<{
+                  const row = safeJsonParse(rec.recommendation, {
+                    parse: (d: unknown): SelRow | null => {
+                      const item = d as {
                         "Train Name": string;
                         Attributes: {
                           status: string;
@@ -2653,23 +2611,21 @@ export const TrainDashboard = () => {
                           Predicted_count: number;
                           Recommendation: string;
                         };
-                      }>;
-                      if (!Array.isArray(arr)) return [];
-                      return arr.map((item) => ({
+                      };
+                      if (!item || !item["Train Name"]) return null;
+                      return {
                         trainName: item["Train Name"],
                         status: item.Attributes.status,
                         currentCount: item.Attributes.Current_count,
                         predictedCount: item.Attributes.Predicted_count,
                         recommendation: item.Attributes.Recommendation,
-                      }));
+                        rowId: rec.id,
+                      };
                     },
                   });
+                  if (row) selectedData.push(row);
                 } catch {
-                  rows = [];
-                }
-                for (const [idx, row] of rows.entries()) {
-                  if (selectedRecRows.has(`${rec.id}-${idx}`))
-                    selectedData.push(row);
+                  // skip malformed
                 }
               }
               submitRecApprovalMutation.mutate(
@@ -2678,6 +2634,7 @@ export const TrainDashboard = () => {
                   payloadJson: JSON.stringify(row),
                   summary: `${row.trainName} (${row.status}): ${row.recommendation}`,
                   actionUrl: "/dashboard?view=train&tab=approvals",
+                  recommendationId: row.rowId,
                 })),
               );
               setRecConfirmOpen(false);

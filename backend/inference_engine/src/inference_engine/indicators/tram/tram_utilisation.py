@@ -759,16 +759,13 @@ def build_recommendation_json(recs: list[Recommendation]) -> list[dict]:
 
 
 def save_recommendation_to_db(rec_json: list[dict]) -> bool:
-    rec_str = json.dumps(rec_json)
-    check = text("""
-        SELECT 1 FROM backend.recommendations
-        WHERE indicator = :indicator AND usecase = :usecase
-          AND CAST(recommendation AS text) = CAST(CAST(:recommendation AS jsonb) AS text)
-        LIMIT 1
-    """)
+    """Save each recommendation as its own DB row (one row per item)."""
+    if not rec_json:
+        return False
+
     delete_old = text("""
         DELETE FROM backend.recommendations
-        WHERE indicator = :indicator AND usecase = :usecase
+        WHERE indicator = :indicator AND usecase = :usecase AND status = 'pending'
     """)
     insert = text("""
         INSERT INTO backend.recommendations
@@ -776,24 +773,24 @@ def save_recommendation_to_db(rec_json: list[dict]) -> bool:
         VALUES (:indicator, CAST(:recommendation AS jsonb), :usecase, :simulation,
                 :deleted, :status, NOW())
     """)
-    params = {
-        "indicator": "Tram",
-        "usecase": "utilisation_tram",
-        "recommendation": rec_str,
-        "simulation": "",
-        "deleted": False,
-        "status": "pending",
-    }
 
     with engine.begin() as conn:
-        if conn.execute(check, params).fetchone():
-            logger.info("Recommendation unchanged, skipping.")
-            return False
-        # Delete old tram recommendations before inserting fresh ones
+        # Delete old pending tram recommendations before inserting fresh ones
         conn.execute(delete_old, {"indicator": "Tram", "usecase": "utilisation_tram"})
-        conn.execute(insert, params)
-        logger.info("Old recommendations replaced with fresh analysis.")
-        return True
+        for item in rec_json:
+            conn.execute(
+                insert,
+                {
+                    "indicator": "Tram",
+                    "usecase": "utilisation_tram",
+                    "recommendation": json.dumps(item),
+                    "simulation": "",
+                    "deleted": False,
+                    "status": "pending",
+                },
+            )
+    logger.info("Saved %d tram recommendations as individual rows.", len(rec_json))
+    return True
 
 
 def broadcast_notification(recs: list[Recommendation]) -> None:
