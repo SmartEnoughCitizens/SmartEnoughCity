@@ -1518,29 +1518,28 @@ export const DisruptionDashboard = () => {
             const eventCells = stop.events
               .map(
                 (ev) =>
-                  `<div style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${RISK_COLOR[ev.riskLevel] ?? "#888"};color:#fff;white-space:nowrap"
-                  title="${ev.venueName}">${ev.eventName} · ${fmtTime(ev.startTime)}</div>`,
+                  `<span style="display:inline-block;margin:1px 3px;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;background:${RISK_COLOR[ev.riskLevel] ?? "#888"};color:#fff"
+                  title="${ev.venueName}">${ev.eventName} ${fmtTime(ev.startTime)}</span>`,
               )
               .join("");
             return `<tr>
-              <td style="padding:5px 10px;white-space:nowrap;width:30%">${stop.stopName}</td>
-              <td style="padding:5px 10px;white-space:nowrap;width:15%;color:#555">${routeCell}</td>
-              <td style="padding:5px 10px;width:55%;line-height:1.8">${eventCells || "<span style='color:#aaa'>—</span>"}</td>
+              <td style="padding:4px 8px;white-space:nowrap">${stop.stopName}</td>
+              <td style="padding:4px 8px;white-space:nowrap">${routeCell}</td>
+              <td style="padding:4px 8px">${eventCells || "—"}</td>
             </tr>`;
           })
           .join("");
 
         return `
-        <section style="margin-bottom:32px;page-break-inside:avoid">
-          <h3 style="margin:0 0 8px;font-size:15px;border-left:3px solid #555;padding-left:8px">${label}</h3>
-          <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">
-            <colgroup><col style="width:30%"><col style="width:15%"><col style="width:55%"></colgroup>
+        <section style="margin-bottom:28px;page-break-inside:avoid">
+          <h3 style="margin:0 0 6px;font-size:15px">${label}</h3>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
             <thead><tr style="background:#f0f0f0">
-              <th style="text-align:left;padding:5px 10px">Station / Stop</th>
-              <th style="text-align:left;padding:5px 10px">Routes</th>
-              <th style="text-align:left;padding:5px 10px">Events nearby</th>
+              <th style="text-align:left;padding:4px 8px">Station / Stop</th>
+              <th style="text-align:left;padding:4px 8px">Route</th>
+              <th style="text-align:left;padding:4px 8px">Event</th>
             </tr></thead>
-            <tbody>${stopRows || "<tr><td colspan='3' style='color:#999;padding:6px 10px;font-style:italic'>No stops within 500 m of events</td></tr>"}</tbody>
+            <tbody>${stopRows || "<tr><td colspan='3' style='color:#999;padding:4px 8px'>No stops within 500 m of events</td></tr>"}</tbody>
           </table>
         </section>`;
       })
