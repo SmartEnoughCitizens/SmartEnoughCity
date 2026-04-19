@@ -22,6 +22,7 @@ public class DisruptionDetectionRequest {
   private Double latitude;
   private Double longitude;
   private String affectedArea;
+  private String stopId; // canonical stop/site ID this disruption is anchored to
 
   // Transport Data
   private List<String> affectedTransportModes; // BUS, TRAM, TRAIN, METRO

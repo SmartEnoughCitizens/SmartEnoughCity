@@ -44,6 +44,7 @@ public class Disruption {
   private Double latitude;
   private Double longitude;
   private String affectedArea;
+  private String stopId; // transport stop this disruption is anchored to (bus/tram/rail stop ID)
 
   // Transport Information (stored as JSON)
   @Convert(converter = ListToJsonConverter.class)
