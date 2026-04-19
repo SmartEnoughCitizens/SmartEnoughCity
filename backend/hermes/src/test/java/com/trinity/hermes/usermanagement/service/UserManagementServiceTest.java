@@ -100,7 +100,7 @@ public class UserManagementServiceTest {
 
     RuntimeException ex = assertThrows(RuntimeException.class, () -> service.registerUser(request));
 
-    assertTrue(ex.getMessage().contains("Username already exists"));
+    assertTrue(ex.getMessage().contains("Username is already taken"));
     verify(usersResource, never()).create(any(UserRepresentation.class));
   }
 
@@ -116,7 +116,7 @@ public class UserManagementServiceTest {
 
     RuntimeException ex = assertThrows(RuntimeException.class, () -> service.registerUser(request));
 
-    assertTrue(ex.getMessage().contains("Failed to create user"));
+    assertTrue(ex.getMessage().contains("Invalid username"));
     verify(usersResource, never()).get(anyString());
   }
 
