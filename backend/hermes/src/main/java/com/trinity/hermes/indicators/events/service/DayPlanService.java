@@ -95,7 +95,77 @@ public class DayPlanService {
           .setParameter("date", date)
           .getResultList();
     } catch (Exception e) {
-      log.warn("Day plan MV query failed (MV may not be populated yet): {}", e.getMessage());
+      log.debug("Day plan MV not available, falling back to live query: {}", e.getMessage());
+      return queryLive(date);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<Object[]> queryLive(LocalDate date) {
+    try {
+      return em.createNativeQuery(
+              """
+              SELECT e.id, e.event_name, e.venue_name, e.event_date, e.start_time, v.capacity,
+                     'bus' AS transport_mode,
+                     bs.id AS stop_id, bs.name AS stop_name, bs.lat, bs.lon,
+                     STRING_AGG(DISTINCT br.short_name, ',' ORDER BY br.short_name) AS routes,
+                     NULL::INT AS available_bikes,
+                     MIN(earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                        ll_to_earth(bs.lat, bs.lon)))::INT AS distance_m
+              FROM external_data.events e
+              JOIN external_data.venues v ON e.venue_id = v.id
+              JOIN external_data.bus_stops bs
+                ON earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                  ll_to_earth(bs.lat, bs.lon)) <= 500
+              JOIN external_data.bus_stop_times bst ON bst.stop_id = bs.id
+              JOIN external_data.bus_trips bt ON bst.trip_id = bt.id
+              JOIN external_data.bus_routes br ON bt.route_id = br.id
+              WHERE e.event_date = :date
+              GROUP BY e.id, e.event_name, e.venue_name, e.event_date, e.start_time, v.capacity,
+                       bs.id, bs.name, bs.lat, bs.lon
+              UNION ALL
+              SELECT e.id, e.event_name, e.venue_name, e.event_date, e.start_time, v.capacity,
+                     'tram',
+                     ts.stop_id, ts.name, ts.lat, ts.lon, ts.line, NULL::INT,
+                     earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                    ll_to_earth(ts.lat, ts.lon))::INT
+              FROM external_data.events e
+              JOIN external_data.venues v ON e.venue_id = v.id
+              JOIN external_data.tram_luas_stops ts
+                ON earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                  ll_to_earth(ts.lat, ts.lon)) <= 500
+              WHERE e.event_date = :date
+              UNION ALL
+              SELECT e.id, e.event_name, e.venue_name, e.event_date, e.start_time, v.capacity,
+                     'rail',
+                     s.station_code, s.station_desc, s.lat, s.lon, NULL, NULL::INT,
+                     earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                    ll_to_earth(s.lat, s.lon))::INT
+              FROM external_data.events e
+              JOIN external_data.venues v ON e.venue_id = v.id
+              JOIN external_data.irish_rail_stations s
+                ON earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                  ll_to_earth(s.lat, s.lon)) <= 500
+              WHERE e.event_date = :date
+              UNION ALL
+              SELECT e.id, e.event_name, e.venue_name, e.event_date, e.start_time, v.capacity,
+                     'bike',
+                     b.station_id::TEXT, b.name, b.latitude::FLOAT, b.longitude::FLOAT,
+                     NULL, b.capacity::INT,
+                     earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                    ll_to_earth(b.latitude::FLOAT, b.longitude::FLOAT))::INT
+              FROM external_data.events e
+              JOIN external_data.venues v ON e.venue_id = v.id
+              JOIN external_data.dublin_bikes_stations b
+                ON earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
+                                  ll_to_earth(b.latitude::FLOAT, b.longitude::FLOAT)) <= 500
+              WHERE e.event_date = :date
+              ORDER BY transport_mode, distance_m
+              """)
+          .setParameter("date", date)
+          .getResultList();
+    } catch (Exception e) {
+      log.warn("Day plan live query failed: {}", e.getMessage());
       return List.of();
     }
   }
