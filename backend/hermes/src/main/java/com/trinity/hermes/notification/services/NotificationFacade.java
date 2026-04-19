@@ -184,7 +184,6 @@ public class NotificationFacade {
     } catch (Exception e) {
       log.warn("Failed to send disruption email to City_Manager: {}", e.getMessage());
     }
-
   }
 
   public NotificationResponseDTO getAll(String userId, int page, int size) {
