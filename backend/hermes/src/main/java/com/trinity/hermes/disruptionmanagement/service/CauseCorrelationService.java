@@ -17,13 +17,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Correlates the probable causes of a detected disruption using temporal co-occurrence — no spatial
- * math required.
+ * Correlates the probable causes of a detected disruption using temporal co-occurrence and spatial
+ * proximity.
  *
  * <ul>
- *   <li>Large event active today → EVENT (HIGH)
+ *   <li>Large event within 2km and within the time window → EVENT (HIGH)
  *   <li>High car congestion currently active → CONGESTION (MEDIUM)
  *   <li>Another transport mode also disrupted simultaneously → CROSS_MODE (LOW)
+ *   <li>No cause found → UNKNOWN with route-aware fallback message
  * </ul>
  */
 @Service
@@ -35,6 +36,10 @@ public class CauseCorrelationService {
   private static final long HIGH_TRAFFIC_THRESHOLD = 1500L;
   private static final int CONCURRENT_WINDOW_MINUTES = 15;
   private static final ZoneId DUBLIN = ZoneId.of("Europe/Dublin");
+
+  private static final double EVENT_CAUSE_RADIUS_KM = 2.0;
+  private static final int EVENT_WINDOW_HOURS_AFTER = 4;
+  private static final int EVENT_WINDOW_HOURS_BEFORE = 2;
 
   private final EventsRepository eventsRepository;
   private final HighTrafficPointsRepository highTrafficPointsRepository;
@@ -66,16 +71,46 @@ public class CauseCorrelationService {
       log.warn("Cross-mode cause check failed: {}", e.getMessage());
     }
 
+    try {
+      checkFallbackAndEnrich(disruption, causes);
+    } catch (Exception e) {
+      log.warn("Fallback cause check failed: {}", e.getMessage());
+    }
+
     return causes;
   }
 
-  // ── Large event today ──────────────────────────────────────────────
+  // ── Large event within 2km and within time window ─────────────────
 
   private void checkEventCause(Disruption disruption, List<DisruptionCause> causes) {
-    var events =
+    if (disruption.getLatitude() == null || disruption.getLongitude() == null) return;
+
+    LocalDateTime now = LocalDateTime.now(DUBLIN);
+    LocalDateTime windowStart = now.minusHours(EVENT_WINDOW_HOURS_BEFORE);
+    LocalDateTime windowEnd = now.plusHours(EVENT_WINDOW_HOURS_AFTER);
+
+    List<com.trinity.hermes.indicators.events.entity.Events> events =
         eventsRepository.findUpcomingEventsAtLargeVenues(
-            LARGE_EVENT_THRESHOLD, PageRequest.of(0, 10));
+            LARGE_EVENT_THRESHOLD, PageRequest.of(0, 50));
+
     events.stream()
+        .filter(e -> e.getLatitude() != null && e.getLongitude() != null)
+        .filter(
+            e ->
+                haversineKm(
+                        disruption.getLatitude(),
+                        disruption.getLongitude(),
+                        e.getLatitude(),
+                        e.getLongitude())
+                    <= EVENT_CAUSE_RADIUS_KM)
+        .filter(
+            e -> {
+              LocalDateTime start = e.getStartTime();
+              LocalDateTime end = e.getEndTime();
+              if (start == null) return false;
+              if (end != null) return end.isAfter(windowStart) && start.isBefore(windowEnd);
+              return start.isAfter(windowStart) && start.isBefore(windowEnd);
+            })
         .findFirst()
         .ifPresent(
             e -> {
@@ -92,20 +127,39 @@ public class CauseCorrelationService {
                               + venue
                               + " (venue capacity: "
                               + capacity
-                              + ")")
+                              + ") within 2km")
                       .confidence("HIGH")
                       .build());
             });
   }
 
+  private double haversineKm(double lat1, double lon1, double lat2, double lon2) {
+    final double R = 6371.0;
+    double dLat = Math.toRadians(lat2 - lat1);
+    double dLon = Math.toRadians(lon2 - lon1);
+    double a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2)
+            + Math.cos(Math.toRadians(lat1))
+                * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2)
+                * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   // ── High car congestion ────────────────────────────────────────────
 
   private void checkCongestionCause(Disruption disruption, List<DisruptionCause> causes) {
-    List<Object[]> traffic = highTrafficPointsRepository.findAggregatedTrafficWithLocation();
+    // MV returns [site_id, lat, lon, max_volume]; fallback returns same column layout
+    List<Object[]> traffic;
+    try {
+      traffic = highTrafficPointsRepository.findPeakTrafficSitesFromMv();
+    } catch (Exception e) {
+      traffic = highTrafficPointsRepository.findPeakTrafficSitesWithLocation();
+    }
     boolean highCongestion =
         traffic.stream()
-            .filter(r -> r.length >= 3)
-            .anyMatch(r -> ((Number) r[2]).longValue() >= HIGH_TRAFFIC_THRESHOLD);
+            .filter(r -> r.length >= 4)
+            .anyMatch(r -> r[3] != null && ((Number) r[3]).longValue() >= HIGH_TRAFFIC_THRESHOLD);
 
     if (highCongestion) {
       causes.add(
@@ -116,6 +170,58 @@ public class CauseCorrelationService {
               .confidence("MEDIUM")
               .build());
     }
+  }
+
+  // ── Fallback + enrichment when no cause found ─────────────────────
+
+  private void checkFallbackAndEnrich(Disruption disruption, List<DisruptionCause> causes) {
+    List<String> routes = disruption.getAffectedRoutes();
+    int routeCount = routes != null ? routes.size() : 0;
+
+    if (causes.isEmpty()) {
+      String msg;
+      if (routeCount == 1) {
+        msg =
+            "No external cause identified; may be a vehicle or crew issue specific to route "
+                + routes.get(0)
+                + ".";
+      } else if (routeCount > 1) {
+        msg =
+            "Multiple routes affected at this stop simultaneously; possible stop-level"
+                + " obstruction or infrastructure issue.";
+      } else {
+        msg = "No external cause identified; likely a service-specific technical issue.";
+      }
+      causes.add(
+          DisruptionCause.builder()
+              .disruption(disruption)
+              .causeType("UNKNOWN")
+              .causeDescription(msg)
+              .confidence("LOW")
+              .build());
+    }
+
+    causes.stream()
+        .filter(c -> "CROSS_MODE".equals(c.getCauseType()))
+        .findFirst()
+        .ifPresent(
+            c -> {
+              List<String> modes = disruption.getAffectedTransportModes();
+              if (modes != null && !modes.isEmpty()) {
+                c.setCauseDescription(
+                    "Simultaneous disruption across: "
+                        + String.join(", ", modes)
+                        + ". Possible network-wide pressure.");
+              }
+              long activeCount = disruptionRepository.count();
+              if (activeCount >= 100) {
+                c.setConfidence("HIGH");
+                c.setCauseDescription(
+                    "City-wide disruption pattern (100+ active incidents) — possible large-scale"
+                        + " event or infrastructure failure. "
+                        + c.getCauseDescription());
+              }
+            });
   }
 
   // ── Another mode simultaneously disrupted ─────────────────────────
