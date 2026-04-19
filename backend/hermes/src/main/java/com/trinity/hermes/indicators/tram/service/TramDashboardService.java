@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TramDashboardService {
 
   private static final ZoneId DUBLIN_ZONE = ZoneId.of("Europe/Dublin");
-  private static final double RED_DAILY_PASSENGERS = 86_000.0;
-  private static final double GREEN_DAILY_PASSENGERS = 84_000.0;
+
+  // Fallback daily passenger counts — only used when no CSO data exists in DB.
+  // Matches inference_engine/tram_utilisation.py _FALLBACK_DAILY_PASSENGERS.
+  private static final double FALLBACK_RED_DAILY_PASSENGERS = 86_000.0;
+  private static final double FALLBACK_GREEN_DAILY_PASSENGERS = 84_000.0;
 
   // ── Simulation constants ─────────────────────────────────────────
   //
@@ -43,6 +47,7 @@ public class TramDashboardService {
   private final TramGtfsStopRepository tramGtfsStopRepository;
   private final TramDelayHistoryRepository tramDelayHistoryRepository;
   private final AlternativeTransportService alternativeTransportService;
+  private final JdbcTemplate jdbcTemplate;
 
   // ── KPIs ────────────────────────────────────────────────────────
 
@@ -133,6 +138,7 @@ public class TramDashboardService {
         countLineTotalsForHours(
             List.of(currentHour), luasStopsById, nameToGtfsIds, luasToGtfs, allStopTimes);
     Map<String, TramLuasForecast> soonest = findSoonestPerStopDirection(forecasts);
+    Map<String, Double> dailyPassengers = loadDailyPassengers();
     List<TramDelayDTO> delays = new ArrayList<>();
     for (TramLuasForecast forecast : soonest.values()) {
       TramDelayDTO dto =
@@ -144,7 +150,8 @@ public class TramDashboardService {
               luasToGtfs,
               hourlyPct,
               stopDirTrips,
-              lineTotals);
+              lineTotals,
+              dailyPassengers);
       if (dto != null) delays.add(dto);
     }
     delays.sort(Comparator.comparingInt(TramDelayDTO::getDelayMins).reversed());
@@ -167,6 +174,7 @@ public class TramDashboardService {
         countLineStopTimeRows(hours, luasStopsById, nameToGtfsIds, luasToGtfs, allStopTimes);
 
     List<TramStopUsageDTO> usageList = new ArrayList<>();
+    Map<String, Double> dailyPassengers = loadDailyPassengers();
     for (TramStop luasStop : luasStopsById.values()) {
       String gtfsName =
           luasToGtfs.getOrDefault(
@@ -176,7 +184,7 @@ public class TramDashboardService {
       // Usage uses combined hourly pct (key "-") as originally designed
       double hourlyPct = hourlyPctByLine.getOrDefault("-", 0.0) / 100.0;
       double dailyPax =
-          "red".equals(luasStop.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
+          dailyPassengers.getOrDefault(luasStop.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
       long estIn = Math.round((double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax);
       long estOut = Math.round((double) dt[0] / Math.max(1, lineTotal) * hourlyPct * dailyPax);
       usageList.add(
@@ -245,6 +253,68 @@ public class TramDashboardService {
   // Tram capacity per vehicle — must match inference_engine/tram_utilisation.py
   private static final Map<String, Integer> TRAM_CAPACITY = Map.of("red", 200, "green", 300);
 
+  /**
+   * Load daily passenger counts from CSO data using the same logic as the
+   * inference engine's load_daily_passengers() in tram_utilisation.py.
+   * Tries weekly data first, then monthly, then falls back to hardcoded values.
+   */
+  private Map<String, Double> loadDailyPassengers() {
+    // 1. Try weekly CSO data (primary source — same query as Python)
+    try {
+      List<Map<String, Object>> weekly =
+          jdbcTemplate.queryForList(
+              "SELECT line_label, value FROM external_data.tram_passenger_journeys"
+                  + " WHERE week_code = (SELECT MAX(week_code)"
+                  + "   FROM external_data.tram_passenger_journeys)"
+                  + " AND value IS NOT NULL");
+      Map<String, Double> result = new HashMap<>();
+      for (Map<String, Object> row : weekly) {
+        String label = ((String) row.get("line_label")).trim().toLowerCase(Locale.ROOT);
+        double value = ((Number) row.get("value")).doubleValue();
+        if (label.contains("red")) result.put("red", value / 7.0);
+        else if (label.contains("green")) result.put("green", value / 7.0);
+      }
+      if (!result.isEmpty()) {
+        log.info("Daily passengers from CSO weekly: red={}, green={}", result.get("red"), result.get("green"));
+        return result;
+      }
+    } catch (Exception e) {
+      log.warn("Could not load weekly passenger data: {}", e.getMessage());
+    }
+
+    // 2. Fallback to monthly CSO data (same query as Python)
+    try {
+      List<Map<String, Object>> monthly =
+          jdbcTemplate.queryForList(
+              "SELECT statistic_label, value FROM external_data.tram_passenger_numbers"
+                  + " WHERE year = (SELECT MAX(year) FROM external_data.tram_passenger_numbers)"
+                  + " AND month_code = (SELECT MAX(month_code)"
+                  + "   FROM external_data.tram_passenger_numbers"
+                  + "   WHERE year = (SELECT MAX(year) FROM external_data.tram_passenger_numbers))"
+                  + " AND value IS NOT NULL");
+      Map<String, Double> result = new HashMap<>();
+      for (Map<String, Object> row : monthly) {
+        String label = ((String) row.get("statistic_label")).trim().toLowerCase(Locale.ROOT);
+        double value = ((Number) row.get("value")).doubleValue();
+        if (label.contains("red")) result.put("red", value / 30.0);
+        else if (label.contains("green")) result.put("green", value / 30.0);
+      }
+      if (!result.isEmpty()) {
+        log.info("Daily passengers from CSO monthly: red={}, green={}", result.get("red"), result.get("green"));
+        return result;
+      }
+    } catch (Exception e) {
+      log.warn("Could not load monthly passenger data: {}", e.getMessage());
+    }
+
+    // 3. Final fallback
+    log.warn("No CSO passenger data found, using fallback values");
+    Map<String, Double> fallback = new HashMap<>();
+    fallback.put("red", FALLBACK_RED_DAILY_PASSENGERS);
+    fallback.put("green", FALLBACK_GREEN_DAILY_PASSENGERS);
+    return fallback;
+  }
+
   @Transactional(readOnly = true)
   public List<TramStopDemandDTO> getStopDemand(int startHour, int endHour) {
     // Calculates utilisation the same way as the recommendation engine:
@@ -271,6 +341,7 @@ public class TramDashboardService {
 
     log.info("Demand calc: lineTotals={}, hourlyPct={}", lineTotals, hourlyPctByLine);
 
+    Map<String, Double> dailyPassengers = loadDailyPassengers();
     List<TramStopDemandDTO> results = new ArrayList<>();
     boolean logged = false;
     for (TramStop stop : luasStops.values()) {
@@ -284,7 +355,7 @@ public class TramDashboardService {
       // hourlyPctByLine is keyed by "red" / "green" matching the recommendation engine
       double hourlyPct = hourlyPctByLine.getOrDefault(stop.getLine(), 0.0) / 100.0;
       double dailyPax =
-          "red".equals(stop.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
+          dailyPassengers.getOrDefault(stop.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
       double estIn = (double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
       double estOut = (double) dt[0] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
       double estTotal = estIn + estOut;
@@ -681,7 +752,8 @@ public class TramDashboardService {
       Map<String, String> luasToGtfs,
       Map<String, Double> hourlyPct,
       Map<String, int[]> stopDirTrips,
-      Map<String, Integer> lineTotals) {
+      Map<String, Integer> lineTotals,
+      Map<String, Double> dailyPassengers) {
     TramStop luasStop = luasStopsById.get(forecast.getStopId());
     if (luasStop == null) return null;
     String gtfsName = luasToGtfs.get(luasStop.getStopId());
@@ -705,7 +777,7 @@ public class TramDashboardService {
     double share = (double) (dt[0] + dt[1]) / Math.max(1, lineTotal);
     String lk = "-";
     double pct = hourlyPct.getOrDefault(lk, 0.0) / 100.0;
-    double daily = "red".equals(forecast.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
+    double daily = dailyPassengers.getOrDefault(forecast.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
     double affected = share * pct * daily * (delayMins / 60.0);
     return TramDelayDTO.builder()
         .stopId(forecast.getStopId())
