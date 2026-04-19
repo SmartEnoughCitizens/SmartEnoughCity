@@ -117,24 +117,28 @@ export const useMarkAllAsRead = (userId: string) => {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    // Optimistic update
-    queryClient.setQueryData<NotificationResponse>(
-      NOTIFICATION_KEYS.user(userId),
+    // Optimistic update — mark all items read AND reset unread count
+    queryClient.setQueriesData<NotificationResponse>(
+      { queryKey: ["notifications", userId] },
       (old) => {
         if (!old) return old;
         return {
           ...old,
+          totalCount: 0,
           notifications: old.notifications.map((n) => ({ ...n, read: true })),
         };
       },
     );
 
-    // Single bulk call to backend
-    notificationApi.markAllAsRead(userId).catch(() => {
-      queryClient.invalidateQueries({
-        queryKey: NOTIFICATION_KEYS.user(userId),
+    // Backend call — invalidate all pages on both success and error to sync
+    notificationApi
+      .markAllAsRead(userId)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+      })
+      .catch(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
       });
-    });
   }, [userId, queryClient]);
 };
 
@@ -163,13 +167,21 @@ export const useSoftDeleteNotification = (userId: string) => {
   const queryClient = useQueryClient();
   return useCallback(
     (notificationId: string) => {
-      // Optimistic: remove from inbox
-      queryClient.setQueryData<NotificationResponse>(
-        NOTIFICATION_KEYS.user(userId),
+      // Optimistic: remove from inbox across all cached pages
+      queryClient.setQueriesData<NotificationResponse>(
+        { queryKey: ["notifications", userId] },
         (old) => {
           if (!old) return old;
+          const removed = old.notifications.find(
+            (n) => n.id === notificationId,
+          );
+          const wasUnread = removed && !removed.read;
           return {
             ...old,
+            totalCount: wasUnread
+              ? Math.max(0, (old.totalCount ?? 0) - 1)
+              : (old.totalCount ?? 0),
+            totalItems: Math.max(0, (old.totalItems ?? 0) - 1),
             notifications: old.notifications.filter(
               (n) => n.id !== notificationId,
             ),
@@ -218,9 +230,9 @@ export const useSetReadState = (userId: string) => {
 
   return useCallback(
     (notificationId: string, read: boolean) => {
-      // Optimistic update — also adjust totalCount (unread count) for badge
-      queryClient.setQueryData<NotificationResponse>(
-        NOTIFICATION_KEYS.user(userId),
+      // Optimistic update across all cached pages — also adjust totalCount for badge
+      queryClient.setQueriesData<NotificationResponse>(
+        { queryKey: ["notifications", userId] },
         (old) => {
           if (!old) return old;
           const prev = old.notifications.find((n) => n.id === notificationId);
@@ -235,9 +247,9 @@ export const useSetReadState = (userId: string) => {
           };
         },
       );
-      notificationApi
-        .setReadState(userId, notificationId, read)
-        .catch(() => {});
+      notificationApi.setReadState(userId, notificationId, read).catch(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+      });
     },
     [userId, queryClient],
   );
