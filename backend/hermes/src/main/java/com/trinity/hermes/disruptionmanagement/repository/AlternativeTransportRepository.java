@@ -41,6 +41,7 @@ public class AlternativeTransportRepository {
               public.LL_TO_EARTH(:lat, :lon),
               public.LL_TO_EARTH(bs.lat, bs.lon)
           ) <= :radius_m
+          ORDER BY distance_m LIMIT 5
       ),
       rail AS (
           SELECT
@@ -60,6 +61,7 @@ public class AlternativeTransportRepository {
               public.LL_TO_EARTH(:lat, :lon),
               public.LL_TO_EARTH(rs.lat, rs.lon)
           ) <= :radius_m
+          ORDER BY distance_m LIMIT 5
       ),
       tram AS (
           SELECT
@@ -79,6 +81,7 @@ public class AlternativeTransportRepository {
               public.LL_TO_EARTH(:lat, :lon),
               public.LL_TO_EARTH(ts.lat, ts.lon)
           ) <= :radius_m
+          ORDER BY distance_m LIMIT 5
       ),
       bikes AS (
           SELECT
@@ -112,13 +115,13 @@ public class AlternativeTransportRepository {
               )
           ) <= :radius_m
             AND snap.available_bikes > 0
+          ORDER BY distance_m LIMIT 5
       )
       SELECT * FROM bus
       UNION ALL SELECT * FROM rail
       UNION ALL SELECT * FROM tram
       UNION ALL SELECT * FROM bikes
       ORDER BY distance_m
-      LIMIT 10
       """;
 
   @PersistenceContext private EntityManager em;

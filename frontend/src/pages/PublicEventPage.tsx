@@ -267,7 +267,12 @@ export const PublicEventPage = () => {
                 .map((t, i) => (
                   <Marker key={i} position={[t.lat!, t.lon!]}>
                     <Popup>
-                      {modeLabel(t.mode ?? "")} · {t.stopName}
+                      <strong>{modeLabel(t.mode ?? "")} · {t.stopName}</strong>
+                      {t.description && <><br />{t.description}</>}
+                      {t.availabilityCount != null && <><br />{t.availabilityCount} bikes available</>}
+                      {t.googleMapsWalkingUrl && (
+                        <><br /><a href={t.googleMapsWalkingUrl} target="_blank" rel="noopener noreferrer">Walk here ↗</a></>
+                      )}
                     </Popup>
                   </Marker>
                 ))}

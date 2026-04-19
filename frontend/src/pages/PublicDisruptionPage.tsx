@@ -390,20 +390,11 @@ export const PublicDisruptionPage = () => {
                   icon={makeAltIcon(modeColor(a.mode))}
                 >
                   <Popup>
-                    <strong>{a.stopName}</strong>
-                    <br />
-                    {a.description}
+                    <strong>{{bus:"Bus",tram:"Luas",rail:"Irish Rail",bike:"DublinBikes"}[a.mode?.toLowerCase() ?? ""] ?? a.mode} · {a.stopName}</strong>
+                    {a.description && <><br />{a.description}</>}
+                    {a.availabilityCount != null && <><br />{a.availabilityCount} bikes available</>}
                     {a.googleMapsWalkingUrl && (
-                      <>
-                        <br />
-                        <a
-                          href={a.googleMapsWalkingUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Walk here ↗
-                        </a>
-                      </>
+                      <><br /><a href={a.googleMapsWalkingUrl} target="_blank" rel="noopener noreferrer">Walk here ↗</a></>
                     )}
                   </Popup>
                 </Marker>
@@ -485,7 +476,7 @@ export const PublicDisruptionPage = () => {
             </>
           )}
 
-          {/* Alternatives */}
+          {/* Alternatives grouped by mode */}
           {alternatives.length > 0 && (
             <>
               <Divider sx={{ mx: 3 }} />
@@ -503,11 +494,29 @@ export const PublicDisruptionPage = () => {
                 >
                   Nearby alternatives
                 </Typography>
-                <Stack spacing={0}>
-                  {alternatives.map((a) => (
-                    <AlternativeRow key={a.id} alt={a} />
-                  ))}
-                </Stack>
+                {(["bus", "tram", "rail", "bike"] as const).map((mode) => {
+                  const group = alternatives.filter(
+                    (a) => a.mode?.toLowerCase() === mode,
+                  );
+                  if (group.length === 0) return null;
+                  const color = modeColor(mode);
+                  const modeLabels: Record<string, string> = {
+                    bus: "Bus", tram: "Luas", rail: "Irish Rail", bike: "DublinBikes",
+                  };
+                  return (
+                    <Box key={mode} sx={{ mb: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, px: 1, mb: 0.25 }}>
+                        <Box sx={{ color, display: "flex" }}>{modeIcon(mode)}</Box>
+                        <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: 0.6 }}>
+                          {modeLabels[mode]}
+                        </Typography>
+                      </Box>
+                      <Stack spacing={0}>
+                        {group.map((a) => <AlternativeRow key={a.id} alt={a} />)}
+                      </Stack>
+                    </Box>
+                  );
+                })}
               </Box>
             </>
           )}
