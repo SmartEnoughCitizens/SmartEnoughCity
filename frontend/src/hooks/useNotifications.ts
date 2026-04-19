@@ -5,7 +5,8 @@ import sseService from "@/services/sseService";
 import { type Notification, type NotificationResponse } from "@/types";
 
 export const NOTIFICATION_KEYS = {
-  user: (userId: string) => ["notifications", userId] as const,
+  user: (userId: string, page = 0, size = 25) =>
+    ["notifications", userId, page, size] as const,
 };
 
 interface RawNotification {
@@ -45,13 +46,19 @@ const toFrontendNotification = (
 export const useUserNotifications = (
   userId: string,
   enabled: boolean = true,
+  page = 0,
+  size = 25,
 ) => {
   const queryClient = useQueryClient();
 
   const query = useQuery<NotificationResponse>({
-    queryKey: NOTIFICATION_KEYS.user(userId),
+    queryKey: NOTIFICATION_KEYS.user(userId, page, size),
     queryFn: async () => {
-      const data = await notificationApi.getUserNotifications(userId);
+      const data = await notificationApi.getUserNotifications(
+        userId,
+        page,
+        size,
+      );
       const rawItems: RawNotification[] = Array.isArray(data)
         ? (data as RawNotification[])
         : data.notifications || [];
@@ -61,20 +68,27 @@ export const useUserNotifications = (
       const unreadCount = Array.isArray(data)
         ? notifications.filter((n) => !n.read).length
         : (data.totalCount ?? 0);
-      return { userId, notifications, totalCount: unreadCount };
+      return {
+        userId,
+        notifications,
+        totalCount: unreadCount,
+        totalItems: Array.isArray(data) ? undefined : data.totalItems,
+        page: Array.isArray(data) ? page : (data.page ?? page),
+        pageSize: Array.isArray(data) ? size : (data.pageSize ?? size),
+      };
     },
     enabled: !!userId && enabled,
     staleTime: 60_000,
   });
 
-  // Subscribe to SSE to push new notifications into React Query cache
+  // Subscribe to SSE to push new notifications into React Query cache (page 0 only)
   // (SSE connection is managed by DashboardLayout)
   useEffect(() => {
     if (!userId || !enabled) return;
 
     const unsubscribe = sseService.subscribe((notification) => {
       queryClient.setQueryData<NotificationResponse>(
-        NOTIFICATION_KEYS.user(userId),
+        NOTIFICATION_KEYS.user(userId, 0, size),
         (old) => {
           const existing: NotificationResponse = old?.notifications
             ? old
@@ -103,24 +117,28 @@ export const useMarkAllAsRead = (userId: string) => {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    // Optimistic update
-    queryClient.setQueryData<NotificationResponse>(
-      NOTIFICATION_KEYS.user(userId),
+    // Optimistic update — mark all items read AND reset unread count
+    queryClient.setQueriesData<NotificationResponse>(
+      { queryKey: ["notifications", userId] },
       (old) => {
         if (!old) return old;
         return {
           ...old,
+          totalCount: 0,
           notifications: old.notifications.map((n) => ({ ...n, read: true })),
         };
       },
     );
 
-    // Single bulk call to backend
-    notificationApi.markAllAsRead(userId).catch(() => {
-      queryClient.invalidateQueries({
-        queryKey: NOTIFICATION_KEYS.user(userId),
+    // Backend call — invalidate all pages on both success and error to sync
+    notificationApi
+      .markAllAsRead(userId)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+      })
+      .catch(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
       });
-    });
   }, [userId, queryClient]);
 };
 
@@ -149,13 +167,21 @@ export const useSoftDeleteNotification = (userId: string) => {
   const queryClient = useQueryClient();
   return useCallback(
     (notificationId: string) => {
-      // Optimistic: remove from inbox
-      queryClient.setQueryData<NotificationResponse>(
-        NOTIFICATION_KEYS.user(userId),
+      // Optimistic: remove from inbox across all cached pages
+      queryClient.setQueriesData<NotificationResponse>(
+        { queryKey: ["notifications", userId] },
         (old) => {
           if (!old) return old;
+          const removed = old.notifications.find(
+            (n) => n.id === notificationId,
+          );
+          const wasUnread = removed && !removed.read;
           return {
             ...old,
+            totalCount: wasUnread
+              ? Math.max(0, (old.totalCount ?? 0) - 1)
+              : (old.totalCount ?? 0),
+            totalItems: Math.max(0, (old.totalItems ?? 0) - 1),
             notifications: old.notifications.filter(
               (n) => n.id !== notificationId,
             ),
@@ -204,9 +230,9 @@ export const useSetReadState = (userId: string) => {
 
   return useCallback(
     (notificationId: string, read: boolean) => {
-      // Optimistic update — also adjust totalCount (unread count) for badge
-      queryClient.setQueryData<NotificationResponse>(
-        NOTIFICATION_KEYS.user(userId),
+      // Optimistic update across all cached pages — also adjust totalCount for badge
+      queryClient.setQueriesData<NotificationResponse>(
+        { queryKey: ["notifications", userId] },
         (old) => {
           if (!old) return old;
           const prev = old.notifications.find((n) => n.id === notificationId);
@@ -221,9 +247,9 @@ export const useSetReadState = (userId: string) => {
           };
         },
       );
-      notificationApi
-        .setReadState(userId, notificationId, read)
-        .catch(() => {});
+      notificationApi.setReadState(userId, notificationId, read).catch(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+      });
     },
     [userId, queryClient],
   );

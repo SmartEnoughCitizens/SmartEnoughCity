@@ -9,5 +9,8 @@ export interface Notification {
 export interface NotificationResponse {
   userId: string;
   notifications: Notification[];
-  totalCount: number;
+  totalCount: number; // unread count (badge)
+  totalItems?: number; // total non-deleted (pagination)
+  page?: number;
+  pageSize?: number;
 }

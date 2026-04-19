@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { DisruptionsTabContent } from "@/components/disruption/DisruptionsTabContent";
 import { useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -22,10 +21,12 @@ import {
   Button,
   Autocomplete,
   Slider,
+  Checkbox,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -54,6 +55,7 @@ import {
   useTrainDemand,
   useSimulateTrainDemand,
   useTrainRecommendations,
+  RECOMMENDATION_KEYS,
 } from "@/hooks";
 import type { StationDemand } from "@/types";
 import { safeJsonParse } from "@/utils/safeJsonParse";
@@ -293,10 +295,6 @@ export const TrainDashboard = () => {
   const [selectedTrainCode, setSelectedTrainCode] = useState<string | null>(
     null,
   );
-  const [selectedDisruptionId, setSelectedDisruptionId] = useState<
-    number | null
-  >(null);
-
   // Demand simulation state — up to 3 corridors
   const [corridors, setCorridors] = useState<CorridorEntry[]>([
     { origin: null, dest: null, count: 1 },
@@ -333,6 +331,27 @@ export const TrainDashboard = () => {
     mutationFn: (dto: CreateApprovalDTO) => approvalApi.create(dto),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["approvals", "train"] }),
+  });
+
+  // ── Rec approval ─────────────────────────────────────────────────────
+  const [selectedRecRows, setSelectedRecRows] = useState<Set<number>>(
+    new Set(),
+  );
+  const [recConfirmOpen, setRecConfirmOpen] = useState(false);
+  const [recSnackbar, setRecSnackbar] = useState(false);
+
+  const submitRecApprovalMutation = useMutation({
+    mutationFn: (dtos: CreateApprovalDTO[]) => approvalApi.createBatch(dtos),
+    onSuccess: () => {
+      setSelectedRecRows(new Set());
+      setRecConfirmOpen(false);
+      setRecSnackbar(true);
+      setTabValue(4);
+      queryClient.invalidateQueries({ queryKey: ["approvals", "train"] });
+      queryClient.invalidateQueries({
+        queryKey: RECOMMENDATION_KEYS.byIndicator("train"),
+      });
+    },
   });
 
   const reviewMutation = useMutation({
@@ -505,7 +524,6 @@ export const TrainDashboard = () => {
     setTabValue(v);
     setSelectedStationCode(null);
     setSelectedTrainCode(null);
-    setSelectedDisruptionId(null);
   };
 
   // Build a set of connected stop-ID pairs from route data
@@ -1091,7 +1109,6 @@ export const TrainDashboard = () => {
               label={`Approvals${approvals.some((a) => a.status === "PENDING") ? ` (${approvals.filter((a) => a.status === "PENDING").length})` : ""}`}
             />
             <Tab label={`Recommendations (${trainRecommendations.length})`} />
-            <Tab label="Disruptions" />
           </Tabs>
 
           {/* Tab content */}
@@ -2146,6 +2163,50 @@ export const TrainDashboard = () => {
                   >
                     <Box component="thead">
                       <Box component="tr">
+                        {isTrainAdmin && (
+                          <Box
+                            component="th"
+                            sx={{
+                              py: 0.5,
+                              px: 1,
+                              width: 32,
+                              borderBottom: 1,
+                              borderColor: "divider",
+                              position: "sticky",
+                              top: 0,
+                              bgcolor: "background.paper",
+                            }}
+                          >
+                            <Checkbox
+                              size="small"
+                              checked={
+                                selectedRecRows.size > 0 &&
+                                trainRecommendations.every((rec) =>
+                                  selectedRecRows.has(rec.id),
+                                )
+                              }
+                              indeterminate={
+                                selectedRecRows.size > 0 &&
+                                !trainRecommendations.every((rec) =>
+                                  selectedRecRows.has(rec.id),
+                                )
+                              }
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>,
+                              ) => {
+                                if (e.target.checked) {
+                                  setSelectedRecRows(
+                                    new Set(
+                                      trainRecommendations.map((r) => r.id),
+                                    ),
+                                  );
+                                } else {
+                                  setSelectedRecRows(new Set());
+                                }
+                              }}
+                            />
+                          </Box>
+                        )}
                         {[
                           "Train Name",
                           "Status",
@@ -2179,48 +2240,73 @@ export const TrainDashboard = () => {
                     </Box>
                     <Box component="tbody">
                       {trainRecommendations.map((rec) => {
-                        const recommendationSchema = {
-                          parse: (data: unknown) => {
-                            const arr = data as Array<{
-                              "Train Name": string;
-                              Attributes: {
-                                status: string;
-                                Current_count: number;
-                                Predicted_count: number;
-                                Recommendation: string;
-                              };
-                            }>;
-                            if (!Array.isArray(arr)) return [];
-                            return arr.map((item) => ({
-                              trainName: item["Train Name"],
-                              status: item.Attributes.status,
-                              currentCount: item.Attributes.Current_count,
-                              predictedCount: item.Attributes.Predicted_count,
-                              recommendation: item.Attributes.Recommendation,
-                            }));
-                          },
-                        };
-                        let rows: Array<{
+                        type TrainRecRow = {
                           trainName: string;
                           status: string;
                           currentCount: number;
                           predictedCount: number;
                           recommendation: string;
-                        }> = [];
+                        };
+                        let row: TrainRecRow | null = null;
                         try {
-                          rows = safeJsonParse(
-                            rec.recommendation,
-                            recommendationSchema,
-                          );
+                          row = safeJsonParse(rec.recommendation, {
+                            parse: (data: unknown): TrainRecRow | null => {
+                              const item = data as {
+                                "Train Name": string;
+                                Attributes: {
+                                  status: string;
+                                  Current_count: number;
+                                  Predicted_count: number;
+                                  Recommendation: string;
+                                };
+                              };
+                              if (!item || !item["Train Name"]) return null;
+                              return {
+                                trainName: item["Train Name"],
+                                status: item.Attributes.status,
+                                currentCount: item.Attributes.Current_count,
+                                predictedCount: item.Attributes.Predicted_count,
+                                recommendation: item.Attributes.Recommendation,
+                              };
+                            },
+                          });
                         } catch {
-                          rows = [];
+                          row = null;
                         }
-                        return rows.map((row, idx) => (
+                        if (!row) return null;
+                        return (
                           <Box
                             component="tr"
-                            key={`${rec.id}-${idx}`}
+                            key={rec.id}
                             sx={{ "&:hover td": { bgcolor: "action.hover" } }}
                           >
+                            {isTrainAdmin && (
+                              <Box
+                                component="td"
+                                sx={{
+                                  py: 0.75,
+                                  px: 1,
+                                  borderBottom: 1,
+                                  borderColor: "divider",
+                                  width: 32,
+                                }}
+                              >
+                                <Checkbox
+                                  size="small"
+                                  checked={selectedRecRows.has(rec.id)}
+                                  onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>,
+                                  ) => {
+                                    setSelectedRecRows((prev) => {
+                                      const next = new Set(prev);
+                                      if (e.target.checked) next.add(rec.id);
+                                      else next.delete(rec.id);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              </Box>
+                            )}
                             <Box
                               component="td"
                               sx={{
@@ -2301,7 +2387,7 @@ export const TrainDashboard = () => {
                               {row.recommendation}
                             </Box>
                           </Box>
-                        ));
+                        );
                       })}
                     </Box>
                   </Box>
@@ -2309,21 +2395,39 @@ export const TrainDashboard = () => {
               </Box>
             )}
 
-            {/* ── Disruptions ── */}
-            {tabValue === 5 && (
-              <DisruptionsTabContent
-                mode="TRAIN"
-                selectedId={selectedDisruptionId}
-                onSelect={(d) => {
-                  setSelectedDisruptionId(d.id);
-                  if (d.latitude != null && d.longitude != null) {
-                    setFlyTarget({
-                      center: [d.latitude, d.longitude],
-                      id: Date.now(),
-                    });
-                  }
+            {/* ── Rec approval footer ── */}
+            {tabValue === 5 && isTrainAdmin && (
+              <Box
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  p: 1,
+                  borderTop: 1,
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
                 }}
-              />
+              >
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="small"
+                  color="primary"
+                  disabled={
+                    selectedRecRows.size === 0 ||
+                    submitRecApprovalMutation.isPending
+                  }
+                  onClick={() => setRecConfirmOpen(true)}
+                  sx={{ fontSize: "0.72rem" }}
+                >
+                  {submitRecApprovalMutation.isPending
+                    ? "Sending…"
+                    : selectedRecRows.size > 0
+                      ? `Send ${selectedRecRows.size} for Approval`
+                      : submitRecApprovalMutation.isSuccess
+                        ? "Sent for approval ✓"
+                        : "Send for Approval"}
+                </Button>
+              </Box>
             )}
           </Box>
         </Paper>
@@ -2455,6 +2559,99 @@ export const TrainDashboard = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Rec approval confirm dialog ─────────────────────────── */}
+      <Dialog
+        open={recConfirmOpen}
+        onClose={() => setRecConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontSize: "0.95rem", fontWeight: 600 }}>
+          Send for Approval
+        </DialogTitle>
+        <DialogContent>
+          <Typography fontSize="0.85rem">
+            Send {selectedRecRows.size} recommendation
+            {selectedRecRows.size === 1 ? "" : "s"} for City Manager approval?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            size="small"
+            onClick={() => setRecConfirmOpen(false)}
+            disabled={submitRecApprovalMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={submitRecApprovalMutation.isPending}
+            onClick={() => {
+              type SelRow = {
+                trainName: string;
+                status: string;
+                currentCount: number;
+                predictedCount: number;
+                recommendation: string;
+                rowId: number;
+              };
+              const selectedData: SelRow[] = [];
+              for (const rec of trainRecommendations) {
+                if (!selectedRecRows.has(rec.id)) continue;
+                try {
+                  const row = safeJsonParse(rec.recommendation, {
+                    parse: (d: unknown): SelRow | null => {
+                      const item = d as {
+                        "Train Name": string;
+                        Attributes: {
+                          status: string;
+                          Current_count: number;
+                          Predicted_count: number;
+                          Recommendation: string;
+                        };
+                      };
+                      if (!item || !item["Train Name"]) return null;
+                      return {
+                        trainName: item["Train Name"],
+                        status: item.Attributes.status,
+                        currentCount: item.Attributes.Current_count,
+                        predictedCount: item.Attributes.Predicted_count,
+                        recommendation: item.Attributes.Recommendation,
+                        rowId: rec.id,
+                      };
+                    },
+                  });
+                  if (row) selectedData.push(row);
+                } catch {
+                  // skip malformed
+                }
+              }
+              submitRecApprovalMutation.mutate(
+                selectedData.map((row) => ({
+                  indicator: "train",
+                  payloadJson: JSON.stringify(row),
+                  summary: `${row.trainName} (${row.status}): ${row.recommendation}`,
+                  actionUrl: "/dashboard?view=train&tab=approvals",
+                  recommendationId: row.rowId,
+                })),
+              );
+              setRecConfirmOpen(false);
+            }}
+          >
+            {submitRecApprovalMutation.isPending ? "Sending…" : "Confirm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={recSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setRecSnackbar(false)}
+        message="Recommendations sent for approval — view in Approvals tab"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Box>
   );
 };

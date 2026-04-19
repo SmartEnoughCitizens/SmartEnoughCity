@@ -19,6 +19,8 @@ export interface CreateApprovalDTO {
   payloadJson: string;
   summary: string;
   actionUrl?: string;
+  /** Row ID of the source recommendation. Set for tram; omitted for train (marks all pending). */
+  recommendationId?: number;
 }
 
 export interface ReviewApprovalDTO {
@@ -31,6 +33,16 @@ export const approvalApi = {
     const { data } = await axiosInstance.post<ApprovalRequestDTO>(
       API_ENDPOINTS.APPROVALS,
       dto,
+    );
+    return data;
+  },
+
+  createBatch: async (
+    dtos: CreateApprovalDTO[],
+  ): Promise<ApprovalRequestDTO[]> => {
+    const { data } = await axiosInstance.post<ApprovalRequestDTO[]>(
+      API_ENDPOINTS.APPROVALS + "/batch",
+      dtos,
     );
     return data;
   },

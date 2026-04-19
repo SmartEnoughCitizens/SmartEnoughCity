@@ -31,6 +31,8 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 public class NotificationFacadeTest {
@@ -301,12 +303,12 @@ public class NotificationFacadeTest {
               .createdAt(now)
               .build();
 
-      when(notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc("user-1"))
-          .thenReturn(List.of(entity));
+      when(notificationRepository.findByUserIdAndDeletedAtIsNull(eq("user-1"), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(entity)));
       when(notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull("user-1"))
           .thenReturn(1L);
 
-      NotificationResponseDTO response = facade.getAll("user-1");
+      NotificationResponseDTO response = facade.getAll("user-1", 0, 25);
 
       assertEquals("user-1", response.getUserId());
       assertEquals(1L, response.getTotalCount());
@@ -327,12 +329,13 @@ public class NotificationFacadeTest {
     @DisplayName(
         "returns empty notifications list and zero unread count when user has no notifications")
     void noNotifications_returnsEmptyListAndZeroCount() {
-      when(notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc("user-99"))
-          .thenReturn(List.of());
+      when(notificationRepository.findByUserIdAndDeletedAtIsNull(
+              eq("user-99"), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of()));
       when(notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull("user-99"))
           .thenReturn(0L);
 
-      NotificationResponseDTO response = facade.getAll("user-99");
+      NotificationResponseDTO response = facade.getAll("user-99", 0, 25);
 
       assertEquals("user-99", response.getUserId());
       assertTrue(response.getNotifications().isEmpty());
@@ -351,12 +354,12 @@ public class NotificationFacadeTest {
               .createdAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")))
               .build();
 
-      when(notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc("user-1"))
-          .thenReturn(List.of(entity));
+      when(notificationRepository.findByUserIdAndDeletedAtIsNull(eq("user-1"), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(entity)));
       when(notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull("user-1"))
           .thenReturn(0L);
 
-      NotificationItemDTO item = facade.getAll("user-1").getNotifications().get(0);
+      NotificationItemDTO item = facade.getAll("user-1", 0, 25).getNotifications().get(0);
 
       assertNull(item.getChannel());
     }

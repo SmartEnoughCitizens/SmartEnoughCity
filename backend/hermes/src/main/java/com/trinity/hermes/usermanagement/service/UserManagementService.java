@@ -108,7 +108,7 @@ public class UserManagementService {
     if (existingUsers.stream()
         .map(UserRepresentation::getUsername)
         .anyMatch(request.getUsername()::equals)) {
-      throw new RuntimeException("Username already exists: " + request.getUsername());
+      throw new RuntimeException("Username is already taken.");
     }
 
     UserRepresentation user = new UserRepresentation();
@@ -122,7 +122,13 @@ public class UserManagementService {
     Response response = getUsersResource().create(user);
 
     if (response.getStatus() != 201) {
-      throw new RuntimeException("Failed to create user. Status: " + response.getStatus());
+      String msg =
+          switch (response.getStatus()) {
+            case 400 -> "Invalid username. Usernames cannot contain spaces or special characters.";
+            case 409 -> "An account with this email address already exists.";
+            default -> "Failed to create user (status " + response.getStatus() + ").";
+          };
+      throw new RuntimeException(msg);
     }
 
     String userId = CreatedResponseUtil.getCreatedId(response);
@@ -382,11 +388,17 @@ public class UserManagementService {
             + "<td style='padding: 8px;'>"
             + username
             + "</td></tr>"
-            + "<tr><td style='padding: 8px; font-weight: bold;'>Temporary Password:</td>"
+            + "<tr><td style='padding: 8px; font-weight: bold;'>Password:</td>"
             + "<td style='padding: 8px; font-family: monospace;'>"
             + tempPassword
             + "</td></tr>"
             + "</table>"
+            + "<p>You can change your password at any time from your profile settings.</p>"
+            + "<a href='"
+            + frontendUrl
+            + "' style='display: inline-block; margin: 16px 0; padding: 12px 24px;"
+            + " background-color: #1a73e8; color: #ffffff; text-decoration: none;"
+            + " border-radius: 4px; font-weight: bold;'>Go to Dashboard</a>"
             + "<p style='color: #888; font-size: 12px;'>If you did not expect this email, "
             + "please ignore it.</p>"
             + "</div>";

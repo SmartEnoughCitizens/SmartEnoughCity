@@ -240,6 +240,9 @@ def predict_ridership_2025(ridership_df: pd.DataFrame) -> pd.DataFrame:
 
     Fits a line through the 10 available year columns (2014-2024, no 2020)
     and extrapolates to 2025. Negative predictions are clipped to 0.
+    Stations with a NaN in any of the fit-window years are skipped; they
+    will appear as NaN after the downstream left join and pandas' groupby
+    sum will drop them cleanly.
 
     Args:
         ridership_df: Ridership dataframe from load_train_station_ridership()
@@ -251,9 +254,18 @@ def predict_ridership_2025(ridership_df: pd.DataFrame) -> pd.DataFrame:
     x = np.array(_RIDERSHIP_YEARS, dtype=float).reshape(-1, 1)
     x_2025 = np.array([[2025.0]])
 
+    usable_df = ridership_df.dropna(subset=year_cols)
+    skipped = len(ridership_df) - len(usable_df)
+    if skipped:
+        logger.info(
+            "  Skipping %d station(s) with missing ridership in %s.",
+            skipped,
+            year_cols,
+        )
+
     model = LinearRegression()
     predictions = []
-    for _, row in ridership_df.iterrows():
+    for _, row in usable_df.iterrows():
         y = np.array([row[col] for col in year_cols], dtype=float)
         model.fit(x, y)
         predicted = model.predict(x_2025)[0]
@@ -394,22 +406,18 @@ def build_utilisation_json(utilisation_df: pd.DataFrame) -> list[dict]:
 
 def save_recommendation_to_db(utilisation_json: list[dict]) -> None:
     """
-    Insert the recommendation JSON into the recommendations table.
-
-    Skips the insert if an identical recommendation already exists in the table
-    for the same indicator and usecase.
+    Save each train recommendation as its own DB row (one row per item).
+    Deletes all pending rows for the indicator before inserting fresh ones.
 
     Args:
         utilisation_json: Output of build_utilisation_json()
     """
-    recommendation_str = json.dumps(utilisation_json)
+    if not utilisation_json:
+        return
 
-    check_query = text("""
-        SELECT 1 FROM backend.recommendations
-        WHERE indicator = :indicator
-          AND usecase = :usecase
-          AND CAST(recommendation AS text) = CAST(CAST(:recommendation AS jsonb) AS text)
-        LIMIT 1
+    delete_query = text("""
+        DELETE FROM backend.recommendations
+        WHERE indicator = :indicator AND usecase = :usecase AND status = 'pending'
     """)
 
     insert_query = text("""
@@ -417,22 +425,25 @@ def save_recommendation_to_db(utilisation_json: list[dict]) -> None:
         VALUES (:indicator, CAST(:recommendation AS jsonb), :usecase, :simulation, :deleted, :status, NOW())
     """)
 
-    params = {
-        "indicator": "Train",
-        "usecase": "utilisation_train",
-        "recommendation": recommendation_str,
-        "simulation": "",
-        "deleted": False,
-        "status": "pending",
-    }
-
     with engine.begin() as conn:
-        exists = conn.execute(check_query, params).fetchone()
-        if exists:
-            logger.info("  Recommendation already exists in DB — skipping insert.")
-        else:
-            conn.execute(insert_query, params)
-            logger.info("  Recommendation inserted into DB successfully.")
+        conn.execute(
+            delete_query, {"indicator": "Train", "usecase": "utilisation_train"}
+        )
+        for item in utilisation_json:
+            conn.execute(
+                insert_query,
+                {
+                    "indicator": "Train",
+                    "usecase": "utilisation_train",
+                    "recommendation": json.dumps(item),
+                    "simulation": "",
+                    "deleted": False,
+                    "status": "pending",
+                },
+            )
+    logger.info(
+        "  Saved %d train recommendations as individual rows.", len(utilisation_json)
+    )
 
 
 def save_distribution_to_csv(result_df: pd.DataFrame) -> None:

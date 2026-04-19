@@ -2,8 +2,9 @@
  * Tram dashboard — matches CycleDashboard design
  * Right-side floating panel, MUI Tabs, theme-aware
  *
- * 5 tabs: Live | Delays | Usage | Common Delays | Recommendations
- * Map: Live/Delays=standard, Usage=sized markers, CommonDelays=delay-sized markers
+ * 7 tabs: Live | Delays | Usage | Common Delays | Simulation | Approvals | Recommendations
+ * Map: Live/Delays=standard, Usage=sized markers, CommonDelays=delay-sized markers,
+ *      Simulation=demand-coloured markers
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -22,6 +23,16 @@ import {
   ListItemButton,
   Select,
   MenuItem,
+  Button,
+  Slider,
+  FormControl,
+  InputLabel,
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -35,6 +46,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import HistoryIcon from "@mui/icons-material/History";
+import SpeedIcon from "@mui/icons-material/Speed";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import {
@@ -43,15 +55,24 @@ import {
   useTramDelays,
   useTramStopUsage,
   useTramCommonDelays,
+  useTramStopDemand,
+  useSimulateTramDemand,
   useTramRecommendations,
 } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  approvalApi,
+  type ApprovalRequestDTO,
+  type CreateApprovalDTO,
+} from "@/api/approval.api";
 import { safeJsonParse } from "@/utils/safeJsonParse";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 import type {
   TramLiveForecast,
+  TramStopDemand,
   TramStopUsage,
   TramRecommendationItem,
 } from "@/types";
@@ -61,11 +82,21 @@ import type {
 const DUBLIN_CENTER: [number, number] = [53.3398, -6.2603];
 type LineFilter = "" | "red" | "green";
 
-/** Simple schema that validates parsed JSON is an array of recommendation items. */
-const tramRecommendationItemsSchema = {
-  parse(data: unknown): TramRecommendationItem[] {
-    if (!Array.isArray(data)) return [];
-    return data as TramRecommendationItem[];
+/** Each tram recommendation row is now stored as a single item (not an array). */
+type TramRecItem = TramRecommendationItem & { rowId: number };
+
+/** Schema that accepts a single recommendation object (new per-row format). */
+const tramRecommendationItemSchema = {
+  parse(data: unknown): TramRecommendationItem | null {
+    if (
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      "Name" in data
+    ) {
+      return data as TramRecommendationItem;
+    }
+    return null;
   },
 };
 
@@ -116,10 +147,13 @@ const TIME_PERIODS = [
 // ── CSS ──────────────────────────────────────────────────────────
 
 const INJECTED_CSS = `
-  .leaflet-popup-content-wrapper { background:rgba(13,17,23,0.96)!important;color:#e6edf3!important;border:1px solid rgba(255,255,255,0.10)!important;border-radius:12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.55)!important; }
+  .leaflet-popup-content-wrapper { background:rgba(13,17,23,0.96)!important;color:#e6edf3!important;border:1px solid rgba(255,255,255,0.10)!important;border-radius:12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.55)!important;padding:0!important; }
   .leaflet-popup-tip { background:rgba(13,17,23,0.96)!important; }
   .leaflet-popup-close-button { color:#8b949e!important;top:8px!important;right:8px!important; }
   .leaflet-popup-content { margin:14px 16px!important; }
+  .tram-sim-popup .leaflet-popup-content-wrapper { background:#fff!important;color:#111827!important;border:1px solid rgba(0,0,0,0.08)!important;border-radius:12px!important;box-shadow:0 6px 24px rgba(0,0,0,0.14)!important; }
+  .tram-sim-popup .leaflet-popup-tip { background:#fff!important; }
+  .tram-sim-popup .leaflet-popup-close-button { color:#6b7280!important; }
   .tram-pin { border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.50),0 0 0 2px rgba(255,255,255,0.20);transition:transform 0.15s ease;cursor:pointer; }
   .tram-pin:hover { transform:scale(1.25); }
 `;
@@ -169,6 +203,26 @@ function makeDelayIcon(avgDelay: number): L.DivIcon {
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2 - 4],
+  });
+}
+
+// ── Demand colour helpers (simulation tab) ────────────────────────
+
+/** hue 120 (green) → 0 (red) based on normalised demand score 0–1 */
+function demandColor(score: number): string {
+  const hue = Math.round((1 - score) * 120);
+  return `hsl(${hue}, 80%, 42%)`;
+}
+
+function makeDemandIcon(score: number, affected: boolean): L.DivIcon {
+  const color = demandColor(score);
+  const ring = affected ? `box-shadow:0 0 0 3px #fff,0 0 0 5px ${color};` : "";
+  return L.divIcon({
+    html: `<div class="tram-pin" style="width:20px;height:20px;background:${color};border:2px solid rgba(255,255,255,0.85);${ring}"></div>`,
+    className: "",
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -14],
   });
 }
 
@@ -305,7 +359,71 @@ export const TramDashboard = () => {
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState("morning");
 
+  // Simulation state
+  const [simLine, setSimLine] = useState<"red" | "green">("red");
+  const [simExtraTrams, setSimExtraTrams] = useState(5);
+  const [simResult, setSimResult] = useState<{
+    baseDemand: TramStopDemand[];
+    simulatedDemand: TramStopDemand[];
+    affectedStopIds: string[];
+  } | null>(null);
+
   const theme = useAppSelector((state) => state.ui.theme);
+  const roles = useAppSelector((state) => state.auth.roles);
+  const isTramAdmin =
+    roles.includes("Tram_Admin") && !roles.includes("City_Manager");
+  const isCityManager = roles.includes("City_Manager");
+
+  // ── Approvals ───────────────────────────────────────────────────────────
+  const queryClient = useQueryClient();
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<
+    "APPROVED" | "DENIED" | null
+  >(null);
+
+  const { data: tramApprovals = [], isLoading: approvalsLoading } = useQuery<
+    ApprovalRequestDTO[]
+  >({
+    queryKey: ["approvals", "tram"],
+    queryFn: () => approvalApi.list("tram"),
+    enabled: tabValue === 5,
+    refetchInterval: 30_000,
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: number;
+      status: "APPROVED" | "DENIED";
+    }) =>
+      approvalApi.review(id, { status, reviewNote: reviewNote || undefined }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
+      setReviewingId(null);
+      setReviewNote("");
+      setPendingStatus(null);
+    },
+  });
+
+  // ── Rec approval ────────────────────────────────────────────────────────
+  const [selectedRecs, setSelectedRecs] = useState<Set<number>>(new Set());
+  const [tramConfirmOpen, setTramConfirmOpen] = useState(false);
+  const [tramSnackbar, setTramSnackbar] = useState(false);
+
+  const submitTramApprovalMutation = useMutation({
+    mutationFn: (dtos: CreateApprovalDTO[]) => approvalApi.createBatch(dtos),
+    onSuccess: () => {
+      setSelectedRecs(new Set());
+      setTramConfirmOpen(false);
+      setTramSnackbar(true);
+      setTabValue(5);
+      queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
+      queryClient.invalidateQueries({ queryKey: ["tram", "recommendations"] });
+    },
+  });
   const { data: kpis } = useTramKpis();
   const { data: liveForecasts, isLoading, error } = useTramLiveForecasts();
   const { data: delays } = useTramDelays();
@@ -316,19 +434,21 @@ export const TramDashboard = () => {
     selectedPeriod.endHour,
   );
   const { data: commonDelays } = useTramCommonDelays();
+  const { data: stopDemandData = [] } = useTramStopDemand();
+  const simulateMutation = useSimulateTramDemand();
   const { data: rawRecommendations } = useTramRecommendations();
 
-  // Parse the recommendation JSON strings into typed items
-  const recommendations = useMemo(() => {
+  // Parse each recommendation row (one item per row) into typed items with rowId
+  const recommendations = useMemo((): TramRecItem[] => {
     if (!rawRecommendations || rawRecommendations.length === 0) return [];
-    const items: TramRecommendationItem[] = [];
+    const items: TramRecItem[] = [];
     for (const rec of rawRecommendations) {
       try {
         const parsed = safeJsonParse(
           rec.recommendation,
-          tramRecommendationItemsSchema,
+          tramRecommendationItemSchema,
         );
-        items.push(...parsed);
+        if (parsed) items.push({ ...parsed, rowId: rec.id });
       } catch {
         // skip malformed entries
       }
@@ -458,8 +578,68 @@ export const TramDashboard = () => {
     [],
   );
 
+  // Simulation helpers
+  const activeDemand: TramStopDemand[] = useMemo(
+    () => simResult?.simulatedDemand ?? stopDemandData,
+    [simResult, stopDemandData],
+  );
+  const affectedSet = useMemo(
+    () => new Set(simResult?.affectedStopIds),
+    [simResult],
+  );
+  const simMetrics = useMemo(() => {
+    if (!simResult || simResult.affectedStopIds.length === 0) return null;
+    const baseMap = new Map(simResult.baseDemand.map((d) => [d.stopId, d]));
+    let totalRelief = 0;
+    let peakStop: TramStopDemand | null = null;
+    let peakRelief = 0;
+    let validCount = 0;
+    for (const id of simResult.affectedStopIds) {
+      const base = baseMap.get(id);
+      const sim = simResult.simulatedDemand.find((d) => d.stopId === id);
+      if (!base || !sim || base.demandScore === 0) continue;
+      const relief =
+        ((base.demandScore - sim.demandScore) / base.demandScore) * 100;
+      totalRelief += relief;
+      if (relief > peakRelief) {
+        peakRelief = relief;
+        peakStop = sim;
+      }
+      validCount++;
+    }
+    return {
+      count: simResult.affectedStopIds.length,
+      avgReliefPct: validCount > 0 ? totalRelief / validCount : 0,
+      peakStop,
+      peakRelief,
+    };
+  }, [simResult]);
+
+  const handleSimulate = () => {
+    simulateMutation.reset();
+    simulateMutation.mutate(
+      { line: simLine, extraTrams: simExtraTrams },
+      {
+        onSuccess: (res) =>
+          setSimResult({
+            simulatedDemand: res.simulatedDemand,
+            baseDemand: res.baseDemand,
+            affectedStopIds: res.affectedStopIds,
+          }),
+      },
+    );
+  };
+
   const activeTab = (
-    ["live", "delays", "usage", "commonDelays", "recommendations"] as const
+    [
+      "live",
+      "delays",
+      "usage",
+      "commonDelays",
+      "simulation",
+      "approvals",
+      "recommendations",
+    ] as const
   )[tabValue];
   const panelWidth = 400;
 
@@ -486,6 +666,7 @@ export const TramDashboard = () => {
         zoom={12}
         style={{ height: "100%", width: "100%" }}
         zoomControl={false}
+        className={activeTab === "simulation" ? "tram-sim-popup" : undefined}
       >
         <TileLayer attribution={tileAttr} url={tileUrl} />
         <MapController target={flyTarget} />
@@ -753,6 +934,92 @@ export const TramDashboard = () => {
                 </Popup>
               </Marker>
             ))}
+
+        {/* Simulation → demand-coloured markers */}
+        {activeTab === "simulation" &&
+          activeDemand
+            .filter((s) => s.lat != null && s.lon != null)
+            .map((s) => {
+              const isAffected = affectedSet.has(s.stopId);
+              const base = simResult?.baseDemand.find(
+                (b) => b.stopId === s.stopId,
+              );
+              return (
+                <Marker
+                  key={s.stopId}
+                  position={[s.lat!, s.lon!]}
+                  icon={makeDemandIcon(s.demandScore, isAffected)}
+                  eventHandlers={{
+                    click: () => handleStopClick(s.lat!, s.lon!, s.stopId),
+                  }}
+                >
+                  <Popup>
+                    <Box sx={{ minWidth: 200 }}>
+                      <Typography
+                        fontWeight={700}
+                        sx={{ fontSize: "0.95rem", color: "#111827", mb: 0.25 }}
+                      >
+                        {s.stopName}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={`${s.line} line`}
+                        sx={{
+                          fontSize: "0.62rem",
+                          height: 16,
+                          textTransform: "capitalize",
+                          bgcolor: LINE_COLORS[s.line] + "22",
+                          color: LINE_COLORS[s.line],
+                          border: `1px solid ${LINE_COLORS[s.line]}44`,
+                          mb: 0.75,
+                        }}
+                      />
+                      {base && isAffected ? (
+                        <>
+                          <Typography
+                            sx={{ fontSize: "0.72rem", color: "#374151" }}
+                          >
+                            Before:{" "}
+                            <strong>
+                              {(base.demandScore * 100).toFixed(1)}%
+                            </strong>
+                          </Typography>
+                          <Typography
+                            sx={{ fontSize: "0.72rem", color: "#059669" }}
+                          >
+                            After:{" "}
+                            <strong>{(s.demandScore * 100).toFixed(1)}%</strong>{" "}
+                            (
+                            {(
+                              ((base.demandScore - s.demandScore) /
+                                base.demandScore) *
+                              100
+                            ).toFixed(1)}
+                            % relief)
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: "0.68rem",
+                              color: "#6b7280",
+                              mt: 0.5,
+                            }}
+                          >
+                            Trips: {base.tripCount} → {s.tripCount}
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography
+                          sx={{ fontSize: "0.72rem", color: "#374151" }}
+                        >
+                          Demand:{" "}
+                          <strong>{(s.demandScore * 100).toFixed(1)}%</strong>
+                        </Typography>
+                      )}
+                    </Box>
+                  </Popup>
+                </Marker>
+              );
+            })}
       </MapContainer>
 
       {error && (
@@ -845,63 +1112,73 @@ export const TramDashboard = () => {
             <Tab label={`Live (${filteredForecasts.length})`} />
             <Tab label={`Delays (${filteredDelays.length})`} />
             <Tab label={`Usage (${filteredUsage.length})`} />
-            <Tab label={`Delays H. (${filteredCommonDelays.length})`} />
-            <Tab label={`Recs (${filteredRecommendations.length})`} />
+            <Tab label={`Common Delays (${filteredCommonDelays.length})`} />
+            <Tab label="Simulation" />
+            <Tab
+              label={`Approvals${tramApprovals.some((a) => a.status === "PENDING") ? ` (${tramApprovals.filter((a) => a.status === "PENDING").length})` : ""}`}
+            />
+            <Tab
+              label={`Recommendations (${filteredRecommendations.length})`}
+            />
           </Tabs>
 
-          {/* Line filter + Search */}
-          <Box
-            sx={{
-              px: 2,
-              pt: 1.5,
-              display: "flex",
-              gap: 1,
-              alignItems: "center",
-            }}
-          >
-            {(["", "red", "green"] as LineFilter[]).map((key) => {
-              const active = lineFilter === key;
-              const label =
-                key === "" ? "All" : key === "red" ? "Red" : "Green";
-              return (
-                <Chip
-                  key={key || "all"}
+          {/* Line filter + Search — hidden on simulation and approvals tabs */}
+          {tabValue !== 4 && tabValue !== 5 && (
+            <>
+              <Box
+                sx={{
+                  px: 2,
+                  pt: 1.5,
+                  display: "flex",
+                  gap: 1,
+                  alignItems: "center",
+                }}
+              >
+                {(["", "red", "green"] as LineFilter[]).map((key) => {
+                  const active = lineFilter === key;
+                  const label =
+                    key === "" ? "All" : key === "red" ? "Red" : "Green";
+                  return (
+                    <Chip
+                      key={key || "all"}
+                      size="small"
+                      label={label}
+                      onClick={() => setLineFilter(key)}
+                      sx={{
+                        fontSize: "0.7rem",
+                        cursor: "pointer",
+                        bgcolor: active
+                          ? key === ""
+                            ? "primary.main"
+                            : LINE_COLORS[key]
+                          : "action.hover",
+                        color: active ? "#fff" : "text.secondary",
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+              <Box sx={{ px: 2, py: 1 }}>
+                <TextField
                   size="small"
-                  label={label}
-                  onClick={() => setLineFilter(key)}
-                  sx={{
-                    fontSize: "0.7rem",
-                    cursor: "pointer",
-                    bgcolor: active
-                      ? key === ""
-                        ? "primary.main"
-                        : LINE_COLORS[key]
-                      : "action.hover",
-                    color: active ? "#fff" : "text.secondary",
+                  fullWidth
+                  placeholder="Search stops…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ fontSize: 16 }} />
+                        </InputAdornment>
+                      ),
+                      sx: { fontSize: "0.85rem", borderRadius: 2 },
+                    },
                   }}
                 />
-              );
-            })}
-          </Box>
-          <Box sx={{ px: 2, py: 1 }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Search stops…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 16 }} />
-                    </InputAdornment>
-                  ),
-                  sx: { fontSize: "0.85rem", borderRadius: 2 },
-                },
-              }}
-            />
-          </Box>
+              </Box>
+            </>
+          )}
 
           {/* Time period dropdown — Usage tab only */}
           {tabValue === 2 && (
@@ -1240,6 +1517,294 @@ export const TramDashboard = () => {
                 );
               })}
 
+            {/* SIMULATION */}
+            {tabValue === 4 && (
+              <Box sx={{ px: 1.5, pt: 1 }}>
+                {/* Controls */}
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1.5, mb: 1.5, borderRadius: 2 }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: "0.7rem",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                      color: "text.secondary",
+                      display: "block",
+                      mb: 1,
+                    }}
+                  >
+                    Add Extra Trams
+                  </Typography>
+                  <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
+                    <InputLabel sx={{ fontSize: "0.8rem" }}>Line</InputLabel>
+                    <Select
+                      value={simLine}
+                      label="Line"
+                      onChange={(e) => {
+                        setSimLine(e.target.value);
+                        setSimResult(null);
+                      }}
+                      sx={{ fontSize: "0.8rem" }}
+                    >
+                      <MenuItem value="red">
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              bgcolor: "#DC2626",
+                            }}
+                          />
+                          Red Line
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="green">
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              bgcolor: "#16A34A",
+                            }}
+                          />
+                          Green Line
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontSize: "0.75rem", color: "text.secondary" }}
+                  >
+                    Extra trams:{" "}
+                    <strong style={{ color: "inherit" }}>
+                      {simExtraTrams}
+                    </strong>
+                  </Typography>
+                  <Slider
+                    value={simExtraTrams}
+                    min={1}
+                    max={20}
+                    step={1}
+                    marks={[
+                      { value: 1, label: "1" },
+                      { value: 10, label: "10" },
+                      { value: 20, label: "20" },
+                    ]}
+                    onChange={(_, v) => {
+                      setSimExtraTrams(Array.isArray(v) ? v[0] : v);
+                      setSimResult(null);
+                    }}
+                    sx={{ mt: 0.5, mb: 1 }}
+                  />
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="small"
+                    onClick={handleSimulate}
+                    disabled={simulateMutation.isPending}
+                    startIcon={
+                      simulateMutation.isPending ? (
+                        <CircularProgress size={14} color="inherit" />
+                      ) : (
+                        <SpeedIcon sx={{ fontSize: 16 }} />
+                      )
+                    }
+                  >
+                    {simulateMutation.isPending ? "Running…" : "Run Simulation"}
+                  </Button>
+                  {simulateMutation.isError && (
+                    <Alert
+                      severity="error"
+                      sx={{ mt: 1, fontSize: "0.72rem", py: 0.25 }}
+                    >
+                      Simulation failed
+                    </Alert>
+                  )}
+                </Paper>
+
+                {/* Results summary */}
+                {simResult && simMetrics && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      mb: 1.5,
+                      borderRadius: 2,
+                      bgcolor: "success.light" + "18",
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: "0.7rem",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        color: "success.main",
+                        display: "block",
+                        mb: 0.75,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Simulation Results
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontSize: "0.65rem",
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                          }}
+                        >
+                          Stops affected
+                        </Typography>
+                        <Typography fontWeight={700} sx={{ fontSize: "1rem" }}>
+                          {simMetrics.count}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontSize: "0.65rem",
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                          }}
+                        >
+                          Avg relief
+                        </Typography>
+                        <Typography
+                          fontWeight={700}
+                          sx={{ fontSize: "1rem", color: "success.main" }}
+                        >
+                          {simMetrics.avgReliefPct.toFixed(1)}%
+                        </Typography>
+                      </Box>
+                      {simMetrics.peakStop && (
+                        <Box>
+                          <Typography
+                            sx={{
+                              fontSize: "0.65rem",
+                              color: "text.secondary",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.4,
+                            }}
+                          >
+                            Peak relief
+                          </Typography>
+                          <Typography
+                            fontWeight={700}
+                            sx={{ fontSize: "0.85rem", color: "success.dark" }}
+                          >
+                            {simMetrics.peakStop.stopName} (
+                            {simMetrics.peakRelief.toFixed(1)}%)
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="inherit"
+                      sx={{ mt: 1, fontSize: "0.7rem", py: 0.25 }}
+                      onClick={() => setSimResult(null)}
+                    >
+                      Clear
+                    </Button>
+                  </Paper>
+                )}
+
+                {/* Per-stop demand list */}
+                {activeDemand
+                  .filter((s) => !simLine || s.line === simLine)
+                  .toSorted((a, b) => b.demandScore - a.demandScore)
+                  .map((s) => {
+                    const base = simResult?.baseDemand.find(
+                      (b) => b.stopId === s.stopId,
+                    );
+                    const relief =
+                      base && base.demandScore > 0
+                        ? ((base.demandScore - s.demandScore) /
+                            base.demandScore) *
+                          100
+                        : 0;
+                    const color = demandColor(s.demandScore);
+                    return (
+                      <ListItemButton
+                        key={s.stopId}
+                        onClick={() => {
+                          if (s.lat != null && s.lon != null)
+                            handleStopClick(s.lat, s.lon, s.stopId);
+                        }}
+                        selected={selectedStopId === s.stopId}
+                        sx={{ py: 0.6, px: 1, borderRadius: 1.5, mb: 0.25 }}
+                      >
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: "50%",
+                            bgcolor: color,
+                            flexShrink: 0,
+                            mr: 1.5,
+                            border: affectedSet.has(s.stopId)
+                              ? "2px solid #fff"
+                              : "none",
+                            boxShadow: affectedSet.has(s.stopId)
+                              ? `0 0 0 2px ${color}`
+                              : "none",
+                          }}
+                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography noWrap sx={{ fontSize: "0.8rem" }}>
+                            {s.stopName}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                          <Typography
+                            sx={{ fontSize: "0.75rem", fontWeight: 700, color }}
+                          >
+                            {(s.demandScore * 100).toFixed(0)}%
+                          </Typography>
+                          {relief > 0 && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.62rem",
+                                color: "success.main",
+                              }}
+                            >
+                              -{relief.toFixed(0)}%
+                            </Typography>
+                          )}
+                        </Box>
+                      </ListItemButton>
+                    );
+                  })}
+
+                {activeDemand.length === 0 && (
+                  <Box sx={{ py: 4, textAlign: "center" }}>
+                    <SpeedIcon
+                      sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
+                    />
+                    <Typography color="text.secondary" fontSize="0.8rem">
+                      Select a line and run the simulation
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+
             {/* Empty states */}
             {tabValue === 0 && filteredForecasts.length === 0 && (
               <Box sx={{ py: 4, textAlign: "center" }}>
@@ -1282,10 +1847,294 @@ export const TramDashboard = () => {
               </Box>
             )}
 
+            {/* ── Tab 5: Approvals ─────────────────────────────────── */}
+            {tabValue === 5 && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={700}
+                  sx={{
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    color: "text.secondary",
+                  }}
+                >
+                  {isCityManager
+                    ? "All approval requests"
+                    : "My approval requests"}
+                </Typography>
+
+                {isCityManager && (
+                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                    {(["ALL", "PENDING", "APPROVED", "DENIED"] as const).map(
+                      (s) => {
+                        const count =
+                          s === "ALL"
+                            ? tramApprovals.length
+                            : tramApprovals.filter((a) => a.status === s)
+                                .length;
+                        return (
+                          <Chip
+                            key={s}
+                            size="small"
+                            label={`${s} (${count})`}
+                            sx={{
+                              fontSize: "0.62rem",
+                              height: 20,
+                              bgcolor:
+                                s === "PENDING"
+                                  ? "#fef3c7"
+                                  : s === "APPROVED"
+                                    ? "#dcfce7"
+                                    : s === "DENIED"
+                                      ? "#fee2e2"
+                                      : undefined,
+                              color:
+                                s === "PENDING"
+                                  ? "#92400e"
+                                  : s === "APPROVED"
+                                    ? "#166534"
+                                    : s === "DENIED"
+                                      ? "#991b1b"
+                                      : undefined,
+                            }}
+                          />
+                        );
+                      },
+                    )}
+                  </Box>
+                )}
+
+                {approvalsLoading && (
+                  <CircularProgress size={20} sx={{ alignSelf: "center" }} />
+                )}
+
+                {!approvalsLoading && tramApprovals.length === 0 && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      textAlign: "center",
+                      py: 2,
+                      display: "block",
+                    }}
+                  >
+                    No approval requests yet.
+                  </Typography>
+                )}
+
+                {tramApprovals
+                  .toSorted((a, b) => {
+                    if (a.status === "PENDING" && b.status !== "PENDING")
+                      return -1;
+                    if (b.status === "PENDING" && a.status !== "PENDING")
+                      return 1;
+                    return (
+                      new Date(b.createdAt).getTime() -
+                      new Date(a.createdAt).getTime()
+                    );
+                  })
+                  .map((req) => (
+                    <Box
+                      key={req.id}
+                      sx={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 2,
+                        p: 1.25,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.75,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.75,
+                        }}
+                      >
+                        <Chip
+                          size="small"
+                          label={req.status}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            fontWeight: 700,
+                            bgcolor:
+                              req.status === "PENDING"
+                                ? "#fef3c7"
+                                : req.status === "APPROVED"
+                                  ? "#dcfce7"
+                                  : "#fee2e2",
+                            color:
+                              req.status === "PENDING"
+                                ? "#92400e"
+                                : req.status === "APPROVED"
+                                  ? "#166534"
+                                  : "#991b1b",
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: "0.6rem",
+                            color: "text.secondary",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          APR-{String(req.id).padStart(6, "0")}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: "text.secondary",
+                            ml: "auto",
+                          }}
+                        >
+                          {new Date(req.createdAt).toLocaleDateString("en-IE", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </Typography>
+                      </Box>
+
+                      <Typography
+                        sx={{ fontSize: "0.72rem", color: "#374151" }}
+                      >
+                        {req.summary ?? "No summary provided."}
+                      </Typography>
+
+                      {isCityManager && (
+                        <Typography
+                          sx={{ fontSize: "0.62rem", color: "text.secondary" }}
+                        >
+                          Requested by: <strong>{req.requestedBy}</strong>
+                        </Typography>
+                      )}
+
+                      {req.reviewNote && (
+                        <Typography
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: "text.secondary",
+                            fontStyle: "italic",
+                          }}
+                        >
+                          Note: {req.reviewNote}
+                        </Typography>
+                      )}
+
+                      {isCityManager && req.status === "PENDING" && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.75,
+                            mt: 0.5,
+                          }}
+                        >
+                          {reviewingId === req.id ? (
+                            <>
+                              <TextField
+                                size="small"
+                                placeholder="Optional review note…"
+                                value={reviewNote}
+                                onChange={(e) => setReviewNote(e.target.value)}
+                                multiline
+                                rows={2}
+                                sx={{
+                                  "& .MuiInputBase-input": {
+                                    fontSize: "0.72rem",
+                                  },
+                                }}
+                              />
+                              <Box sx={{ display: "flex", gap: 0.75 }}>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color={
+                                    pendingStatus === "APPROVED"
+                                      ? "primary"
+                                      : "error"
+                                  }
+                                  sx={{ flex: 1, fontSize: "0.68rem" }}
+                                  disabled={reviewMutation.isPending}
+                                  onClick={() =>
+                                    reviewMutation.mutate({
+                                      id: req.id,
+                                      status: pendingStatus!,
+                                    })
+                                  }
+                                >
+                                  {reviewMutation.isPending
+                                    ? "Saving…"
+                                    : `Confirm ${pendingStatus === "APPROVED" ? "Approve" : "Deny"}`}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  sx={{
+                                    fontSize: "0.68rem",
+                                    color: "text.secondary",
+                                  }}
+                                  disabled={reviewMutation.isPending}
+                                  onClick={() => {
+                                    setReviewingId(null);
+                                    setReviewNote("");
+                                    setPendingStatus(null);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </Box>
+                            </>
+                          ) : (
+                            <Box sx={{ display: "flex", gap: 0.75 }}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
+                                sx={{ flex: 1, fontSize: "0.68rem" }}
+                                onClick={() => {
+                                  setReviewingId(req.id);
+                                  setPendingStatus("APPROVED");
+                                }}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                sx={{ flex: 1, fontSize: "0.68rem" }}
+                                onClick={() => {
+                                  setReviewingId(req.id);
+                                  setPendingStatus("DENIED");
+                                }}
+                              >
+                                Deny
+                              </Button>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+              </Box>
+            )}
+
             {/* RECOMMENDATIONS */}
-            {tabValue === 4 &&
-              filteredRecommendations.map((r, idx) => {
+            {tabValue === 6 &&
+              filteredRecommendations.map((r) => {
                 const a = r.Attributes;
+                const recKey = r.rowId;
                 const sevColor =
                   a.severity === "high"
                     ? "error.main"
@@ -1314,7 +2163,7 @@ export const TramDashboard = () => {
                           : "Rebalance";
                 return (
                   <Box
-                    key={idx}
+                    key={recKey}
                     sx={{
                       mx: 1,
                       mb: 1,
@@ -1328,57 +2177,85 @@ export const TramDashboard = () => {
                     <Box
                       sx={{
                         display: "flex",
-                        gap: 0.75,
-                        alignItems: "center",
-                        mb: 0.75,
-                        flexWrap: "wrap",
+                        alignItems: "flex-start",
+                        gap: 0.5,
                       }}
                     >
-                      <Chip
-                        size="small"
-                        label={sevLabel}
+                      <Box
                         sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          fontWeight: 700,
-                          bgcolor: sevColor,
-                          color: "#fff",
+                          display: "flex",
+                          gap: 0.75,
+                          alignItems: "center",
+                          mb: 0.75,
+                          flexWrap: "wrap",
+                          flex: 1,
                         }}
-                      />
-                      <Chip
-                        size="small"
-                        label={typeLabel}
-                        sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          fontWeight: 600,
-                          bgcolor: "action.selected",
-                          color: "text.primary",
-                        }}
-                      />
-                      <Chip
-                        size="small"
-                        label={a.line.charAt(0).toUpperCase() + a.line.slice(1)}
-                        sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          bgcolor: LINE_COLORS[a.line]
-                            ? LINE_COLORS[a.line] + "22"
-                            : "action.hover",
-                          color: LINE_COLORS[a.line] ?? "text.primary",
-                          border: `1px solid ${(LINE_COLORS[a.line] ?? "#607D8B") + "44"}`,
-                        }}
-                      />
-                      <Chip
-                        size="small"
-                        label={a.time_label}
-                        sx={{
-                          fontSize: "0.6rem",
-                          height: 18,
-                          bgcolor: "action.hover",
-                          color: "text.secondary",
-                        }}
-                      />
+                      >
+                        <Chip
+                          size="small"
+                          label={sevLabel}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            fontWeight: 700,
+                            bgcolor: sevColor,
+                            color: "#fff",
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={typeLabel}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            fontWeight: 600,
+                            bgcolor: "action.selected",
+                            color: "text.primary",
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={
+                            a.line.charAt(0).toUpperCase() + a.line.slice(1)
+                          }
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            bgcolor: LINE_COLORS[a.line]
+                              ? LINE_COLORS[a.line] + "22"
+                              : "action.hover",
+                            color: LINE_COLORS[a.line] ?? "text.primary",
+                            border: `1px solid ${(LINE_COLORS[a.line] ?? "#607D8B") + "44"}`,
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={a.time_label}
+                          sx={{
+                            fontSize: "0.6rem",
+                            height: 18,
+                            bgcolor: "action.hover",
+                            color: "text.secondary",
+                          }}
+                        />
+                      </Box>
+                      {isTramAdmin && (
+                        <Checkbox
+                          size="small"
+                          sx={{ p: 0, mt: "-2px" }}
+                          checked={selectedRecs.has(recKey)}
+                          onChange={(
+                            e: React.ChangeEvent<HTMLInputElement>,
+                          ) => {
+                            setSelectedRecs((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(recKey);
+                              else next.delete(recKey);
+                              return next;
+                            });
+                          }}
+                        />
+                      )}
                     </Box>
                     <Typography sx={{ fontSize: "0.78rem", lineHeight: 1.5 }}>
                       {a.description}
@@ -1386,7 +2263,7 @@ export const TramDashboard = () => {
                   </Box>
                 );
               })}
-            {tabValue === 4 && filteredRecommendations.length === 0 && (
+            {tabValue === 6 && filteredRecommendations.length === 0 && (
               <Box sx={{ py: 4, textAlign: "center" }}>
                 <LightbulbIcon
                   sx={{ fontSize: 32, color: "text.disabled", mb: 1 }}
@@ -1404,9 +2281,101 @@ export const TramDashboard = () => {
                 </Typography>
               </Box>
             )}
+
+            {/* ── Rec approval footer ── */}
+            {tabValue === 6 && isTramAdmin && (
+              <Box
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  p: 1,
+                  borderTop: 1,
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="small"
+                  color="primary"
+                  disabled={
+                    selectedRecs.size === 0 ||
+                    submitTramApprovalMutation.isPending
+                  }
+                  onClick={() => setTramConfirmOpen(true)}
+                  sx={{ fontSize: "0.72rem" }}
+                >
+                  {submitTramApprovalMutation.isPending
+                    ? "Sending…"
+                    : selectedRecs.size > 0
+                      ? `Send ${selectedRecs.size} for Approval`
+                      : submitTramApprovalMutation.isSuccess
+                        ? "Sent for approval ✓"
+                        : "Send for Approval"}
+                </Button>
+              </Box>
+            )}
           </Box>
         </Paper>
       )}
+
+      {/* ── Tram rec approval confirm dialog ── */}
+      <Dialog
+        open={tramConfirmOpen}
+        onClose={() => setTramConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontSize: "0.95rem", fontWeight: 600 }}>
+          Send for Approval
+        </DialogTitle>
+        <DialogContent>
+          <Typography fontSize="0.85rem">
+            Send {selectedRecs.size} recommendation
+            {selectedRecs.size === 1 ? "" : "s"} for City Manager approval?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            size="small"
+            onClick={() => setTramConfirmOpen(false)}
+            disabled={submitTramApprovalMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={submitTramApprovalMutation.isPending}
+            onClick={() => {
+              const selectedData = filteredRecommendations.filter((item) =>
+                selectedRecs.has(item.rowId),
+              );
+              submitTramApprovalMutation.mutate(
+                selectedData.map((item) => ({
+                  indicator: "tram",
+                  payloadJson: JSON.stringify(item),
+                  summary: `${item.Name}: ${item.Attributes.description}`,
+                  actionUrl: "/dashboard?view=tram&tab=approvals",
+                  recommendationId: item.rowId,
+                })),
+              );
+              setTramConfirmOpen(false);
+            }}
+          >
+            {submitTramApprovalMutation.isPending ? "Sending…" : "Confirm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={tramSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setTramSnackbar(false)}
+        message="Recommendations sent for approval"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Box>
   );
 };

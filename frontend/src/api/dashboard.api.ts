@@ -56,6 +56,9 @@ import type {
   TramRecommendation,
   TramAlternativeRoute,
   DayPlanDTO,
+  TramStopDemand,
+  TramDemandSimulateRequest,
+  TramDemandSimulateResponse,
 } from "@/types";
 
 export const dashboardApi = {
@@ -499,6 +502,25 @@ export const dashboardApi = {
   getTramCommonDelays: async (): Promise<TramCommonDelay[]> => {
     const { data } = await axiosInstance.get<TramCommonDelay[]>(
       API_ENDPOINTS.TRAM_COMMON_DELAYS,
+    );
+    return data;
+  },
+
+  /** Get demand score per tram stop (derived from GTFS trip frequency). */
+  getTramStopDemand: async (): Promise<TramStopDemand[]> => {
+    const { data } = await axiosInstance.get<TramStopDemand[]>(
+      API_ENDPOINTS.TRAM_STOP_DEMAND,
+    );
+    return data;
+  },
+
+  /** Simulate adding extra trams to a line and return updated demand scores. */
+  simulateTramDemand: async (
+    request: TramDemandSimulateRequest,
+  ): Promise<TramDemandSimulateResponse> => {
+    const { data } = await axiosInstance.post<TramDemandSimulateResponse>(
+      API_ENDPOINTS.TRAM_DEMAND_SIMULATE,
+      request,
     );
     return data;
   },

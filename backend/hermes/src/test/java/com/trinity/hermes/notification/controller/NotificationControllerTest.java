@@ -166,7 +166,7 @@ public class NotificationControllerTest {
               .totalCount(1L)
               .build();
 
-      when(notificationFacade.getAll("user-1")).thenReturn(response);
+      when(notificationFacade.getAll(eq("user-1"), anyInt(), anyInt())).thenReturn(response);
 
       mockMvc
           .perform(get("/api/notification/v1/user-1"))
@@ -190,7 +190,7 @@ public class NotificationControllerTest {
               .totalCount(0L)
               .build();
 
-      when(notificationFacade.getAll("user-99")).thenReturn(response);
+      when(notificationFacade.getAll(eq("user-99"), anyInt(), anyInt())).thenReturn(response);
 
       mockMvc
           .perform(get("/api/notification/v1/user-99"))

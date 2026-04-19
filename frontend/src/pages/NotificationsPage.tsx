@@ -7,6 +7,8 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  MenuItem,
+  Select,
   Tab,
   Tabs,
   Tooltip,
@@ -14,6 +16,9 @@ import {
   CircularProgress,
   Alert,
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -44,12 +49,19 @@ export const NotificationsPage = () => {
   const dispatch = useAppDispatch();
   const [tab, setTab] = useState(0);
   const [selected, setSelected] = useState<Notification | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
 
   useEffect(() => {
     dispatch(setNotificationBadgeCount(0));
   }, [dispatch]);
 
-  const { data, isLoading } = useUserNotifications(username || "", !!username);
+  const { data, isLoading } = useUserNotifications(
+    username || "",
+    !!username,
+    page,
+    pageSize,
+  );
   const { data: binData, isLoading: binLoading } = useNotificationBin(
     username || "",
     tab === 1,
@@ -61,7 +73,7 @@ export const NotificationsPage = () => {
 
   const inbox = data?.notifications ?? [];
   const bin = binData?.notifications ?? [];
-  const unreadCount = inbox.filter((n) => !n.read).length;
+  const unreadCount = data?.totalCount ?? inbox.filter((n) => !n.read).length;
 
   const handleOpen = (n: Notification) => {
     setSelected(n);
@@ -326,6 +338,75 @@ export const NotificationsPage = () => {
       <Box sx={{ flex: 1, overflow: "auto" }}>
         {tab === 0 ? renderList(inbox, false) : renderList(bin, true)}
       </Box>
+
+      {/* Pagination (inbox only) */}
+      {tab === 0 && (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            px: 4,
+            py: 1.5,
+            borderTop: 1,
+            borderColor: "divider",
+            bgcolor: "background.paper",
+            flexShrink: 0,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              Rows per page:
+            </Typography>
+            <Select
+              size="small"
+              value={pageSize}
+              onChange={(e: SelectChangeEvent<number>) => {
+                setPageSize(Number(e.target.value));
+                setPage(0);
+              }}
+              sx={{ fontSize: "0.75rem", height: 28 }}
+            >
+              {[10, 25, 100].map((s) => (
+                <MenuItem key={s} value={s} sx={{ fontSize: "0.8rem" }}>
+                  {s}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            {data?.totalItems !== undefined && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mr: 1 }}
+              >
+                {page * pageSize + 1}–
+                {Math.min((page + 1) * pageSize, data.totalItems)} of{" "}
+                {data.totalItems}
+              </Typography>
+            )}
+            <IconButton
+              size="small"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <NavigateBeforeIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              disabled={
+                data?.totalItems === undefined ||
+                (page + 1) * pageSize >= data.totalItems
+              }
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <NavigateNextIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Box>
+      )}
 
       {/* Detail dialog */}
       {selected &&

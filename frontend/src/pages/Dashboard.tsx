@@ -253,10 +253,8 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
       ? muiTheme.palette.error.main
       : muiTheme.palette.success.main;
 
-  const unreadCount = (notifData?.notifications ?? []).filter(
-    (n) => !n.read,
-  ).length;
-  const totalCount = notifData?.totalCount ?? 0;
+  const unreadCount = notifData?.totalCount ?? 0;
+  const totalCount = notifData?.totalItems ?? unreadCount;
 
   // ── Chart data ────────────────────────────────────────────────────────────
 
