@@ -181,8 +181,7 @@ public class TramDashboardService {
               luasStop.getStopId(), luasStop.getName().toLowerCase(Locale.ROOT));
       int[] dt = stopDirTrips.getOrDefault(gtfsName, new int[] {0, 0});
       int lineTotal = lineTotals.getOrDefault(luasStop.getLine(), 1);
-      // Usage uses combined hourly pct (key "-") as originally designed
-      double hourlyPct = hourlyPctByLine.getOrDefault("-", 0.0) / 100.0;
+      double hourlyPct = hourlyPctByLine.getOrDefault(luasStop.getLine(), 0.0) / 100.0;
       double dailyPax =
           dailyPassengers.getOrDefault(luasStop.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
       long estIn = Math.round((double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax);
@@ -254,9 +253,9 @@ public class TramDashboardService {
   private static final Map<String, Integer> TRAM_CAPACITY = Map.of("red", 200, "green", 300);
 
   /**
-   * Load daily passenger counts from CSO data using the same logic as the
-   * inference engine's load_daily_passengers() in tram_utilisation.py.
-   * Tries weekly data first, then monthly, then falls back to hardcoded values.
+   * Load daily passenger counts from CSO data using the same logic as the inference engine's
+   * load_daily_passengers() in tram_utilisation.py. Tries weekly data first, then monthly, then
+   * falls back to hardcoded values.
    */
   private Map<String, Double> loadDailyPassengers() {
     // 1. Try weekly CSO data (primary source — same query as Python)
@@ -275,7 +274,10 @@ public class TramDashboardService {
         else if (label.contains("green")) result.put("green", value / 7.0);
       }
       if (!result.isEmpty()) {
-        log.info("Daily passengers from CSO weekly: red={}, green={}", result.get("red"), result.get("green"));
+        log.info(
+            "Daily passengers from CSO weekly: red={}, green={}",
+            result.get("red"),
+            result.get("green"));
         return result;
       }
     } catch (Exception e) {
@@ -300,7 +302,10 @@ public class TramDashboardService {
         else if (label.contains("green")) result.put("green", value / 30.0);
       }
       if (!result.isEmpty()) {
-        log.info("Daily passengers from CSO monthly: red={}, green={}", result.get("red"), result.get("green"));
+        log.info(
+            "Daily passengers from CSO monthly: red={}, green={}",
+            result.get("red"),
+            result.get("green"));
         return result;
       }
     } catch (Exception e) {
@@ -354,8 +359,7 @@ public class TramDashboardService {
       // Estimate passengers: same formula as inference engine
       // hourlyPctByLine is keyed by "red" / "green" matching the recommendation engine
       double hourlyPct = hourlyPctByLine.getOrDefault(stop.getLine(), 0.0) / 100.0;
-      double dailyPax =
-          dailyPassengers.getOrDefault(stop.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
+      double dailyPax = dailyPassengers.getOrDefault(stop.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
       double estIn = (double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
       double estOut = (double) dt[0] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
       double estTotal = estIn + estOut;
