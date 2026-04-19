@@ -420,6 +420,16 @@ export const TramDashboard = () => {
   const [selectedRecs, setSelectedRecs] = useState<Set<number>>(new Set());
   const [tramConfirmOpen, setTramConfirmOpen] = useState(false);
   const [tramSnackbar, setTramSnackbar] = useState(false);
+  const [simSnackbar, setSimSnackbar] = useState(false);
+
+  const submitSimApprovalMutation = useMutation({
+    mutationFn: (dto: CreateApprovalDTO) => approvalApi.create(dto),
+    onSuccess: () => {
+      setSimSnackbar(true);
+      setTabValue(5);
+      void queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
+    },
+  });
 
   const submitTramApprovalMutation = useMutation({
     mutationFn: (dtos: CreateApprovalDTO[]) => approvalApi.createBatch(dtos),
@@ -1837,15 +1847,55 @@ export const TramDashboard = () => {
                         </Box>
                       )}
                     </Box>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="inherit"
-                      sx={{ mt: 1, fontSize: "0.7rem", py: 0.25 }}
-                      onClick={() => setSimResult(null)}
-                    >
-                      Clear
-                    </Button>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        sx={{ fontSize: "0.7rem", py: 0.25 }}
+                        onClick={() => setSimResult(null)}
+                      >
+                        Clear
+                      </Button>
+                      {isTramAdmin && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          sx={{ fontSize: "0.7rem", py: 0.25 }}
+                          disabled={
+                            submitSimApprovalMutation.isPending ||
+                            submitSimApprovalMutation.isSuccess
+                          }
+                          onClick={() => {
+                            if (!simResult || !simMetrics) return;
+                            submitSimApprovalMutation.mutate({
+                              indicator: "tram",
+                              actionUrl: "/dashboard?view=tram&tab=approvals",
+                              payloadJson: JSON.stringify({
+                                line: simLine,
+                                extraTrams: simExtraTrams,
+                                origin: simOrigin?.stopName,
+                                destination: simDest?.stopName,
+                                timePeriod: simPeriod.label,
+                                impact: {
+                                  stopsAffected: simMetrics.count,
+                                  avgReliefPct: `${simMetrics.avgReliefPct.toFixed(1)}%`,
+                                  peakStop: simMetrics.peakStop?.stopName,
+                                },
+                              }),
+                              summary: `Add ${simExtraTrams} tram(s) on ${simLine} line (${simOrigin?.stopName} → ${simDest?.stopName}). ${simMetrics.count} stop(s) affected, avg ${simMetrics.avgReliefPct.toFixed(1)}% relief.`,
+                            });
+                          }}
+                        >
+                          {submitSimApprovalMutation.isSuccess
+                            ? "Sent ✓"
+                            : submitSimApprovalMutation.isPending
+                              ? "Sending…"
+                              : "Send for approval"}
+                        </Button>
+                      )}
+                    </Box>
                   </Paper>
                 )}
 
@@ -2498,6 +2548,13 @@ export const TramDashboard = () => {
         autoHideDuration={4000}
         onClose={() => setTramSnackbar(false)}
         message="Recommendations sent for approval"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+      <Snackbar
+        open={simSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setSimSnackbar(false)}
+        message="Simulation sent for approval — redirecting to Approvals"
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
     </Box>

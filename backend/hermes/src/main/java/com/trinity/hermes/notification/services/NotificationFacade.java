@@ -161,29 +161,30 @@ public class NotificationFacade {
     payload.put("severity", solution.getSeverity());
     payload.put("disruptionType", solution.getDisruptionType());
 
-    // Use a dummy user or appropriate recipient logic
-    User user = User.builder().build();
-
-    Set<Notification> notifications = notificationService.createNotification(user, payload);
-    if (notifications == null) return;
-
-    List<String> userGroups =
-        solution.getAffectedUserGroups() != null ? solution.getAffectedUserGroups() : List.of();
-
-    for (Notification notification : notifications) {
-      if (Objects.nonNull(notification)
-          && (notification.getChannel() == Channel.EMAIL
-              || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
-        notificationDispatcher.dispatchMail(notification);
-      }
-      if (Objects.nonNull(notification)
-          && (notification.getChannel() == Channel.NOTIFICATION
-              || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
-        for (String userId : userGroups) {
-          notificationDispatcher.dispatchSse(userId, notification);
-        }
-      }
+    // Email — City_Manager only
+    try {
+      userManagementService
+          .getUsersByRole("City_Manager")
+          .forEach(
+              cm -> {
+                String email = cm.getEmail();
+                if (email == null || email.isBlank()) return;
+                User user = User.builder().id(cm.getId()).email(email).build();
+                Set<Notification> notifications =
+                    notificationService.createNotification(user, payload);
+                if (notifications == null) return;
+                for (Notification notification : notifications) {
+                  if (Objects.nonNull(notification)
+                      && (notification.getChannel() == Channel.EMAIL
+                          || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
+                    notificationDispatcher.dispatchMail(notification);
+                  }
+                }
+              });
+    } catch (Exception e) {
+      log.warn("Failed to send disruption email to City_Manager: {}", e.getMessage());
     }
+
   }
 
   public NotificationResponseDTO getAll(String userId, int page, int size) {
