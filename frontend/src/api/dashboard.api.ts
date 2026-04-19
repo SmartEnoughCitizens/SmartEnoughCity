@@ -6,6 +6,7 @@ import { axiosInstance } from "@/utils/axios";
 import { API_ENDPOINTS } from "@/config/api.config";
 import type {
   CoverageGapDTO,
+  EventPublicDTO,
   BusCommonDelay,
   BusNewStopRecommendation,
   BusRouteDetail,
@@ -54,6 +55,7 @@ import type {
   TramCommonDelay,
   TramRecommendation,
   TramAlternativeRoute,
+  DayPlanDTO,
 } from "@/types";
 
 export const dashboardApi = {
@@ -612,6 +614,20 @@ export const dashboardApi = {
     const { data } = await axiosInstance.get<DisruptionAlternative[]>(
       API_ENDPOINTS.PUBLIC_NEARBY_ALTERNATIVES,
       { params: { lat, lon } },
+    );
+    return data;
+  },
+
+  getPublicEvent: async (id: number): Promise<EventPublicDTO> => {
+    const { data } = await axiosInstance.get<EventPublicDTO>(
+      API_ENDPOINTS.PUBLIC_EVENT(id),
+    );
+    return data;
+  },
+
+  getDayPlan: async (date: string): Promise<DayPlanDTO> => {
+    const { data } = await axiosInstance.get<DayPlanDTO>(
+      API_ENDPOINTS.EVENTS_DAY_PLAN(date),
     );
     return data;
   },

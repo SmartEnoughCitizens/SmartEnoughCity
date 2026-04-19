@@ -9,7 +9,7 @@ export type DisruptionType =
 
 export interface DisruptionCause {
   id: number;
-  causeType: "EVENT" | "CONGESTION" | "CROSS_MODE";
+  causeType: "EVENT" | "CONGESTION" | "CROSS_MODE" | "UNKNOWN";
   causeDescription: string;
   confidence: "HIGH" | "MEDIUM" | "LOW";
 }
@@ -65,6 +65,40 @@ export interface DisruptionItem {
 
 /** Alias kept for compatibility with main-branch imports */
 export type ActiveDisruption = DisruptionItem;
+
+export interface DayPlanEventRef {
+  id: number;
+  eventName: string;
+  venueName: string;
+  startTime: string | null;
+  riskLevel: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  distanceM: number;
+}
+
+export interface DayPlanStop {
+  stopId: string;
+  stopName: string;
+  lat: number | null;
+  lon: number | null;
+  routes: string[];
+  availableBikes: number | null;
+  events: DayPlanEventRef[];
+}
+
+export interface DayPlanMode {
+  mode: string;
+  stops: DayPlanStop[];
+}
+
+export interface DayPlanDTO {
+  date: string;
+  modes: DayPlanMode[];
+}
+
+/** Public event detail returned by GET /api/public/events/:id */
+export interface EventPublicDTO extends EventItem {
+  nearbyTransport: DisruptionAlternative[];
+}
 
 /** A city event (concert, match, festival, etc.) returned by the events API. */
 export interface EventItem {

@@ -126,6 +126,7 @@ export const API_ENDPOINTS = {
   // Events
   EVENTS: "/api/v1/events",
   EVENTS_UPCOMING: "/api/v1/events",
+  EVENTS_DAY_PLAN: (date: string) => `/api/v1/events/day-plan?date=${date}`,
 
   // Disruptions
   DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
@@ -136,6 +137,7 @@ export const API_ENDPOINTS = {
     `/api/v1/disruptions/transport/${mode}`,
   PUBLIC_DISRUPTION: (id: number) => `/api/public/disruptions/${id}`,
   PUBLIC_NEARBY_ALTERNATIVES: "/api/public/disruptions/alternatives",
+  PUBLIC_EVENT: (id: number) => `/api/public/events/${id}`,
 
   // EV Charging Indicators
   EV_CHARGING_STATIONS: "/api/v1/ev/charging-stations",

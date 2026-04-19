@@ -12,6 +12,7 @@ import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import TrainIcon from "@mui/icons-material/Train";
 import TramIcon from "@mui/icons-material/Tram";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import {
@@ -730,6 +731,61 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                   highCount > 0 ? muiTheme.palette.warning.main : undefined
                 }
               />
+              {(disruptions ?? []).length > 0 && (
+                <Box sx={{ mt: 1.5 }}>
+                  {[...disruptions!]
+                    .sort((a, b) => {
+                      const order: Record<string, number> = {
+                        CRITICAL: 0,
+                        HIGH: 1,
+                        MEDIUM: 2,
+                        LOW: 3,
+                      };
+                      return (
+                        (order[a.severity] ?? 4) - (order[b.severity] ?? 4)
+                      );
+                    })
+                    .slice(0, 3)
+                    .map((d) => {
+                      const sevColor =
+                        d.severity === "CRITICAL"
+                          ? muiTheme.palette.error.dark
+                          : d.severity === "HIGH"
+                            ? muiTheme.palette.error.main
+                            : d.severity === "MEDIUM"
+                              ? muiTheme.palette.warning.main
+                              : muiTheme.palette.success.main;
+                      return (
+                        <Box
+                          key={d.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                            mb: 0.5,
+                          }}
+                        >
+                          <FiberManualRecordIcon
+                            sx={{ fontSize: 8, color: sevColor, flexShrink: 0 }}
+                          />
+                          <Typography
+                            variant="caption"
+                            noWrap
+                            sx={{ flex: 1 }}
+                          >
+                            {d.affectedArea ?? d.name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: sevColor, flexShrink: 0, fontWeight: 600 }}
+                          >
+                            {d.severity}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                </Box>
+              )}
             </IndicatorCard>
           </Box>
         </Box>

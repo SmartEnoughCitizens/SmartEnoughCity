@@ -20,6 +20,11 @@ const PublicDisruptionPage = lazy(() =>
     default: m.PublicDisruptionPage,
   })),
 );
+const PublicEventPage = lazy(() =>
+  import("@/pages/PublicEventPage").then((m) => ({
+    default: m.PublicEventPage,
+  })),
+);
 const ForgotPasswordPage = lazy(() =>
   import("@/pages/ForgotPasswordPage").then((m) => ({
     default: m.ForgotPasswordPage,
@@ -87,6 +92,14 @@ export const router = createBrowserRouter([
     element: (
       <LazyWrapper>
         <PublicDisruptionPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/public/event/:id",
+    element: (
+      <LazyWrapper>
+        <PublicEventPage />
       </LazyWrapper>
     ),
   },
