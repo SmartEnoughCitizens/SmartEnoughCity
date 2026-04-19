@@ -1547,7 +1547,7 @@ export const DisruptionDashboard = () => {
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
       <title>Day Plan – ${fmtDayLabel(selectedDay)}</title>
-      <style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1,h2,h3{margin:0 0 8px}table{width:100%;border-collapse:collapse;border:1px solid #ddd}td,th{border-bottom:1px solid #eee}@media print{a{color:#111}}</style>
+      <style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1,h2,h3{margin:0 0 8px}table{width:100%;border-collapse:collapse;border:1px solid #ddd}td,th{border-bottom:1px solid #eee}@media print{a{color:#111}@page{size:landscape}}</style>
       </head><body>
       <h1>SmartEnoughCity Transport Day Plan</h1>
       <h2>${fmtDayLabel(selectedDay)} · ${roleLabel()}</h2>
