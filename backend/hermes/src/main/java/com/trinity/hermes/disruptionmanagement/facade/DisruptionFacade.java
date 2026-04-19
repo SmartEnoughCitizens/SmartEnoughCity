@@ -87,43 +87,42 @@ public class DisruptionFacade {
         return null;
       }
 
-      // Step 2: Create disruption entity
+      // Step 2: Find existing ACTIVE disruption for this stop/site
+      if (request.getSourceReferenceId() != null) {
+        Optional<Disruption> existing =
+            disruptionRepository.findBySourceReferenceIdAndStatus(
+                request.getSourceReferenceId(), "ACTIVE");
+        if (existing.isPresent()) {
+          return mergeIntoExisting(existing.get(), request);
+        }
+      }
+
+      // Step 3: Create new disruption entity
       Disruption disruption = createDisruptionFromDetection(request);
       disruption.setStatus("DETECTED");
       disruption.setDetectedAt(LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin")));
-
-      // Save to repository to get actual ID
       disruption = disruptionRepository.save(disruption);
-
       incidentLoggingService.logDisruptionDetected(disruption);
 
-      // Step 3: Process the disruption
+      // Step 4: Process (alternatives + causes)
       disruption.setStatus("ANALYZING");
       DisruptionSolution solution = processDisruption(disruption);
 
-      // Step 4: Send to notification handler
+      // Step 5: Send notification — only once per disruption
       disruption.setStatus("NOTIFYING");
       boolean notificationSent = false;
       try {
-        notificationFacade.sendDisruptionNotification(solution);
+        sendNotificationForRoles(solution, disruption);
         notificationSent = true;
       } catch (Exception e) {
         log.warn("Notification failed for disruption {}: {}", disruption.getId(), e.getMessage());
       }
       disruption.setNotificationSent(notificationSent);
-
-      // Step 5: Mark ACTIVE regardless of notification outcome — the disruption
-      // is real even if the email/push failed (e.g. no SES config in dev).
       disruption.setStatus("ACTIVE");
       disruptionRepository.save(disruption);
-      log.info("Disruption processing completed successfully");
 
       long endTime = System.currentTimeMillis();
-      incidentLoggingService.logPerformanceMetrics(
-          disruption.getId(),
-          0L, // Detection latency (would be calculated from data source timestamp)
-          endTime - startTime);
-
+      incidentLoggingService.logPerformanceMetrics(disruption.getId(), 0L, endTime - startTime);
       log.info("=== DISRUPTION DETECTION COMPLETED in {}ms ===", endTime - startTime);
       return solution;
 
@@ -131,6 +130,92 @@ public class DisruptionFacade {
       log.error("Error processing disruption detection", e);
       throw new RuntimeException("Failed to process disruption", e);
     }
+  }
+
+  /**
+   * Update an existing ACTIVE disruption when the same stop/site is still affected. Merges new
+   * routes, extends the estimated end time, and escalates severity if needed. Sends a notification
+   * only if new routes were added — if the situation is unchanged, no duplicate alert is fired.
+   */
+  private DisruptionSolution mergeIntoExisting(
+      Disruption existing, DisruptionDetectionRequest request) {
+    List<String> current =
+        existing.getAffectedRoutes() != null
+            ? new ArrayList<>(existing.getAffectedRoutes())
+            : new ArrayList<>();
+    List<String> incoming =
+        request.getAffectedRoutes() != null ? request.getAffectedRoutes() : List.of();
+
+    List<String> added =
+        incoming.stream().filter(r -> !current.contains(r)).collect(Collectors.toList());
+    boolean routesChanged = !added.isEmpty();
+    boolean severityEscalated =
+        severityRank(request.getSeverity()) > severityRank(existing.getSeverity());
+
+    // Merge routes and update fields
+    current.addAll(added);
+    existing.setAffectedRoutes(current);
+    if (severityEscalated) existing.setSeverity(request.getSeverity());
+    if (request.getDelayMinutes() != null
+        && (existing.getDelayMinutes() == null
+            || request.getDelayMinutes() > existing.getDelayMinutes())) {
+      existing.setDelayMinutes(request.getDelayMinutes());
+    }
+    // Always extend life on each detection cycle
+    existing.setEstimatedEndTime(
+        LocalDateTime.now(java.time.ZoneId.of("Europe/Dublin"))
+            .plusMinutes(estimateEndMinutes(existing.getSeverity())));
+
+    if (!routesChanged && !severityEscalated) {
+      disruptionRepository.save(existing);
+      log.debug("Extended life of disruption id={} (no new routes)", existing.getId());
+      return null;
+    }
+
+    // Something meaningful changed — build solution and re-notify
+    existing.setNotificationSent(false);
+    disruptionRepository.save(existing);
+
+    DisruptionSolution solution = processDisruption(existing);
+    try {
+      sendNotificationForRoles(solution, existing);
+      existing.setNotificationSent(true);
+      disruptionRepository.save(existing);
+      log.info("Re-notified disruption id={}: added routes {}", existing.getId(), added);
+    } catch (Exception e) {
+      log.warn("Re-notification failed for disruption {}: {}", existing.getId(), e.getMessage());
+    }
+    return solution;
+  }
+
+  private int severityRank(String severity) {
+    return switch (severity != null ? severity : "") {
+      case "CRITICAL" -> 4;
+      case "HIGH" -> 3;
+      case "MEDIUM" -> 2;
+      case "LOW" -> 1;
+      default -> 0;
+    };
+  }
+
+  /**
+   * Sends disruption alerts to the correct recipients: city manager always receives all alerts;
+   * transport providers receive only alerts for their own mode.
+   */
+  private void sendNotificationForRoles(DisruptionSolution solution, Disruption disruption) {
+    List<String> roles = getRolesToNotify(disruption);
+    List<String> userIds = new ArrayList<>();
+    for (String role : roles) {
+      try {
+        userManagementService.getUsersByRole(role).stream()
+            .map(org.keycloak.representations.idm.UserRepresentation::getId)
+            .forEach(userIds::add);
+      } catch (Exception e) {
+        log.warn("Failed to fetch users for role {}: {}", role, e.getMessage());
+      }
+    }
+    solution.setAffectedUserGroups(userIds);
+    notificationFacade.sendDisruptionNotification(solution);
   }
 
   /**
@@ -227,11 +312,32 @@ public class DisruptionFacade {
 
   private List<String> getRolesToNotify(Disruption disruption) {
     List<String> modes = disruption.getAffectedTransportModes();
-    if (modes == null || modes.isEmpty()) return List.of("City_Manager");
-    if (modes.contains("BUS")) return List.of("Bus_Admin", "Bus_Provider", "City_Manager");
-    if (modes.contains("TRAIN")) return List.of("Train_Admin", "Train_Provider", "City_Manager");
-    if (modes.contains("TRAM")) return List.of("Tram_Admin", "Tram_Provider", "City_Manager");
-    return List.of("City_Manager");
+    List<String> roles = new ArrayList<>();
+    roles.add("City_Manager"); // city manager always receives all alerts
+    if (modes != null) {
+      if (modes.contains("BUS")) {
+        roles.add("Bus_Admin");
+        roles.add("Bus_Provider");
+      }
+      if (modes.contains("TRAIN")) {
+        roles.add("Train_Admin");
+        roles.add("Train_Provider");
+      }
+      if (modes.contains("TRAM")) {
+        roles.add("Tram_Admin");
+        roles.add("Tram_Provider");
+      }
+    }
+    return roles;
+  }
+
+  private int estimateEndMinutes(String severity) {
+    return switch (severity != null ? severity : "") {
+      case "CRITICAL" -> 120;
+      case "HIGH" -> 60;
+      case "MEDIUM" -> 30;
+      default -> 15;
+    };
   }
 
   /**
@@ -388,6 +494,7 @@ public class DisruptionFacade {
     disruption.setLatitude(request.getLatitude());
     disruption.setLongitude(request.getLongitude());
     disruption.setAffectedArea(request.getAffectedArea());
+    disruption.setStopId(request.getStopId());
 
     // Transport information
     disruption.setAffectedTransportModes(request.getAffectedTransportModes());
