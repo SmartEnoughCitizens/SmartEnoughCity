@@ -36,7 +36,7 @@ public class PublicEventController {
   @GetMapping("/{id}")
   public ResponseEntity<EventPublicDTO> getPublicEvent(@PathVariable Integer id) {
     return eventsRepository
-        .findById(id)
+        .findByIdWithVenue(id)
         .map(
             event -> {
               List<AlternativeDTO> nearby = buildNearbyTransport(event);
