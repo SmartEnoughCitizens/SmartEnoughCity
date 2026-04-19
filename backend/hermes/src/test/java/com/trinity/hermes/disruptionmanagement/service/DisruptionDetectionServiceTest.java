@@ -3,12 +3,10 @@ package com.trinity.hermes.disruptionmanagement.service;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.indicators.bus.repository.BusLiveStopTimeUpdateRepository;
@@ -57,7 +55,9 @@ class DisruptionDetectionServiceTest {
     when(busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(
             anyInt(), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv()).thenReturn(List.of());
     when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation()).thenReturn(List.of());
+    when(trainStationDataRepository.findLatestPerStationTrainFromMv()).thenReturn(List.of());
     when(trainStationDataRepository.findLatestPerStationTrain(
             anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of());
@@ -67,12 +67,7 @@ class DisruptionDetectionServiceTest {
         .thenReturn(List.of());
     when(tramStopRepository.findStopsNear(anyDouble(), anyDouble(), anyInt()))
         .thenReturn(List.of());
-    when(disruptionRepository.existsByDisruptionTypeAndAffectedAreaAndStatus(
-            anyString(), anyString(), anyString()))
-        .thenReturn(false);
-    when(disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
-            anyString(), anyString(), any()))
-        .thenReturn(List.of());
+    when(disruptionRepository.findExpiredActiveDisruptions(any())).thenReturn(List.of());
   }
 
   // ── Train detection ────────────────────────────────────────────────
@@ -82,6 +77,8 @@ class DisruptionDetectionServiceTest {
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 22);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
+    when(trainStationDataRepository.findLatestPerStationTrainFromMv())
+        .thenThrow(new RuntimeException("MV not available"));
     when(trainStationDataRepository.findLatestPerStationTrain(
             anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(late1, late2, late3));
@@ -133,6 +130,8 @@ class DisruptionDetectionServiceTest {
     TrainStationData cnly3 = lateTrainAt("CNLY", "E803", 12);
     TrainStationData pear1 = lateTrainAt("PEAR", "E901", 11);
 
+    when(trainStationDataRepository.findLatestPerStationTrainFromMv())
+        .thenThrow(new RuntimeException("MV not available"));
     when(trainStationDataRepository.findLatestPerStationTrain(
             anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(cnly1, cnly2, cnly3, pear1));
@@ -193,25 +192,27 @@ class DisruptionDetectionServiceTest {
   }
 
   @Test
-  void detectDisruptions_deduplication_skipsAlreadyDetectedDisruption() {
+  void detectDisruptions_deduplication_mergesIntoExistingDisruption() {
+    // Dedup now happens inside DisruptionFacade (find-existing-or-create via sourceReferenceId).
+    // The detection service always calls handleDisruptionDetection; the facade returns null when
+    // merging with no meaningful change, so count stays 0 but the facade IS invoked.
     TrainStationData late1 = lateTrainAt("CNLY", "E801", 15);
     TrainStationData late2 = lateTrainAt("CNLY", "E802", 22);
     TrainStationData late3 = lateTrainAt("CNLY", "E803", 12);
+    when(trainStationDataRepository.findLatestPerStationTrainFromMv())
+        .thenThrow(new RuntimeException("MV not available"));
     when(trainStationDataRepository.findLatestPerStationTrain(
             anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(late1, late2, late3));
-
-    Disruption existing = new Disruption();
-    existing.setId(99L);
-    when(disruptionRepository.findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
-            anyString(), anyString(), any()))
-        .thenReturn(List.of(existing));
     when(trainStationRepository.findByStationCode("CNLY"))
         .thenReturn(new TrainStation(1, "CNLY", "Connolly", null, 53.35, -6.25, null));
 
+    // Facade returns null → merged, no new disruption (no re-notification)
+    when(disruptionFacade.handleDisruptionDetection(any())).thenReturn(null);
+
     service.detectDisruptions();
 
-    verify(disruptionFacade, never()).handleDisruptionDetection(any());
+    verify(disruptionFacade).handleDisruptionDetection(any());
   }
 
   // ── Congestion detection ───────────────────────────────────────────
@@ -220,7 +221,7 @@ class DisruptionDetectionServiceTest {
   void detectDisruptions_highVolumeSiteWithBusRoutes_createsCongestionDisruption() {
     // [site_id, lat, lon, max_volume]
     Object[] row = {"SITE_001", 53.3498, -6.2603, 2000L};
-    when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation())
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv())
         .thenReturn(Collections.singletonList(row));
 
     // Bus route 46A has a stop within radius
@@ -269,7 +270,7 @@ class DisruptionDetectionServiceTest {
   @Test
   void detectDisruptions_congestionWithTramOnly_warnsTramNoRerouting() {
     Object[] row = {"SITE_004", 53.3382, -6.2591, 1800L};
-    when(highTrafficPointsRepository.findPeakTrafficSitesWithLocation())
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv())
         .thenReturn(Collections.singletonList(row));
     when(busStopRepository.findRouteShortNamesNear(anyDouble(), anyDouble(), anyInt()))
         .thenReturn(List.of()); // no bus routes

@@ -33,6 +33,10 @@ class CauseCorrelationServiceTest {
 
   private Disruption disruption;
 
+  // Dublin city centre coords — used on disruption so spatial checks work
+  private static final double DISRUPTION_LAT = 53.3352;
+  private static final double DISRUPTION_LON = -6.2284;
+
   @BeforeEach
   void setUp() {
     disruption = new Disruption();
@@ -40,6 +44,8 @@ class CauseCorrelationServiceTest {
     disruption.setDisruptionType("DELAY");
     disruption.setAffectedTransportModes(List.of("BUS"));
     disruption.setDetectedAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")));
+    disruption.setLatitude(DISRUPTION_LAT);
+    disruption.setLongitude(DISRUPTION_LON);
   }
 
   // ── EVENT cause ────────────────────────────────────────────────────
@@ -49,7 +55,7 @@ class CauseCorrelationServiceTest {
     Events event = largeEventAt("Aviva Stadium", 15000);
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any()))
         .thenReturn(List.of(event));
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv()).thenReturn(List.of());
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc()).thenReturn(List.of());
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
@@ -66,7 +72,7 @@ class CauseCorrelationServiceTest {
   @Test
   void correlateCauses_noEvents_noEventCause() {
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any())).thenReturn(List.of());
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv()).thenReturn(List.of());
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc()).thenReturn(List.of());
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
@@ -78,9 +84,9 @@ class CauseCorrelationServiceTest {
 
   @Test
   void correlateCauses_highTraffic_addsCongestionCauseWithMediumConfidence() {
-    Object[] trafficRow = {"site_1", "region_A", 2000L, 53.3, -6.2};
+    Object[] trafficRow = {"site_1", 53.3, -6.2, 2000L}; // [site_id, lat, lon, max_volume]
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any())).thenReturn(List.of());
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv())
         .thenReturn(List.<Object[]>of(trafficRow));
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc()).thenReturn(List.of());
 
@@ -96,9 +102,11 @@ class CauseCorrelationServiceTest {
 
   @Test
   void correlateCauses_lowTraffic_noCongestionCause() {
-    Object[] trafficRow = {"site_1", "region_A", 500L, 53.3, -6.2}; // below threshold
+    Object[] trafficRow = {
+      "site_1", 53.3, -6.2, 500L
+    }; // [site_id, lat, lon, max_volume] below threshold
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any())).thenReturn(List.of());
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv())
         .thenReturn(List.<Object[]>of(trafficRow));
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc()).thenReturn(List.of());
 
@@ -118,7 +126,7 @@ class CauseCorrelationServiceTest {
         LocalDateTime.now(ZoneId.of("Europe/Dublin")).minusMinutes(5)); // within window
 
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any())).thenReturn(List.of());
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv()).thenReturn(List.of());
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc())
         .thenReturn(List.of(tramDisruption));
 
@@ -140,7 +148,7 @@ class CauseCorrelationServiceTest {
     otherBus.setDetectedAt(LocalDateTime.now(ZoneId.of("Europe/Dublin")).minusMinutes(5));
 
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any())).thenReturn(List.of());
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv()).thenReturn(List.of());
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc()).thenReturn(List.of(otherBus));
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
@@ -151,21 +159,23 @@ class CauseCorrelationServiceTest {
   // ── Multiple causes ────────────────────────────────────────────────
 
   @Test
-  void correlateCauses_noCauses_returnsEmptyList() {
+  void correlateCauses_noCauses_returnsUnknownFallback() {
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any())).thenReturn(List.of());
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv()).thenReturn(List.of());
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc()).thenReturn(List.of());
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
 
-    assertThat(causes).isEmpty();
+    assertThat(causes).hasSize(1);
+    assertThat(causes.get(0).getCauseType()).isEqualTo("UNKNOWN");
+    assertThat(causes.get(0).getConfidence()).isEqualTo("LOW");
   }
 
   @Test
   void correlateCauses_allCausesPresent_returnsThreeCauses() {
     Events event = largeEventAt("3Arena", 13000);
 
-    Object[] trafficRow = {"site_1", "region_A", 2000L, 53.3, -6.2};
+    Object[] trafficRow = {"site_1", 53.3, -6.2, 2000L}; // [site_id, lat, lon, max_volume]
 
     Disruption tramDisruption = new Disruption();
     tramDisruption.setId(99L);
@@ -174,10 +184,11 @@ class CauseCorrelationServiceTest {
 
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any()))
         .thenReturn(List.of(event));
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation())
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv())
         .thenReturn(List.<Object[]>of(trafficRow));
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc())
         .thenReturn(List.of(tramDisruption));
+    when(disruptionRepository.count()).thenReturn(0L);
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
 
@@ -192,7 +203,7 @@ class CauseCorrelationServiceTest {
     Events event = largeEventAt("RDS", 6000);
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any()))
         .thenReturn(List.of(event));
-    when(highTrafficPointsRepository.findAggregatedTrafficWithLocation()).thenReturn(List.of());
+    when(highTrafficPointsRepository.findPeakTrafficSitesFromMv()).thenReturn(List.of());
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc()).thenReturn(List.of());
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
@@ -208,6 +219,10 @@ class CauseCorrelationServiceTest {
     event.setEventName("Test Event");
     event.setVenueName(venueName);
     event.setVenue(venue);
+    // Place event within 2km of the disruption and within the time window
+    event.setLatitude(DISRUPTION_LAT + 0.005); // ~500m offset
+    event.setLongitude(DISRUPTION_LON + 0.005);
+    event.setStartTime(LocalDateTime.now(ZoneId.of("Europe/Dublin")).plusHours(1));
     return event;
   }
 }
