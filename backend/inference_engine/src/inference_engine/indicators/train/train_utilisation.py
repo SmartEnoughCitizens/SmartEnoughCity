@@ -426,7 +426,9 @@ def save_recommendation_to_db(utilisation_json: list[dict]) -> None:
     """)
 
     with engine.begin() as conn:
-        conn.execute(delete_query, {"indicator": "Train", "usecase": "utilisation_train"})
+        conn.execute(
+            delete_query, {"indicator": "Train", "usecase": "utilisation_train"}
+        )
         for item in utilisation_json:
             conn.execute(
                 insert_query,
@@ -439,7 +441,9 @@ def save_recommendation_to_db(utilisation_json: list[dict]) -> None:
                     "status": "pending",
                 },
             )
-    logger.info("  Saved %d train recommendations as individual rows.", len(utilisation_json))
+    logger.info(
+        "  Saved %d train recommendations as individual rows.", len(utilisation_json)
+    )
 
 
 def save_distribution_to_csv(result_df: pd.DataFrame) -> None:
