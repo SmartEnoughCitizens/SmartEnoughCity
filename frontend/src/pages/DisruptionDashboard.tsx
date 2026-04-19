@@ -1465,6 +1465,11 @@ export const DisruptionDashboard = () => {
   }
 
   async function handleExportDayPlan() {
+    // Open window synchronously before any await — browsers block popups opened after async gaps
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write("<p style='font-family:Arial,sans-serif;padding:24px'>Loading day plan…</p>");
+
     const allowed = modeFilterForRole();
     const plan = await dashboardApi
       .getDayPlan(selectedDay)
@@ -1483,13 +1488,8 @@ export const DisruptionDashboard = () => {
       bike: "DublinBikes",
     };
 
-    const fmtTime = (t: string | null) =>
-      t
-        ? new Date(t).toLocaleTimeString("en-IE", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "—";
+    // startTime arrives as "HH:mm:ss" (LocalTime) — slice directly instead of Date parse
+    const fmtTime = (t: string | null) => (t ? t.slice(0, 5) : "—");
 
     const legendItems = Object.entries(RISK_COLOR)
       .map(
@@ -1556,12 +1556,10 @@ export const DisruptionDashboard = () => {
       ${sections || "<p>No events with nearby transport on this day.</p>"}
       </body></html>`;
 
-    const win = window.open("", "_blank");
-    if (win) {
-      win.document.write(html);
-      win.document.close();
-      win.print();
-    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.print();
   }
 
   // All categories/severities for events map (show everything)
