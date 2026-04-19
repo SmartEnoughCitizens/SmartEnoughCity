@@ -27,6 +27,7 @@ import {
   Slider,
   FormControl,
   InputLabel,
+  Autocomplete,
   Checkbox,
   Dialog,
   DialogTitle,
@@ -154,6 +155,10 @@ const INJECTED_CSS = `
   .tram-sim-popup .leaflet-popup-content-wrapper { background:#fff!important;color:#111827!important;border:1px solid rgba(0,0,0,0.08)!important;border-radius:12px!important;box-shadow:0 6px 24px rgba(0,0,0,0.14)!important; }
   .tram-sim-popup .leaflet-popup-tip { background:#fff!important; }
   .tram-sim-popup .leaflet-popup-close-button { color:#6b7280!important; }
+  .tram-sim-popup .leaflet-popup-content { color:#111827!important; }
+  .tram-sim-popup .leaflet-popup-content * { color:#111827!important; }
+  .tram-sim-popup .leaflet-popup-content .MuiTypography-root { color:#111827!important; }
+  .tram-sim-popup .leaflet-popup-content .MuiChip-root { color:inherit!important; }
   .tram-pin { border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.50),0 0 0 2px rgba(255,255,255,0.20);transition:transform 0.15s ease;cursor:pointer; }
   .tram-pin:hover { transform:scale(1.25); }
 `;
@@ -361,7 +366,10 @@ export const TramDashboard = () => {
 
   // Simulation state
   const [simLine, setSimLine] = useState<"red" | "green">("red");
-  const [simExtraTrams, setSimExtraTrams] = useState(5);
+  const [simExtraTrams, setSimExtraTrams] = useState(0);
+  const [simOrigin, setSimOrigin] = useState<TramStopDemand | null>(null);
+  const [simDest, setSimDest] = useState<TramStopDemand | null>(null);
+  const [simTimePeriod, setSimTimePeriod] = useState("morning");
   const [simResult, setSimResult] = useState<{
     baseDemand: TramStopDemand[];
     simulatedDemand: TramStopDemand[];
@@ -412,6 +420,16 @@ export const TramDashboard = () => {
   const [selectedRecs, setSelectedRecs] = useState<Set<number>>(new Set());
   const [tramConfirmOpen, setTramConfirmOpen] = useState(false);
   const [tramSnackbar, setTramSnackbar] = useState(false);
+  const [simSnackbar, setSimSnackbar] = useState(false);
+
+  const submitSimApprovalMutation = useMutation({
+    mutationFn: (dto: CreateApprovalDTO) => approvalApi.create(dto),
+    onSuccess: () => {
+      setSimSnackbar(true);
+      setTabValue(5);
+      void queryClient.invalidateQueries({ queryKey: ["approvals", "tram"] });
+    },
+  });
 
   const submitTramApprovalMutation = useMutation({
     mutationFn: (dtos: CreateApprovalDTO[]) => approvalApi.createBatch(dtos),
@@ -434,7 +452,12 @@ export const TramDashboard = () => {
     selectedPeriod.endHour,
   );
   const { data: commonDelays } = useTramCommonDelays();
-  const { data: stopDemandData = [] } = useTramStopDemand();
+  const simPeriod =
+    TIME_PERIODS.find((p) => p.key === simTimePeriod) ?? TIME_PERIODS[1];
+  const { data: stopDemandData = [] } = useTramStopDemand(
+    simPeriod.startHour,
+    simPeriod.endHour,
+  );
   const simulateMutation = useSimulateTramDemand();
   const { data: rawRecommendations } = useTramRecommendations();
 
@@ -616,9 +639,17 @@ export const TramDashboard = () => {
   }, [simResult]);
 
   const handleSimulate = () => {
+    if (!simOrigin || !simDest) return;
     simulateMutation.reset();
     simulateMutation.mutate(
-      { line: simLine, extraTrams: simExtraTrams },
+      {
+        line: simLine,
+        extraTrams: simExtraTrams,
+        originStopId: simOrigin.stopId,
+        destinationStopId: simDest.stopId,
+        startHour: simPeriod.startHour,
+        endHour: simPeriod.endHour,
+      },
       {
         onSuccess: (res) =>
           setSimResult({
@@ -629,6 +660,21 @@ export const TramDashboard = () => {
       },
     );
   };
+
+  // Stops available for origin/destination selection — filtered by selected line
+  const simLineStops = useMemo(
+    () =>
+      stopDemandData
+        .filter((s) => s.line === simLine)
+        .toSorted((a, b) => a.stopName.localeCompare(b.stopName)),
+    [stopDemandData, simLine],
+  );
+
+  // Validation: origin and destination must be different
+  const simCorridorError =
+    simOrigin && simDest && simOrigin.stopId === simDest.stopId
+      ? "Origin and destination must be different"
+      : null;
 
   const activeTab = (
     [
@@ -957,7 +1003,12 @@ export const TramDashboard = () => {
                     <Box sx={{ minWidth: 200 }}>
                       <Typography
                         fontWeight={700}
-                        sx={{ fontSize: "0.95rem", color: "#111827", mb: 0.25 }}
+                        sx={{
+                          fontSize: "1rem",
+                          color: "#ffffff !important",
+                          mb: 0.5,
+                          display: "block",
+                        }}
                       >
                         {s.stopName}
                       </Typography>
@@ -1536,7 +1587,7 @@ export const TramDashboard = () => {
                       mb: 1,
                     }}
                   >
-                    Add Extra Trams
+                    Simulate New Services
                   </Typography>
                   <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
                     <InputLabel sx={{ fontSize: "0.8rem" }}>Line</InputLabel>
@@ -1546,6 +1597,8 @@ export const TramDashboard = () => {
                       onChange={(e) => {
                         setSimLine(e.target.value);
                         setSimResult(null);
+                        setSimOrigin(null);
+                        setSimDest(null);
                       }}
                       sx={{ fontSize: "0.8rem" }}
                     >
@@ -1581,37 +1634,118 @@ export const TramDashboard = () => {
                       </MenuItem>
                     </Select>
                   </FormControl>
+
+                  <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
+                    <InputLabel sx={{ fontSize: "0.8rem" }}>
+                      Time Period
+                    </InputLabel>
+                    <Select
+                      value={simTimePeriod}
+                      label="Time Period"
+                      onChange={(e) => {
+                        setSimTimePeriod(e.target.value);
+                        setSimResult(null);
+                      }}
+                      sx={{ fontSize: "0.8rem" }}
+                    >
+                      {TIME_PERIODS.map((p) => (
+                        <MenuItem key={p.key} value={p.key}>
+                          {p.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <Autocomplete
+                    size="small"
+                    options={simLineStops}
+                    getOptionLabel={(o) => o.stopName}
+                    value={simOrigin}
+                    onChange={(_, v) => {
+                      setSimOrigin(v);
+                      setSimResult(null);
+                    }}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Origin (Starting Point)" />
+                    )}
+                    isOptionEqualToValue={(a, b) => a.stopId === b.stopId}
+                    sx={{ mb: 1.5 }}
+                  />
+                  <Autocomplete
+                    size="small"
+                    options={simLineStops}
+                    getOptionLabel={(o) => o.stopName}
+                    value={simDest}
+                    onChange={(_, v) => {
+                      setSimDest(v);
+                      setSimResult(null);
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Destination (Ending Point)"
+                        error={!!simCorridorError}
+                        helperText={simCorridorError ?? undefined}
+                      />
+                    )}
+                    isOptionEqualToValue={(a, b) => a.stopId === b.stopId}
+                    sx={{ mb: 1.5 }}
+                  />
+
                   <Typography
                     variant="caption"
                     sx={{ fontSize: "0.75rem", color: "text.secondary" }}
                   >
-                    Extra trams:{" "}
-                    <strong style={{ color: "inherit" }}>
-                      {simExtraTrams}
+                    {simExtraTrams >= 0 ? "Add" : "Remove"} trams:{" "}
+                    <strong
+                      style={{
+                        color: simExtraTrams >= 0 ? "inherit" : "#DC2626",
+                      }}
+                    >
+                      {simExtraTrams >= 0 ? `+${simExtraTrams}` : simExtraTrams}
                     </strong>
                   </Typography>
                   <Slider
                     value={simExtraTrams}
-                    min={1}
+                    min={-20}
                     max={20}
                     step={1}
                     marks={[
-                      { value: 1, label: "1" },
-                      { value: 10, label: "10" },
-                      { value: 20, label: "20" },
+                      { value: -20, label: "-20" },
+                      { value: -10, label: "-10" },
+                      { value: 0, label: "0" },
+                      { value: 10, label: "+10" },
+                      { value: 20, label: "+20" },
                     ]}
                     onChange={(_, v) => {
                       setSimExtraTrams(Array.isArray(v) ? v[0] : v);
                       setSimResult(null);
                     }}
-                    sx={{ mt: 0.5, mb: 1 }}
+                    sx={{
+                      mt: 0.5,
+                      mb: 1,
+                      "& .MuiSlider-track": {
+                        bgcolor:
+                          simExtraTrams >= 0 ? "primary.main" : "error.main",
+                      },
+                      "& .MuiSlider-thumb": {
+                        bgcolor:
+                          simExtraTrams >= 0 ? "primary.main" : "error.main",
+                      },
+                    }}
                   />
                   <Button
                     variant="contained"
                     fullWidth
                     size="small"
                     onClick={handleSimulate}
-                    disabled={simulateMutation.isPending}
+                    disabled={
+                      simulateMutation.isPending ||
+                      !simOrigin ||
+                      !simDest ||
+                      simExtraTrams === 0 ||
+                      !!simCorridorError
+                    }
                     startIcon={
                       simulateMutation.isPending ? (
                         <CircularProgress size={14} color="inherit" />
@@ -1713,15 +1847,55 @@ export const TramDashboard = () => {
                         </Box>
                       )}
                     </Box>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="inherit"
-                      sx={{ mt: 1, fontSize: "0.7rem", py: 0.25 }}
-                      onClick={() => setSimResult(null)}
-                    >
-                      Clear
-                    </Button>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        sx={{ fontSize: "0.7rem", py: 0.25 }}
+                        onClick={() => setSimResult(null)}
+                      >
+                        Clear
+                      </Button>
+                      {isTramAdmin && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          sx={{ fontSize: "0.7rem", py: 0.25 }}
+                          disabled={
+                            submitSimApprovalMutation.isPending ||
+                            submitSimApprovalMutation.isSuccess
+                          }
+                          onClick={() => {
+                            if (!simResult || !simMetrics) return;
+                            submitSimApprovalMutation.mutate({
+                              indicator: "tram",
+                              actionUrl: "/dashboard?view=tram&tab=approvals",
+                              payloadJson: JSON.stringify({
+                                line: simLine,
+                                extraTrams: simExtraTrams,
+                                origin: simOrigin?.stopName,
+                                destination: simDest?.stopName,
+                                timePeriod: simPeriod.label,
+                                impact: {
+                                  stopsAffected: simMetrics.count,
+                                  avgReliefPct: `${simMetrics.avgReliefPct.toFixed(1)}%`,
+                                  peakStop: simMetrics.peakStop?.stopName,
+                                },
+                              }),
+                              summary: `Add ${simExtraTrams} tram(s) on ${simLine} line (${simOrigin?.stopName} → ${simDest?.stopName}). ${simMetrics.count} stop(s) affected, avg ${simMetrics.avgReliefPct.toFixed(1)}% relief.`,
+                            });
+                          }}
+                        >
+                          {submitSimApprovalMutation.isSuccess
+                            ? "Sent ✓"
+                            : submitSimApprovalMutation.isPending
+                              ? "Sending…"
+                              : "Send for approval"}
+                        </Button>
+                      )}
+                    </Box>
                   </Paper>
                 )}
 
@@ -2374,6 +2548,13 @@ export const TramDashboard = () => {
         autoHideDuration={4000}
         onClose={() => setTramSnackbar(false)}
         message="Recommendations sent for approval"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+      <Snackbar
+        open={simSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setSimSnackbar(false)}
+        message="Simulation sent for approval — redirecting to Approvals"
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
     </Box>

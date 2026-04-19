@@ -13,6 +13,18 @@ public class TramDemandSimulateRequestDTO {
   /** Tram line to add services to: "red" or "green". */
   private String line;
 
-  /** Number of extra trams to add (1-20). */
+  /** Number of trams to add (+) or remove (-). Range: -20 to +20. */
   private int extraTrams;
+
+  /** Origin stop ID — only stops between origin and destination are affected. */
+  private String originStopId;
+
+  /** Destination stop ID — only stops between origin and destination are affected. */
+  private String destinationStopId;
+
+  /** Start hour of time period (e.g. 7 for Morning Peak). */
+  private int startHour;
+
+  /** End hour of time period (e.g. 10 for Morning Peak). */
+  private int endHour;
 }

@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,32 +23,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class TramDashboardService {
 
   private static final ZoneId DUBLIN_ZONE = ZoneId.of("Europe/Dublin");
-  private static final double RED_DAILY_PASSENGERS = 110_000.0;
-  private static final double GREEN_DAILY_PASSENGERS = 80_000.0;
+
+  // Fallback daily passenger counts — only used when no CSO data exists in DB.
+  // Matches inference_engine/tram_utilisation.py _FALLBACK_DAILY_PASSENGERS.
+  private static final double FALLBACK_RED_DAILY_PASSENGERS = 86_000.0;
+  private static final double FALLBACK_GREEN_DAILY_PASSENGERS = 84_000.0;
 
   // ── Simulation constants ─────────────────────────────────────────
   //
-  // Demand score model (occupancy-based):
-  //   For each line:
-  //     line_occupancy = daily_passengers / (max_stop_trips × TRAM_CAPACITY)
-  //     capped at 1.0 (1.0 = trams running at capacity)
-  //   Per stop:
-  //     demand_score = line_occupancy × (stop_trips / max_stop_trips)
-  //     → busiest middle stop scores line_occupancy (red if > ~0.8)
-  //     → terminal stops score ~0.5 × line_occupancy (less pressure, one direction only)
+  // Demand score = utilisation = estimated_passengers / (total_trips × tram_capacity)
+  // Matches the recommendation engine (inference_engine/tram_utilisation.py).
   //
-  // Simulation formula:
-  //   unique_trips_per_direction = max_stop_trips / 2  (one direction)
-  //   relief_ratio = extra_trams / unique_trips_per_direction
-  //   pressure_factor = exp(-relief_ratio × SENSITIVITY)
-  //   new_score = old_score × pressure_factor
+  // Simulation formula (capacity-based, same as recommendation engine):
+  //   new_utilisation = old_utilisation × (current_trips / (current_trips + extra_trams))
   //
-  // At SENSITIVITY=12, adding 10 trams to a ~145-trip/direction line gives ~56% relief.
-  // Adding 1 tram gives ~8% relief; adding 20 trams gives ~81% relief.
-  // Calibrated for full-score application (no multi-signal weighting like train).
-  // At 6.0: adding 20 trams to a ~200-trip/day stop gives ~45% relief;
-  //         adding 20 to a ~100-trip terminal gives ~70% relief.
-  private static final double SIMULATION_SENSITIVITY = 6.0;
+  // Adding extra trams increases capacity proportionally, spreading the same
+  // passengers across more vehicles. No arbitrary constants needed.
 
   private final TramStopRepository tramStopRepository;
   private final TramLuasForecastRepository tramLuasForecastRepository;
@@ -56,6 +47,7 @@ public class TramDashboardService {
   private final TramGtfsStopRepository tramGtfsStopRepository;
   private final TramDelayHistoryRepository tramDelayHistoryRepository;
   private final AlternativeTransportService alternativeTransportService;
+  private final JdbcTemplate jdbcTemplate;
 
   // ── KPIs ────────────────────────────────────────────────────────
 
@@ -146,6 +138,7 @@ public class TramDashboardService {
         countLineTotalsForHours(
             List.of(currentHour), luasStopsById, nameToGtfsIds, luasToGtfs, allStopTimes);
     Map<String, TramLuasForecast> soonest = findSoonestPerStopDirection(forecasts);
+    Map<String, Double> dailyPassengers = loadDailyPassengers();
     List<TramDelayDTO> delays = new ArrayList<>();
     for (TramLuasForecast forecast : soonest.values()) {
       TramDelayDTO dto =
@@ -157,7 +150,8 @@ public class TramDashboardService {
               luasToGtfs,
               hourlyPct,
               stopDirTrips,
-              lineTotals);
+              lineTotals,
+              dailyPassengers);
       if (dto != null) delays.add(dto);
     }
     delays.sort(Comparator.comparingInt(TramDelayDTO::getDelayMins).reversed());
@@ -173,21 +167,23 @@ public class TramDashboardService {
     Map<String, String> luasToGtfs = buildLuasToGtfsNameMap(luasStopsById, nameToGtfsIds);
     Map<String, Double> hourlyPctByLine = getHourlyPctForHours(hours);
     List<TramStopTime> allStopTimes = tramStopTimeRepository.findAll();
-    Map<String, int[]> stopDirTrips = countTripsForHours(hours, nameToGtfsIds, allStopTimes);
+    // Usage counts rows (not unique trips) for both numerator and denominator —
+    // the ratio is correct because both are inflated equally.
+    Map<String, int[]> stopDirTrips = countStopTimeRows(hours, nameToGtfsIds, allStopTimes);
     Map<String, Integer> lineTotals =
-        countLineTotalsForHours(hours, luasStopsById, nameToGtfsIds, luasToGtfs, allStopTimes);
+        countLineStopTimeRows(hours, luasStopsById, nameToGtfsIds, luasToGtfs, allStopTimes);
 
     List<TramStopUsageDTO> usageList = new ArrayList<>();
+    Map<String, Double> dailyPassengers = loadDailyPassengers();
     for (TramStop luasStop : luasStopsById.values()) {
       String gtfsName =
           luasToGtfs.getOrDefault(
               luasStop.getStopId(), luasStop.getName().toLowerCase(Locale.ROOT));
       int[] dt = stopDirTrips.getOrDefault(gtfsName, new int[] {0, 0});
       int lineTotal = lineTotals.getOrDefault(luasStop.getLine(), 1);
-      String lineKey = "-";
-      double hourlyPct = hourlyPctByLine.getOrDefault(lineKey, 0.0) / 100.0;
+      double hourlyPct = hourlyPctByLine.getOrDefault(luasStop.getLine(), 0.0) / 100.0;
       double dailyPax =
-          "red".equals(luasStop.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
+          dailyPassengers.getOrDefault(luasStop.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
       long estIn = Math.round((double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax);
       long estOut = Math.round((double) dt[0] / Math.max(1, lineTotal) * hourlyPct * dailyPax);
       usageList.add(
@@ -253,83 +249,211 @@ public class TramDashboardService {
 
   // ── Demand & Simulation ──────────────────────────────────────────
 
+  // Tram capacity per vehicle — must match inference_engine/tram_utilisation.py
+  private static final Map<String, Integer> TRAM_CAPACITY = Map.of("red", 200, "green", 300);
+
+  /**
+   * Load daily passenger counts from CSO data using the same logic as the inference engine's
+   * load_daily_passengers() in tram_utilisation.py. Tries weekly data first, then monthly, then
+   * falls back to hardcoded values.
+   */
+  private Map<String, Double> loadDailyPassengers() {
+    // 1. Try weekly CSO data (primary source — same query as Python)
+    try {
+      List<Map<String, Object>> weekly =
+          jdbcTemplate.queryForList(
+              "SELECT line_label, value FROM external_data.tram_passenger_journeys"
+                  + " WHERE week_code = (SELECT MAX(week_code)"
+                  + "   FROM external_data.tram_passenger_journeys)"
+                  + " AND value IS NOT NULL");
+      Map<String, Double> result = new HashMap<>();
+      for (Map<String, Object> row : weekly) {
+        String label = ((String) row.get("line_label")).trim().toLowerCase(Locale.ROOT);
+        double value = ((Number) row.get("value")).doubleValue();
+        if (label.contains("red")) result.put("red", value / 7.0);
+        else if (label.contains("green")) result.put("green", value / 7.0);
+      }
+      if (!result.isEmpty()) {
+        log.info(
+            "Daily passengers from CSO weekly: red={}, green={}",
+            result.get("red"),
+            result.get("green"));
+        return result;
+      }
+    } catch (Exception e) {
+      log.warn("Could not load weekly passenger data: {}", e.getMessage());
+    }
+
+    // 2. Fallback to monthly CSO data (same query as Python)
+    try {
+      List<Map<String, Object>> monthly =
+          jdbcTemplate.queryForList(
+              "SELECT statistic_label, value FROM external_data.tram_passenger_numbers"
+                  + " WHERE year = (SELECT MAX(year) FROM external_data.tram_passenger_numbers)"
+                  + " AND month_code = (SELECT MAX(month_code)"
+                  + "   FROM external_data.tram_passenger_numbers"
+                  + "   WHERE year = (SELECT MAX(year) FROM external_data.tram_passenger_numbers))"
+                  + " AND value IS NOT NULL");
+      Map<String, Double> result = new HashMap<>();
+      for (Map<String, Object> row : monthly) {
+        String label = ((String) row.get("statistic_label")).trim().toLowerCase(Locale.ROOT);
+        double value = ((Number) row.get("value")).doubleValue();
+        if (label.contains("red")) result.put("red", value / 30.0);
+        else if (label.contains("green")) result.put("green", value / 30.0);
+      }
+      if (!result.isEmpty()) {
+        log.info(
+            "Daily passengers from CSO monthly: red={}, green={}",
+            result.get("red"),
+            result.get("green"));
+        return result;
+      }
+    } catch (Exception e) {
+      log.warn("Could not load monthly passenger data: {}", e.getMessage());
+    }
+
+    // 3. Final fallback
+    log.warn("No CSO passenger data found, using fallback values");
+    Map<String, Double> fallback = new HashMap<>();
+    fallback.put("red", FALLBACK_RED_DAILY_PASSENGERS);
+    fallback.put("green", FALLBACK_GREEN_DAILY_PASSENGERS);
+    return fallback;
+  }
+
   @Transactional(readOnly = true)
-  public List<TramStopDemandDTO> getStopDemand() {
+  public List<TramStopDemandDTO> getStopDemand(int startHour, int endHour) {
+    // Calculates utilisation the same way as the recommendation engine:
+    //   utilisation = estimated_passengers / (total_trips × tram_capacity)
+    //
+    // Where estimated_passengers = (stop_trips / line_total_trips) × hourly_pct × daily_passengers
+    // Uses the provided time period (e.g. Morning Peak 07:00–10:00).
+
     Map<String, TramStop> luasStops = buildLuasStopsMap();
     Map<String, List<String>> nameToGtfsIds = buildNameToGtfsIdsMap();
     Map<String, String> luasToGtfs = buildLuasToGtfsNameMap(luasStops, nameToGtfsIds);
 
-    // Calendar-weighted average daily trips per GTFS stop ID.
-    // Groups by (stop, service_id), weights by days-per-week active, divides by 7.
-    // Avoids raw row-count inflation from multiple service patterns in the GTFS feed.
-    Map<String, Integer> dailyTripsPerGtfsId = new HashMap<>();
-    for (Object[] row : tramStopTimeRepository.findDailyTripCountsPerStop()) {
-      dailyTripsPerGtfsId.put((String) row[0], ((Number) row[1]).intValue());
-    }
+    // Load stop times and hourly distribution for the requested time period
+    // Uses weekday-only, real-service trips (>=10 stops) matching inference engine
+    List<Integer> hours = expandHourRange(startHour, endHour);
+    List<TramStopTime> realServiceStopTimes =
+        tramStopTimeRepository.findWeekdayRealServiceStopTimes();
+    log.info("Loaded {} weekday real-service stop time records", realServiceStopTimes.size());
+    Map<String, int[]> stopDirTrips =
+        countTripsForHours(hours, nameToGtfsIds, realServiceStopTimes);
+    Map<String, Integer> lineTotals =
+        countLineTotalsForHours(hours, luasStops, nameToGtfsIds, luasToGtfs, realServiceStopTimes);
+    Map<String, Double> hourlyPctByLine = getHourlyPctForHours(hours);
 
-    // Aggregate GTFS daily trip count per Luas stop (may map to multiple GTFS IDs)
-    Map<String, Integer> tripsPerLuasStop = new HashMap<>();
+    log.info("Demand calc: lineTotals={}, hourlyPct={}", lineTotals, hourlyPctByLine);
+
+    Map<String, Double> dailyPassengers = loadDailyPassengers();
+    List<TramStopDemandDTO> results = new ArrayList<>();
+    boolean logged = false;
     for (TramStop stop : luasStops.values()) {
-      String gtfsName = luasToGtfs.get(stop.getStopId());
-      List<String> gtfsIds = gtfsName != null ? nameToGtfsIds.get(gtfsName) : null;
-      if (gtfsIds == null || gtfsIds.isEmpty()) {
-        gtfsIds =
-            findGtfsStopIdsByPartialName(stop.getName().toLowerCase(Locale.ROOT), nameToGtfsIds);
+      String gtfsName =
+          luasToGtfs.getOrDefault(stop.getStopId(), stop.getName().toLowerCase(Locale.ROOT));
+      int[] dt = stopDirTrips.getOrDefault(gtfsName, new int[] {0, 0});
+      int totalTrips = dt[0] + dt[1];
+      int lineTotal = lineTotals.getOrDefault(stop.getLine(), 1);
+
+      // Estimate passengers: same formula as inference engine
+      // hourlyPctByLine is keyed by "red" / "green" matching the recommendation engine
+      double hourlyPct = hourlyPctByLine.getOrDefault(stop.getLine(), 0.0) / 100.0;
+      double dailyPax = dailyPassengers.getOrDefault(stop.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
+      double estIn = (double) dt[1] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
+      double estOut = (double) dt[0] / Math.max(1, lineTotal) * hourlyPct * dailyPax;
+      double estTotal = estIn + estOut;
+
+      // Utilisation = estimated_passengers / capacity
+      int tramCap = TRAM_CAPACITY.getOrDefault(stop.getLine(), 200);
+      double capacity = totalTrips * tramCap;
+      double utilisation = capacity > 0 ? Math.min(1.0, estTotal / capacity) : 0.0;
+
+      if (!logged && "red".equals(stop.getLine()) && totalTrips > 0) {
+        log.info(
+            "Sample stop [{}]: dt=[{},{}] totalTrips={} lineTotal={} hourlyPct={} dailyPax={} estTotal={} capacity={} util={}",
+            stop.getName(),
+            dt[0],
+            dt[1],
+            totalTrips,
+            lineTotal,
+            hourlyPct,
+            dailyPax,
+            estTotal,
+            capacity,
+            utilisation);
+        logged = true;
       }
-      int total = 0;
-      if (gtfsIds != null) {
-        for (String gid : gtfsIds) {
-          total += dailyTripsPerGtfsId.getOrDefault(gid, 0);
-        }
-      }
-      tripsPerLuasStop.put(stop.getStopId(), total);
+
+      results.add(
+          TramStopDemandDTO.builder()
+              .stopId(stop.getStopId())
+              .stopName(stop.getName())
+              .line(stop.getLine())
+              .lat(stop.getLat())
+              .lon(stop.getLon())
+              .tripCount(totalTrips)
+              .demandScore(Math.round(utilisation * 1_000_000.0) / 1_000_000.0)
+              .build());
     }
-
-    int maxTrips = tripsPerLuasStop.values().stream().mapToInt(v -> v).max().orElse(1);
-
-    return luasStops.values().stream()
-        .map(
-            stop -> {
-              int trips = tripsPerLuasStop.getOrDefault(stop.getStopId(), 0);
-              double score = maxTrips > 0 ? (double) trips / maxTrips : 0.0;
-              return TramStopDemandDTO.builder()
-                  .stopId(stop.getStopId())
-                  .stopName(stop.getName())
-                  .line(stop.getLine())
-                  .lat(stop.getLat())
-                  .lon(stop.getLon())
-                  .tripCount(trips)
-                  .demandScore(score)
-                  .build();
-            })
-        .collect(Collectors.toList());
+    return results;
   }
 
   @Transactional(readOnly = true)
   public TramDemandSimulateResponseDTO simulateDemand(TramDemandSimulateRequestDTO request) {
     String targetLine = request.getLine() != null ? request.getLine().toLowerCase(Locale.ROOT) : "";
-    int extraTrams = Math.max(1, Math.min(20, request.getExtraTrams()));
+    // Allow -20 to +20: positive = add trams, negative = remove trams
+    int extraTrams = Math.max(-20, Math.min(20, request.getExtraTrams()));
+    String originStopId = request.getOriginStopId();
+    String destinationStopId = request.getDestinationStopId();
+    int startHour = request.getStartHour() > 0 ? request.getStartHour() : 7;
+    int endHour = request.getEndHour() > 0 ? request.getEndHour() : 10;
 
-    List<TramStopDemandDTO> baseDemand = getStopDemand();
+    List<TramStopDemandDTO> baseDemand = getStopDemand(startHour, endHour);
+
+    // Build the set of affected stop IDs: if origin and destination are provided,
+    // only affect stops on the target line that fall between origin and destination
+    // based on their geographic position along the line (ordered by lat for green,
+    // lon for red which runs more east-west).
+    Set<String> corridorStopIds = null;
+    if (originStopId != null
+        && destinationStopId != null
+        && !originStopId.isBlank()
+        && !destinationStopId.isBlank()) {
+      corridorStopIds =
+          computeCorridorStops(baseDemand, targetLine, originStopId, destinationStopId);
+    }
+
     List<TramStopDemandDTO> simulated = new ArrayList<>();
     List<String> affectedStopIds = new ArrayList<>();
 
     for (TramStopDemandDTO stop : baseDemand) {
-      boolean isAffected =
+      boolean onTargetLine =
           stop.getLine() != null
               && stop.getLine().toLowerCase(Locale.ROOT).equals(targetLine)
               && stop.getTripCount() > 0;
+
+      boolean isAffected =
+          onTargetLine && (corridorStopIds == null || corridorStopIds.contains(stop.getStopId()));
 
       if (!isAffected) {
         simulated.add(stop);
         continue;
       }
 
-      // Mirrors the train simulation: relief is proportional to the fractional
-      // increase in this stop's own service frequency.
-      double reliefRatio = (double) extraTrams / stop.getTripCount();
-      double pressureFactor = Math.exp(-reliefRatio * SIMULATION_SENSITIVITY);
-      double newScore = Math.max(0.0, stop.getDemandScore() * pressureFactor);
+      // Capacity-based relief — same logic as the recommendation engine:
+      //   utilisation = passengers / (trams × tram_capacity)
+      //   Adding trams (+) increases capacity → utilisation drops
+      //   Removing trams (-) decreases capacity → utilisation rises
+      //   new_utilisation = old_utilisation × (current_trams / (current_trams + extra_trams))
+      //
+      // Examples with 50 current trams at 78% utilisation:
+      //   Add 3:    78% × (50/53) = 73.6%  → less crowded
+      //   Remove 3: 78% × (50/47) = 83.0%  → more crowded
+      int currentTrips = stop.getTripCount();
+      int newTrips = Math.max(1, currentTrips + extraTrams); // never go below 1 tram
+      double newScore = stop.getDemandScore() * ((double) currentTrips / newTrips);
+      newScore = Math.min(1.0, Math.max(0.0, newScore)); // clamp 0–100%
 
       simulated.add(
           TramStopDemandDTO.builder()
@@ -338,7 +462,7 @@ public class TramDashboardService {
               .line(stop.getLine())
               .lat(stop.getLat())
               .lon(stop.getLon())
-              .tripCount(stop.getTripCount() + extraTrams)
+              .tripCount(newTrips)
               .demandScore(Math.round(newScore * 1_000_000.0) / 1_000_000.0)
               .build());
       affectedStopIds.add(stop.getStopId());
@@ -349,6 +473,60 @@ public class TramDashboardService {
         .simulatedDemand(simulated)
         .affectedStopIds(affectedStopIds)
         .build();
+  }
+
+  /**
+   * Given a line and two endpoint stop IDs, determine all stops on that line that lie between the
+   * two endpoints. Uses geographic ordering along the line.
+   */
+  private Set<String> computeCorridorStops(
+      List<TramStopDemandDTO> allDemand,
+      String line,
+      String originStopId,
+      String destinationStopId) {
+
+    // Get all stops on the target line with valid coordinates
+    List<TramStopDemandDTO> lineStops =
+        allDemand.stream()
+            .filter(
+                s ->
+                    s.getLine() != null
+                        && s.getLine().toLowerCase(Locale.ROOT).equals(line)
+                        && s.getLat() != null
+                        && s.getLon() != null)
+            .collect(Collectors.toList());
+
+    // Sort stops geographically along the line.
+    // Green line runs roughly north-south → sort by latitude (descending = north to south).
+    // Red line runs roughly east-west → sort by longitude.
+    if ("green".equals(line)) {
+      lineStops.sort(Comparator.comparingDouble(TramStopDemandDTO::getLat).reversed());
+    } else {
+      lineStops.sort(Comparator.comparingDouble(TramStopDemandDTO::getLon));
+    }
+
+    // Find indices of origin and destination in the sorted list
+    int originIdx = -1;
+    int destIdx = -1;
+    for (int i = 0; i < lineStops.size(); i++) {
+      String sid = lineStops.get(i).getStopId();
+      if (sid.equals(originStopId)) originIdx = i;
+      if (sid.equals(destinationStopId)) destIdx = i;
+    }
+
+    // If either endpoint not found, fall back to affecting all stops on the line
+    if (originIdx == -1 || destIdx == -1) {
+      return lineStops.stream().map(TramStopDemandDTO::getStopId).collect(Collectors.toSet());
+    }
+
+    int fromIdx = Math.min(originIdx, destIdx);
+    int toIdx = Math.max(originIdx, destIdx);
+
+    Set<String> corridor = new HashSet<>();
+    for (int i = fromIdx; i <= toIdx; i++) {
+      corridor.add(lineStops.get(i).getStopId());
+    }
+    return corridor;
   }
 
   // ── Shared helpers ──────────────────────────────────────────────
@@ -420,13 +598,93 @@ public class TramDashboardService {
     tramHourlyDistributionRepository.findByYear(latestYear).stream()
         .filter(h -> hourSet.contains(parseHour(h.getTimeLabel())))
         .forEach(
-            h ->
-                result.merge(
-                    h.getLineCode(), h.getValue() != null ? h.getValue() : 0.0, Double::sum));
+            h -> {
+              // Map to per-line keys ("red", "green") matching the inference engine,
+              // using line_label which contains "Red Line", "Green Line", etc.
+              String lk = h.getLineLabel().trim().toLowerCase(Locale.ROOT);
+              String key;
+              if (lk.contains("red")) {
+                key = "red";
+              } else if (lk.contains("green")) {
+                key = "green";
+              } else {
+                key = h.getLineCode(); // fallback to line_code (e.g. "-" for combined)
+              }
+              result.merge(key, h.getValue() != null ? h.getValue() : 0.0, Double::sum);
+            });
     return result;
   }
 
   private Map<String, int[]> countTripsForHours(
+      List<Integer> hours,
+      Map<String, List<String>> nameToGtfsIds,
+      List<TramStopTime> allStopTimes) {
+    Map<String, String> gtfsIdToName = new HashMap<>();
+    for (Map.Entry<String, List<String>> entry : nameToGtfsIds.entrySet()) {
+      for (String gid : entry.getValue()) gtfsIdToName.put(gid, entry.getKey());
+    }
+    Set<Integer> hourSet = new HashSet<>(hours);
+    // Count UNIQUE trips per stop per direction (matching inference engine's trip_id.nunique())
+    Map<String, Set<String>[]> tripSets = new HashMap<>();
+    for (TramStopTime st : allStopTimes) {
+      if (st.getArrivalTime() == null) continue;
+      if (!hourSet.contains(st.getArrivalTime().toLocalTime().getHour())) continue;
+      String stopName = gtfsIdToName.get(st.getStopId());
+      if (stopName == null) continue;
+      List<String> ids = nameToGtfsIds.get(stopName);
+      int dirIdx = (ids != null && ids.size() > 1 && !st.getStopId().equals(ids.get(0))) ? 1 : 0;
+      @SuppressWarnings("unchecked")
+      Set<String>[] sets =
+          tripSets.computeIfAbsent(stopName, k -> new Set[] {new HashSet<>(), new HashSet<>()});
+      sets[dirIdx].add(st.getTripId());
+    }
+    Map<String, int[]> result = new HashMap<>();
+    for (Map.Entry<String, Set<String>[]> e : tripSets.entrySet()) {
+      result.put(e.getKey(), new int[] {e.getValue()[0].size(), e.getValue()[1].size()});
+    }
+    return result;
+  }
+
+  private Map<String, Integer> countLineTotalsForHours(
+      List<Integer> hours,
+      Map<String, TramStop> luasStopsById,
+      Map<String, List<String>> nameToGtfsIds,
+      Map<String, String> luasToGtfs,
+      List<TramStopTime> allStopTimes) {
+    Map<String, String> gtfsStopToLine = new HashMap<>();
+    for (TramStop luasStop : luasStopsById.values()) {
+      String gtfsName = luasToGtfs.get(luasStop.getStopId());
+      List<String> ids = gtfsName != null ? nameToGtfsIds.get(gtfsName) : null;
+      if (ids == null) {
+        String nameKey = luasStop.getName().toLowerCase(Locale.ROOT);
+        ids = nameToGtfsIds.get(nameKey);
+        if (ids == null) ids = findGtfsStopIdsByPartialName(nameKey, nameToGtfsIds);
+      }
+      if (ids != null) {
+        for (String gid : ids) gtfsStopToLine.put(gid, luasStop.getLine());
+      }
+    }
+    Set<Integer> hourSet = new HashSet<>(hours);
+    // Count UNIQUE trips per line (matching inference engine's
+    // groupby("line")["trip_id"].nunique())
+    Map<String, Set<String>> lineTrips = new HashMap<>();
+    for (TramStopTime st : allStopTimes) {
+      if (st.getArrivalTime() == null) continue;
+      if (!hourSet.contains(st.getArrivalTime().toLocalTime().getHour())) continue;
+      String line = gtfsStopToLine.getOrDefault(st.getStopId(), "unknown");
+      lineTrips.computeIfAbsent(line, k -> new HashSet<>()).add(st.getTripId());
+    }
+    Map<String, Integer> totals = new HashMap<>();
+    for (Map.Entry<String, Set<String>> e : lineTrips.entrySet()) {
+      totals.put(e.getKey(), e.getValue().size());
+    }
+    return totals;
+  }
+
+  // ── Row-counting helpers (used by getStopUsage — original logic) ──────
+
+  /** Count stop_time rows per stop per direction (NOT unique trips). Used by usage tab. */
+  private Map<String, int[]> countStopTimeRows(
       List<Integer> hours,
       Map<String, List<String>> nameToGtfsIds,
       List<TramStopTime> allStopTimes) {
@@ -448,7 +706,8 @@ public class TramDashboardService {
     return result;
   }
 
-  private Map<String, Integer> countLineTotalsForHours(
+  /** Count stop_time rows per line (NOT unique trips). Used by usage tab. */
+  private Map<String, Integer> countLineStopTimeRows(
       List<Integer> hours,
       Map<String, TramStop> luasStopsById,
       Map<String, List<String>> nameToGtfsIds,
@@ -497,7 +756,8 @@ public class TramDashboardService {
       Map<String, String> luasToGtfs,
       Map<String, Double> hourlyPct,
       Map<String, int[]> stopDirTrips,
-      Map<String, Integer> lineTotals) {
+      Map<String, Integer> lineTotals,
+      Map<String, Double> dailyPassengers) {
     TramStop luasStop = luasStopsById.get(forecast.getStopId());
     if (luasStop == null) return null;
     String gtfsName = luasToGtfs.get(luasStop.getStopId());
@@ -521,7 +781,7 @@ public class TramDashboardService {
     double share = (double) (dt[0] + dt[1]) / Math.max(1, lineTotal);
     String lk = "-";
     double pct = hourlyPct.getOrDefault(lk, 0.0) / 100.0;
-    double daily = "red".equals(forecast.getLine()) ? RED_DAILY_PASSENGERS : GREEN_DAILY_PASSENGERS;
+    double daily = dailyPassengers.getOrDefault(forecast.getLine(), FALLBACK_RED_DAILY_PASSENGERS);
     double affected = share * pct * daily * (delayMins / 60.0);
     return TramDelayDTO.builder()
         .stopId(forecast.getStopId())

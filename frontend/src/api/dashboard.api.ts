@@ -506,10 +506,14 @@ export const dashboardApi = {
     return data;
   },
 
-  /** Get demand score per tram stop (derived from GTFS trip frequency). */
-  getTramStopDemand: async (): Promise<TramStopDemand[]> => {
+  /** Get demand score per tram stop (utilisation for a time period). */
+  getTramStopDemand: async (
+    startHour = 7,
+    endHour = 10,
+  ): Promise<TramStopDemand[]> => {
     const { data } = await axiosInstance.get<TramStopDemand[]>(
       API_ENDPOINTS.TRAM_STOP_DEMAND,
+      { params: { startHour, endHour } },
     );
     return data;
   },
