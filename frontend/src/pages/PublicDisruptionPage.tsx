@@ -60,6 +60,16 @@ const MODE_COLORS: Record<string, string> = {
   bike: "#F59E0B",
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  DELAY: "Service Delay",
+  TRAM_DISRUPTION: "Tram Disruption",
+  CONGESTION: "Traffic Congestion",
+  CANCELLATION: "Cancellation",
+  CONSTRUCTION: "Construction",
+  EVENT: "Service Pressure",
+  ACCIDENT: "Accident",
+};
+
 const CAUSE_ICONS: Record<string, React.ReactNode> = {
   EVENT: <EventIcon sx={{ fontSize: 18 }} />,
   CONGESTION: <TrafficIcon sx={{ fontSize: 18 }} />,
@@ -439,7 +449,7 @@ export const PublicDisruptionPage = () => {
                 mb: 0.75,
               }}
             >
-              {disruption.name ?? disruption.disruptionType}
+              {disruption.name ?? TYPE_LABELS[disruption.disruptionType] ?? disruption.disruptionType}
             </Typography>
             {disruption.description && (
               <Typography

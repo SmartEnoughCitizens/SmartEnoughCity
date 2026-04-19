@@ -40,6 +40,32 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+const STOP_MODE_COLORS: Record<string, string> = {
+  bus: "#3B82F6",
+  tram: "#10B981",
+  rail: "#8B5CF6",
+  bike: "#F59E0B",
+};
+
+function makeVenueIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:16px;height:16px;border-radius:50%;background:#EF4444;border:3px solid white;box-shadow:0 0 0 2px #EF4444;"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+}
+
+function makeStopIcon(mode: string): L.DivIcon {
+  const color = STOP_MODE_COLORS[mode?.toLowerCase()] ?? "#6B7280";
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.35);"></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+  });
+}
+
 const EVENT_TYPE_COLORS: Record<string, string> = {
   Music: "#7C3AED",
   Sports: "#059669",
@@ -253,19 +279,19 @@ export const PublicEventPage = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
               />
-              {/* Venue marker */}
-              <Marker position={[event.latitude, event.longitude]}>
+              {/* Venue marker — red dot */}
+              <Marker position={[event.latitude, event.longitude]} icon={makeVenueIcon()}>
                 <Popup>
                   <strong>{event.eventName}</strong>
                   <br />
                   {event.venueName}
                 </Popup>
               </Marker>
-              {/* Transport stop markers */}
+              {/* Transport stop markers — color-coded by mode */}
               {(event.nearbyTransport ?? [])
                 .filter((t) => t.lat != null && t.lon != null)
                 .map((t, i) => (
-                  <Marker key={i} position={[t.lat!, t.lon!]}>
+                  <Marker key={i} position={[t.lat!, t.lon!]} icon={makeStopIcon(t.mode ?? "")}>
                     <Popup>
                       <strong>{modeLabel(t.mode ?? "")} · {t.stopName}</strong>
                       {t.description && <><br />{t.description}</>}

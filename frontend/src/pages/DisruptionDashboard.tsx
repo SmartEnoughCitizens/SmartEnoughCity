@@ -40,6 +40,8 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useQuery } from "@tanstack/react-query";
@@ -62,6 +64,7 @@ import type { SelectedMapItem } from "@/components/map/EventMap";
 // ── Layout constants ────────────────────────────────────────────────────
 const PANEL_WIDTH = 380;
 const DETAIL_HEIGHT = 360;
+const MODE_IMPACT_WIDTH = 270;
 const GAP = 16;
 
 // ── Disruption colour / label maps ──────────────────────────────────────
@@ -1344,6 +1347,7 @@ export const DisruptionDashboard = () => {
     number | null
   >(null);
   const [modeTab, setModeTab] = useState(0);
+  const [modeImpactOpen, setModeImpactOpen] = useState(true);
 
   // Events state
   const [tabMode, setTabMode] = useState<"disruptions" | "events">(
@@ -1743,7 +1747,7 @@ export const DisruptionDashboard = () => {
             position: "absolute",
             top: GAP,
             right: GAP,
-            bottom: detailOpen ? DETAIL_HEIGHT + GAP * 2 : GAP,
+            bottom: GAP,
             width: PANEL_WIDTH,
             zIndex: 1000,
             borderRadius: 3,
@@ -1992,7 +1996,52 @@ export const DisruptionDashboard = () => {
         </Paper>
       )}
 
-      {/* Bottom detail panel */}
+      {/* Mode Impact — independent collapsible card, bottom-left, disruptions mode only */}
+      {tabMode === "disruptions" && (
+        <Paper
+          elevation={0}
+          sx={{
+            position: "absolute",
+            bottom: GAP,
+            left: GAP,
+            width: MODE_IMPACT_WIDTH,
+            height: modeImpactOpen ? 204 : 40,
+            zIndex: 1000,
+            borderRadius: 3,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            transition: "height 0.2s ease",
+          }}
+        >
+          <Box
+            sx={{
+              px: 2,
+              height: 40,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              borderBottom: modeImpactOpen ? "1px solid rgba(0,0,0,0.07)" : "none",
+            }}
+          >
+            <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, flex: 1 }}>
+              Mode Impact
+            </Typography>
+            <IconButton size="small" onClick={() => setModeImpactOpen((o) => !o)}>
+              {modeImpactOpen
+                ? <ExpandMoreIcon sx={{ fontSize: 16 }} />
+                : <ExpandLessIcon sx={{ fontSize: 16 }} />}
+            </IconButton>
+          </Box>
+          {modeImpactOpen && (
+            <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+              <RippleEffectVisualization disruptions={disruptions} />
+            </Box>
+          )}
+        </Paper>
+      )}
+
+      {/* Disruption detail panel */}
       {detailOpen &&
         tabMode === "disruptions" &&
         selectedDisruptionId != null && (
@@ -2001,7 +2050,7 @@ export const DisruptionDashboard = () => {
             sx={{
               position: "absolute",
               bottom: GAP,
-              left: GAP,
+              left: MODE_IMPACT_WIDTH + GAP * 2,
               right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
               height: DETAIL_HEIGHT,
               zIndex: 1000,
@@ -2017,6 +2066,7 @@ export const DisruptionDashboard = () => {
           </Paper>
         )}
 
+      {/* Event detail panel */}
       {detailOpen && tabMode === "events" && selectedEvent != null && (
         <Paper
           elevation={0}
@@ -2038,52 +2088,6 @@ export const DisruptionDashboard = () => {
           />
         </Paper>
       )}
-
-      {/* Mode impact panel — disruptions mode, nothing selected */}
-      {!detailOpen &&
-        tabMode === "disruptions" &&
-        !selectedDisruptionId &&
-        disruptions.length > 0 && (
-          <Paper
-            elevation={0}
-            sx={{
-              position: "absolute",
-              bottom: GAP,
-              left: GAP,
-              right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
-              height: 200,
-              zIndex: 1000,
-              borderRadius: 3,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              transition: "right 0.2s ease",
-            }}
-          >
-            <Box
-              sx={{
-                px: 2,
-                py: 1,
-                borderBottom: "1px solid rgba(0,0,0,0.07)",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <Typography
-                sx={{ fontSize: "0.875rem", fontWeight: 700, flex: 1 }}
-              >
-                Mode Impact
-              </Typography>
-              <Typography sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
-                Select a disruption for causes & alternatives
-              </Typography>
-            </Box>
-            <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-              <RippleEffectVisualization disruptions={disruptions} />
-            </Box>
-          </Paper>
-        )}
     </Box>
   );
 };
