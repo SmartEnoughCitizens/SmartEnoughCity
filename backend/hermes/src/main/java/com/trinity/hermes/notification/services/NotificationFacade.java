@@ -18,6 +18,10 @@ import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -182,14 +186,18 @@ public class NotificationFacade {
     }
   }
 
-  public NotificationResponseDTO getAll(String userId) {
-    List<NotificationEntity> entities =
-        notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
+  public NotificationResponseDTO getAll(String userId, int page, int size) {
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Page<NotificationEntity> entityPage =
+        notificationRepository.findByUserIdAndDeletedAtIsNull(userId, pageable);
     long unreadCount = notificationRepository.countByUserIdAndIsReadFalseAndDeletedAtIsNull(userId);
     return NotificationResponseDTO.builder()
         .userId(userId)
-        .notifications(entities.stream().map(this::toItemDTO).toList())
+        .notifications(entityPage.getContent().stream().map(this::toItemDTO).toList())
         .totalCount(unreadCount)
+        .totalItems(entityPage.getTotalElements())
+        .page(page)
+        .pageSize(size)
         .build();
   }
 

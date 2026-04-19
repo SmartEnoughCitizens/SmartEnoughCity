@@ -52,8 +52,12 @@ public class NotificationController {
   }
 
   @GetMapping("/{userId}")
-  public ResponseEntity<NotificationResponseDTO> getUserNotifications(@PathVariable String userId) {
-    return ResponseEntity.ok(notificationFacade.getAll(userId));
+  public ResponseEntity<NotificationResponseDTO> getUserNotifications(
+      @PathVariable String userId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "25") int size) {
+    int clampedSize = (size == 10 || size == 25 || size == 100) ? size : 25;
+    return ResponseEntity.ok(notificationFacade.getAll(userId, page, clampedSize));
   }
 
   @org.springframework.web.bind.annotation.ExceptionHandler(IllegalArgumentException.class)

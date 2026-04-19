@@ -5,7 +5,8 @@ import sseService from "@/services/sseService";
 import { type Notification, type NotificationResponse } from "@/types";
 
 export const NOTIFICATION_KEYS = {
-  user: (userId: string) => ["notifications", userId] as const,
+  user: (userId: string, page = 0, size = 25) =>
+    ["notifications", userId, page, size] as const,
 };
 
 interface RawNotification {
@@ -45,13 +46,19 @@ const toFrontendNotification = (
 export const useUserNotifications = (
   userId: string,
   enabled: boolean = true,
+  page = 0,
+  size = 25,
 ) => {
   const queryClient = useQueryClient();
 
   const query = useQuery<NotificationResponse>({
-    queryKey: NOTIFICATION_KEYS.user(userId),
+    queryKey: NOTIFICATION_KEYS.user(userId, page, size),
     queryFn: async () => {
-      const data = await notificationApi.getUserNotifications(userId);
+      const data = await notificationApi.getUserNotifications(
+        userId,
+        page,
+        size,
+      );
       const rawItems: RawNotification[] = Array.isArray(data)
         ? (data as RawNotification[])
         : data.notifications || [];
@@ -61,20 +68,27 @@ export const useUserNotifications = (
       const unreadCount = Array.isArray(data)
         ? notifications.filter((n) => !n.read).length
         : (data.totalCount ?? 0);
-      return { userId, notifications, totalCount: unreadCount };
+      return {
+        userId,
+        notifications,
+        totalCount: unreadCount,
+        totalItems: Array.isArray(data) ? undefined : data.totalItems,
+        page: Array.isArray(data) ? page : (data.page ?? page),
+        pageSize: Array.isArray(data) ? size : (data.pageSize ?? size),
+      };
     },
     enabled: !!userId && enabled,
     staleTime: 60_000,
   });
 
-  // Subscribe to SSE to push new notifications into React Query cache
+  // Subscribe to SSE to push new notifications into React Query cache (page 0 only)
   // (SSE connection is managed by DashboardLayout)
   useEffect(() => {
     if (!userId || !enabled) return;
 
     const unsubscribe = sseService.subscribe((notification) => {
       queryClient.setQueryData<NotificationResponse>(
-        NOTIFICATION_KEYS.user(userId),
+        NOTIFICATION_KEYS.user(userId, 0, size),
         (old) => {
           const existing: NotificationResponse = old?.notifications
             ? old
