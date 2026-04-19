@@ -157,25 +157,28 @@ public class NotificationFacade {
     payload.put("severity", solution.getSeverity());
     payload.put("disruptionType", solution.getDisruptionType());
 
-    // Use a dummy user or appropriate recipient logic
-    User user = User.builder().build();
-
-    Set<Notification> notifications = notificationService.createNotification(user, payload);
-    if (notifications == null) return;
-
     List<String> userGroups =
         solution.getAffectedUserGroups() != null ? solution.getAffectedUserGroups() : List.of();
 
-    for (Notification notification : notifications) {
-      if (Objects.nonNull(notification)
-          && (notification.getChannel() == Channel.EMAIL
-              || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
-        notificationDispatcher.dispatchMail(notification);
+    for (String userId : userGroups) {
+      String email = null;
+      try {
+        email = userManagementService.getUserEmail(userId);
+      } catch (Exception e) {
+        log.warn("Could not resolve email for userId {}: {}", userId, e.getMessage());
       }
-      if (Objects.nonNull(notification)
-          && (notification.getChannel() == Channel.NOTIFICATION
-              || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
-        for (String userId : userGroups) {
+      User user = User.builder().id(userId).email(email).build();
+      Set<Notification> notifications = notificationService.createNotification(user, payload);
+      if (notifications == null) continue;
+      for (Notification notification : notifications) {
+        if (Objects.nonNull(notification)
+            && (notification.getChannel() == Channel.EMAIL
+                || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
+          notificationDispatcher.dispatchMail(notification);
+        }
+        if (Objects.nonNull(notification)
+            && (notification.getChannel() == Channel.NOTIFICATION
+                || notification.getChannel() == Channel.EMAIL_AND_NOTIFICATION)) {
           notificationDispatcher.dispatchSse(userId, notification);
         }
       }
