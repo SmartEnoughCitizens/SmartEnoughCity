@@ -73,7 +73,7 @@ export const NotificationsPage = () => {
 
   const inbox = data?.notifications ?? [];
   const bin = binData?.notifications ?? [];
-  const unreadCount = inbox.filter((n) => !n.read).length;
+  const unreadCount = data?.totalCount ?? inbox.filter((n) => !n.read).length;
 
   const handleOpen = (n: Notification) => {
     setSelected(n);
