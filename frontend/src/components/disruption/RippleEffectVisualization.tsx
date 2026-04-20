@@ -7,26 +7,22 @@ import { Box, Typography } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import type { ActiveDisruption, TransportMode } from "@/types";
 
-const MODE_COLORS: Record<TransportMode, string> = {
+const MODE_COLORS: Partial<Record<TransportMode, string>> = {
   BUS: "#3B82F6",
   TRAM: "#10B981",
   TRAIN: "#F59E0B",
-  CAR: "#EF4444",
-  CYCLE: "#8B5CF6",
 };
 
-const MODE_LABELS: Record<TransportMode, string> = {
+const MODE_LABELS: Partial<Record<TransportMode, string>> = {
   BUS: "Bus",
-  TRAM: "Tram",
-  TRAIN: "Train",
-  CAR: "Car",
-  CYCLE: "Cycle",
+  TRAM: "Luas",
+  TRAIN: "Rail",
 };
 
 const SEVERITY_LABELS = ["", "Low", "Med", "High", "Crit"];
 const SEVERITY_COLORS_ARR = ["", "#10B981", "#F59E0B", "#EF4444", "#7C3AED"];
 
-const ALL_MODES: TransportMode[] = ["BUS", "TRAM", "TRAIN", "CAR", "CYCLE"];
+const ALL_MODES: TransportMode[] = ["BUS", "TRAM", "TRAIN"];
 
 interface ModeImpact {
   mode: TransportMode;
@@ -79,7 +75,7 @@ interface Props {
 export const RippleEffectVisualization = ({ disruptions }: Props) => {
   const impacts = computeImpacts(disruptions);
   const maxCount = Math.max(...impacts.map((i) => i.count), 1);
-  const affected = impacts.filter((i) => i.count > 0);
+  const affected = impacts.filter((i) => i.count > 0 && MODE_COLORS[i.mode]);
   const allClear = affected.length === 0;
 
   return (
@@ -98,7 +94,7 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
       {/* Mode status cards — one per mode */}
       <Box sx={{ display: "flex", gap: 0.75, flexShrink: 0 }}>
         {impacts.map(({ mode, count, maxSeverity }) => {
-          const color = MODE_COLORS[mode];
+          const color = MODE_COLORS[mode] ?? "#9CA3AF";
           const sevColor = SEVERITY_COLORS_ARR[maxSeverity] ?? color;
           const isAffected = count > 0;
           return (
@@ -190,7 +186,7 @@ export const RippleEffectVisualization = ({ disruptions }: Props) => {
           </Box>
         ) : (
           affected.map(({ mode, count }) => {
-            const color = MODE_COLORS[mode];
+            const color = MODE_COLORS[mode] ?? "#9CA3AF";
             const pct = (count / maxCount) * 100;
             return (
               <Box

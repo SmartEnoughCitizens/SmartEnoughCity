@@ -5,10 +5,11 @@
  *   Events      — upcoming events by day, detail with venue info + transport
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   Alert,
   Box,
+  Chip,
   CircularProgress,
   Divider,
   IconButton,
@@ -36,6 +37,13 @@ import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PeopleIcon from "@mui/icons-material/People";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import QrCode2Icon from "@mui/icons-material/QrCode2";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useQuery } from "@tanstack/react-query";
 import { useActiveDisruptions, useEvents } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
@@ -56,6 +64,7 @@ import type { SelectedMapItem } from "@/components/map/EventMap";
 // ── Layout constants ────────────────────────────────────────────────────
 const PANEL_WIDTH = 380;
 const DETAIL_HEIGHT = 360;
+const MODE_IMPACT_WIDTH = 270;
 const GAP = 16;
 
 // ── Disruption colour / label maps ──────────────────────────────────────
@@ -87,6 +96,7 @@ const CAUSE_ICONS: Record<string, React.ReactNode> = {
   EVENT: <EventIcon sx={{ fontSize: 15 }} />,
   CONGESTION: <TrafficIcon sx={{ fontSize: 15 }} />,
   CROSS_MODE: <CompareArrowsIcon sx={{ fontSize: 15 }} />,
+  UNKNOWN: <HelpOutlineIcon sx={{ fontSize: 15 }} />,
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {
@@ -102,13 +112,14 @@ const ALT_MODE_COLORS: Record<string, string> = {
   bike: "#F59E0B",
 };
 
-// ── Event colour map ────────────────────────────────────────────────────
+// ── Event colour map ─────────────────────────────────────────────────────
+// Deliberately distinct from SEVERITY_COLORS (green/amber/red/purple)
 const EVENT_TYPE_COLORS: Record<string, string> = {
-  Music: "#7C3AED",
-  Sports: "#059669",
-  "Arts & Theatre": "#0891B2",
-  Film: "#DC2626",
-  Miscellaneous: "#D97706",
+  Music: "#1D4ED8",
+  Sports: "#0D9488",
+  "Arts & Theatre": "#DB2777",
+  Film: "#EA580C",
+  Miscellaneous: "#64748B",
 };
 
 function eventColor(type: string): string {
@@ -163,6 +174,8 @@ function altModeIcon(mode: string, size = 16): React.ReactNode {
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
+  // LocalTime arrives as "HH:mm:ss" — slice directly
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(iso)) return iso.slice(0, 5);
   try {
     return new Date(iso).toLocaleTimeString("en-IE", {
       hour: "2-digit",
@@ -226,6 +239,15 @@ function fmtEventTime(iso: string | null): string {
   }
 }
 
+function esc(s: string | null | undefined): string {
+  return (s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 // ── Shared section label ────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -266,9 +288,11 @@ function DisruptionCard({
         display: "flex",
         alignItems: "stretch",
         cursor: "pointer",
+        position: "relative",
         bgcolor: selected ? `${color}0e` : "transparent",
         "&:hover": {
           bgcolor: selected ? `${color}14` : "rgba(0,0,0,0.03)",
+          "& .open-in-new-btn": { opacity: 1 },
         },
         transition: "background 0.12s",
       }}
@@ -370,6 +394,26 @@ function DisruptionCard({
             {eta ? ` · ${eta}` : ""}
           </Typography>
         </Box>
+        <Tooltip title="Open public page">
+          <IconButton
+            className="open-in-new-btn"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`/public/disruption/${d.id}`, "_blank");
+            }}
+            sx={{
+              opacity: 0,
+              transition: "opacity 0.12s",
+              alignSelf: "flex-start",
+              mt: 0.75,
+              mr: 0.5,
+              color: "text.disabled",
+            }}
+          >
+            <OpenInNewIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
     </Box>
   );
@@ -389,6 +433,7 @@ function EventCard({
   const color = eventColor(event.eventType);
   const attLevel = eventAttendanceLevel(event.estimatedAttendance);
   const attColor = ATTENDANCE_COLORS[attLevel];
+  const riskColor = SEVERITY_COLORS[event.riskLevel] ?? "#6B7280";
 
   return (
     <Box
@@ -479,10 +524,25 @@ function EventCard({
               {event.venueName}
             </Typography>
           </Box>
-          <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }}>
-            {fmtEventTime(event.startTime)}
-            {event.endTime ? ` – ${fmtEventTime(event.endTime)}` : ""}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }}>
+              {fmtEventTime(event.startTime)}
+              {event.endTime ? ` – ${fmtEventTime(event.endTime)}` : ""}
+            </Typography>
+            <Chip
+              label={event.riskLevel}
+              size="small"
+              sx={{
+                height: 16,
+                fontSize: "0.55rem",
+                fontWeight: 700,
+                bgcolor: `${riskColor}18`,
+                color: riskColor,
+                border: `1px solid ${riskColor}40`,
+                "& .MuiChip-label": { px: 0.75 },
+              }}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>
@@ -502,57 +562,75 @@ function DaySelector({
   counts: Record<string, number>;
   onChange: (day: string) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  function scroll(dir: "left" | "right") {
+    scrollRef.current?.scrollBy({
+      left: dir === "right" ? 120 : -120,
+      behavior: "smooth",
+    });
+  }
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        gap: 0.75,
-        overflowX: "auto",
-        pb: 0.5,
-        "&::-webkit-scrollbar": { display: "none" },
-      }}
-    >
-      {days.map((day) => {
-        const active = day === selected;
-        return (
-          <Box
-            key={day}
-            onClick={() => onChange(day)}
-            sx={{
-              flexShrink: 0,
-              px: 1.25,
-              py: 0.6,
-              borderRadius: 2,
-              cursor: "pointer",
-              bgcolor: active ? "#3B82F6" : "rgba(0,0,0,0.05)",
-              border: `1px solid ${active ? "#3B82F6" : "transparent"}`,
-              transition: "all 0.12s",
-              "&:hover": { bgcolor: active ? "#3B82F6" : "rgba(0,0,0,0.08)" },
-              textAlign: "center",
-            }}
-          >
-            <Typography
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+      <IconButton size="small" onClick={() => scroll("left")} sx={{ p: 0.25 }}>
+        <ChevronLeftIcon sx={{ fontSize: 16 }} />
+      </IconButton>
+      <Box
+        ref={scrollRef}
+        sx={{
+          display: "flex",
+          gap: 0.75,
+          overflowX: "auto",
+          pb: 0.5,
+          flex: 1,
+        }}
+      >
+        {days.map((day) => {
+          const active = day === selected;
+          return (
+            <Box
+              key={day}
+              onClick={() => onChange(day)}
               sx={{
-                fontSize: "0.7rem",
-                fontWeight: 600,
-                color: active ? "#fff" : "text.primary",
-                lineHeight: 1.2,
+                flexShrink: 0,
+                px: 1.25,
+                py: 0.6,
+                borderRadius: 2,
+                cursor: "pointer",
+                bgcolor: active ? "#3B82F6" : "rgba(0,0,0,0.05)",
+                border: `1px solid ${active ? "#3B82F6" : "transparent"}`,
+                transition: "all 0.12s",
+                "&:hover": { bgcolor: active ? "#3B82F6" : "rgba(0,0,0,0.08)" },
+                textAlign: "center",
               }}
             >
-              {fmtDayLabel(day)}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.6rem",
-                color: active ? "rgba(255,255,255,0.75)" : "text.disabled",
-                lineHeight: 1.2,
-              }}
-            >
-              {counts[day] ?? 0}
-            </Typography>
-          </Box>
-        );
-      })}
+              <Typography
+                sx={{
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: active ? "#fff" : "text.primary",
+                  lineHeight: 1.2,
+                }}
+              >
+                {fmtDayLabel(day)}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: "0.6rem",
+                  color: active ? "rgba(255,255,255,0.75)" : "text.disabled",
+                  lineHeight: 1.2,
+                }}
+              >
+                {counts[day] ?? 0}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+      <IconButton size="small" onClick={() => scroll("right")} sx={{ p: 0.25 }}>
+        <ChevronRightIcon sx={{ fontSize: 16 }} />
+      </IconButton>
     </Box>
   );
 }
@@ -575,6 +653,24 @@ function DisruptionDetailPanel({
   const color = SEVERITY_COLORS[data?.severity ?? "LOW"] ?? "#6B7280";
   const causes: DisruptionCause[] = data?.causes ?? [];
   const alternatives: DisruptionAlternative[] = data?.alternatives ?? [];
+
+  const publicUrl = `${globalThis.location.origin}/public/disruption/${id}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(publicUrl)}`;
+
+  async function handleDownloadQr() {
+    try {
+      const res = await fetch(qrUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `disruption-${id}-qr.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+  }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -754,10 +850,87 @@ function DisruptionDetailPanel({
               </Box>
             )}
 
+            {(data?.affectedRoutes ?? []).length > 0 && (
+              <Box>
+                <SectionLabel>Affected routes</SectionLabel>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {(data!.affectedRoutes ?? []).map((r) => (
+                    <Chip
+                      key={r}
+                      label={r}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        bgcolor: `${color}12`,
+                        color,
+                        border: `1px solid ${color}30`,
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
             {!data?.description && causes.length === 0 && (
               <Typography sx={{ fontSize: "0.78rem", color: "text.disabled" }}>
                 No additional details available.
               </Typography>
+            )}
+
+            {/* Footer actions */}
+            {data && (
+              <Box
+                sx={{
+                  mt: "auto",
+                  pt: 1.5,
+                  borderTop: "1px solid rgba(0,0,0,0.07)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Box
+                  component="a"
+                  href={publicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: 1.5,
+                    bgcolor: color,
+                    color: "#fff",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    "&:hover": { opacity: 0.9 },
+                  }}
+                >
+                  <OpenInNewIcon sx={{ fontSize: 12 }} />
+                  View Solution Page
+                </Box>
+                <Tooltip title="Download QR code">
+                  <IconButton
+                    size="small"
+                    onClick={handleDownloadQr}
+                    sx={{ color: "text.secondary" }}
+                  >
+                    <QrCode2Icon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+                <Box
+                  component="img"
+                  src={qrUrl}
+                  alt="QR code"
+                  sx={{ width: 48, height: 48, borderRadius: 1 }}
+                />
+              </Box>
             )}
           </Box>
 
@@ -990,6 +1163,15 @@ function EventDetailPanel({
             </Box>
           </Box>
 
+          {event.venueCapacity != null && (
+            <Box>
+              <SectionLabel>Venue capacity</SectionLabel>
+              <Typography sx={{ fontSize: "0.82rem", color: "text.primary" }}>
+                {event.venueCapacity.toLocaleString()} seats
+              </Typography>
+            </Box>
+          )}
+
           {event.estimatedAttendance != null && (
             <Box>
               <SectionLabel>Expected attendance</SectionLabel>
@@ -1005,12 +1187,23 @@ function EventDetailPanel({
                 <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }}>
                   · {attLevel} impact
                 </Typography>
+                {event.venueCapacity != null && event.venueCapacity > 0 && (
+                  <Typography
+                    sx={{ fontSize: "0.7rem", color: "text.disabled" }}
+                  >
+                    ·{" "}
+                    {Math.round(
+                      (event.estimatedAttendance / event.venueCapacity) * 100,
+                    )}
+                    % fill
+                  </Typography>
+                )}
               </Box>
             </Box>
           )}
         </Box>
 
-        {/* Right: transport section */}
+        {/* Right: transport grouped by mode + QR footer */}
         <Box
           sx={{
             overflow: "auto",
@@ -1018,7 +1211,7 @@ function EventDetailPanel({
             py: 1.5,
             display: "flex",
             flexDirection: "column",
-            gap: 0.75,
+            gap: 1,
           }}
         >
           <SectionLabel>Nearby transport</SectionLabel>
@@ -1031,79 +1224,164 @@ function EventDetailPanel({
               No transport options found nearby.
             </Typography>
           ) : (
-            nearbyTransport.map((a, idx) => {
-              const mc =
-                ALT_MODE_COLORS[a.mode?.toLowerCase() ?? ""] ?? "#6B7280";
-              return (
-                <Box
-                  key={idx}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    p: 1,
-                    borderRadius: 1.5,
-                    bgcolor: (t) =>
-                      t.palette.mode === "dark"
-                        ? "rgba(255,255,255,0.04)"
-                        : "rgba(0,0,0,0.025)",
-                    "&:hover": {
-                      bgcolor: (t) =>
-                        t.palette.mode === "dark"
-                          ? "rgba(255,255,255,0.07)"
-                          : "rgba(0,0,0,0.05)",
-                    },
+            (() => {
+              const grouped: Record<string, DisruptionAlternative[]> = {};
+              for (const a of nearbyTransport) {
+                const m = a.mode?.toLowerCase() ?? "other";
+                if (!grouped[m]) grouped[m] = [];
+                grouped[m].push(a);
+              }
+              const modeOrder = ["bus", "tram", "rail", "bike"];
+              const orderedModes = [
+                ...modeOrder.filter((m) => grouped[m]),
+                ...Object.keys(grouped).filter((m) => !modeOrder.includes(m)),
+              ];
+              const modeLabelMap: Record<string, string> = {
+                bus: "Bus",
+                tram: "Luas",
+                rail: "Irish Rail",
+                bike: "DublinBikes",
+              };
+              return orderedModes.map((mode) => {
+                const mc = ALT_MODE_COLORS[mode] ?? "#6B7280";
+                return (
+                  <Box key={mode}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.75,
+                        mb: 0.5,
+                      }}
+                    >
+                      <Box sx={{ color: mc, display: "flex" }}>
+                        {altModeIcon(mode, 14)}
+                      </Box>
+                      <Typography
+                        sx={{ fontSize: "0.68rem", fontWeight: 700, color: mc }}
+                      >
+                        {modeLabelMap[mode] ?? mode}
+                      </Typography>
+                    </Box>
+                    {grouped[mode].map((a, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          p: 0.75,
+                          borderRadius: 1.5,
+                          mb: 0.5,
+                          bgcolor: (t) =>
+                            t.palette.mode === "dark"
+                              ? "rgba(255,255,255,0.04)"
+                              : "rgba(0,0,0,0.025)",
+                        }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography
+                            noWrap
+                            sx={{ fontSize: "0.78rem", fontWeight: 550 }}
+                          >
+                            {a.stopName ?? a.description}
+                          </Typography>
+                          <Typography
+                            sx={{ fontSize: "0.66rem", color: "text.disabled" }}
+                            noWrap
+                          >
+                            {a.description}
+                            {a.availabilityCount == null
+                              ? ""
+                              : ` · ${a.availabilityCount} available`}
+                          </Typography>
+                        </Box>
+                        {a.googleMapsWalkingUrl && (
+                          <Tooltip title="Walking directions">
+                            <IconButton
+                              component={Link}
+                              href={a.googleMapsWalkingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              size="small"
+                              sx={{ color: mc, flexShrink: 0 }}
+                            >
+                              <DirectionsWalkIcon sx={{ fontSize: 15 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                );
+              });
+            })()
+          )}
+
+          {/* QR footer */}
+          {event.id && (
+            <Box
+              sx={{
+                mt: "auto",
+                pt: 1,
+                borderTop: "1px solid rgba(0,0,0,0.07)",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Box
+                component="a"
+                href={`/public/event/${event.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  px: 1,
+                  py: 0.4,
+                  borderRadius: 1.5,
+                  bgcolor: color,
+                  color: "#fff",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  "&:hover": { opacity: 0.9 },
+                }}
+              >
+                <OpenInNewIcon sx={{ fontSize: 11 }} />
+                View Event Page
+              </Box>
+              <Tooltip title="Download QR">
+                <IconButton
+                  size="small"
+                  sx={{ color: "text.secondary" }}
+                  onClick={async () => {
+                    const url = `${globalThis.location.origin}/public/event/${event.id}`;
+                    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(url)}`;
+                    try {
+                      const res = await fetch(qr);
+                      const blob = await res.blob();
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `event-${event.id}-qr.png`;
+                      a.click();
+                    } catch {
+                      /* ignore */
+                    }
                   }}
                 >
-                  <Box
-                    sx={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: "50%",
-                      bgcolor: `${mc}18`,
-                      color: mc,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {altModeIcon(a.mode, 15)}
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      noWrap
-                      sx={{ fontSize: "0.8rem", fontWeight: 550 }}
-                    >
-                      {a.stopName ?? a.description}
-                    </Typography>
-                    <Typography
-                      sx={{ fontSize: "0.68rem", color: "text.disabled" }}
-                      noWrap
-                    >
-                      {a.description}
-                      {a.availabilityCount == null
-                        ? ""
-                        : ` · ${a.availabilityCount} available`}
-                    </Typography>
-                  </Box>
-                  {a.googleMapsWalkingUrl && (
-                    <Tooltip title="Walking directions">
-                      <IconButton
-                        component={Link}
-                        href={a.googleMapsWalkingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        size="small"
-                        sx={{ color: mc, flexShrink: 0 }}
-                      >
-                        <DirectionsWalkIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </Box>
-              );
-            })
+                  <QrCode2Icon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+              <Box
+                component="img"
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=48x48&data=${encodeURIComponent(`${globalThis.location.origin}/public/event/${event.id}`)}`}
+                alt="QR"
+                sx={{ width: 36, height: 36, borderRadius: 0.5 }}
+              />
+            </Box>
           )}
         </Box>
       </Box>
@@ -1123,6 +1401,7 @@ export const DisruptionDashboard = () => {
     number | null
   >(null);
   const [modeTab, setModeTab] = useState(0);
+  const [modeImpactOpen, setModeImpactOpen] = useState(true);
 
   // Events state
   const [tabMode, setTabMode] = useState<"disruptions" | "events">(
@@ -1134,6 +1413,7 @@ export const DisruptionDashboard = () => {
     useState<SelectedMapItem | null>(null);
 
   const theme = useAppSelector((s) => s.ui.theme);
+  const roles: string[] = useAppSelector((s) => s.auth.roles ?? []);
 
   // Data
   const {
@@ -1226,6 +1506,118 @@ export const DisruptionDashboard = () => {
     tabMode === "disruptions" ? disruptionsLoading : eventsLoading;
   const error = tabMode === "disruptions" ? disruptionsError : null;
 
+  function modeFilterForRole(): string[] | null {
+    if (roles.includes("City_Manager")) return null; // all modes
+    const allowed: string[] = [];
+    if (roles.some((r) => r.startsWith("Bus_"))) allowed.push("bus");
+    if (roles.some((r) => r.startsWith("Train_"))) allowed.push("rail");
+    if (roles.some((r) => r.startsWith("Tram_"))) allowed.push("tram");
+    return allowed.length > 0 ? allowed : null;
+  }
+
+  function roleLabel(): string {
+    if (roles.includes("City_Manager")) return "City Manager";
+    if (roles.some((r) => r.startsWith("Bus_"))) return "Bus Operations";
+    if (roles.some((r) => r.startsWith("Train_"))) return "Rail Operations";
+    if (roles.some((r) => r.startsWith("Tram_"))) return "Tram Operations";
+    return "Transport Planner";
+  }
+
+  async function handleExportDayPlan() {
+    // Open window synchronously before any await — browsers block popups opened after async gaps
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(
+      "<p style='font-family:Arial,sans-serif;padding:24px'>Loading day plan…</p>",
+    );
+
+    const allowed = modeFilterForRole();
+    const plan = await dashboardApi.getDayPlan(selectedDay).catch(() => null);
+
+    const RISK_COLOR: Record<string, string> = {
+      CRITICAL: "#7C3AED",
+      HIGH: "#EF4444",
+      MEDIUM: "#F59E0B",
+      LOW: "#10B981",
+    };
+    const MODE_LABEL: Record<string, string> = {
+      bus: "Bus",
+      tram: "Luas (Tram)",
+      rail: "Irish Rail",
+      bike: "DublinBikes",
+    };
+
+    const legendItems = Object.entries(RISK_COLOR)
+      .map(
+        ([level, color]) =>
+          `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px">
+            <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block"></span>${level}
+          </span>`,
+      )
+      .join("");
+
+    const modes = (plan?.modes ?? []).filter(
+      (m) => !allowed || allowed.includes(m.mode),
+    );
+
+    const sections = modes
+      .map((modeSection) => {
+        const label = esc(MODE_LABEL[modeSection.mode] ?? modeSection.mode);
+        const stopRows = modeSection.stops
+          .map((stop) => {
+            const routeCell =
+              modeSection.mode === "bike"
+                ? `${stop.availableBikes ?? 0} bikes`
+                : stop.routes.length > 0
+                  ? stop.routes.map((r) => esc(r)).join(", ")
+                  : "—";
+            const eventCells = stop.events
+              .map(
+                (ev) =>
+                  `<span style="display:inline-block;margin:1px 3px;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;background:${RISK_COLOR[ev.riskLevel] ?? "#888"};color:#fff"
+                  title="${esc(ev.venueName)}">${esc(ev.eventName)} ${fmtTime(ev.startTime)}</span>`,
+              )
+              .join("");
+            return `<tr>
+              <td style="padding:4px 8px;white-space:nowrap">${esc(stop.stopName)}</td>
+              <td style="padding:4px 8px;white-space:nowrap">${routeCell}</td>
+              <td style="padding:4px 8px">${eventCells || "—"}</td>
+            </tr>`;
+          })
+          .join("");
+
+        return `
+        <section style="margin-bottom:28px;page-break-inside:avoid">
+          <h3 style="margin:0 0 6px;font-size:15px">${label}</h3>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:#f0f0f0">
+              <th style="text-align:left;padding:4px 8px">Station / Stop</th>
+              <th style="text-align:left;padding:4px 8px">Route</th>
+              <th style="text-align:left;padding:4px 8px">Event</th>
+            </tr></thead>
+            <tbody>${stopRows || "<tr><td colspan='3' style='color:#999;padding:4px 8px'>No stops within 500 m of events</td></tr>"}</tbody>
+          </table>
+        </section>`;
+      })
+      .join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <title>Day Plan – ${fmtDayLabel(selectedDay)}</title>
+      <style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1,h2,h3{margin:0 0 8px}table{width:100%;border-collapse:collapse;border:1px solid #ddd}td,th{border-bottom:1px solid #eee}@media print{a{color:#111}@page{size:landscape}}</style>
+      </head><body>
+      <h1>SmartEnoughCity Transport Day Plan</h1>
+      <h2>${fmtDayLabel(selectedDay)} · ${roleLabel()}</h2>
+      <div style="margin:8px 0 16px;font-size:12px"><strong>Risk legend:</strong> ${legendItems}</div>
+      <hr style="margin:0 0 16px">
+      ${sections || "<p>No events with nearby transport on this day.</p>"}
+      </body></html>`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.print();
+  }
+
   // All categories/severities for events map (show everything)
   const ALL_EVENT_CATEGORIES = useMemo(
     () => new Set(["construction", "public", "emergency"] as const),
@@ -1278,6 +1670,106 @@ export const DisruptionDashboard = () => {
           Failed to load disruptions
         </Alert>
       )}
+
+      {/* Top-left KPI strip — events mode */}
+      {tabMode === "events" &&
+        (() => {
+          const riskCounts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+          for (const e of dayEvents) {
+            if (e.riskLevel in riskCounts) riskCounts[e.riskLevel]++;
+          }
+          const typeCounts: Record<string, number> = {};
+          for (const e of dayEvents)
+            typeCounts[e.eventType] = (typeCounts[e.eventType] ?? 0) + 1;
+          return (
+            <Box
+              sx={{
+                position: "absolute",
+                top: GAP,
+                left: GAP,
+                zIndex: 1000,
+                display: "flex",
+                gap: 0.75,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: 2,
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark"
+                      ? "rgba(30,30,30,0.88)"
+                      : "rgba(255,255,255,0.9)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(0,0,0,0.1)",
+                  textAlign: "center",
+                  minWidth: 52,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "1.1rem",
+                    fontWeight: 800,
+                    color: "#6B7280",
+                    lineHeight: 1,
+                  }}
+                >
+                  {dayEvents.length}
+                </Typography>
+                <Typography
+                  sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}
+                >
+                  Events
+                </Typography>
+              </Box>
+              {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const)
+                .filter((r) => riskCounts[r] > 0)
+                .map((r) => (
+                  <Box
+                    key={r}
+                    sx={{
+                      px: 1.5,
+                      py: 0.75,
+                      borderRadius: 2,
+                      bgcolor: (t) =>
+                        t.palette.mode === "dark"
+                          ? "rgba(30,30,30,0.88)"
+                          : "rgba(255,255,255,0.9)",
+                      backdropFilter: "blur(10px)",
+                      border: `1px solid ${SEVERITY_COLORS[r]}33`,
+                      textAlign: "center",
+                      minWidth: 52,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: "1.1rem",
+                        fontWeight: 800,
+                        color: SEVERITY_COLORS[r],
+                        lineHeight: 1,
+                      }}
+                    >
+                      {riskCounts[r]}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: "0.6rem",
+                        color: "text.secondary",
+                        mt: 0.1,
+                      }}
+                    >
+                      {r === "CRITICAL"
+                        ? "Crit"
+                        : r.charAt(0) + r.slice(1).toLowerCase()}
+                    </Typography>
+                  </Box>
+                ))}
+            </Box>
+          );
+        })()}
 
       {/* Top-left KPI strip — disruptions mode only */}
       {tabMode === "disruptions" && (
@@ -1407,7 +1899,7 @@ export const DisruptionDashboard = () => {
             position: "absolute",
             top: GAP,
             right: GAP,
-            bottom: detailOpen ? DETAIL_HEIGHT + GAP * 2 : GAP,
+            bottom: GAP,
             width: PANEL_WIDTH,
             zIndex: 1000,
             borderRadius: 3,
@@ -1461,7 +1953,9 @@ export const DisruptionDashboard = () => {
                           color: active ? "text.primary" : "text.secondary",
                         }}
                       >
-                        {mode === "disruptions" ? "Disruptions" : "Events"}
+                        {mode === "disruptions"
+                          ? "Disruptions"
+                          : "Event Planning"}
                         {mode === "disruptions" && disruptions.length > 0 && (
                           <Box
                             component="span"
@@ -1536,18 +2030,40 @@ export const DisruptionDashboard = () => {
               </Tabs>
             )}
 
-            {/* Events: day selector */}
+            {/* Events: day selector + export */}
             {tabMode === "events" && (
-              <DaySelector
-                days={availableDays}
-                selected={selectedDay}
-                counts={eventCountByDay}
-                onChange={(day) => {
-                  setSelectedDay(day);
-                  setSelectedEventId(null);
-                  setDetailOpen(false);
-                }}
-              />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                <DaySelector
+                  days={availableDays}
+                  selected={selectedDay}
+                  counts={eventCountByDay}
+                  onChange={(day) => {
+                    setSelectedDay(day);
+                    setSelectedEventId(null);
+                    setDetailOpen(false);
+                  }}
+                />
+                <Box
+                  component="button"
+                  onClick={handleExportDayPlan}
+                  sx={{
+                    alignSelf: "flex-end",
+                    px: 1.25,
+                    py: 0.4,
+                    borderRadius: 1.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "transparent",
+                    cursor: "pointer",
+                    fontSize: "0.68rem",
+                    fontWeight: 600,
+                    color: "text.secondary",
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
+                  }}
+                >
+                  Export Day Plan
+                </Box>
+              </Box>
             )}
           </Box>
 
@@ -1634,7 +2150,59 @@ export const DisruptionDashboard = () => {
         </Paper>
       )}
 
-      {/* Bottom detail panel */}
+      {/* Mode Impact — independent collapsible card, bottom-left, disruptions mode only */}
+      {tabMode === "disruptions" && (
+        <Paper
+          elevation={0}
+          sx={{
+            position: "absolute",
+            bottom: GAP,
+            left: GAP,
+            width: MODE_IMPACT_WIDTH,
+            height: modeImpactOpen ? 204 : 40,
+            zIndex: 1000,
+            borderRadius: 3,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            transition: "height 0.2s ease",
+          }}
+        >
+          <Box
+            sx={{
+              px: 2,
+              height: 40,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              borderBottom: modeImpactOpen
+                ? "1px solid rgba(0,0,0,0.07)"
+                : "none",
+            }}
+          >
+            <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, flex: 1 }}>
+              Mode Impact
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={() => setModeImpactOpen((o) => !o)}
+            >
+              {modeImpactOpen ? (
+                <ExpandMoreIcon sx={{ fontSize: 16 }} />
+              ) : (
+                <ExpandLessIcon sx={{ fontSize: 16 }} />
+              )}
+            </IconButton>
+          </Box>
+          {modeImpactOpen && (
+            <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+              <RippleEffectVisualization disruptions={disruptions} />
+            </Box>
+          )}
+        </Paper>
+      )}
+
+      {/* Disruption detail panel */}
       {detailOpen &&
         tabMode === "disruptions" &&
         selectedDisruptionId != null && (
@@ -1643,7 +2211,7 @@ export const DisruptionDashboard = () => {
             sx={{
               position: "absolute",
               bottom: GAP,
-              left: GAP,
+              left: MODE_IMPACT_WIDTH + GAP * 2,
               right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
               height: DETAIL_HEIGHT,
               zIndex: 1000,
@@ -1659,6 +2227,7 @@ export const DisruptionDashboard = () => {
           </Paper>
         )}
 
+      {/* Event detail panel */}
       {detailOpen && tabMode === "events" && selectedEvent != null && (
         <Paper
           elevation={0}
@@ -1680,52 +2249,6 @@ export const DisruptionDashboard = () => {
           />
         </Paper>
       )}
-
-      {/* Mode impact panel — disruptions mode, nothing selected */}
-      {!detailOpen &&
-        tabMode === "disruptions" &&
-        !selectedDisruptionId &&
-        disruptions.length > 0 && (
-          <Paper
-            elevation={0}
-            sx={{
-              position: "absolute",
-              bottom: GAP,
-              left: GAP,
-              right: panelOpen ? PANEL_WIDTH + GAP * 2 : GAP,
-              height: 200,
-              zIndex: 1000,
-              borderRadius: 3,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              transition: "right 0.2s ease",
-            }}
-          >
-            <Box
-              sx={{
-                px: 2,
-                py: 1,
-                borderBottom: "1px solid rgba(0,0,0,0.07)",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <Typography
-                sx={{ fontSize: "0.875rem", fontWeight: 700, flex: 1 }}
-              >
-                Mode Impact
-              </Typography>
-              <Typography sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
-                Select a disruption for causes & alternatives
-              </Typography>
-            </Box>
-            <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-              <RippleEffectVisualization disruptions={disruptions} />
-            </Box>
-          </Paper>
-        )}
     </Box>
   );
 };

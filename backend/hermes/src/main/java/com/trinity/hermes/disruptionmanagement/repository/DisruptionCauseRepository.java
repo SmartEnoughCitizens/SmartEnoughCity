@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DisruptionCauseRepository extends JpaRepository<DisruptionCause, Long> {
   List<DisruptionCause> findByDisruptionId(Long disruptionId);
+
+  void deleteByDisruptionId(Long disruptionId);
 }

@@ -128,6 +128,7 @@ export const API_ENDPOINTS = {
   // Events
   EVENTS: "/api/v1/events",
   EVENTS_UPCOMING: "/api/v1/events",
+  EVENTS_DAY_PLAN: (date: string) => `/api/v1/events/day-plan?date=${date}`,
 
   // Disruptions
   DISRUPTIONS_ACTIVE: "/api/v1/disruptions/active",
@@ -138,6 +139,7 @@ export const API_ENDPOINTS = {
     `/api/v1/disruptions/transport/${mode}`,
   PUBLIC_DISRUPTION: (id: number) => `/api/public/disruptions/${id}`,
   PUBLIC_NEARBY_ALTERNATIVES: "/api/public/disruptions/alternatives",
+  PUBLIC_EVENT: (id: number) => `/api/public/events/${id}`,
   DISRUPTION_SUBSCRIPTIONS: "/api/v1/disruptions/subscriptions",
   DISRUPTION_SUBSCRIPTION_MODE: (mode: string) =>
     `/api/v1/disruptions/subscriptions/${mode}`,

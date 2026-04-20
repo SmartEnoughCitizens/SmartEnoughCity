@@ -98,8 +98,8 @@ export interface BusNewStopRecommendation {
   stopB: BusStopSummary;
   candidateLat: number;
   candidateLon: number;
-  populationScore: number;
-  publicSpaceScore: number;
+  populationScore: number | null;
+  publicSpaceScore: number | null;
   combinedScore: number;
 }
 

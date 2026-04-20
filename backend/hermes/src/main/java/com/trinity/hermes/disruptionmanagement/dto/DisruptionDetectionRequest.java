@@ -22,6 +22,7 @@ public class DisruptionDetectionRequest {
   private Double latitude;
   private Double longitude;
   private String affectedArea;
+  private String stopId; // canonical stop/site ID this disruption is anchored to
 
   // Transport Data
   private List<String> affectedTransportModes; // BUS, TRAM, TRAIN, METRO
@@ -51,6 +52,7 @@ public class DisruptionDetectionRequest {
       Double latitude,
       Double longitude,
       String affectedArea,
+      String stopId,
       List<String> affectedTransportModes,
       List<String> affectedRoutes,
       List<String> affectedStops,
@@ -71,6 +73,7 @@ public class DisruptionDetectionRequest {
     this.latitude = latitude;
     this.longitude = longitude;
     this.affectedArea = affectedArea;
+    this.stopId = stopId;
 
     this.affectedTransportModes = copyList(affectedTransportModes);
     this.affectedRoutes = copyList(affectedRoutes);

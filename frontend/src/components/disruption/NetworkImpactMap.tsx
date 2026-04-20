@@ -242,45 +242,6 @@ export const NetworkImpactMap = ({
         })}
       </MapContainer>
 
-      {/* Legend */}
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 12,
-          left: 12,
-          zIndex: 1000,
-          bgcolor: "rgba(255,255,255,0.92)",
-          borderRadius: 1.5,
-          px: 1.25,
-          py: 0.75,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 0.4,
-        }}
-      >
-        {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as DisruptionSeverity[]).map(
-          (s) => (
-            <Box
-              key={s}
-              sx={{ display: "flex", alignItems: "center", gap: 0.6 }}
-            >
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: "50%",
-                  bgcolor: SEVERITY_COLORS[s],
-                }}
-              />
-              <Typography sx={{ fontSize: "0.62rem", color: "#374151" }}>
-                {s}
-              </Typography>
-            </Box>
-          ),
-        )}
-      </Box>
-
       {mappable.length === 0 && (
         <Box
           sx={{

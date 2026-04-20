@@ -41,6 +41,7 @@ public class AlternativeTransportRepository {
               public.LL_TO_EARTH(:lat, :lon),
               public.LL_TO_EARTH(bs.lat, bs.lon)
           ) <= :radius_m
+          ORDER BY distance_m LIMIT 5
       ),
       rail AS (
           SELECT
@@ -60,6 +61,7 @@ public class AlternativeTransportRepository {
               public.LL_TO_EARTH(:lat, :lon),
               public.LL_TO_EARTH(rs.lat, rs.lon)
           ) <= :radius_m
+          ORDER BY distance_m LIMIT 5
       ),
       tram AS (
           SELECT
@@ -79,6 +81,7 @@ public class AlternativeTransportRepository {
               public.LL_TO_EARTH(:lat, :lon),
               public.LL_TO_EARTH(ts.lat, ts.lon)
           ) <= :radius_m
+          ORDER BY distance_m LIMIT 5
       ),
       bikes AS (
           SELECT
@@ -87,7 +90,7 @@ public class AlternativeTransportRepository {
               dbs.name                           AS stop_name,
               dbs.latitude::double precision     AS lat,
               dbs.longitude::double precision    AS lon,
-              snap.available_bikes,
+              NULL::integer                      AS available_bikes,
               dbs.capacity,
               public.EARTH_DISTANCE(
                   public.LL_TO_EARTH(:lat, :lon),
@@ -97,13 +100,6 @@ public class AlternativeTransportRepository {
                   )
               )::integer                         AS distance_m
           FROM external_data.dublin_bikes_stations dbs
-          JOIN (
-              SELECT DISTINCT ON (station_id)
-                  station_id, available_bikes
-              FROM external_data.dublin_bikes_station_snapshots
-              WHERE is_renting = true
-              ORDER BY station_id, timestamp DESC
-          ) snap ON snap.station_id = dbs.station_id
           WHERE public.EARTH_DISTANCE(
               public.LL_TO_EARTH(:lat, :lon),
               public.LL_TO_EARTH(
@@ -111,14 +107,13 @@ public class AlternativeTransportRepository {
                   dbs.longitude::double precision
               )
           ) <= :radius_m
-            AND snap.available_bikes > 0
+          ORDER BY distance_m LIMIT 5
       )
       SELECT * FROM bus
       UNION ALL SELECT * FROM rail
       UNION ALL SELECT * FROM tram
       UNION ALL SELECT * FROM bikes
       ORDER BY distance_m
-      LIMIT 10
       """;
 
   @PersistenceContext private EntityManager em;

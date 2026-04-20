@@ -3,6 +3,7 @@ package com.trinity.hermes.disruptionmanagement.repository;
 import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,16 +35,22 @@ public interface DisruptionRepository extends JpaRepository<Disruption, Long> {
   boolean existsByDisruptionTypeAndAffectedAreaAndStatus(
       String disruptionType, String affectedArea, String status);
 
+  /** Find an existing disruption by its source reference (unique per stop/site) and status. */
+  Optional<Disruption> findBySourceReferenceIdAndStatus(String sourceReferenceId, String status);
+
   /** Find the most recent non-resolved disruptions ordered by detected time */
   @Query(
       "SELECT d FROM Disruption d WHERE d.status NOT IN ('RESOLVED', 'CANCELLED')"
           + " ORDER BY d.detectedAt DESC")
   List<Disruption> findAllActiveOrderByDetectedAtDesc(Pageable pageable);
 
-  /** Convenience overload — returns top 200 */
+  /** Convenience overload — returns top 1000 */
   default List<Disruption> findAllActiveOrderByDetectedAtDesc() {
-    return findAllActiveOrderByDetectedAtDesc(PageRequest.of(0, 200));
+    return findAllActiveOrderByDetectedAtDesc(PageRequest.of(0, 1000));
   }
+
+  /** Count disruptions by status (e.g. count only ACTIVE rows). */
+  long countByStatus(String status);
 
   /** Find ACTIVE disruptions whose estimatedEndTime is in the past (for auto-expiry) */
   @Query(

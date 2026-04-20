@@ -40,4 +40,7 @@ public interface EventsRepository extends JpaRepository<Events, Integer> {
           """)
   List<Events> findUpcomingEventsDays(
       @Param("endDate") java.time.LocalDate endDate, Pageable pageable);
+
+  @Query("SELECT e FROM Events e LEFT JOIN FETCH e.venue WHERE e.id = :id")
+  java.util.Optional<Events> findByIdWithVenue(@Param("id") Integer id);
 }

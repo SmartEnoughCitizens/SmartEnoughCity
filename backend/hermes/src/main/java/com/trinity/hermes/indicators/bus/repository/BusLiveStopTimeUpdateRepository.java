@@ -69,6 +69,18 @@ public interface BusLiveStopTimeUpdateRepository
       @Param("lonMin") double lonMin,
       @Param("lonMax") double lonMax);
 
+  /**
+   * Reads worst delays per (route, stop) from the pre-aggregated MV. Falls back to an empty list if
+   * the MV has not been populated yet (first boot before MvBootstrap completes).
+   */
+  @Query(
+      value =
+          "SELECT route_id, stop_id, stop_name, lat, lon, max_delay"
+              + " FROM backend.mv_bus_stop_worst_delays"
+              + " ORDER BY max_delay DESC",
+      nativeQuery = true)
+  List<Object[]> findWorstDelayedStopPerRouteFromMv();
+
   @Query(
       value =
           """

@@ -31,4 +31,13 @@ public interface HighTrafficPointsRepository
               + " ORDER BY max_volume DESC",
       nativeQuery = true)
   List<Object[]> findPeakTrafficSitesWithLocation();
+
+  /** MV-backed version of {@link #findPeakTrafficSitesWithLocation()} — same columns. */
+  @Query(
+      value =
+          "SELECT site_id, lat, lon, max_volume"
+              + " FROM backend.mv_traffic_peak_sites"
+              + " ORDER BY max_volume DESC",
+      nativeQuery = true)
+  List<Object[]> findPeakTrafficSitesFromMv();
 }

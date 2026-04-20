@@ -60,6 +60,16 @@ const MODE_COLORS: Record<string, string> = {
   bike: "#F59E0B",
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  DELAY: "Service Delay",
+  TRAM_DISRUPTION: "Tram Disruption",
+  CONGESTION: "Traffic Congestion",
+  CANCELLATION: "Cancellation",
+  CONSTRUCTION: "Construction",
+  EVENT: "Service Pressure",
+  ACCIDENT: "Accident",
+};
+
 const CAUSE_ICONS: Record<string, React.ReactNode> = {
   EVENT: <EventIcon sx={{ fontSize: 18 }} />,
   CONGESTION: <TrafficIcon sx={{ fontSize: 18 }} />,
@@ -390,9 +400,27 @@ export const PublicDisruptionPage = () => {
                   icon={makeAltIcon(modeColor(a.mode))}
                 >
                   <Popup>
-                    <strong>{a.stopName}</strong>
-                    <br />
-                    {a.description}
+                    <strong>
+                      {{
+                        bus: "Bus",
+                        tram: "Luas",
+                        rail: "Irish Rail",
+                        bike: "DublinBikes",
+                      }[a.mode?.toLowerCase() ?? ""] ?? a.mode}{" "}
+                      · {a.stopName}
+                    </strong>
+                    {a.description && (
+                      <>
+                        <br />
+                        {a.description}
+                      </>
+                    )}
+                    {a.availabilityCount != null && (
+                      <>
+                        <br />
+                        {a.availabilityCount} bikes available
+                      </>
+                    )}
                     {a.googleMapsWalkingUrl && (
                       <>
                         <br />
@@ -448,7 +476,9 @@ export const PublicDisruptionPage = () => {
                 mb: 0.75,
               }}
             >
-              {disruption.name ?? disruption.disruptionType}
+              {disruption.name ??
+                TYPE_LABELS[disruption.disruptionType] ??
+                disruption.disruptionType}
             </Typography>
             {disruption.description && (
               <Typography
@@ -485,7 +515,7 @@ export const PublicDisruptionPage = () => {
             </>
           )}
 
-          {/* Alternatives */}
+          {/* Alternatives grouped by mode */}
           {alternatives.length > 0 && (
             <>
               <Divider sx={{ mx: 3 }} />
@@ -503,11 +533,65 @@ export const PublicDisruptionPage = () => {
                 >
                   Nearby alternatives
                 </Typography>
-                <Stack spacing={0}>
-                  {alternatives.map((a) => (
-                    <AlternativeRow key={a.id} alt={a} />
-                  ))}
-                </Stack>
+                {(() => {
+                  const KNOWN_ORDER = ["bus", "tram", "rail", "bike"];
+                  const modeLabels: Record<string, string> = {
+                    bus: "Bus",
+                    tram: "Luas",
+                    rail: "Irish Rail",
+                    bike: "DublinBikes",
+                  };
+                  const seenModes = [
+                    ...new Set(
+                      alternatives.map((a) => a.mode?.toLowerCase() ?? "other"),
+                    ),
+                  ].toSorted(
+                    (a, b) =>
+                      (KNOWN_ORDER.includes(a) ? KNOWN_ORDER.indexOf(a) : 99) -
+                      (KNOWN_ORDER.includes(b) ? KNOWN_ORDER.indexOf(b) : 99),
+                  );
+                  return seenModes.map((mode) => {
+                    const group = alternatives.filter(
+                      (a) => (a.mode?.toLowerCase() ?? "other") === mode,
+                    );
+                    if (group.length === 0) return null;
+                    const color = modeColor(mode);
+                    return (
+                      <Box key={mode} sx={{ mb: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                            px: 1,
+                            mb: 0.25,
+                          }}
+                        >
+                          <Box sx={{ color, display: "flex" }}>
+                            {modeIcon(mode)}
+                          </Box>
+                          <Typography
+                            sx={{
+                              fontSize: "0.72rem",
+                              fontWeight: 700,
+                              color,
+                              textTransform: "uppercase",
+                              letterSpacing: 0.6,
+                            }}
+                          >
+                            {modeLabels[mode] ??
+                              mode.charAt(0).toUpperCase() + mode.slice(1)}
+                          </Typography>
+                        </Box>
+                        <Stack spacing={0}>
+                          {group.map((a) => (
+                            <AlternativeRow key={a.id} alt={a} />
+                          ))}
+                        </Stack>
+                      </Box>
+                    );
+                  });
+                })()}
               </Box>
             </>
           )}

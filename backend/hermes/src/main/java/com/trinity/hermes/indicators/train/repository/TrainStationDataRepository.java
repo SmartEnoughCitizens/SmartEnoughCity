@@ -35,6 +35,15 @@ public interface TrainStationDataRepository extends JpaRepository<TrainStationDa
       @Param("lonMin") double lonMin,
       @Param("lonMax") double lonMax);
 
+  /** MV-backed version — returns [station_code, late_minutes] rows. */
+  @Query(
+      value =
+          "SELECT station_code, late_minutes"
+              + " FROM backend.mv_latest_train_station_data"
+              + " ORDER BY station_code",
+      nativeQuery = true)
+  List<Object[]> findLatestPerStationTrainFromMv();
+
   /** Average delay in minutes across all recent station-data records. */
   @Query(
       """

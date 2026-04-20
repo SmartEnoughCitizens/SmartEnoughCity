@@ -8,7 +8,6 @@ import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.indicators.bus.repository.BusLiveStopTimeUpdateRepository;
 import com.trinity.hermes.indicators.bus.repository.BusStopRepository;
 import com.trinity.hermes.indicators.car.repository.HighTrafficPointsRepository;
-import com.trinity.hermes.indicators.train.entity.TrainStationData;
 import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
 import com.trinity.hermes.indicators.train.repository.TrainStationRepository;
 import com.trinity.hermes.indicators.tram.entity.TramLuasForecast;
@@ -19,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,9 +61,6 @@ public class DisruptionDetectionService {
 
   // Radius to scan for affected bus routes / tram stops around a congestion site
   private static final int CONGESTION_SCAN_RADIUS_M = 500;
-
-  // Dedup: ignore same type+area within 10 minutes to prevent repeated notifications
-  private static final int DEDUP_WINDOW_MINUTES = 10;
 
   // Train: ≥ 3 trains delayed > 10 min at the same station
   private static final int TRAIN_LATE_THRESHOLD_MINUTES = 10;
@@ -129,29 +126,73 @@ public class DisruptionDetectionService {
   private int detectBusDisruptions() {
     int count = 0;
     try {
-      // Returns [route_id, stop_id, stop_name, lat, lon, max_arrival_delay_seconds]
-      List<Object[]> rows =
-          busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(
-              BUS_STOP_DELAY_THRESHOLD_SECONDS,
-              Constants.DUBLIN_LAT_MIN,
-              Constants.DUBLIN_LAT_MAX,
-              Constants.DUBLIN_LON_MIN,
-              Constants.DUBLIN_LON_MAX);
+      // Prefer the pre-aggregated MV (refreshed every 2 min); fall back to the live join if the MV
+      // has not been populated yet (first boot before MvBootstrap completes).
+      List<Object[]> rows;
+      try {
+        rows = busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRouteFromMv();
+      } catch (Exception mvEx) {
+        log.debug("MV not ready, falling back to live bus delay query: {}", mvEx.getMessage());
+        rows =
+            busLiveStopTimeUpdateRepository.findWorstDelayedStopPerRoute(
+                BUS_STOP_DELAY_THRESHOLD_SECONDS,
+                Constants.DUBLIN_LAT_MIN,
+                Constants.DUBLIN_LAT_MAX,
+                Constants.DUBLIN_LON_MIN,
+                Constants.DUBLIN_LON_MAX);
+      }
 
+      // Group rows by stop_id so one disruption is created per stop (all affected routes combined)
+      Map<String, List<Object[]>> byStop = new LinkedHashMap<>();
       for (Object[] row : rows) {
         if (row.length < 6) continue;
-        String routeId = row[0] != null ? row[0].toString() : "unknown";
-        String stopName = row[2] != null ? row[2].toString() : "Bus Stop";
-        Double lat = row[3] != null ? ((Number) row[3]).doubleValue() : null;
-        Double lon = row[4] != null ? ((Number) row[4]).doubleValue() : null;
-        int maxDelaySec = row[5] != null ? ((Number) row[5]).intValue() : 0;
+        if (row[1] == null) continue; // skip rows without a stable stop_id to avoid bogus merges
+        String stopId = row[1].toString();
+        byStop.computeIfAbsent(stopId, k -> new ArrayList<>()).add(row);
+      }
+
+      for (Map.Entry<String, List<Object[]>> entry : byStop.entrySet()) {
+        String stopId = entry.getKey();
+        List<Object[]> stopRows = entry.getValue();
+
+        List<String> routes =
+            stopRows.stream()
+                .map(r -> r[0] != null ? r[0].toString() : null)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        Object[] first = stopRows.get(0);
+        String stopName = first[2] != null ? first[2].toString() : "Bus Stop";
+        Double lat = first[3] != null ? ((Number) first[3]).doubleValue() : null;
+        Double lon = first[4] != null ? ((Number) first[4]).doubleValue() : null;
+
+        int maxDelaySec =
+            stopRows.stream()
+                .filter(r -> r[5] != null)
+                .mapToInt(r -> ((Number) r[5]).intValue())
+                .max()
+                .orElse(0);
 
         int delayMinutes = maxDelaySec / 60;
         String severity = scoreBusStopSeverity(maxDelaySec);
-        String sourceRef = "bus-stop-" + routeId + "-" + (row[1] != null ? row[1] : "");
+        String sourceRef = "bus-stop-" + stopId;
+
+        String description = buildBusStopDescription(routes, delayMinutes, stopName);
 
         if (processIfNewWithCoords(
-            "DELAY", "BUS", stopName, severity, delayMinutes, sourceRef, lat, lon)) {
+            "DELAY",
+            "BUS",
+            stopName,
+            severity,
+            delayMinutes,
+            sourceRef,
+            lat,
+            lon,
+            routes,
+            List.of(),
+            description)) {
           count++;
         }
       }
@@ -159,6 +200,12 @@ public class DisruptionDetectionService {
       log.warn("Bus disruption detection failed: {}", e.getMessage());
     }
     return count;
+  }
+
+  private String buildBusStopDescription(List<String> routes, int delayMinutes, String stopName) {
+    String routePart =
+        routes.size() == 1 ? "Route " + routes.get(0) : "Routes " + String.join(", ", routes);
+    return String.format("%s running ~%d min late at %s.", routePart, delayMinutes, stopName);
   }
 
   private String scoreBusStopSeverity(int delaySec) {
@@ -180,8 +227,14 @@ public class DisruptionDetectionService {
   private int detectCongestionDisruptions() {
     int count = 0;
     try {
-      // Returns [site_id, lat, lon, max_avg_volume] — one row per site
-      List<Object[]> rows = highTrafficPointsRepository.findPeakTrafficSitesWithLocation();
+      // Returns [site_id, lat, lon, max_volume] — one row per site
+      List<Object[]> rows;
+      try {
+        rows = highTrafficPointsRepository.findPeakTrafficSitesFromMv();
+      } catch (Exception mvEx) {
+        log.debug("MV not ready, falling back to live traffic query: {}", mvEx.getMessage());
+        rows = highTrafficPointsRepository.findPeakTrafficSitesWithLocation();
+      }
 
       for (Object[] row : rows) {
         if (row.length < 4) continue;
@@ -239,27 +292,38 @@ public class DisruptionDetectionService {
   private int detectTrainDisruptions() {
     int count = 0;
     try {
-      List<TrainStationData> latest =
-          trainStationDataRepository.findLatestPerStationTrain(
-              Constants.DUBLIN_LAT_MIN,
-              Constants.DUBLIN_LAT_MAX,
-              Constants.DUBLIN_LON_MIN,
-              Constants.DUBLIN_LON_MAX);
+      // MV returns [station_code, late_minutes]; fallback converts entity list to same shape
+      List<Object[]> rows;
+      try {
+        rows = trainStationDataRepository.findLatestPerStationTrainFromMv();
+      } catch (Exception mvEx) {
+        log.debug("MV not ready, falling back to live train query: {}", mvEx.getMessage());
+        rows =
+            trainStationDataRepository
+                .findLatestPerStationTrain(
+                    Constants.DUBLIN_LAT_MIN,
+                    Constants.DUBLIN_LAT_MAX,
+                    Constants.DUBLIN_LON_MIN,
+                    Constants.DUBLIN_LON_MAX)
+                .stream()
+                .<Object[]>map(sd -> new Object[] {sd.getStationCode(), sd.getLateMinutes()})
+                .collect(Collectors.toList());
+      }
 
-      Map<String, List<TrainStationData>> byStation =
-          latest.stream()
-              .filter(
-                  sd ->
-                      sd.getLateMinutes() != null
-                          && sd.getLateMinutes() > TRAIN_LATE_THRESHOLD_MINUTES)
-              .collect(Collectors.groupingBy(TrainStationData::getStationCode));
+      Map<String, List<Integer>> byStation = new LinkedHashMap<>();
+      for (Object[] r : rows) {
+        if (r.length < 2) continue;
+        String code = r[0] != null ? r[0].toString() : null;
+        Integer lateMin = r[1] instanceof Number n ? n.intValue() : null;
+        if (code == null || lateMin == null || lateMin <= TRAIN_LATE_THRESHOLD_MINUTES) continue;
+        byStation.computeIfAbsent(code, k -> new ArrayList<>()).add(lateMin);
+      }
 
-      for (Map.Entry<String, List<TrainStationData>> entry : byStation.entrySet()) {
+      for (Map.Entry<String, List<Integer>> entry : byStation.entrySet()) {
         if (entry.getValue().size() < TRAIN_MIN_LATE_TRAINS) continue;
 
         String stationCode = entry.getKey();
-        int maxDelay =
-            entry.getValue().stream().mapToInt(TrainStationData::getLateMinutes).max().orElse(0);
+        int maxDelay = entry.getValue().stream().mapToInt(Integer::intValue).max().orElse(0);
         String severity = maxDelay > 30 ? "HIGH" : maxDelay > 20 ? "MEDIUM" : "LOW";
 
         com.trinity.hermes.indicators.train.entity.TrainStation station =
@@ -398,22 +462,6 @@ public class DisruptionDetectionService {
       List<String> affectedStops,
       String description) {
 
-    if (disruptionRepository.existsByDisruptionTypeAndAffectedAreaAndStatus(
-        disruptionType, affectedArea, "ACTIVE")) {
-      log.debug(
-          "Skipping: active disruption exists: type={}, area={}", disruptionType, affectedArea);
-      return false;
-    }
-
-    LocalDateTime dedupCutoff = LocalDateTime.now(DUBLIN).minusMinutes(DEDUP_WINDOW_MINUTES);
-    if (!disruptionRepository
-        .findByDisruptionTypeAndAffectedAreaAndDetectedAtAfter(
-            disruptionType, affectedArea, dedupCutoff)
-        .isEmpty()) {
-      log.debug("Skipping duplicate disruption: type={}, area={}", disruptionType, affectedArea);
-      return false;
-    }
-
     if ("LOW".equals(severity)) {
       log.debug("Skipping LOW severity disruption: area={}", affectedArea);
       return false;
@@ -434,13 +482,17 @@ public class DisruptionDetectionService {
             description);
 
     try {
-      disruptionFacade.handleDisruptionDetection(request);
-      log.info(
-          "Auto-detected disruption: type={}, severity={}, area={}",
-          disruptionType,
-          severity,
-          affectedArea);
-      return true;
+      com.trinity.hermes.disruptionmanagement.dto.DisruptionSolution solution =
+          disruptionFacade.handleDisruptionDetection(request);
+      if (solution != null) {
+        log.info(
+            "Auto-detected disruption: type={}, severity={}, area={}",
+            disruptionType,
+            severity,
+            affectedArea);
+        return true;
+      }
+      return false;
     } catch (Exception e) {
       log.error(
           "Failed to process auto-detected disruption for area={}: {}",
@@ -513,8 +565,16 @@ public class DisruptionDetectionService {
     req.setAffectedTransportModes(modes);
     req.setAffectedRoutes(new ArrayList<>(affectedRoutes));
     req.setAffectedStops(new ArrayList<>(affectedStops));
+    req.setStopId(deriveStopId(sourceRef));
 
     return req;
+  }
+
+  private String deriveStopId(String sourceRef) {
+    if (sourceRef == null) return null;
+    if (sourceRef.startsWith("bus-stop-")) return sourceRef.substring("bus-stop-".length());
+    if (sourceRef.startsWith("tram-")) return sourceRef.substring("tram-".length());
+    return sourceRef; // train station code or traffic site ID used as-is
   }
 
   // ---------------------------------------------------------------------------

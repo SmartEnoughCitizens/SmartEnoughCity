@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface DisruptionAlternativeRepository
     extends JpaRepository<DisruptionAlternative, Long> {
   List<DisruptionAlternative> findByDisruptionId(Long disruptionId);
+
+  void deleteByDisruptionId(Long disruptionId);
 }
