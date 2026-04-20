@@ -181,7 +181,7 @@ export const RecommendationScoreCard = ({
         </Typography>
       </Box>
       <Typography variant="caption" sx={{ fontWeight: 600, ml: 1 }}>
-        {recommendation.populationScore.toFixed(2)}
+        {recommendation.populationScore?.toFixed(2) ?? "—"}
       </Typography>
     </Box>
     <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
@@ -194,7 +194,7 @@ export const RecommendationScoreCard = ({
         </Typography>
       </Box>
       <Typography variant="caption" sx={{ fontWeight: 600, ml: 1 }}>
-        {recommendation.publicSpaceScore.toFixed(2)}
+        {recommendation.publicSpaceScore?.toFixed(2) ?? "—"}
       </Typography>
     </Box>
     <Box

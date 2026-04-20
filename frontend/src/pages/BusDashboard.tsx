@@ -324,25 +324,6 @@ export const BusDashboard = () => {
         </IconButton>
       )}
 
-      {/* ── Score breakdown floating card ── */}
-      {selectedRecommendation && (
-        <Paper
-          elevation={3}
-          sx={{
-            position: "absolute",
-            bottom: GAP,
-            left: GAP,
-            zIndex: 1000,
-            borderRadius: 2,
-            p: "10px 12px",
-            minWidth: 240,
-            maxWidth: 300,
-          }}
-        >
-          <RecommendationScoreCard recommendation={selectedRecommendation} />
-        </Paper>
-      )}
-
       {/* ── Single unified right panel ── */}
       {panelOpen && (
         <Paper
@@ -589,6 +570,7 @@ export const BusDashboard = () => {
                       recommendation={selectedRecommendation}
                       onClear={() => setSelectedRecommendation(null)}
                     />
+                    <RecommendationScoreCard recommendation={selectedRecommendation} />
                   </Box>
                 )}
                 {selectedRecommendation && routeDetailError && (
