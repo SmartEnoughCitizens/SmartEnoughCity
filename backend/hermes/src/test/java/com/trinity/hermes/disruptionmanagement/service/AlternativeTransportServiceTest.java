@@ -120,7 +120,7 @@ class AlternativeTransportServiceTest {
 
     List<DisruptionAlternative> alts = service.getAlternatives(disruption);
 
-    assertThat(alts.get(0).getDescription()).contains("8 bikes available");
+    assertThat(alts.get(0).getDescription()).contains("DublinBikes").contains("Merrion Square");
   }
 
   @Test
