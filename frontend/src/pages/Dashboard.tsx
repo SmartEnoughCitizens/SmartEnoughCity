@@ -731,8 +731,8 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
               />
               {(disruptions ?? []).length > 0 && (
                 <Box sx={{ mt: 1.5 }}>
-                  {[...disruptions!]
-                    .sort((a, b) => {
+                  {(disruptions ?? [])
+                    .toSorted((a, b) => {
                       const order: Record<string, number> = {
                         CRITICAL: 0,
                         HIGH: 1,
