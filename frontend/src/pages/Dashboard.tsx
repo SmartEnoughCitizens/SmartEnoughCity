@@ -766,16 +766,16 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
                           <FiberManualRecordIcon
                             sx={{ fontSize: 8, color: sevColor, flexShrink: 0 }}
                           />
-                          <Typography
-                            variant="caption"
-                            noWrap
-                            sx={{ flex: 1 }}
-                          >
+                          <Typography variant="caption" noWrap sx={{ flex: 1 }}>
                             {d.affectedArea ?? d.name}
                           </Typography>
                           <Typography
                             variant="caption"
-                            sx={{ color: sevColor, flexShrink: 0, fontWeight: 600 }}
+                            sx={{
+                              color: sevColor,
+                              flexShrink: 0,
+                              fontWeight: 600,
+                            }}
                           >
                             {d.severity}
                           </Typography>

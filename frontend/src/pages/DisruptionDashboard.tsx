@@ -112,13 +112,14 @@ const ALT_MODE_COLORS: Record<string, string> = {
   bike: "#F59E0B",
 };
 
-// ── Event colour map ────────────────────────────────────────────────────
+// ── Event colour map ─────────────────────────────────────────────────────
+// Deliberately distinct from SEVERITY_COLORS (green/amber/red/purple)
 const EVENT_TYPE_COLORS: Record<string, string> = {
-  Music: "#7C3AED",
-  Sports: "#059669",
-  "Arts & Theatre": "#0891B2",
-  Film: "#DC2626",
-  Miscellaneous: "#D97706",
+  Music: "#1D4ED8",
+  Sports: "#0D9488",
+  "Arts & Theatre": "#DB2777",
+  Film: "#EA580C",
+  Miscellaneous: "#64748B",
 };
 
 function eventColor(type: string): string {
@@ -173,6 +174,8 @@ function altModeIcon(mode: string, size = 16): React.ReactNode {
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
+  // LocalTime arrives as "HH:mm:ss" — slice directly
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(iso)) return iso.slice(0, 5);
   try {
     return new Date(iso).toLocaleTimeString("en-IE", {
       hour: "2-digit",
@@ -234,6 +237,15 @@ function fmtEventTime(iso: string | null): string {
   } catch {
     return iso;
   }
+}
+
+function esc(s: string | null | undefined): string {
+  return (s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 // ── Shared section label ────────────────────────────────────────────────
@@ -642,7 +654,7 @@ function DisruptionDetailPanel({
   const causes: DisruptionCause[] = data?.causes ?? [];
   const alternatives: DisruptionAlternative[] = data?.alternatives ?? [];
 
-  const publicUrl = `${window.location.origin}/public/disruption/${id}`;
+  const publicUrl = `${globalThis.location.origin}/public/disruption/${id}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(publicUrl)}`;
 
   async function handleDownloadQr() {
@@ -1151,6 +1163,15 @@ function EventDetailPanel({
             </Box>
           </Box>
 
+          {event.venueCapacity != null && (
+            <Box>
+              <SectionLabel>Venue capacity</SectionLabel>
+              <Typography sx={{ fontSize: "0.82rem", color: "text.primary" }}>
+                {event.venueCapacity.toLocaleString()} seats
+              </Typography>
+            </Box>
+          )}
+
           {event.estimatedAttendance != null && (
             <Box>
               <SectionLabel>Expected attendance</SectionLabel>
@@ -1166,6 +1187,11 @@ function EventDetailPanel({
                 <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }}>
                   · {attLevel} impact
                 </Typography>
+                {event.venueCapacity != null && event.venueCapacity > 0 && (
+                  <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }}>
+                    · {Math.round((event.estimatedAttendance / event.venueCapacity) * 100)}% fill
+                  </Typography>
+                )}
               </Box>
             </Box>
           )}
@@ -1326,7 +1352,7 @@ function EventDetailPanel({
                   size="small"
                   sx={{ color: "text.secondary" }}
                   onClick={async () => {
-                    const url = `${window.location.origin}/public/event/${event.id}`;
+                    const url = `${globalThis.location.origin}/public/event/${event.id}`;
                     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(url)}`;
                     try {
                       const res = await fetch(qr);
@@ -1345,7 +1371,7 @@ function EventDetailPanel({
               </Tooltip>
               <Box
                 component="img"
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=48x48&data=${encodeURIComponent(`${window.location.origin}/public/event/${event.id}`)}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=48x48&data=${encodeURIComponent(`${globalThis.location.origin}/public/event/${event.id}`)}`}
                 alt="QR"
                 sx={{ width: 36, height: 36, borderRadius: 0.5 }}
               />
@@ -1476,10 +1502,11 @@ export const DisruptionDashboard = () => {
 
   function modeFilterForRole(): string[] | null {
     if (roles.includes("City_Manager")) return null; // all modes
-    if (roles.some((r) => r.startsWith("Bus_"))) return ["bus"];
-    if (roles.some((r) => r.startsWith("Train_"))) return ["rail"];
-    if (roles.some((r) => r.startsWith("Tram_"))) return ["tram"];
-    return null;
+    const allowed: string[] = [];
+    if (roles.some((r) => r.startsWith("Bus_"))) allowed.push("bus");
+    if (roles.some((r) => r.startsWith("Train_"))) allowed.push("rail");
+    if (roles.some((r) => r.startsWith("Tram_"))) allowed.push("tram");
+    return allowed.length > 0 ? allowed : null;
   }
 
   function roleLabel(): string {
@@ -1514,9 +1541,6 @@ export const DisruptionDashboard = () => {
       bike: "DublinBikes",
     };
 
-    // startTime arrives as "HH:mm:ss" (LocalTime) — slice directly instead of Date parse
-    const fmtTime = (t: string | null) => (t ? t.slice(0, 5) : "—");
-
     const legendItems = Object.entries(RISK_COLOR)
       .map(
         ([level, color]) =>
@@ -1532,24 +1556,24 @@ export const DisruptionDashboard = () => {
 
     const sections = modes
       .map((modeSection) => {
-        const label = MODE_LABEL[modeSection.mode] ?? modeSection.mode;
+        const label = esc(MODE_LABEL[modeSection.mode] ?? modeSection.mode);
         const stopRows = modeSection.stops
           .map((stop) => {
             const routeCell =
               modeSection.mode === "bike"
                 ? `${stop.availableBikes ?? 0} bikes`
                 : stop.routes.length > 0
-                  ? stop.routes.join(", ")
+                  ? stop.routes.map((r) => esc(r)).join(", ")
                   : "—";
             const eventCells = stop.events
               .map(
                 (ev) =>
                   `<span style="display:inline-block;margin:1px 3px;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;background:${RISK_COLOR[ev.riskLevel] ?? "#888"};color:#fff"
-                  title="${ev.venueName}">${ev.eventName} ${fmtTime(ev.startTime)}</span>`,
+                  title="${esc(ev.venueName)}">${esc(ev.eventName)} ${fmtTime(ev.startTime)}</span>`,
               )
               .join("");
             return `<tr>
-              <td style="padding:4px 8px;white-space:nowrap">${stop.stopName}</td>
+              <td style="padding:4px 8px;white-space:nowrap">${esc(stop.stopName)}</td>
               <td style="padding:4px 8px;white-space:nowrap">${routeCell}</td>
               <td style="padding:4px 8px">${eventCells || "—"}</td>
             </tr>`;
@@ -1640,6 +1664,80 @@ export const DisruptionDashboard = () => {
           Failed to load disruptions
         </Alert>
       )}
+
+      {/* Top-left KPI strip — events mode */}
+      {tabMode === "events" && (() => {
+        const riskCounts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+        for (const e of dayEvents) {
+          if (e.riskLevel in riskCounts) riskCounts[e.riskLevel]++;
+        }
+        const typeCounts: Record<string, number> = {};
+        for (const e of dayEvents) typeCounts[e.eventType] = (typeCounts[e.eventType] ?? 0) + 1;
+        return (
+          <Box
+            sx={{
+              position: "absolute",
+              top: GAP,
+              left: GAP,
+              zIndex: 1000,
+              display: "flex",
+              gap: 0.75,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <Box
+              sx={{
+                px: 1.5,
+                py: 0.75,
+                borderRadius: 2,
+                bgcolor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(30,30,30,0.88)"
+                    : "rgba(255,255,255,0.9)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(0,0,0,0.1)",
+                textAlign: "center",
+                minWidth: 52,
+              }}
+            >
+              <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: "#6B7280", lineHeight: 1 }}>
+                {dayEvents.length}
+              </Typography>
+              <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}>
+                Events
+              </Typography>
+            </Box>
+            {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const)
+              .filter((r) => riskCounts[r] > 0)
+              .map((r) => (
+                <Box
+                  key={r}
+                  sx={{
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: 2,
+                    bgcolor: (t) =>
+                      t.palette.mode === "dark"
+                        ? "rgba(30,30,30,0.88)"
+                        : "rgba(255,255,255,0.9)",
+                    backdropFilter: "blur(10px)",
+                    border: `1px solid ${SEVERITY_COLORS[r]}33`,
+                    textAlign: "center",
+                    minWidth: 52,
+                  }}
+                >
+                  <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: SEVERITY_COLORS[r], lineHeight: 1 }}>
+                    {riskCounts[r]}
+                  </Typography>
+                  <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}>
+                    {r === "CRITICAL" ? "Crit" : r.charAt(0) + r.slice(1).toLowerCase()}
+                  </Typography>
+                </Box>
+              ))}
+          </Box>
+        );
+      })()}
 
       {/* Top-left KPI strip — disruptions mode only */}
       {tabMode === "disruptions" && (

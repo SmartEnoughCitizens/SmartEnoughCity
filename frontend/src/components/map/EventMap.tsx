@@ -93,6 +93,8 @@ function makeEventIcon(riskLevel: string, selected: boolean): L.DivIcon {
 
 function formatTime(iso: string | null): string {
   if (!iso) return "—";
+  // LocalTime from backend arrives as "HH:mm:ss" — slice directly
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(iso)) return iso.slice(0, 5);
   try {
     return new Date(iso).toLocaleTimeString("en-IE", {
       hour: "2-digit",
@@ -185,9 +187,15 @@ export const EventMap = ({
               eventHandlers={{ click: () => onEventClick(e) }}
             >
               <Popup>
-                <Box sx={{ minWidth: 190 }}>
+                <Box sx={{ minWidth: 200 }}>
                   <Typography
-                    sx={{ fontWeight: 700, fontSize: "0.85rem", mb: 0.5 }}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      mb: 0.4,
+                      color: "#111827",
+                      lineHeight: 1.3,
+                    }}
                   >
                     {e.eventName}
                   </Typography>
@@ -201,25 +209,46 @@ export const EventMap = ({
                         bgcolor: color + "22",
                         color,
                         border: `1px solid ${color}44`,
+                        "& .MuiChip-label": { px: 0.75 },
                       }}
                     />
                     {e.eventType && (
                       <Chip
                         size="small"
                         label={e.eventType}
-                        sx={{ fontSize: "0.6rem", height: 16 }}
+                        sx={{
+                          fontSize: "0.6rem",
+                          height: 16,
+                          bgcolor: "#F3F4F6",
+                          color: "#374151",
+                          "& .MuiChip-label": { px: 0.75 },
+                        }}
                       />
                     )}
                   </Box>
-                  <Typography sx={{ fontSize: "0.75rem", color: "#6B7280" }}>
+                  <Typography
+                    sx={{ fontSize: "0.75rem", color: "#6B7280", mb: 0.25 }}
+                  >
                     {e.venueName}
                   </Typography>
                   {e.venueCapacity != null && (
-                    <Typography sx={{ fontSize: "0.72rem" }}>
+                    <Typography sx={{ fontSize: "0.7rem", color: "#9CA3AF" }}>
                       Capacity: {e.venueCapacity.toLocaleString()}
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: "0.72rem" }}>
+                  {e.estimatedAttendance != null && (
+                    <Typography sx={{ fontSize: "0.7rem", color: "#9CA3AF" }}>
+                      Expected: {e.estimatedAttendance.toLocaleString()}
+                    </Typography>
+                  )}
+                  <Typography
+                    sx={{
+                      fontSize: "0.7rem",
+                      color: "#374151",
+                      mt: 0.25,
+                      fontWeight: 500,
+                    }}
+                  >
                     {formatTime(e.startTime)}
                     {e.endTime ? ` – ${formatTime(e.endTime)}` : ""}
                   </Typography>
@@ -229,50 +258,6 @@ export const EventMap = ({
           );
         })}
       </MapContainer>
-
-      {/* Risk legend */}
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 12,
-          left: 12,
-          zIndex: 1000,
-          bgcolor: "rgba(255,255,255,0.92)",
-          borderRadius: 1.5,
-          px: 1.25,
-          py: 0.75,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 0.4,
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: "0.58rem",
-            fontWeight: 700,
-            color: "#374151",
-            mb: 0.2,
-          }}
-        >
-          VENUE RISK
-        </Typography>
-        {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const).map((r) => (
-          <Box key={r} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
-            <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                bgcolor: RISK_COLORS[r],
-              }}
-            />
-            <Typography sx={{ fontSize: "0.62rem", color: "#374151" }}>
-              {r}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
 
       {mappable.length === 0 && (
         <Box

@@ -154,7 +154,7 @@ export const PublicEventPage = () => {
     queryKey: ["public-event", eventId],
     queryFn: () => dashboardApi.getPublicEvent(eventId),
     staleTime: 60_000,
-    enabled: !isNaN(eventId),
+    enabled: !Number.isNaN(eventId),
   });
 
   if (isLoading) {
@@ -450,9 +450,9 @@ export const PublicEventPage = () => {
                               noWrap
                             >
                               {t.description}
-                              {t.availabilityCount != null
-                                ? ` · ${t.availabilityCount} available`
-                                : ""}
+                              {t.availabilityCount == null
+                                ? ""
+                                : ` · ${t.availabilityCount} available`}
                             </Typography>
                           </Box>
                           {t.googleMapsWalkingUrl && (

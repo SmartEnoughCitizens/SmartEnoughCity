@@ -533,18 +533,29 @@ export const PublicDisruptionPage = () => {
                 >
                   Nearby alternatives
                 </Typography>
-                {(["bus", "tram", "rail", "bike"] as const).map((mode) => {
-                  const group = alternatives.filter(
-                    (a) => a.mode?.toLowerCase() === mode,
-                  );
-                  if (group.length === 0) return null;
-                  const color = modeColor(mode);
+                {(() => {
+                  const KNOWN_ORDER = ["bus", "tram", "rail", "bike"];
                   const modeLabels: Record<string, string> = {
                     bus: "Bus",
                     tram: "Luas",
                     rail: "Irish Rail",
                     bike: "DublinBikes",
                   };
+                  const seenModes = [
+                    ...new Set(
+                      alternatives.map((a) => a.mode?.toLowerCase() ?? "other"),
+                    ),
+                  ].toSorted(
+                    (a, b) =>
+                      (KNOWN_ORDER.includes(a) ? KNOWN_ORDER.indexOf(a) : 99) -
+                      (KNOWN_ORDER.includes(b) ? KNOWN_ORDER.indexOf(b) : 99),
+                  );
+                  return seenModes.map((mode) => {
+                  const group = alternatives.filter(
+                    (a) => (a.mode?.toLowerCase() ?? "other") === mode,
+                  );
+                  if (group.length === 0) return null;
+                  const color = modeColor(mode);
                   return (
                     <Box key={mode} sx={{ mb: 1 }}>
                       <Box
@@ -568,7 +579,7 @@ export const PublicDisruptionPage = () => {
                             letterSpacing: 0.6,
                           }}
                         >
-                          {modeLabels[mode]}
+                          {modeLabels[mode] ?? mode.charAt(0).toUpperCase() + mode.slice(1)}
                         </Typography>
                       </Box>
                       <Stack spacing={0}>
@@ -578,7 +589,8 @@ export const PublicDisruptionPage = () => {
                       </Stack>
                     </Box>
                   );
-                })}
+                  });
+                })()}
               </Box>
             </>
           )}

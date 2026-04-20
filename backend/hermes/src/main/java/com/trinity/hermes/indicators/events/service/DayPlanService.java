@@ -151,7 +151,7 @@ public class DayPlanService {
               SELECT e.id, e.event_name, e.venue_name, e.event_date, e.start_time, v.capacity,
                      'bike',
                      b.station_id::TEXT, b.name, b.latitude::FLOAT, b.longitude::FLOAT,
-                     NULL, b.capacity::INT,
+                     NULL, snap.available_bikes::INT,
                      earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
                                     ll_to_earth(b.latitude::FLOAT, b.longitude::FLOAT))::INT
               FROM external_data.events e
@@ -159,6 +159,10 @@ public class DayPlanService {
               JOIN external_data.dublin_bikes_stations b
                 ON earth_distance(ll_to_earth(COALESCE(e.latitude, v.latitude), COALESCE(e.longitude, v.longitude)),
                                   ll_to_earth(b.latitude::FLOAT, b.longitude::FLOAT)) <= 500
+              LEFT JOIN LATERAL (
+                SELECT available_bikes FROM external_data.dublin_bikes_snapshots
+                WHERE station_id = b.station_id ORDER BY snapshot_time DESC LIMIT 1
+              ) snap ON TRUE
               WHERE e.event_date = :date
               ORDER BY transport_mode, distance_m
               """)
