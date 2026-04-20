@@ -168,7 +168,10 @@ export const RecommendationScoreCard = ({
       fontSize: "0.75rem",
     }}
   >
-    <Typography variant="caption" sx={{ opacity: 0.6, display: "block", mb: 0.5 }}>
+    <Typography
+      variant="caption"
+      sx={{ opacity: 0.6, display: "block", mb: 0.5 }}
+    >
       Score breakdown
     </Typography>
     <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
@@ -176,7 +179,10 @@ export const RecommendationScoreCard = ({
         <Typography variant="caption" sx={{ opacity: 0.7 }}>
           Population density
         </Typography>
-        <Typography variant="caption" sx={{ opacity: 0.5, display: "block", lineHeight: 1.2 }}>
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.5, display: "block", lineHeight: 1.2 }}
+        >
           Nearby residents without close stops
         </Typography>
       </Box>
@@ -189,7 +195,10 @@ export const RecommendationScoreCard = ({
         <Typography variant="caption" sx={{ opacity: 0.7 }}>
           Public space proximity
         </Typography>
-        <Typography variant="caption" sx={{ opacity: 0.5, display: "block", lineHeight: 1.2 }}>
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.5, display: "block", lineHeight: 1.2 }}
+        >
           Parks, amenities and footfall generators nearby
         </Typography>
       </Box>

@@ -570,7 +570,9 @@ export const BusDashboard = () => {
                       recommendation={selectedRecommendation}
                       onClear={() => setSelectedRecommendation(null)}
                     />
-                    <RecommendationScoreCard recommendation={selectedRecommendation} />
+                    <RecommendationScoreCard
+                      recommendation={selectedRecommendation}
+                    />
                   </Box>
                 )}
                 {selectedRecommendation && routeDetailError && (
