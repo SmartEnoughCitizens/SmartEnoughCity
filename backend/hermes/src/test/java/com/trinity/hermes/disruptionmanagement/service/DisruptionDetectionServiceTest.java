@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.indicators.bus.repository.BusLiveStopTimeUpdateRepository;
+import com.trinity.hermes.indicators.bus.repository.BusRouteRepository;
 import com.trinity.hermes.indicators.bus.repository.BusStopRepository;
 import com.trinity.hermes.indicators.car.repository.HighTrafficPointsRepository;
 import com.trinity.hermes.indicators.train.entity.TrainStation;
@@ -39,6 +40,7 @@ import org.mockito.quality.Strictness;
 class DisruptionDetectionServiceTest {
 
   @Mock private BusLiveStopTimeUpdateRepository busLiveStopTimeUpdateRepository;
+  @Mock private BusRouteRepository busRouteRepository;
   @Mock private BusStopRepository busStopRepository;
   @Mock private HighTrafficPointsRepository highTrafficPointsRepository;
   @Mock private DisruptionRepository disruptionRepository;
@@ -61,6 +63,7 @@ class DisruptionDetectionServiceTest {
     when(trainStationDataRepository.findLatestPerStationTrain(
             anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of());
+    when(busRouteRepository.findAll()).thenReturn(List.of());
     when(tramLuasForecastRepository.findAll()).thenReturn(List.of());
     when(tramStopRepository.findAll()).thenReturn(List.of());
     when(busStopRepository.findRouteShortNamesNear(anyDouble(), anyDouble(), anyInt()))

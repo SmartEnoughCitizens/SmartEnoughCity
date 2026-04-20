@@ -107,14 +107,7 @@ public class AlternativeTransportService {
       case "bus" -> "Bus stop: " + r.stopName() + " (" + r.distanceM() + "m walk)";
       case "rail" -> "Irish Rail station: " + r.stopName() + " (" + r.distanceM() + "m walk)";
       case "tram" -> "Luas stop: " + r.stopName() + " (" + r.distanceM() + "m walk)";
-      case "bike" ->
-          "DublinBikes: "
-              + r.stopName()
-              + " — "
-              + (r.availableBikes() != null ? r.availableBikes() : 0)
-              + " bikes available ("
-              + r.distanceM()
-              + "m walk)";
+      case "bike" -> "DublinBikes: " + r.stopName() + " (" + r.distanceM() + "m walk)";
       default -> r.stopName() + " (" + r.distanceM() + "m walk)";
     };
   }

@@ -6,6 +6,7 @@ import com.trinity.hermes.disruptionmanagement.entity.Disruption;
 import com.trinity.hermes.disruptionmanagement.facade.DisruptionFacade;
 import com.trinity.hermes.disruptionmanagement.repository.DisruptionRepository;
 import com.trinity.hermes.indicators.bus.repository.BusLiveStopTimeUpdateRepository;
+import com.trinity.hermes.indicators.bus.repository.BusRouteRepository;
 import com.trinity.hermes.indicators.bus.repository.BusStopRepository;
 import com.trinity.hermes.indicators.car.repository.HighTrafficPointsRepository;
 import com.trinity.hermes.indicators.train.repository.TrainStationDataRepository;
@@ -73,6 +74,7 @@ public class DisruptionDetectionService {
   private static final int TRAM_DISRUPTION_THRESHOLD_MINS = 10;
 
   private final BusLiveStopTimeUpdateRepository busLiveStopTimeUpdateRepository;
+  private final BusRouteRepository busRouteRepository;
   private final BusStopRepository busStopRepository;
   private final HighTrafficPointsRepository highTrafficPointsRepository;
   private final DisruptionRepository disruptionRepository;
@@ -142,6 +144,11 @@ public class DisruptionDetectionService {
                 Constants.DUBLIN_LON_MAX);
       }
 
+      // Build a route_id → short_name lookup once per cycle (cheap: ~150 routes)
+      Map<String, String> routeShortNames =
+          busRouteRepository.findAll().stream()
+              .collect(Collectors.toMap(r -> r.getId(), r -> r.getShortName(), (a, b) -> a));
+
       // Group rows by stop_id so one disruption is created per stop (all affected routes combined)
       Map<String, List<Object[]>> byStop = new LinkedHashMap<>();
       for (Object[] row : rows) {
@@ -159,6 +166,7 @@ public class DisruptionDetectionService {
             stopRows.stream()
                 .map(r -> r[0] != null ? r[0].toString() : null)
                 .filter(Objects::nonNull)
+                .map(id -> routeShortNames.getOrDefault(id, id))
                 .distinct()
                 .sorted()
                 .collect(Collectors.toList());
