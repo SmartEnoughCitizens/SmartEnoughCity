@@ -153,6 +153,69 @@ export const NewStopRecommendationsList = ({
   );
 };
 
+export const RecommendationScoreCard = ({
+  recommendation,
+}: {
+  recommendation: BusNewStopRecommendation;
+}) => (
+  <Box
+    sx={{
+      mt: 1,
+      mb: 1,
+      p: "8px 10px",
+      borderRadius: 1,
+      bgcolor: "action.hover",
+      fontSize: "0.75rem",
+    }}
+  >
+    <Typography variant="caption" sx={{ opacity: 0.6, display: "block", mb: 0.5 }}>
+      Score breakdown
+    </Typography>
+    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+      <Box>
+        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+          Population density
+        </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.5, display: "block", lineHeight: 1.2 }}>
+          Nearby residents without close stops
+        </Typography>
+      </Box>
+      <Typography variant="caption" sx={{ fontWeight: 600, ml: 1 }}>
+        {recommendation.populationScore.toFixed(2)}
+      </Typography>
+    </Box>
+    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+      <Box>
+        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+          Public space proximity
+        </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.5, display: "block", lineHeight: 1.2 }}>
+          Parks, amenities and footfall generators nearby
+        </Typography>
+      </Box>
+      <Typography variant="caption" sx={{ fontWeight: 600, ml: 1 }}>
+        {recommendation.publicSpaceScore.toFixed(2)}
+      </Typography>
+    </Box>
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        pt: 0.5,
+        borderTop: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+        Combined score
+      </Typography>
+      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+        {recommendation.combinedScore.toFixed(2)}
+      </Typography>
+    </Box>
+  </Box>
+);
+
 export const SelectedRecommendationChip = ({
   recommendation,
   onClear,

@@ -60,6 +60,7 @@ import {
 import { DelayLeaderboard } from "@/components/bus/DelayLeaderboard";
 import {
   NewStopRecommendationsList,
+  RecommendationScoreCard,
   SelectedRecommendationChip,
 } from "@/components/bus/NewStopRecommendationsList";
 import type { BusNewStopRecommendation } from "@/types";
@@ -569,6 +570,7 @@ export const BusDashboard = () => {
                       recommendation={selectedRecommendation}
                       onClear={() => setSelectedRecommendation(null)}
                     />
+                    <RecommendationScoreCard recommendation={selectedRecommendation} />
                   </Box>
                 )}
                 {selectedRecommendation && routeDetailError && (
