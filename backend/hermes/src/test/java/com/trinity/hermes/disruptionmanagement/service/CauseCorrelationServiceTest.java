@@ -84,7 +84,9 @@ class CauseCorrelationServiceTest {
 
   @Test
   void correlateCauses_highTraffic_addsCongestionCauseWithMediumConfidence() {
-    Object[] trafficRow = {"site_1", 53.3, -6.2, 2000L}; // [site_id, lat, lon, max_volume]
+    Object[] trafficRow = {
+      "site_1", 53.340, -6.228, 2000L
+    }; // [site_id, lat, lon, max_volume] — ~0.5 km from DISRUPTION_LAT/LON, within 2 km radius
     when(eventsRepository.findUpcomingEventsAtLargeVenues(anyInt(), any())).thenReturn(List.of());
     when(highTrafficPointsRepository.findPeakTrafficSitesFromMv())
         .thenReturn(List.<Object[]>of(trafficRow));
@@ -175,7 +177,9 @@ class CauseCorrelationServiceTest {
   void correlateCauses_allCausesPresent_returnsThreeCauses() {
     Events event = largeEventAt("3Arena", 13000);
 
-    Object[] trafficRow = {"site_1", 53.3, -6.2, 2000L}; // [site_id, lat, lon, max_volume]
+    Object[] trafficRow = {
+      "site_1", 53.340, -6.228, 2000L
+    }; // [site_id, lat, lon, max_volume] — within 2 km radius of disruption
 
     Disruption tramDisruption = new Disruption();
     tramDisruption.setId(99L);
@@ -188,7 +192,7 @@ class CauseCorrelationServiceTest {
         .thenReturn(List.<Object[]>of(trafficRow));
     when(disruptionRepository.findAllActiveOrderByDetectedAtDesc())
         .thenReturn(List.of(tramDisruption));
-    when(disruptionRepository.count()).thenReturn(0L);
+    when(disruptionRepository.countByStatus("ACTIVE")).thenReturn(0L);
 
     List<DisruptionCause> causes = service.correlateCauses(disruption);
 
