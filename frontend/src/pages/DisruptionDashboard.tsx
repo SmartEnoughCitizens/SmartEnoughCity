@@ -1188,8 +1188,14 @@ function EventDetailPanel({
                   · {attLevel} impact
                 </Typography>
                 {event.venueCapacity != null && event.venueCapacity > 0 && (
-                  <Typography sx={{ fontSize: "0.7rem", color: "text.disabled" }}>
-                    · {Math.round((event.estimatedAttendance / event.venueCapacity) * 100)}% fill
+                  <Typography
+                    sx={{ fontSize: "0.7rem", color: "text.disabled" }}
+                  >
+                    ·{" "}
+                    {Math.round(
+                      (event.estimatedAttendance / event.venueCapacity) * 100,
+                    )}
+                    % fill
                   </Typography>
                 )}
               </Box>
@@ -1666,78 +1672,104 @@ export const DisruptionDashboard = () => {
       )}
 
       {/* Top-left KPI strip — events mode */}
-      {tabMode === "events" && (() => {
-        const riskCounts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
-        for (const e of dayEvents) {
-          if (e.riskLevel in riskCounts) riskCounts[e.riskLevel]++;
-        }
-        const typeCounts: Record<string, number> = {};
-        for (const e of dayEvents) typeCounts[e.eventType] = (typeCounts[e.eventType] ?? 0) + 1;
-        return (
-          <Box
-            sx={{
-              position: "absolute",
-              top: GAP,
-              left: GAP,
-              zIndex: 1000,
-              display: "flex",
-              gap: 0.75,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
+      {tabMode === "events" &&
+        (() => {
+          const riskCounts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+          for (const e of dayEvents) {
+            if (e.riskLevel in riskCounts) riskCounts[e.riskLevel]++;
+          }
+          const typeCounts: Record<string, number> = {};
+          for (const e of dayEvents)
+            typeCounts[e.eventType] = (typeCounts[e.eventType] ?? 0) + 1;
+          return (
             <Box
               sx={{
-                px: 1.5,
-                py: 0.75,
-                borderRadius: 2,
-                bgcolor: (t) =>
-                  t.palette.mode === "dark"
-                    ? "rgba(30,30,30,0.88)"
-                    : "rgba(255,255,255,0.9)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(0,0,0,0.1)",
-                textAlign: "center",
-                minWidth: 52,
+                position: "absolute",
+                top: GAP,
+                left: GAP,
+                zIndex: 1000,
+                display: "flex",
+                gap: 0.75,
+                flexWrap: "wrap",
+                alignItems: "center",
               }}
             >
-              <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: "#6B7280", lineHeight: 1 }}>
-                {dayEvents.length}
-              </Typography>
-              <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}>
-                Events
-              </Typography>
-            </Box>
-            {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const)
-              .filter((r) => riskCounts[r] > 0)
-              .map((r) => (
-                <Box
-                  key={r}
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: 2,
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark"
+                      ? "rgba(30,30,30,0.88)"
+                      : "rgba(255,255,255,0.9)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(0,0,0,0.1)",
+                  textAlign: "center",
+                  minWidth: 52,
+                }}
+              >
+                <Typography
                   sx={{
-                    px: 1.5,
-                    py: 0.75,
-                    borderRadius: 2,
-                    bgcolor: (t) =>
-                      t.palette.mode === "dark"
-                        ? "rgba(30,30,30,0.88)"
-                        : "rgba(255,255,255,0.9)",
-                    backdropFilter: "blur(10px)",
-                    border: `1px solid ${SEVERITY_COLORS[r]}33`,
-                    textAlign: "center",
-                    minWidth: 52,
+                    fontSize: "1.1rem",
+                    fontWeight: 800,
+                    color: "#6B7280",
+                    lineHeight: 1,
                   }}
                 >
-                  <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: SEVERITY_COLORS[r], lineHeight: 1 }}>
-                    {riskCounts[r]}
-                  </Typography>
-                  <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}>
-                    {r === "CRITICAL" ? "Crit" : r.charAt(0) + r.slice(1).toLowerCase()}
-                  </Typography>
-                </Box>
-              ))}
-          </Box>
-        );
-      })()}
+                  {dayEvents.length}
+                </Typography>
+                <Typography
+                  sx={{ fontSize: "0.6rem", color: "text.secondary", mt: 0.1 }}
+                >
+                  Events
+                </Typography>
+              </Box>
+              {(["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const)
+                .filter((r) => riskCounts[r] > 0)
+                .map((r) => (
+                  <Box
+                    key={r}
+                    sx={{
+                      px: 1.5,
+                      py: 0.75,
+                      borderRadius: 2,
+                      bgcolor: (t) =>
+                        t.palette.mode === "dark"
+                          ? "rgba(30,30,30,0.88)"
+                          : "rgba(255,255,255,0.9)",
+                      backdropFilter: "blur(10px)",
+                      border: `1px solid ${SEVERITY_COLORS[r]}33`,
+                      textAlign: "center",
+                      minWidth: 52,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: "1.1rem",
+                        fontWeight: 800,
+                        color: SEVERITY_COLORS[r],
+                        lineHeight: 1,
+                      }}
+                    >
+                      {riskCounts[r]}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: "0.6rem",
+                        color: "text.secondary",
+                        mt: 0.1,
+                      }}
+                    >
+                      {r === "CRITICAL"
+                        ? "Crit"
+                        : r.charAt(0) + r.slice(1).toLowerCase()}
+                    </Typography>
+                  </Box>
+                ))}
+            </Box>
+          );
+        })()}
 
       {/* Top-left KPI strip — disruptions mode only */}
       {tabMode === "disruptions" && (

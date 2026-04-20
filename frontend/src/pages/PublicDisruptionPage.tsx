@@ -551,44 +551,45 @@ export const PublicDisruptionPage = () => {
                       (KNOWN_ORDER.includes(b) ? KNOWN_ORDER.indexOf(b) : 99),
                   );
                   return seenModes.map((mode) => {
-                  const group = alternatives.filter(
-                    (a) => (a.mode?.toLowerCase() ?? "other") === mode,
-                  );
-                  if (group.length === 0) return null;
-                  const color = modeColor(mode);
-                  return (
-                    <Box key={mode} sx={{ mb: 1 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.75,
-                          px: 1,
-                          mb: 0.25,
-                        }}
-                      >
-                        <Box sx={{ color, display: "flex" }}>
-                          {modeIcon(mode)}
-                        </Box>
-                        <Typography
+                    const group = alternatives.filter(
+                      (a) => (a.mode?.toLowerCase() ?? "other") === mode,
+                    );
+                    if (group.length === 0) return null;
+                    const color = modeColor(mode);
+                    return (
+                      <Box key={mode} sx={{ mb: 1 }}>
+                        <Box
                           sx={{
-                            fontSize: "0.72rem",
-                            fontWeight: 700,
-                            color,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.6,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                            px: 1,
+                            mb: 0.25,
                           }}
                         >
-                          {modeLabels[mode] ?? mode.charAt(0).toUpperCase() + mode.slice(1)}
-                        </Typography>
+                          <Box sx={{ color, display: "flex" }}>
+                            {modeIcon(mode)}
+                          </Box>
+                          <Typography
+                            sx={{
+                              fontSize: "0.72rem",
+                              fontWeight: 700,
+                              color,
+                              textTransform: "uppercase",
+                              letterSpacing: 0.6,
+                            }}
+                          >
+                            {modeLabels[mode] ??
+                              mode.charAt(0).toUpperCase() + mode.slice(1)}
+                          </Typography>
+                        </Box>
+                        <Stack spacing={0}>
+                          {group.map((a) => (
+                            <AlternativeRow key={a.id} alt={a} />
+                          ))}
+                        </Stack>
                       </Box>
-                      <Stack spacing={0}>
-                        {group.map((a) => (
-                          <AlternativeRow key={a.id} alt={a} />
-                        ))}
-                      </Stack>
-                    </Box>
-                  );
+                    );
                   });
                 })()}
               </Box>
