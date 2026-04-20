@@ -553,7 +553,10 @@ function DaySelector({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   function scroll(dir: "left" | "right") {
-    scrollRef.current?.scrollBy({ left: dir === "right" ? 120 : -120, behavior: "smooth" });
+    scrollRef.current?.scrollBy({
+      left: dir === "right" ? 120 : -120,
+      behavior: "smooth",
+    });
   }
 
   return (
@@ -1211,11 +1214,20 @@ function EventDetailPanel({
                 const mc = ALT_MODE_COLORS[mode] ?? "#6B7280";
                 return (
                   <Box key={mode}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.5 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.75,
+                        mb: 0.5,
+                      }}
+                    >
                       <Box sx={{ color: mc, display: "flex" }}>
                         {altModeIcon(mode, 14)}
                       </Box>
-                      <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: mc }}>
+                      <Typography
+                        sx={{ fontSize: "0.68rem", fontWeight: 700, color: mc }}
+                      >
                         {modeLabelMap[mode] ?? mode}
                       </Typography>
                     </Box>
@@ -1236,12 +1248,20 @@ function EventDetailPanel({
                         }}
                       >
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography noWrap sx={{ fontSize: "0.78rem", fontWeight: 550 }}>
+                          <Typography
+                            noWrap
+                            sx={{ fontSize: "0.78rem", fontWeight: 550 }}
+                          >
                             {a.stopName ?? a.description}
                           </Typography>
-                          <Typography sx={{ fontSize: "0.66rem", color: "text.disabled" }} noWrap>
+                          <Typography
+                            sx={{ fontSize: "0.66rem", color: "text.disabled" }}
+                            noWrap
+                          >
                             {a.description}
-                            {a.availabilityCount == null ? "" : ` · ${a.availabilityCount} available`}
+                            {a.availabilityCount == null
+                              ? ""
+                              : ` · ${a.availabilityCount} available`}
                           </Typography>
                         </Box>
                         {a.googleMapsWalkingUrl && (
@@ -1315,7 +1335,9 @@ function EventDetailPanel({
                       a.href = URL.createObjectURL(blob);
                       a.download = `event-${event.id}-qr.png`;
                       a.click();
-                    } catch { /* ignore */ }
+                    } catch {
+                      /* ignore */
+                    }
                   }}
                 >
                   <QrCode2Icon sx={{ fontSize: 16 }} />
@@ -1472,12 +1494,12 @@ export const DisruptionDashboard = () => {
     // Open window synchronously before any await — browsers block popups opened after async gaps
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write("<p style='font-family:Arial,sans-serif;padding:24px'>Loading day plan…</p>");
+    win.document.write(
+      "<p style='font-family:Arial,sans-serif;padding:24px'>Loading day plan…</p>",
+    );
 
     const allowed = modeFilterForRole();
-    const plan = await dashboardApi
-      .getDayPlan(selectedDay)
-      .catch(() => null);
+    const plan = await dashboardApi.getDayPlan(selectedDay).catch(() => null);
 
     const RISK_COLOR: Record<string, string> = {
       CRITICAL: "#7C3AED",
@@ -1801,7 +1823,9 @@ export const DisruptionDashboard = () => {
                           color: active ? "text.primary" : "text.secondary",
                         }}
                       >
-                        {mode === "disruptions" ? "Disruptions" : "Event Planning"}
+                        {mode === "disruptions"
+                          ? "Disruptions"
+                          : "Event Planning"}
                         {mode === "disruptions" && disruptions.length > 0 && (
                           <Box
                             component="span"
@@ -2021,16 +2045,23 @@ export const DisruptionDashboard = () => {
               flexShrink: 0,
               display: "flex",
               alignItems: "center",
-              borderBottom: modeImpactOpen ? "1px solid rgba(0,0,0,0.07)" : "none",
+              borderBottom: modeImpactOpen
+                ? "1px solid rgba(0,0,0,0.07)"
+                : "none",
             }}
           >
             <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, flex: 1 }}>
               Mode Impact
             </Typography>
-            <IconButton size="small" onClick={() => setModeImpactOpen((o) => !o)}>
-              {modeImpactOpen
-                ? <ExpandMoreIcon sx={{ fontSize: 16 }} />
-                : <ExpandLessIcon sx={{ fontSize: 16 }} />}
+            <IconButton
+              size="small"
+              onClick={() => setModeImpactOpen((o) => !o)}
+            >
+              {modeImpactOpen ? (
+                <ExpandMoreIcon sx={{ fontSize: 16 }} />
+              ) : (
+                <ExpandLessIcon sx={{ fontSize: 16 }} />
+              )}
             </IconButton>
           </Box>
           {modeImpactOpen && (

@@ -146,7 +146,11 @@ export const PublicEventPage = () => {
   const { id } = useParams<{ id: string }>();
   const eventId = Number(id);
 
-  const { data: event, isLoading, isError } = useQuery({
+  const {
+    data: event,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["public-event", eventId],
     queryFn: () => dashboardApi.getPublicEvent(eventId),
     staleTime: 60_000,
@@ -232,9 +236,7 @@ export const PublicEventPage = () => {
             <AccessTimeIcon sx={{ fontSize: 16, opacity: 0.85 }} />
             <Typography sx={{ fontSize: "0.875rem", opacity: 0.9 }}>
               {fmtEventDate(event.eventDate)}
-              {event.startTime
-                ? ` · ${fmtEventTime(event.startTime)}`
-                : ""}
+              {event.startTime ? ` · ${fmtEventTime(event.startTime)}` : ""}
               {event.endTime ? ` – ${fmtEventTime(event.endTime)}` : ""}
             </Typography>
           </Box>
@@ -280,7 +282,10 @@ export const PublicEventPage = () => {
                 attribution="&copy; OpenStreetMap contributors"
               />
               {/* Venue marker — red dot */}
-              <Marker position={[event.latitude, event.longitude]} icon={makeVenueIcon()}>
+              <Marker
+                position={[event.latitude, event.longitude]}
+                icon={makeVenueIcon()}
+              >
                 <Popup>
                   <strong>{event.eventName}</strong>
                   <br />
@@ -291,13 +296,38 @@ export const PublicEventPage = () => {
               {(event.nearbyTransport ?? [])
                 .filter((t) => t.lat != null && t.lon != null)
                 .map((t, i) => (
-                  <Marker key={i} position={[t.lat!, t.lon!]} icon={makeStopIcon(t.mode ?? "")}>
+                  <Marker
+                    key={i}
+                    position={[t.lat!, t.lon!]}
+                    icon={makeStopIcon(t.mode ?? "")}
+                  >
                     <Popup>
-                      <strong>{modeLabel(t.mode ?? "")} · {t.stopName}</strong>
-                      {t.description && <><br />{t.description}</>}
-                      {t.availabilityCount != null && <><br />{t.availabilityCount} bikes available</>}
+                      <strong>
+                        {modeLabel(t.mode ?? "")} · {t.stopName}
+                      </strong>
+                      {t.description && (
+                        <>
+                          <br />
+                          {t.description}
+                        </>
+                      )}
+                      {t.availabilityCount != null && (
+                        <>
+                          <br />
+                          {t.availabilityCount} bikes available
+                        </>
+                      )}
                       {t.googleMapsWalkingUrl && (
-                        <><br /><a href={t.googleMapsWalkingUrl} target="_blank" rel="noopener noreferrer">Walk here ↗</a></>
+                        <>
+                          <br />
+                          <a
+                            href={t.googleMapsWalkingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Walk here ↗
+                          </a>
+                        </>
                       )}
                     </Popup>
                   </Marker>
@@ -312,7 +342,13 @@ export const PublicEventPage = () => {
           <Typography
             variant="subtitle2"
             fontWeight={700}
-            sx={{ mb: 1.5, color: "text.secondary", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.8 }}
+            sx={{
+              mb: 1.5,
+              color: "text.secondary",
+              textTransform: "uppercase",
+              fontSize: "0.7rem",
+              letterSpacing: 0.8,
+            }}
           >
             Event info
           </Typography>
@@ -333,7 +369,8 @@ export const PublicEventPage = () => {
               <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                 <PeopleIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                 <Typography variant="body2">
-                  {event.estimatedAttendance.toLocaleString()} expected attendees
+                  {event.estimatedAttendance.toLocaleString()} expected
+                  attendees
                 </Typography>
               </Box>
             )}
@@ -345,7 +382,13 @@ export const PublicEventPage = () => {
           <Typography
             variant="subtitle2"
             fontWeight={700}
-            sx={{ mb: 1.5, color: "text.secondary", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 0.8 }}
+            sx={{
+              mb: 1.5,
+              color: "text.secondary",
+              textTransform: "uppercase",
+              fontSize: "0.7rem",
+              letterSpacing: 0.8,
+            }}
           >
             Nearby transport
           </Typography>
@@ -361,7 +404,14 @@ export const PublicEventPage = () => {
                 const stops = grouped[mode];
                 return (
                   <Box key={mode}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 1,
+                      }}
+                    >
                       <Box sx={{ color: mc, display: "flex" }}>
                         {altModeIcon(mode, 18)}
                       </Box>
@@ -393,7 +443,10 @@ export const PublicEventPage = () => {
                               {t.stopName ?? t.description}
                             </Typography>
                             <Typography
-                              sx={{ fontSize: "0.7rem", color: "text.disabled" }}
+                              sx={{
+                                fontSize: "0.7rem",
+                                color: "text.disabled",
+                              }}
                               noWrap
                             >
                               {t.description}
