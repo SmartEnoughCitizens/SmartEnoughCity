@@ -156,17 +156,29 @@ public class CauseCorrelationService {
     } catch (Exception e) {
       traffic = highTrafficPointsRepository.findPeakTrafficSitesWithLocation();
     }
-    boolean highCongestion =
-        traffic.stream()
-            .filter(r -> r.length >= 4)
-            .anyMatch(r -> r[3] != null && ((Number) r[3]).longValue() >= HIGH_TRAFFIC_THRESHOLD);
 
-    if (highCongestion) {
+    // Only flag congestion if a peak site is physically near this disruption
+    boolean highCongestionNearby =
+        disruption.getLatitude() != null
+            && disruption.getLongitude() != null
+            && traffic.stream()
+                .filter(r -> r.length >= 4 && r[1] != null && r[2] != null && r[3] != null)
+                .filter(r -> ((Number) r[3]).longValue() >= HIGH_TRAFFIC_THRESHOLD)
+                .anyMatch(
+                    r ->
+                        haversineKm(
+                                disruption.getLatitude(),
+                                disruption.getLongitude(),
+                                ((Number) r[1]).doubleValue(),
+                                ((Number) r[2]).doubleValue())
+                            <= EVENT_CAUSE_RADIUS_KM);
+
+    if (highCongestionNearby) {
       causes.add(
           DisruptionCause.builder()
               .disruption(disruption)
               .causeType("CONGESTION")
-              .causeDescription("High traffic congestion detected on Dublin road network")
+              .causeDescription("High traffic congestion detected near disruption location")
               .confidence("MEDIUM")
               .build());
     }
@@ -213,7 +225,7 @@ public class CauseCorrelationService {
                         + String.join(", ", modes)
                         + ". Possible network-wide pressure.");
               }
-              long activeCount = disruptionRepository.count();
+              long activeCount = disruptionRepository.countByStatus("ACTIVE");
               if (activeCount >= 100) {
                 c.setConfidence("HIGH");
                 c.setCauseDescription(

@@ -13,6 +13,7 @@ import com.trinity.hermes.usermanagement.service.UserManagementService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -172,9 +173,11 @@ public class DisruptionFacade {
       return null;
     }
 
-    // Something meaningful changed — build solution and re-notify
+    // Something meaningful changed — clear stale causes/alternatives before re-processing
     existing.setNotificationSent(false);
     disruptionRepository.save(existing);
+    disruptionCauseRepository.deleteByDisruptionId(existing.getId());
+    disruptionAlternativeRepository.deleteByDisruptionId(existing.getId());
 
     DisruptionSolution solution = processDisruption(existing);
     try {
@@ -204,7 +207,7 @@ public class DisruptionFacade {
    */
   private void sendNotificationForRoles(DisruptionSolution solution, Disruption disruption) {
     List<String> roles = getRolesToNotify(disruption);
-    List<String> userIds = new ArrayList<>();
+    LinkedHashSet<String> userIds = new LinkedHashSet<>();
     for (String role : roles) {
       try {
         userManagementService.getUsersByRole(role).stream()
@@ -214,7 +217,7 @@ public class DisruptionFacade {
         log.warn("Failed to fetch users for role {}: {}", role, e.getMessage());
       }
     }
-    solution.setAffectedUserGroups(userIds);
+    solution.setAffectedUserGroups(new ArrayList<>(userIds));
     notificationFacade.sendDisruptionNotification(solution);
   }
 

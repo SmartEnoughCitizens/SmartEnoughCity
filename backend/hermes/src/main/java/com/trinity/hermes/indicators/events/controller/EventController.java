@@ -5,8 +5,10 @@ import com.trinity.hermes.indicators.events.dto.EventDTO;
 import com.trinity.hermes.indicators.events.service.DayPlanService;
 import com.trinity.hermes.indicators.events.service.EventsService;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,7 +49,12 @@ public class EventController {
    */
   @GetMapping("/day-plan")
   public ResponseEntity<DayPlanDTO> getDayPlan(@RequestParam String date) {
-    LocalDate localDate = LocalDate.parse(date);
+    LocalDate localDate;
+    try {
+      localDate = LocalDate.parse(date);
+    } catch (DateTimeParseException e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
     return ResponseEntity.ok(dayPlanService.getDayPlan(localDate));
   }
 }

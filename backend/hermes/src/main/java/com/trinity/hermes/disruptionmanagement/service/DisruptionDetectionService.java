@@ -146,7 +146,8 @@ public class DisruptionDetectionService {
       Map<String, List<Object[]>> byStop = new LinkedHashMap<>();
       for (Object[] row : rows) {
         if (row.length < 6) continue;
-        String stopId = row[1] != null ? row[1].toString() : "unknown";
+        if (row[1] == null) continue; // skip rows without a stable stop_id to avoid bogus merges
+        String stopId = row[1].toString();
         byStop.computeIfAbsent(stopId, k -> new ArrayList<>()).add(row);
       }
 

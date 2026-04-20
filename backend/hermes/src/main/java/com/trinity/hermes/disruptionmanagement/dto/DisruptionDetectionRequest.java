@@ -52,6 +52,7 @@ public class DisruptionDetectionRequest {
       Double latitude,
       Double longitude,
       String affectedArea,
+      String stopId,
       List<String> affectedTransportModes,
       List<String> affectedRoutes,
       List<String> affectedStops,
@@ -72,6 +73,7 @@ public class DisruptionDetectionRequest {
     this.latitude = latitude;
     this.longitude = longitude;
     this.affectedArea = affectedArea;
+    this.stopId = stopId;
 
     this.affectedTransportModes = copyList(affectedTransportModes);
     this.affectedRoutes = copyList(affectedRoutes);

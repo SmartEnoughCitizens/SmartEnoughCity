@@ -49,6 +49,9 @@ public interface DisruptionRepository extends JpaRepository<Disruption, Long> {
     return findAllActiveOrderByDetectedAtDesc(PageRequest.of(0, 1000));
   }
 
+  /** Count disruptions by status (e.g. count only ACTIVE rows). */
+  long countByStatus(String status);
+
   /** Find ACTIVE disruptions whose estimatedEndTime is in the past (for auto-expiry) */
   @Query(
       "SELECT d FROM Disruption d WHERE d.status = 'ACTIVE'"
